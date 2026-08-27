@@ -4,12 +4,17 @@ extends RefCounted
 var action_type: String = ""
 var meld_type: String = ""
 var cards: Array[CardData] = []
+var added_cards: Array[CardData] = []
 var old_meld_score: int = 0
 var card_value_sum: int = 0
+var added_card_value_sum: int = 0
 var base_score: int = 0
 var local_mult: int = 1
 var flat_adjustment_points: int = 0
 var retrigger_count: int = 0
+var base_extension_score: int = 0
+var drink_bonus_points: int = 0
+var drink_id: String = DrinkCatalog.NONE
 var theoretical_score: int = 0
 var final_points: int = 0
 var phase: int = 1

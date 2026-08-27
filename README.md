@@ -2,21 +2,29 @@
 
 A Godot 4.7.1 vertical prototype for one solo-derived Phỏm Deal. The project uses the complete card-face set in `res://cards/` and separates testable rules from presentation.
 
+The official presentation uses the generated Vietnamese sidewalk-table plate at `res://assets/environment/sidewalk_table.png`, with `DFVN Pexel Grotesk` as the global game font. Cards and HUD elements remain live Godot controls layered over the environment.
+
+The project opens on a dedicated title menu over the fixed sidewalk-table background. Choosing **CHƠI** leaves that environment stationary while the menu exits and the match UI slides in from the right. The match layout shows the current Drink and reserves an expandable, scrollable Relics grid initialized with four presentation-only slots.
+
 ## Run
 
 Open `project.godot` in Godot 4.7.1 Stable and run the project (`F6`/`F5`), or launch from a console:
 
 ```powershell
-Godot_v4.7.1-stable_win64_console.exe --path G:\PHOM
+Godot_v4.7.1-stable_win64_console.exe --path C:\Stuffs\TRADATALA
 ```
 
 ## Controls
 
 - Click cards to select/deselect them; selected cards lift and glow.
+- `Enter` / `Space`: start from the title menu.
 - `H`: HẠ a legal new Set or Run.
 - Click a table Meld to target it, then `E`: EXTEND it with the selected legal card(s).
-- `D`: DISCARD exactly one selected loose card and end the turn.
+- `D`: DISCARD exactly one selected loose card and end the turn. Discard #4 opens LAST CALL instead of settling immediately.
+- `C`: CHỐT the Phase from LAST CALL after any final HẠ / EXTEND actions.
 - `S`: cycle rank/suit hand sorting.
+- `G`: select the highest-scoring legal new Meld; if none exists, select the best legal table extension.
+- Each loose card carries a tiny top-right meld badge: `✓` means it already belongs to a ready Phỏm; otherwise the badge shows that card's best exact completion percentage. Hover for the target and missing-card calculation.
 - `K` / `X`: KEEP / DUMP at the Phase 1 settlement.
 - `Esc`: clear card and Meld selection.
 - `R`: start another Deal after Phase 2 while preserving the wallet.
@@ -28,22 +36,39 @@ Buttons remain disabled until their action is legal. The footer explains the cur
 - `scripts/cards/` — card identity, rank, independently mutable scoring value, enhancements, and asset lookup.
 - `scripts/deck/` — standard-deck generation, deterministic seeded shuffle, draw, discard, and refill.
 - `scripts/melds/` — Set/Run authority, extension legality, and persistent table Meld state.
-- `scripts/scoring/` — reusable scoring contexts, local multiplier pipeline, extension deltas, and deadwood.
+- `scripts/scoring/` — reusable scoring contexts, Drink catalog/effects, extension deltas, settlement deadwood, and controlled modifier hooks.
 - `scripts/economy/` — 64-bit integer VND wallet and point conversion.
-- `scripts/gameplay/` — the authoritative two-Phase Deal state machine.
+- `scripts/gameplay/` — the authoritative two-Phase Deal state machine, read-only hand advisor, and exact meld-probability analysis.
 - `scripts/ui/` — card fan, Meld views, café-table composition, staged equations, wallet tweening, card travel, banners, and settlements.
 - `tests/` — pure-rule suite plus a runtime scene smoke.
 
 ## Implemented rules
 
-The prototype includes a 52-card deck, 9-card resting/10-card active refill behavior, voluntary HẠ, Sets, A-low Runs, persistent Melds, delta-paid extensions, four discards per Phase, Móm, KEEP/DUMP, Phase 2 deadwood, and integer VND scoring at ₫1,000 per point. A Meld commit must leave one loose card for the mandatory discard.
+The prototype now follows the two-Phase Deal contract: each Phase has four mandatory discards, a player-confirmed LAST CALL window, and its own settlement. Table Phỏm persist across Phases; Phase 1 then offers KEEP or DUMP, with DUMP refilling toward ten.
 
-Drinks, Relics, Xăm, bosses, events, shops, campaign progression, multiplayer, AI opponents, audio, and 3D presentation are intentionally not implemented. The neutral `ScoringContext` and modifier registration seam are the integration points for later effects.
+- Deadwood is calculated once per Phase as the simple sum of remaining loose-card values. Phase Net is `Gross after Ù − Deadwood`.
+- MÓM is checked independently per Phase from new Phỏm count. Strikes are banked and resolved after Phase 2 without altering Deal money.
+- Active-turn HẠ / EXTEND must preserve one mandatory discard card; LAST CALL removes that restriction and forbids further discards/refills.
+- Ù is Phase-scoped: a ten-card turn that commits exactly nine cards and discards the last doubles that Phase's Gross, not Deadwood.
+- Ù Khan uses the prototype near-meld definition, pays `hand value × 9`, replaces the hand, and checks the refill again.
+- Sets accept any number of same-rank physical cards; Runs require one suit, unique consecutive ranks, A low, and no wrap.
+- All eight mandatory discards remain visible as card faces with Phase and discard-number provenance.
+- Each card's badge summarizes its best canonical three-card Set/Run target. Percentages are exact without-replacement odds for the next refill toward ten, using the known remaining deck; the full target and missing-card calculation stay in the tooltip so probability information does not obstruct the table.
+- Basic Drink scoring is implemented: Trà đá, Nước vối, Nhân trần, and final-resolution Sâm dứa protection. Trà đá is the current free starter. Advanced Caffeine/Energy/Sugar IDs and categories exist without invented formulas.
+- Scoring and resolution expose controlled hooks for new Phỏm, Extensions, settlement, Deadwood, MÓM, Deal resolution, and Ù.
+
+The day/event/shop loop that chooses Drinks twice per day is not present in this vertical prototype, so its schedule and paid progression cannot yet be wired to a real authority. Relic formulas, advanced Drink formulas, Account-layer MÓM punishment, Xăm, bosses, campaign progression, multiplayer, AI opponents, audio, and 3D presentation remain intentionally unimplemented.
 
 ## Verification
 
+Current Godot 4.7.1 checkpoint (2026-08-28):
+
+- Core rules and probability suite: **31 / 31 passed**.
+- Runtime scene smoke: **passed**.
+- Headless editor import and global-class registration: **passed**.
+
 ```powershell
-Godot_v4.7.1-stable_win64_console.exe --headless --path G:\PHOM --script res://tests/run_headless.gd
-Godot_v4.7.1-stable_win64_console.exe --headless --path G:\PHOM --script res://tests/runtime_scene_smoke.gd
+Godot_v4.7.1-stable_win64_console.exe --headless --path C:\Stuffs\TRADATALA --script res://tests/run_headless.gd
+Godot_v4.7.1-stable_win64_console.exe --headless --path C:\Stuffs\TRADATALA --script res://tests/runtime_scene_smoke.gd
 ```
 

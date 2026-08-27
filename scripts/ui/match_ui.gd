@@ -2,6 +2,7 @@ class_name MatchUI
 extends Control
 
 const CARD_SIZE := PlayingCardView.CARD_SIZE
+const INITIAL_RELIC_SLOT_COUNT := 4
 
 var deal := DealState.new()
 var selected_card_ids: Dictionary = {}
@@ -11,6 +12,14 @@ var displayed_wallet_vnd: int = 0
 var interaction_locked: bool = false
 var sort_mode: int = 0
 var modal_mode: String = ""
+var game_started: bool = false
+var menu_transitioning: bool = false
+
+var game_layer: Control
+var menu_layer: Control
+var play_button: Button
+var relic_grid: GridContainer
+var drink_name_label: Label
 
 var phase_value: Label
 var turn_value: Label
@@ -20,6 +29,7 @@ var phase_clock: Label
 var draw_count: Label
 var discard_count_label: Label
 var discard_texture: TextureRect
+var discard_history_row: HBoxContainer
 var hand_count: Label
 var selection_label: Label
 var status_label: Label
@@ -32,6 +42,8 @@ var discard_pile_visual: Control
 var ha_button: Button
 var extend_button: Button
 var discard_button: Button
+var settle_button: Button
+var hint_button: Button
 var sort_button: Button
 var particle_layer: Control
 
@@ -56,78 +68,221 @@ var banner_label: Label
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	theme = PresentationTheme.create_game_theme()
 	custom_minimum_size = Vector2(960, 620)
+	interaction_locked = true
 	_build_interface()
 	get_viewport().size_changed.connect(_on_viewport_size_changed)
 	var result := deal.start_deal(-1, true)
 	displayed_wallet_vnd = deal.wallet.balance_vnd
 	_sync_all(result, true)
-	_show_banner("VÁN MỚI  •  CHỌN BÀI, HẠ PHỎM, RỒI BỎ 1 LÁ")
+	_set_hand_interaction_enabled(false)
+	_park_game_layer()
 
 
 func _build_interface() -> void:
-	var background := CafeTableBackground.new()
+	var background := TextureRect.new()
+	background.name = "SidewalkTableBackground"
+	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	background.texture = load("res://assets/environment/sidewalk_table.png") as Texture2D
+	background.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	background.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	background.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(background)
+
+	game_layer = Control.new()
+	game_layer.name = "GameLayer"
+	game_layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	add_child(game_layer)
 
 	_build_header()
 	_build_table()
 	_build_hand()
+	_build_future_slots()
 	_build_action_dock()
 	_build_effect_layers()
+	_build_main_menu()
+
+
+func _build_main_menu() -> void:
+	menu_layer = Control.new()
+	menu_layer.name = "MainMenu"
+	menu_layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	menu_layer.mouse_filter = Control.MOUSE_FILTER_STOP
+	menu_layer.z_index = 500
+	add_child(menu_layer)
+
+	var shade := ColorRect.new()
+	shade.name = "MenuShade"
+	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	shade.color = Color("#0907048f")
+	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	menu_layer.add_child(shade)
+
+	var panel := PanelContainer.new()
+	panel.name = "MenuPanel"
+	panel.set_anchors_preset(Control.PRESET_CENTER_LEFT)
+	panel.position = Vector2(64, -218)
+	panel.size = Vector2(486, 436)
+	panel.add_theme_stylebox_override("panel", PresentationTheme.panel_style(Color("#17120ff5"), Color("#8d5b30"), 3, 3, 8))
+	menu_layer.add_child(panel)
+
+	var margin := MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 34)
+	margin.add_theme_constant_override("margin_top", 30)
+	margin.add_theme_constant_override("margin_right", 34)
+	margin.add_theme_constant_override("margin_bottom", 28)
+	panel.add_child(margin)
+	var column := VBoxContainer.new()
+	column.add_theme_constant_override("separation", 8)
+	margin.add_child(column)
+
+	var eyebrow := Label.new()
+	eyebrow.text = "BÀN VỈA HÈ SỐ 07"
+	eyebrow.add_theme_font_size_override("font_size", 13)
+	eyebrow.add_theme_color_override("font_color", PresentationTheme.MUTED)
+	column.add_child(eyebrow)
+	var title := Label.new()
+	title.text = "TRADATALA"
+	title.add_theme_font_size_override("font_size", 48)
+	title.add_theme_color_override("font_color", PresentationTheme.GOLD)
+	column.add_child(title)
+	var subtitle := Label.new()
+	subtitle.text = "TRÀ ĐÁ  •  TÁ LẢ  •  TIỀN LẺ"
+	subtitle.add_theme_font_size_override("font_size", 16)
+	subtitle.add_theme_color_override("font_color", PresentationTheme.INK)
+	column.add_child(subtitle)
+	var divider := HSeparator.new()
+	divider.custom_minimum_size.y = 18
+	column.add_child(divider)
+	var pitch := Label.new()
+	pitch.text = "HẠ PHỎM. GIỮ TIỀN.\nĐỪNG ĐỂ CÁI BÀN NHÌN THẤY BẠN MÓM."
+	pitch.add_theme_font_size_override("font_size", 15)
+	pitch.add_theme_color_override("font_color", Color("#e5d5a2"))
+	pitch.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	pitch.custom_minimum_size.y = 68
+	column.add_child(pitch)
+	var spacer := Control.new()
+	spacer.custom_minimum_size.y = 24
+	column.add_child(spacer)
+	play_button = Button.new()
+	play_button.name = "PlayButton"
+	play_button.text = "CHƠI  [ENTER]"
+	play_button.custom_minimum_size = Vector2(0, 58)
+	play_button.add_theme_font_size_override("font_size", 19)
+	PresentationTheme.configure_button(play_button, "gold")
+	play_button.pressed.connect(_on_play_pressed)
+	column.add_child(play_button)
+	var note := Label.new()
+	note.text = "SOLO PHỎM  •  2 GIAI ĐOẠN  •  4 LƯỢT BỎ"
+	note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	note.add_theme_font_size_override("font_size", 10)
+	note.add_theme_color_override("font_color", PresentationTheme.MUTED)
+	column.add_child(note)
+
+	var footer := Label.new()
+	footer.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+	footer.position = Vector2(-432, -42)
+	footer.size = Vector2(400, 24)
+	footer.text = "DFVN PEXEL GROTESK  •  MỘT VÁN BÀI RẤT NGHIÊM TÚC"
+	footer.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	footer.add_theme_font_size_override("font_size", 10)
+	footer.add_theme_color_override("font_color", Color("#c5ad82"))
+	footer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	menu_layer.add_child(footer)
+
+
+func _park_game_layer() -> void:
+	if game_layer == null or game_started or menu_transitioning:
+		return
+	game_layer.position = Vector2(get_viewport_rect().size.x + 80.0, 0)
+
+
+func _on_play_pressed() -> void:
+	if game_started or menu_transitioning:
+		return
+	menu_transitioning = true
+	play_button.disabled = true
+	menu_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var viewport_width := get_viewport_rect().size.x
+	var tween := create_tween().set_parallel(true)
+	tween.set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_OUT)
+	tween.tween_property(game_layer, "position:x", 0.0, 0.72)
+	tween.tween_property(menu_layer, "position:x", -viewport_width * 0.34, 0.62)
+	tween.tween_property(menu_layer, "modulate", Color(1, 1, 1, 0), 0.48)
+	await tween.finished
+	menu_layer.visible = false
+	game_started = true
+	menu_transitioning = false
+	interaction_locked = false
+	_set_hand_interaction_enabled(true)
+	_refresh_actions()
+	_show_banner("VÁN MỚI  •  CHỌN BÀI, HẠ PHỎM, RỒI BỎ 1 LÁ")
 
 
 func _build_header() -> void:
-	var header := Panel.new()
+	var header := Control.new()
 	header.name = "Header"
 	header.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
-	header.offset_left = 18
-	header.offset_top = 17
-	header.offset_right = -18
-	header.offset_bottom = 91
-	header.add_theme_stylebox_override("panel", PresentationTheme.panel_style(Color("#0b201dde"), Color("#315347"), 1, 14, 6))
-	add_child(header)
+	header.offset_left = 16
+	header.offset_top = 14
+	header.offset_right = -16
+	header.offset_bottom = 100
+	game_layer.add_child(header)
 
-	var margin := MarginContainer.new()
-	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	margin.add_theme_constant_override("margin_left", 18)
-	margin.add_theme_constant_override("margin_top", 10)
-	margin.add_theme_constant_override("margin_right", 12)
-	margin.add_theme_constant_override("margin_bottom", 10)
-	header.add_child(margin)
 	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 9)
-	margin.add_child(row)
+	row.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	row.add_theme_constant_override("separation", 10)
+	header.add_child(row)
 
+	var identity_panel := PanelContainer.new()
+	identity_panel.custom_minimum_size = Vector2(318, 86)
+	identity_panel.add_theme_stylebox_override("panel", PresentationTheme.panel_style(Color("#19130ff0"), Color("#8d5b30"), 2, 2, 5))
+	row.add_child(identity_panel)
+	var identity_margin := MarginContainer.new()
+	identity_margin.add_theme_constant_override("margin_left", 16)
+	identity_margin.add_theme_constant_override("margin_top", 8)
+	identity_margin.add_theme_constant_override("margin_right", 16)
+	identity_margin.add_theme_constant_override("margin_bottom", 8)
+	identity_panel.add_child(identity_margin)
 	var identity := VBoxContainer.new()
-	identity.custom_minimum_size = Vector2(330, 0)
-	identity.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	identity.add_theme_constant_override("separation", -2)
-	row.add_child(identity)
+	identity.add_theme_constant_override("separation", -1)
+	identity_margin.add_child(identity)
 	var title := Label.new()
-	title.text = "TRÀ ĐÁ TÁ LẢ"
-	title.add_theme_font_size_override("font_size", 25)
-	title.add_theme_color_override("font_color", PresentationTheme.INK)
+	title.text = "TRADATALA"
+	title.add_theme_font_size_override("font_size", 28)
+	title.add_theme_color_override("font_color", PresentationTheme.GOLD)
 	identity.add_child(title)
 	var subtitle := Label.new()
-	subtitle.text = "SOLO PHỎM  •  MỘT BÀN, HAI PHASE, BỐN LƯỢT"
-	subtitle.add_theme_font_size_override("font_size", 10)
-	subtitle.add_theme_color_override("font_color", PresentationTheme.GOLD)
+	subtitle.text = "BÀN VỈA HÈ SỐ 07  •  SOLO PHỎM"
+	subtitle.add_theme_font_size_override("font_size", 12)
+	subtitle.add_theme_color_override("font_color", PresentationTheme.INK)
 	identity.add_child(subtitle)
+	var rules := Label.new()
+	rules.text = "2 GIAI ĐOẠN  •  4 LƯỢT BỎ"
+	rules.add_theme_font_size_override("font_size", 10)
+	rules.add_theme_color_override("font_color", PresentationTheme.MUTED)
+	identity.add_child(rules)
 
-	phase_value = _add_header_stat(row, "PHASE", 112)
-	turn_value = _add_header_stat(row, "DISCARD CLOCK", 132)
-	earnings_value = _add_header_stat(row, "PHASE EARNINGS", 164)
-	wallet_value = _add_header_stat(row, "VÍ VND", 205, true)
+	var spacer := Control.new()
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(spacer)
+
+	phase_value = _add_header_stat(row, "GIAI ĐOẠN", 108)
+	turn_value = _add_header_stat(row, "LƯỢT BỎ", 112)
+	earnings_value = _add_header_stat(row, "THU NHẬP", 144)
+	wallet_value = _add_header_stat(row, "VÍ CỦA BẠN", 178, true)
 
 
 func _add_header_stat(parent: Container, caption: String, minimum_width: float, emphasize: bool = false) -> Label:
 	var panel := PanelContainer.new()
-	panel.custom_minimum_size = Vector2(minimum_width, 52)
-	panel.add_theme_stylebox_override("panel", PresentationTheme.panel_style(Color("#152f29d9"), Color("#294a40"), 1, 9, 0))
+	panel.custom_minimum_size = Vector2(minimum_width, 72)
+	panel.add_theme_stylebox_override("panel", PresentationTheme.panel_style(Color("#19130ff0"), Color("#8d5b30"), 2, 2, 4))
 	parent.add_child(panel)
 	var margin := MarginContainer.new()
 	margin.add_theme_constant_override("margin_left", 11)
-	margin.add_theme_constant_override("margin_top", 6)
+	margin.add_theme_constant_override("margin_top", 8)
 	margin.add_theme_constant_override("margin_right", 11)
 	margin.add_theme_constant_override("margin_bottom", 5)
 	panel.add_child(margin)
@@ -136,11 +291,11 @@ func _add_header_stat(parent: Container, caption: String, minimum_width: float, 
 	margin.add_child(column)
 	var caption_label := Label.new()
 	caption_label.text = caption
-	caption_label.add_theme_font_size_override("font_size", 9)
+	caption_label.add_theme_font_size_override("font_size", 11)
 	caption_label.add_theme_color_override("font_color", PresentationTheme.MUTED)
 	column.add_child(caption_label)
 	var value := Label.new()
-	value.add_theme_font_size_override("font_size", 19 if emphasize else 16)
+	value.add_theme_font_size_override("font_size", 19 if emphasize else 17)
 	value.add_theme_color_override("font_color", PresentationTheme.GOLD if emphasize else PresentationTheme.INK)
 	value.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	column.add_child(value)
@@ -151,22 +306,23 @@ func _build_table() -> void:
 	var table := Panel.new()
 	table.name = "TableSurface"
 	table.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	table.offset_left = 18
-	table.offset_top = 102
-	table.offset_right = -18
-	table.offset_bottom = -252
-	table.add_theme_stylebox_override("panel", PresentationTheme.panel_style(Color("#0c2924b8"), Color("#386353"), 1, 16, 7))
-	add_child(table)
+	table.offset_left = 72
+	table.offset_top = 108
+	table.offset_right = -72
+	table.offset_bottom = -242
+	table.add_theme_stylebox_override("panel", PresentationTheme.panel_style(Color.TRANSPARENT, Color.TRANSPARENT, 0, 0, 0))
+	game_layer.add_child(table)
 
 	phase_clock = Label.new()
 	phase_clock.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
 	phase_clock.offset_left = 150
-	phase_clock.offset_top = 12
+	phase_clock.offset_top = 8
 	phase_clock.offset_right = -150
-	phase_clock.offset_bottom = 38
+	phase_clock.offset_bottom = 35
 	phase_clock.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	phase_clock.add_theme_font_size_override("font_size", 12)
+	phase_clock.add_theme_font_size_override("font_size", 14)
 	phase_clock.add_theme_color_override("font_color", PresentationTheme.GOLD)
+	phase_clock.add_theme_stylebox_override("normal", PresentationTheme.panel_style(Color("#17120fd9"), Color("#8d5b30"), 1, 2, 2))
 	table.add_child(phase_clock)
 
 	draw_pile_visual = _build_pile(table, true)
@@ -175,10 +331,10 @@ func _build_table() -> void:
 	meld_scroll = ScrollContainer.new()
 	meld_scroll.name = "MeldScroll"
 	meld_scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	meld_scroll.offset_left = 142
-	meld_scroll.offset_top = 44
-	meld_scroll.offset_right = -142
-	meld_scroll.offset_bottom = -18
+	meld_scroll.offset_left = 250
+	meld_scroll.offset_top = 48
+	meld_scroll.offset_right = -250
+	meld_scroll.offset_bottom = -88
 	meld_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
 	meld_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	table.add_child(meld_scroll)
@@ -192,17 +348,18 @@ func _build_table() -> void:
 
 	empty_meld_label = Label.new()
 	empty_meld_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	empty_meld_label.offset_left = 165
-	empty_meld_label.offset_top = 72
-	empty_meld_label.offset_right = -165
-	empty_meld_label.offset_bottom = -28
-	empty_meld_label.text = "BÀN PHỎM ĐANG TRỐNG\n\nChọn ít nhất 3 lá tạo thành Bộ hoặc Sảnh, rồi nhấn HẠ."
+	empty_meld_label.offset_left = 260
+	empty_meld_label.offset_top = 52
+	empty_meld_label.offset_right = -260
+	empty_meld_label.offset_bottom = -88
+	empty_meld_label.text = "CHƯA CÓ PHỎM TRÊN BÀN\n\nChọn từ 3 lá hợp lệ rồi nhấn HẠ."
 	empty_meld_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	empty_meld_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	empty_meld_label.add_theme_font_size_override("font_size", 13)
-	empty_meld_label.add_theme_color_override("font_color", Color("#78978a"))
+	empty_meld_label.add_theme_font_size_override("font_size", 14)
+	empty_meld_label.add_theme_color_override("font_color", Color("#e5d5a2"))
 	empty_meld_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	table.add_child(empty_meld_label)
+	_build_discard_history_tray(table)
 
 
 func _build_pile(parent: Control, is_draw_pile: bool) -> Control:
@@ -210,16 +367,17 @@ func _build_pile(parent: Control, is_draw_pile: bool) -> Control:
 	pile.name = "DrawPile" if is_draw_pile else "DiscardPile"
 	pile.set_anchors_preset(Control.PRESET_CENTER_LEFT if is_draw_pile else Control.PRESET_CENTER_RIGHT)
 	pile.size = Vector2(112, 192)
-	pile.position = Vector2(18, -92) if is_draw_pile else Vector2(-130, -92)
+	pile.position = Vector2(112, -86) if is_draw_pile else Vector2(-224, -86)
 	parent.add_child(pile)
 
 	var caption := Label.new()
 	caption.position = Vector2(0, 0)
 	caption.size = Vector2(112, 21)
-	caption.text = "NỌC • DRAW" if is_draw_pile else "RÁC • DISCARD"
+	caption.text = "BỐC" if is_draw_pile else "BỎ"
 	caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	caption.add_theme_font_size_override("font_size", 10)
-	caption.add_theme_color_override("font_color", PresentationTheme.MUTED)
+	caption.add_theme_color_override("font_color", PresentationTheme.INK)
+	caption.add_theme_stylebox_override("normal", PresentationTheme.panel_style(Color("#19130feb"), Color("#8d5b30"), 1, 2, 2))
 	pile.add_child(caption)
 
 	for depth in range(3, 0, -1):
@@ -243,7 +401,7 @@ func _build_pile(parent: Control, is_draw_pile: bool) -> Control:
 	badge.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	badge.add_theme_font_size_override("font_size", 12)
 	badge.add_theme_color_override("font_color", PresentationTheme.INK)
-	badge.add_theme_stylebox_override("normal", PresentationTheme.panel_style(Color("#071613e6"), Color("#476d5e"), 1, 12, 2))
+	badge.add_theme_stylebox_override("normal", PresentationTheme.panel_style(Color("#19130ff2"), PresentationTheme.GOLD_DARK, 2, 2, 2))
 	pile.add_child(badge)
 	if is_draw_pile:
 		draw_count = badge
@@ -252,16 +410,55 @@ func _build_pile(parent: Control, is_draw_pile: bool) -> Control:
 	return pile
 
 
+func _build_discard_history_tray(parent: Control) -> void:
+	var panel := PanelContainer.new()
+	panel.name = "DiscardHistoryTray"
+	panel.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
+	panel.offset_left = 230
+	panel.offset_top = -82
+	panel.offset_right = -230
+	panel.offset_bottom = -6
+	panel.add_theme_stylebox_override("panel", PresentationTheme.panel_style(Color("#17120fe8"), Color("#8d5b30"), 1, 2, 3))
+	parent.add_child(panel)
+	var margin := MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 7)
+	margin.add_theme_constant_override("margin_top", 3)
+	margin.add_theme_constant_override("margin_right", 7)
+	margin.add_theme_constant_override("margin_bottom", 3)
+	panel.add_child(margin)
+	var column := VBoxContainer.new()
+	column.add_theme_constant_override("separation", 2)
+	margin.add_child(column)
+	var title := Label.new()
+	title.text = "TẤT CẢ LÁ ĐÃ BỎ  •  GIAI ĐOẠN + THỨ TỰ"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_size_override("font_size", 9)
+	title.add_theme_color_override("font_color", PresentationTheme.GOLD)
+	column.add_child(title)
+	var scroll := ScrollContainer.new()
+	scroll.name = "DiscardHistoryScroll"
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	column.add_child(scroll)
+	discard_history_row = HBoxContainer.new()
+	discard_history_row.name = "DiscardHistoryRow"
+	discard_history_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	discard_history_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	discard_history_row.add_theme_constant_override("separation", 4)
+	scroll.add_child(discard_history_row)
+
+
 func _build_hand() -> void:
 	var hand_panel := Panel.new()
 	hand_panel.name = "LooseHand"
 	hand_panel.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
-	hand_panel.offset_left = 18
+	hand_panel.offset_left = 108
 	hand_panel.offset_top = -242
-	hand_panel.offset_right = -18
-	hand_panel.offset_bottom = -82
-	hand_panel.add_theme_stylebox_override("panel", PresentationTheme.panel_style(Color("#0b211de8"), Color("#31594b"), 1, 14, 5))
-	add_child(hand_panel)
+	hand_panel.offset_right = -108
+	hand_panel.offset_bottom = -70
+	hand_panel.add_theme_stylebox_override("panel", PresentationTheme.panel_style(Color.TRANSPARENT, Color.TRANSPARENT, 0, 0, 0))
+	game_layer.add_child(hand_panel)
 
 	var label_row := HBoxContainer.new()
 	label_row.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
@@ -269,10 +466,11 @@ func _build_hand() -> void:
 	label_row.offset_top = 7
 	label_row.offset_right = -15
 	label_row.offset_bottom = 27
+	label_row.add_theme_constant_override("separation", 12)
 	hand_panel.add_child(label_row)
 	hand_count = Label.new()
 	hand_count.add_theme_font_size_override("font_size", 11)
-	hand_count.add_theme_color_override("font_color", PresentationTheme.GOLD)
+	hand_count.add_theme_color_override("font_color", PresentationTheme.INK)
 	hand_count.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	label_row.add_child(hand_count)
 	selection_label = Label.new()
@@ -291,23 +489,117 @@ func _build_hand() -> void:
 	hand_panel.add_child(hand_layer)
 
 
+func _build_future_slots() -> void:
+	var rail := Control.new()
+	rail.name = "UtilityRail"
+	rail.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	rail.position = Vector2(-150, 158)
+	rail.size = Vector2(134, 348)
+	game_layer.add_child(rail)
+
+	var drink_panel := Panel.new()
+	drink_panel.name = "DrinkArea"
+	drink_panel.position = Vector2.ZERO
+	drink_panel.size = Vector2(134, 106)
+	drink_panel.add_theme_stylebox_override("panel", PresentationTheme.panel_style(Color("#17120fe8"), Color("#8d5b30"), 2, 2, 4))
+	rail.add_child(drink_panel)
+	var drink_title := Label.new()
+	drink_title.position = Vector2(9, 7)
+	drink_title.size = Vector2(116, 18)
+	drink_title.text = "DRINK"
+	drink_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	drink_title.add_theme_font_size_override("font_size", 12)
+	drink_title.add_theme_color_override("font_color", PresentationTheme.GOLD)
+	drink_panel.add_child(drink_title)
+	var drink_slot := Panel.new()
+	drink_slot.name = "DrinkSlot"
+	drink_slot.position = Vector2(34, 30)
+	drink_slot.size = Vector2(66, 64)
+	drink_slot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	drink_slot.add_theme_stylebox_override("panel", PresentationTheme.panel_style(Color("#0b0907c0"), Color("#6b5138"), 1, 2, 2))
+	drink_panel.add_child(drink_slot)
+	drink_name_label = Label.new()
+	drink_name_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	drink_name_label.text = DrinkCatalog.display_name(deal.current_drink_id).to_upper()
+	drink_name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	drink_name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	drink_name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	drink_name_label.add_theme_font_size_override("font_size", 11)
+	drink_name_label.add_theme_color_override("font_color", PresentationTheme.TEA)
+	drink_name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	drink_slot.tooltip_text = "Drink hiện tại: %s" % DrinkCatalog.display_name(deal.current_drink_id)
+	drink_slot.add_child(drink_name_label)
+
+	var relic_panel := Panel.new()
+	relic_panel.name = "RelicsArea"
+	relic_panel.position = Vector2(0, 116)
+	relic_panel.size = Vector2(134, 232)
+	relic_panel.add_theme_stylebox_override("panel", PresentationTheme.panel_style(Color("#17120fe8"), Color("#8d5b30"), 2, 2, 4))
+	rail.add_child(relic_panel)
+	var relic_title := Label.new()
+	relic_title.position = Vector2(9, 7)
+	relic_title.size = Vector2(116, 18)
+	relic_title.text = "RELICS"
+	relic_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	relic_title.add_theme_font_size_override("font_size", 12)
+	relic_title.add_theme_color_override("font_color", PresentationTheme.GOLD)
+	relic_panel.add_child(relic_title)
+	var relic_scroll := ScrollContainer.new()
+	relic_scroll.name = "RelicScroll"
+	relic_scroll.position = Vector2(9, 30)
+	relic_scroll.size = Vector2(116, 192)
+	relic_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	relic_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	relic_panel.add_child(relic_scroll)
+	relic_grid = GridContainer.new()
+	relic_grid.name = "RelicGrid"
+	relic_grid.columns = 2
+	relic_grid.add_theme_constant_override("h_separation", 6)
+	relic_grid.add_theme_constant_override("v_separation", 6)
+	relic_scroll.add_child(relic_grid)
+	set_relic_capacity(INITIAL_RELIC_SLOT_COUNT)
+
+
+func set_relic_capacity(capacity: int) -> void:
+	if relic_grid == null:
+		return
+	for child in relic_grid.get_children():
+		relic_grid.remove_child(child)
+		child.queue_free()
+	for index in range(maxi(1, capacity)):
+		var slot := PanelContainer.new()
+		slot.name = "RelicSlot%02d" % (index + 1)
+		slot.custom_minimum_size = Vector2(52, 78)
+		slot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		slot.add_theme_stylebox_override("panel", PresentationTheme.panel_style(Color("#0b0907c0"), Color("#6b5138"), 1, 2, 2))
+		relic_grid.add_child(slot)
+		var mark := Label.new()
+		mark.text = "%d" % (index + 1)
+		mark.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		mark.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		mark.add_theme_font_size_override("font_size", 12)
+		mark.add_theme_color_override("font_color", Color("#6b5138"))
+		mark.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		slot.add_child(mark)
+
+
 func _build_action_dock() -> void:
 	var dock := Panel.new()
 	dock.name = "ActionDock"
 	dock.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
-	dock.offset_left = 18
-	dock.offset_top = -72
-	dock.offset_right = -18
-	dock.offset_bottom = -14
-	dock.add_theme_stylebox_override("panel", PresentationTheme.panel_style(Color("#0b1b18f2"), Color("#315246"), 1, 13, 6))
-	add_child(dock)
+	dock.offset_left = 16
+	dock.offset_top = -64
+	dock.offset_right = -16
+	dock.offset_bottom = -10
+	dock.add_theme_stylebox_override("panel", PresentationTheme.panel_style(Color("#17120ff2"), Color("#8d5b30"), 2, 2, 5))
+	game_layer.add_child(dock)
 
 	var margin := MarginContainer.new()
 	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	margin.add_theme_constant_override("margin_left", 14)
-	margin.add_theme_constant_override("margin_top", 8)
+	margin.add_theme_constant_override("margin_top", 6)
 	margin.add_theme_constant_override("margin_right", 9)
-	margin.add_theme_constant_override("margin_bottom", 8)
+	margin.add_theme_constant_override("margin_bottom", 6)
 	dock.add_child(margin)
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 8)
@@ -320,18 +612,24 @@ func _build_action_dock() -> void:
 	status_label.add_theme_color_override("font_color", PresentationTheme.MUTED)
 	row.add_child(status_label)
 
+	hint_button = _make_action_button(row, "GỢI Ý  [G]", "gold", 104)
+	hint_button.tooltip_text = "Chọn Phỏm mới có điểm cao nhất, hoặc một nước Ghép hợp lệ."
+	hint_button.pressed.connect(_on_hint_pressed)
 	sort_button = _make_action_button(row, "SẮP BÀI  [S]", "neutral", 104)
-	sort_button.tooltip_text = "Cycle between rank and suit sorting."
+	sort_button.tooltip_text = "Đổi cách xếp bài giữa số và chất."
 	sort_button.pressed.connect(_on_sort_pressed)
 	ha_button = _make_action_button(row, "HẠ  [H]", "tea", 108)
-	ha_button.tooltip_text = "Commit the selected cards as a new Set or Run."
+	ha_button.tooltip_text = "Hạ các lá đã chọn thành Bộ hoặc Sảnh mới."
 	ha_button.pressed.connect(_on_ha_pressed)
-	extend_button = _make_action_button(row, "EXTEND  [E]", "gold", 116)
-	extend_button.tooltip_text = "Add selected cards to the targeted table Meld."
+	extend_button = _make_action_button(row, "GHÉP  [E]", "gold", 116)
+	extend_button.tooltip_text = "Ghép các lá đã chọn vào Phỏm đang nhắm tới."
 	extend_button.pressed.connect(_on_extend_pressed)
-	discard_button = _make_action_button(row, "DISCARD  [D]", "danger", 120)
-	discard_button.tooltip_text = "Discard exactly one loose card and end the turn."
+	discard_button = _make_action_button(row, "BỎ BÀI  [D]", "danger", 120)
+	discard_button.tooltip_text = "Bỏ đúng một lá bài rời để kết thúc lượt."
 	discard_button.pressed.connect(_on_discard_pressed)
+	settle_button = _make_action_button(row, "CHỐT  [C]", "tea", 108)
+	settle_button.tooltip_text = "Kết thúc cửa Hạ cuối và tính điểm Giai đoạn."
+	settle_button.pressed.connect(_on_settle_pressed)
 
 
 func _make_action_button(parent: Container, text_value: String, tone: String, width: float) -> Button:
@@ -349,7 +647,7 @@ func _build_effect_layers() -> void:
 	particle_layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	particle_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	particle_layer.z_index = 100
-	add_child(particle_layer)
+	game_layer.add_child(particle_layer)
 
 	_build_score_overlay()
 	_build_banner()
@@ -363,7 +661,7 @@ func _build_score_overlay() -> void:
 	score_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	score_overlay.z_index = 120
 	score_overlay.visible = false
-	add_child(score_overlay)
+	game_layer.add_child(score_overlay)
 
 	score_panel = Panel.new()
 	score_panel.set_anchors_preset(Control.PRESET_CENTER)
@@ -407,7 +705,7 @@ func _build_banner() -> void:
 	banner_panel.z_index = 140
 	banner_panel.modulate = Color(1, 1, 1, 0)
 	banner_panel.add_theme_stylebox_override("panel", PresentationTheme.panel_style(Color("#132d27f4"), PresentationTheme.GOLD_DARK, 1, 16, 6))
-	add_child(banner_panel)
+	game_layer.add_child(banner_panel)
 	banner_label = Label.new()
 	banner_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	banner_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -423,7 +721,7 @@ func _build_modal() -> void:
 	modal_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
 	modal_overlay.z_index = 200
 	modal_overlay.visible = false
-	add_child(modal_overlay)
+	game_layer.add_child(modal_overlay)
 	var dim := ColorRect.new()
 	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	dim.color = Color("#020907c7")
@@ -470,10 +768,10 @@ func _build_modal() -> void:
 	buttons.alignment = BoxContainer.ALIGNMENT_CENTER
 	buttons.add_theme_constant_override("separation", 14)
 	column.add_child(buttons)
-	modal_primary = _make_action_button(buttons, "KEEP", "tea", 206)
+	modal_primary = _make_action_button(buttons, "GIỮ", "tea", 206)
 	modal_primary.custom_minimum_size.y = 52
 	modal_primary.pressed.connect(_on_modal_primary_pressed)
-	modal_secondary = _make_action_button(buttons, "DUMP", "danger", 206)
+	modal_secondary = _make_action_button(buttons, "ĐỔI", "danger", 206)
 	modal_secondary.custom_minimum_size.y = 52
 	modal_secondary.pressed.connect(_on_modal_secondary_pressed)
 
@@ -484,8 +782,13 @@ func _sync_all(result: Dictionary = {}, animate_all_cards: bool = false) -> void
 		animated_cards.clear()
 		animated_cards.append_array(deal.hand)
 	_sync_hand(animated_cards)
+	_sync_card_probability_badges()
 	_sync_melds()
 	_sync_piles()
+	_sync_discard_history()
+	if drink_name_label != null:
+		drink_name_label.text = DrinkCatalog.display_name(deal.current_drink_id).to_upper()
+		drink_name_label.get_parent().tooltip_text = "Drink hiện tại: %s" % DrinkCatalog.display_name(deal.current_drink_id)
 	_refresh_stats()
 	_refresh_actions()
 
@@ -514,6 +817,30 @@ func _sync_hand(animated_cards: Array[CardData]) -> void:
 	_layout_hand(true)
 
 
+func _sync_card_probability_badges() -> void:
+	var draw_number := 0
+	if deal.state == DealState.STATE_ACTIVE and deal.discard_count < DealState.DISCARDS_PER_PHASE - 1:
+		var size_after_discard := maxi(deal.hand.size() - 1, 0)
+		draw_number = mini(maxi(DealState.ACTIVE_HAND_TARGET - size_after_discard, 0), deal.deck.draw_pile.size())
+	var best_by_card := MeldProbabilityAdvisor.best_new_meld_chance_by_card(deal.hand, deal.deck.draw_pile, draw_number)
+	for card in deal.hand:
+		var view: PlayingCardView = hand_views.get(card.unique_id)
+		if view == null:
+			continue
+		var candidate: Dictionary = best_by_card.get(card.unique_id, {})
+		if candidate.is_empty():
+			view.set_meld_chance(0.0, false, "Không có mục tiêu Phỏm", "—", draw_number)
+			continue
+		var needed_text := "—" if candidate["needed_labels"].is_empty() else " / ".join(candidate["needed_labels"])
+		view.set_meld_chance(
+			float(candidate["probability"]),
+			bool(candidate["ready"]),
+			String(candidate["label"]),
+			needed_text,
+			draw_number
+		)
+
+
 func _layout_hand(animate: bool) -> void:
 	if hand_layer == null or hand_layer.size.x <= 0:
 		return
@@ -530,7 +857,7 @@ func _layout_hand(animate: bool) -> void:
 		var view: PlayingCardView = hand_views[card.unique_id]
 		var normalized := 0.0 if count == 1 else (float(index) / float(count - 1) - 0.5) * 2.0
 		var arc_y := 9.0 + normalized * normalized * 14.0
-		view.z_index = index + (100 if selected_card_ids.has(card.unique_id) else 0)
+		view.set_stack_order(index)
 		view.set_selected(selected_card_ids.has(card.unique_id), false)
 		view.layout_to(Vector2(start_x + spacing * index, arc_y), normalized * 0.055, animate)
 
@@ -570,13 +897,68 @@ func _sync_piles() -> void:
 		discard_texture.modulate = Color.WHITE
 
 
+func _sync_discard_history() -> void:
+	for child in discard_history_row.get_children():
+		discard_history_row.remove_child(child)
+		child.queue_free()
+	if deal.discard_history.is_empty():
+		var empty := Label.new()
+		empty.text = "CHƯA CÓ LÁ BỎ"
+		empty.add_theme_font_size_override("font_size", 10)
+		empty.add_theme_color_override("font_color", PresentationTheme.MUTED)
+		discard_history_row.add_child(empty)
+		return
+	for phase_number in [1, 2]:
+		var records := deal.discard_history_for_phase(phase_number)
+		if records.is_empty():
+			continue
+		var phase_label := Label.new()
+		phase_label.text = "P%d" % phase_number
+		phase_label.custom_minimum_size = Vector2(24, 43)
+		phase_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		phase_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		phase_label.add_theme_font_size_override("font_size", 10)
+		phase_label.add_theme_color_override("font_color", PresentationTheme.GOLD)
+		discard_history_row.add_child(phase_label)
+		for record in records:
+			discard_history_row.add_child(_build_discard_thumbnail(record))
+
+
+func _build_discard_thumbnail(record: DiscardRecord) -> Control:
+	var holder := Control.new()
+	holder.custom_minimum_size = Vector2(31, 43)
+	holder.tooltip_text = "Giai đoạn %d  •  Lá bỏ #%d  •  %s" % [record.phase, record.discard_number, record.card.short_label()]
+	var texture := TextureRect.new()
+	texture.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	texture.texture = load(record.card.texture_path()) as Texture2D
+	texture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	texture.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	texture.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	texture.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	holder.add_child(texture)
+	var badge := Label.new()
+	badge.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+	badge.position = Vector2(-15, -14)
+	badge.size = Vector2(15, 14)
+	badge.text = str(record.discard_number)
+	badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	badge.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	badge.add_theme_font_size_override("font_size", 8)
+	badge.add_theme_color_override("font_color", Color.WHITE)
+	badge.add_theme_stylebox_override("normal", PresentationTheme.panel_style(Color("#17120ff2"), PresentationTheme.GOLD, 1, 1, 1))
+	badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	holder.add_child(badge)
+	return holder
+
+
 func _refresh_stats() -> void:
 	phase_value.text = "%d / 2" % deal.current_phase
 	turn_value.text = "%d / %d" % [deal.discard_count, DealState.DISCARDS_PER_PHASE]
 	earnings_value.text = VndWallet.format_vnd(VndWallet.points_to_vnd(deal.phase_earnings_points), true)
 	wallet_value.text = VndWallet.format_vnd(displayed_wallet_vnd)
-	phase_clock.text = "PHASE %d   •   DISCARD %d OF %d   •   NEW MELDS %d" % [deal.current_phase, deal.discard_count, DealState.DISCARDS_PER_PHASE, deal.phase_new_meld_count]
-	hand_count.text = "BÀI RỜI  •  %d LÁ  •  ACTIVE TARGET %d" % [deal.hand.size(), DealState.ACTIVE_HAND_TARGET]
+	var window_text := "   •   LAST CALL" if deal.state == DealState.STATE_FINAL_COMMIT_WINDOW else ""
+	phase_clock.text = "GIAI ĐOẠN %d   •   ĐÃ BỎ %d / %d   •   PHỎM MỚI %d%s" % [deal.current_phase, deal.discard_count, DealState.DISCARDS_PER_PHASE, deal.phase_new_meld_count, window_text]
+	hand_count.text = "BÀI TRÊN TAY  •  %d LÁ" % deal.hand.size()
 	var selected := _selected_cards()
 	var selected_sum := 0
 	for card in selected:
@@ -586,33 +968,52 @@ func _refresh_stats() -> void:
 
 func _refresh_actions() -> void:
 	var selected := _selected_cards()
-	var active := deal.state == DealState.STATE_ACTIVE and not interaction_locked
-	ha_button.disabled = not active or not deal.can_create_meld(selected)
-	extend_button.disabled = not active or selected_meld_id < 0 or not deal.can_extend_meld(selected_meld_id, selected)
-	discard_button.disabled = not active or selected.size() != 1
-	sort_button.disabled = not active or deal.hand.size() < 2
+	var card_window := deal.state in [DealState.STATE_ACTIVE, DealState.STATE_FINAL_COMMIT_WINDOW] and not interaction_locked
+	var active_turn := deal.state == DealState.STATE_ACTIVE and not interaction_locked
+	ha_button.disabled = not card_window or not deal.can_create_meld(selected)
+	extend_button.disabled = not card_window or selected_meld_id < 0 or not deal.can_extend_meld(selected_meld_id, selected)
+	discard_button.disabled = not active_turn or selected.size() != 1
+	settle_button.disabled = deal.state != DealState.STATE_FINAL_COMMIT_WINDOW or interaction_locked
+	hint_button.disabled = not card_window or deal.hand.is_empty()
+	sort_button.disabled = not card_window or deal.hand.size() < 2
 	if interaction_locked:
 		status_label.text = "ĐANG GIẢI QUYẾT…"
 		status_label.add_theme_color_override("font_color", PresentationTheme.MUTED)
 		return
 	if deal.state == DealState.STATE_PHASE_CHOICE:
-		status_label.text = "PHASE 1 ĐÃ KHÉP LẠI  •  CHỌN KEEP HOẶC DUMP"
+		status_label.text = "GIAI ĐOẠN 1 ĐÃ KHÉP LẠI  •  CHỌN GIỮ HOẶC ĐỔI BÀI"
 		return
 	if deal.state == DealState.STATE_DEAL_OVER:
 		status_label.text = "VÁN ĐÃ KẾT THÚC"
 		return
+	if deal.state == DealState.STATE_FINAL_COMMIT_WINDOW and selected.is_empty():
+		status_label.text = "LAST CALL  •  HẠ/GHÉP TÙY Ý  •  KHÔNG BỎ THÊM  •  NHẤN CHỐT"
+		status_label.add_theme_color_override("font_color", PresentationTheme.GOLD)
+		return
 	if selected.is_empty():
-		status_label.text = "CHỌN BÀI  •  HẠ BỘ/SẢNH  •  HOẶC CHỌN 1 LÁ ĐỂ DISCARD"
+		status_label.text = "CHỌN BÀI  •  HẠ BỘ/SẢNH  •  HOẶC CHỌN 1 LÁ ĐỂ BỎ"
 		status_label.add_theme_color_override("font_color", PresentationTheme.MUTED)
 	elif deal.can_create_meld(selected):
 		var kind := MeldRules.classify(selected)
-		status_label.text = "%s HỢP LỆ  •  NHẤN HẠ ĐỂ GHI ĐIỂM" % ("SẢNH" if kind == MeldRules.TYPE_RUN else "BỘ")
+		var points := HandAdvisor.estimate_new_meld_points(selected, deal.scoring, deal.current_phase, deal.phase_new_meld_count)
+		status_label.text = "%s HỢP LỆ  •  +%d ĐIỂM / %s  •  NHẤN HẠ" % [
+			"SẢNH" if kind == MeldRules.TYPE_RUN else "BỘ",
+			points,
+			VndWallet.format_vnd(VndWallet.points_to_vnd(points), true),
+		]
 		status_label.add_theme_color_override("font_color", PresentationTheme.TEA)
 	elif selected_meld_id >= 0 and deal.can_extend_meld(selected_meld_id, selected):
-		status_label.text = "GHÉP HỢP LỆ VÀO PHỎM %02d  •  NHẤN EXTEND" % selected_meld_id
+		var points := HandAdvisor.estimate_extension_points(
+			deal.get_meld(selected_meld_id), selected, deal.scoring, deal.current_phase
+		)
+		status_label.text = "GHÉP PHỎM %02d  •  +%d ĐIỂM / %s  •  NHẤN GHÉP" % [
+			selected_meld_id,
+			points,
+			VndWallet.format_vnd(VndWallet.points_to_vnd(points), true),
+		]
 		status_label.add_theme_color_override("font_color", PresentationTheme.GOLD)
 	elif selected.size() == 1:
-		status_label.text = "1 LÁ ĐÃ CHỌN  •  DISCARD, HOẶC CHỌN THÊM ĐỂ TẠO PHỎM"
+		status_label.text = "1 LÁ ĐÃ CHỌN  •  BỎ BÀI, HOẶC CHỌN THÊM ĐỂ TẠO PHỎM"
 		status_label.add_theme_color_override("font_color", PresentationTheme.INK)
 	else:
 		status_label.text = "CHƯA THÀNH BỘ/SẢNH  •  ĐIỀU CHỈNH LỰA CHỌN"
@@ -620,7 +1021,7 @@ func _refresh_actions() -> void:
 
 
 func _on_card_pressed(card: CardData) -> void:
-	if interaction_locked or deal.state != DealState.STATE_ACTIVE:
+	if interaction_locked or deal.state not in [DealState.STATE_ACTIVE, DealState.STATE_FINAL_COMMIT_WINDOW]:
 		return
 	if selected_card_ids.has(card.unique_id):
 		selected_card_ids.erase(card.unique_id)
@@ -633,7 +1034,7 @@ func _on_card_pressed(card: CardData) -> void:
 
 
 func _on_meld_pressed(meld_id: int) -> void:
-	if interaction_locked or deal.state != DealState.STATE_ACTIVE:
+	if interaction_locked or deal.state not in [DealState.STATE_ACTIVE, DealState.STATE_FINAL_COMMIT_WINDOW]:
 		return
 	selected_meld_id = -1 if selected_meld_id == meld_id else meld_id
 	_sync_melds()
@@ -691,18 +1092,35 @@ func _on_discard_pressed() -> void:
 		return
 	selected_card_ids.clear()
 	_sync_all(result)
-	if result.has("phase_resolution"):
-		var resolution: Dictionary = result["phase_resolution"]
-		await _show_phase_resolution(resolution)
-		if resolution["phase"] == 1:
-			_show_phase_choice(resolution)
-		else:
-			_show_deal_over(resolution)
-	else:
-		var drawn: Array[CardData] = _cards_from_result(result)
-		_show_banner("RÚT %d LÁ  •  DISCARD %d / %d" % [drawn.size(), deal.discard_count, DealState.DISCARDS_PER_PHASE])
+	if result.get("final_commit_window", false):
+		_show_banner("LAST CALL  •  HẠ / GHÉP LẦN CUỐI  •  NHẤN CHỐT KHI XONG")
 		interaction_locked = false
 		_refresh_actions()
+	else:
+		var drawn: Array[CardData] = _cards_from_result(result)
+		_show_banner("RÚT %d LÁ  •  ĐÃ BỎ %d / %d" % [drawn.size(), deal.discard_count, DealState.DISCARDS_PER_PHASE])
+		interaction_locked = false
+		_refresh_actions()
+
+
+func _on_settle_pressed() -> void:
+	if settle_button.disabled:
+		return
+	interaction_locked = true
+	_refresh_actions()
+	var result := deal.settle_phase()
+	if not result.get("ok", false):
+		_reject_action(result.get("message", "Settlement failed."))
+		return
+	selected_card_ids.clear()
+	selected_meld_id = -1
+	_sync_all(result)
+	var resolution: Dictionary = result["phase_resolution"]
+	await _show_phase_resolution(resolution)
+	if resolution["phase"] == 1:
+		_show_phase_choice(resolution)
+	else:
+		_show_deal_over(resolution)
 
 
 func _on_sort_pressed() -> void:
@@ -728,17 +1146,48 @@ func _on_sort_pressed() -> void:
 	_layout_hand(true)
 
 
+func _on_hint_pressed() -> void:
+	if hint_button.disabled:
+		return
+	selected_card_ids.clear()
+	selected_meld_id = -1
+	var recommendation := HandAdvisor.recommend(
+		deal.hand,
+		deal.melds,
+		deal.scoring,
+		deal.current_phase,
+		deal.phase_new_meld_count,
+		deal.state == DealState.STATE_ACTIVE
+	)
+	if recommendation["action"] == HandAdvisor.ACTION_NONE:
+		_show_banner("CHƯA CÓ PHỎM HỢP LỆ  •  CHỌN 1 LÁ ĐỂ BỎ")
+	else:
+		for card: CardData in recommendation["cards"]:
+			selected_card_ids[card.unique_id] = true
+		if recommendation["action"] == HandAdvisor.ACTION_EXTENSION:
+			selected_meld_id = recommendation["meld_id"]
+		var verb := "HẠ" if recommendation["action"] == HandAdvisor.ACTION_NEW_MELD else "GHÉP"
+		_show_banner("GỢI Ý %s  •  +%d ĐIỂM DỰ KIẾN" % [verb, recommendation["estimated_points"]])
+	_layout_hand(true)
+	_sync_melds()
+	_refresh_stats()
+	_refresh_actions()
+
+
 func _show_scoring(context: ScoringContext) -> void:
 	var kind := "SẢNH" if context.meld_type == MeldRules.TYPE_RUN else "BỘ"
 	if context.action_type == "new_meld":
-		score_title.text = "HẠ THÀNH CÔNG  •  %s  •  PHASE %d" % [kind, context.phase]
+		score_title.text = "HẠ THÀNH CÔNG  •  %s  •  GIAI ĐOẠN %d" % [kind, context.phase]
 		score_line_a.text = "%s   →   %d" % [context.value_equation(), context.card_value_sum]
 		score_line_b.text = "%d × %d   →   %d ĐIỂM" % [context.base_score, context.local_mult, context.theoretical_score]
 		score_payout.text = "%d × ₫1.000   →   %s" % [context.final_points, VndWallet.format_vnd(VndWallet.points_to_vnd(context.final_points), true)]
 	else:
-		score_title.text = "EXTEND THÀNH CÔNG  •  %s  •  PHASE %d" % [kind, context.phase]
+		score_title.text = "GHÉP THÀNH CÔNG  •  %s  •  GIAI ĐOẠN %d" % [kind, context.phase]
 		score_line_a.text = "ĐIỂM CŨ  %d   →   ĐIỂM MỚI  %d" % [context.old_meld_score, context.theoretical_score]
-		score_line_b.text = "%d − %d   →   +%d ĐIỂM" % [context.theoretical_score, context.old_meld_score, context.final_points]
+		if context.drink_bonus_points > 0:
+			score_line_b.text = "DELTA %d  +  DRINK %d   →   +%d ĐIỂM" % [context.base_extension_score, context.drink_bonus_points, context.final_points]
+		else:
+			score_line_b.text = "%d − %d   →   +%d ĐIỂM" % [context.theoretical_score, context.old_meld_score, context.final_points]
 		score_payout.text = "PHẦN TĂNG   →   %s" % VndWallet.format_vnd(VndWallet.points_to_vnd(context.final_points), true)
 	await _play_score_panel(deal.wallet.balance_vnd, context.final_points >= 0)
 
@@ -746,20 +1195,17 @@ func _show_scoring(context: ScoringContext) -> void:
 func _show_phase_resolution(resolution: Dictionary) -> void:
 	var is_mom: bool = resolution["mom"]
 	var phase_number: int = resolution["phase"]
-	score_title.text = "PHASE %d SETTLEMENT" % phase_number
+	score_title.text = "TỔNG KẾT GIAI ĐOẠN %d" % phase_number
 	if is_mom:
-		score_line_a.text = "MÓM  •  KHÔNG CÓ PHỎM MỚI TRONG PHASE"
+		score_line_a.text = "MÓM  •  KHÔNG CÓ PHỎM MỚI TRONG GIAI ĐOẠN"
 		score_line_a.add_theme_color_override("font_color", PresentationTheme.RED)
-		score_line_b.text = "HOÀN TRẢ ĐIỂM DƯƠNG   →   −%d ĐIỂM" % resolution["forfeit_points"]
+		score_line_b.text = "ĐÃ GHI 1 STRIKE  •  TỔNG BANK %d  •  KHÔNG TRỪ TIỀN" % deal.mom_strikes_banked
 	else:
-		score_line_a.text = "KHÔNG MÓM  •  ĐÃ HẠ %d PHỎM MỚI" % deal.phase_new_meld_count
+		score_line_a.text = "KHÔNG MÓM  •  ĐÃ HẠ %d PHỎM MỚI" % resolution["new_phom_count"]
 		score_line_a.add_theme_color_override("font_color", PresentationTheme.TEA)
-		score_line_b.text = "PHASE EARNINGS ĐƯỢC GIỮ LẠI"
-	if phase_number == 2:
-		var deadwood: int = resolution["deadwood_points"]
-		score_payout.text = "DEADWOOD   →   %s" % VndWallet.format_vnd(-VndWallet.points_to_vnd(deadwood))
-	else:
-		score_payout.text = "CHUẨN BỊ QUYẾT ĐỊNH KEEP / DUMP"
+		score_line_b.text = "GROSS %d%s" % [resolution["gross_after_u"], "  •  Ù ×2" if resolution["u"] else ""]
+	var deadwood: int = resolution["deadwood_points"]
+	score_payout.text = "NET %d  =  GROSS %d  −  DEADWOOD %d" % [resolution["net"], resolution["gross_after_u"], deadwood]
 	await _play_score_panel(deal.wallet.balance_vnd, not is_mom)
 	score_line_a.add_theme_color_override("font_color", PresentationTheme.INK)
 
@@ -833,12 +1279,12 @@ func _spawn_money_float(_delta_vnd: int, positive: bool) -> void:
 func _show_phase_choice(resolution: Dictionary) -> void:
 	interaction_locked = false
 	modal_mode = "phase_choice"
-	modal_kicker.text = "PHASE 1 COMPLETE  •  %s" % ("MÓM" if resolution["mom"] else "SAFE")
-	modal_title.text = "GIỮ BÀI HAY ĐỔI BÀN?"
-	modal_body.text = "KEEP mang toàn bộ %d lá bài rời sang Phase 2.\nDUMP bỏ cả tay và rút một tay mới — không có mulligan chọn lọc." % deal.hand.size()
-	modal_detail.text = "Các Phỏm đã Hạ vẫn nằm trên bàn và có thể EXTEND trong Phase 2.\nChỉ một Phỏm MỚI mới tránh được Móm Phase 2."
-	modal_primary.text = "KEEP  [K]\nGIỮ %d LÁ" % deal.hand.size()
-	modal_secondary.text = "DUMP  [X]\nĐỔI TOÀN BỘ"
+	modal_kicker.text = "GIAI ĐOẠN 1 HOÀN TẤT  •  %s" % ("MÓM" if resolution["mom"] else "AN TOÀN")
+	modal_title.text = "GIỮ BÀI HAY ĐỔI BÀI?"
+	modal_body.text = "GIỮ mang toàn bộ %d lá bài rời sang Giai đoạn 2.\nĐỔI bỏ cả tay và rút một tay mới — không được chọn lọc." % deal.hand.size()
+	modal_detail.text = "Các Phỏm đã Hạ vẫn nằm trên bàn và có thể Ghép trong Giai đoạn 2.\nChỉ một Phỏm MỚI mới tránh được Móm Giai đoạn 2."
+	modal_primary.text = "GIỮ  [K]\nGIỮ %d LÁ" % deal.hand.size()
+	modal_secondary.text = "ĐỔI  [X]\nĐỔI TOÀN BỘ"
 	modal_secondary.visible = true
 	_show_modal()
 	_refresh_actions()
@@ -847,10 +1293,10 @@ func _show_phase_choice(resolution: Dictionary) -> void:
 func _show_deal_over(resolution: Dictionary) -> void:
 	interaction_locked = false
 	modal_mode = "deal_over"
-	modal_kicker.text = "DEAL COMPLETE  •  PHASE 2 %s" % ("MÓM" if resolution["mom"] else "SAFE")
+	modal_kicker.text = "VÁN HOÀN TẤT  •  GIAI ĐOẠN 2 %s" % ("MÓM" if resolution["mom"] else "AN TOÀN")
 	modal_title.text = VndWallet.format_vnd(deal.wallet.balance_vnd)
-	modal_body.text = "Ví cuối ván sau khi giải quyết Móm và Deadwood.\nBạn đã Hạ %d Phỏm trên bàn." % deal.melds.size()
-	modal_detail.text = "DEADWOOD: %d ĐIỂM  •  %d LÁ CÒN LẠI\nVán mới giữ nguyên Ví VND và chia bộ bài mới." % [resolution["deadwood_points"], deal.hand.size()]
+	modal_body.text = "Ví cuối ván sau hai lần tính Gross − Deadwood.\nBạn đã Hạ %d Phỏm trên bàn." % deal.melds.size()
+	modal_detail.text = "MÓM BANK %d  →  RESOLVED %d  •  BÀI RỜI P2: %d\nAccount consequence remains outside this card scene." % [deal.mom_strikes_banked, deal.mom_strikes_resolved, resolution["deadwood_points"]]
 	modal_primary.text = "CHIA VÁN MỚI  [R]"
 	modal_secondary.visible = false
 	_show_modal()
@@ -897,7 +1343,7 @@ func _begin_phase_two(keep_hand: bool) -> void:
 	selected_card_ids.clear()
 	selected_meld_id = -1
 	_sync_all(result)
-	_show_banner("PHASE 2  •  %s  •  HẠ ÍT NHẤT 1 PHỎM MỚI" % ("KEEP" if keep_hand else "DUMP"))
+	_show_banner("GIAI ĐOẠN 2  •  %s  •  HẠ ÍT NHẤT 1 PHỎM MỚI" % ("GIỮ BÀI" if keep_hand else "ĐỔI BÀI"))
 	interaction_locked = false
 	_refresh_actions()
 
@@ -996,11 +1442,16 @@ func _cards_from_result(result: Dictionary) -> Array[CardData]:
 
 
 func _on_viewport_size_changed() -> void:
+	_park_game_layer()
 	_layout_hand(false)
 
 
 func _unhandled_key_input(event: InputEvent) -> void:
 	if not event is InputEventKey or not event.pressed or event.echo:
+		return
+	if not game_started:
+		if not menu_transitioning and event.keycode in [KEY_ENTER, KEY_KP_ENTER, KEY_SPACE]:
+			_on_play_pressed()
 		return
 	if modal_overlay.visible:
 		if modal_mode == "phase_choice" and event.keycode == KEY_K:
@@ -1020,9 +1471,15 @@ func _unhandled_key_input(event: InputEvent) -> void:
 		KEY_D:
 			if not discard_button.disabled:
 				_on_discard_pressed()
+		KEY_C:
+			if not settle_button.disabled:
+				_on_settle_pressed()
 		KEY_S:
 			if not sort_button.disabled:
 				_on_sort_pressed()
+		KEY_G:
+			if not hint_button.disabled:
+				_on_hint_pressed()
 		KEY_ESCAPE:
 			selected_card_ids.clear()
 			selected_meld_id = -1

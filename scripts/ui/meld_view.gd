@@ -11,7 +11,7 @@ var _hint: Label
 
 
 func _ready() -> void:
-	custom_minimum_size = Vector2(190, 146)
+	custom_minimum_size = Vector2(178, 136)
 	size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
@@ -27,9 +27,9 @@ func set_meld(meld: MeldState, is_selected: bool, extension_is_legal: bool) -> v
 	_score.text = "%d ĐIỂM  •  %s" % [meld.scored_points, VndWallet.format_vnd(VndWallet.points_to_vnd(meld.scored_points))]
 	_hint.text = "SẴN SÀNG GHÉP" if extension_is_legal else ("ĐANG CHỌN" if is_selected else "CHỌN ĐỂ GHÉP")
 	_hint.add_theme_color_override("font_color", PresentationTheme.TEA if extension_is_legal else (PresentationTheme.GOLD if is_selected else PresentationTheme.MUTED))
-	var border := PresentationTheme.TEA if extension_is_legal else (PresentationTheme.GOLD if is_selected else Color("#35594f"))
-	var background := Color("#174338f2") if is_selected else Color("#102b25e8")
-	add_theme_stylebox_override("panel", PresentationTheme.panel_style(background, border, 2 if is_selected or extension_is_legal else 1, 12, 4))
+	var border := PresentationTheme.TEA if extension_is_legal else (PresentationTheme.GOLD if is_selected else Color("#8d5b30"))
+	var background := Color("#2d251eee") if is_selected else Color("#19130fe8")
+	add_theme_stylebox_override("panel", PresentationTheme.panel_style(background, border, 2 if is_selected or extension_is_legal else 1, 2, 4))
 	for child in _cards_row.get_children():
 		child.queue_free()
 	for card in meld.cards:

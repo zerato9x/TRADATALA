@@ -2,12 +2,21 @@ class_name DealState
 extends RefCounted
 
 signal state_changed(result: Dictionary)
+signal new_phom_scored(context: ScoringContext)
+signal extension_scored(context: ScoringContext)
+signal phase_about_to_settle(context: Dictionary)
+signal deadwood_calculated(context: Dictionary)
+signal mom_strike_banked(context: Dictionary)
+signal deal_about_to_resolve(context: Dictionary)
+signal mom_about_to_resolve(context: Dictionary)
+signal u_triggered(context: Dictionary)
 
 const RESTING_HAND_SIZE := 9
 const ACTIVE_HAND_TARGET := 10
 const DISCARDS_PER_PHASE := 4
 
 const STATE_ACTIVE := "active"
+const STATE_FINAL_COMMIT_WINDOW := "final_commit_window"
 const STATE_PHASE_CHOICE := "phase_choice"
 const STATE_DEAL_OVER := "deal_over"
 
@@ -16,13 +25,23 @@ var scoring := ScoringPipeline.new()
 var wallet := VndWallet.new()
 var hand: Array[CardData] = []
 var melds: Array[MeldState] = []
+var discard_history: Array[DiscardRecord] = []
+var settlements: Array[PhaseSettlement] = []
+var phase_metrics := PhaseMetrics.new()
+
 var current_phase: int = 1
 var discard_count: int = 0
 var phase_earnings_points: int = 0
 var phase_new_meld_count: int = 0
 var state: String = STATE_ACTIVE
 var last_phase_resolution: Dictionary = {}
+var mom_strikes_banked: int = 0
+var mom_strikes_resolved: int = 0
+var current_drink_id: String = DrinkCatalog.TRA_DA
+
 var _next_meld_id: int = 1
+var _turn_started_with_ten: bool = false
+var _turn_committed_card_count: int = 0
 
 
 func start_deal(shuffle_seed: int = -1, reset_wallet: bool = false) -> Dictionary:
@@ -31,13 +50,17 @@ func start_deal(shuffle_seed: int = -1, reset_wallet: bool = false) -> Dictionar
 	deck.reset(shuffle_seed)
 	hand.clear()
 	melds.clear()
+	discard_history.clear()
+	settlements.clear()
 	current_phase = 1
 	discard_count = 0
-	phase_earnings_points = 0
-	phase_new_meld_count = 0
+	mom_strikes_banked = 0
+	mom_strikes_resolved = 0
 	state = STATE_ACTIVE
 	last_phase_resolution.clear()
 	_next_meld_id = 1
+	_reset_phase_metrics()
+	scoring.current_drink_id = current_drink_id
 	var resting_cards := deck.draw(RESTING_HAND_SIZE)
 	hand.append_array(resting_cards)
 	var turn_drawn := _begin_active_turn()
@@ -46,6 +69,21 @@ func start_deal(shuffle_seed: int = -1, reset_wallet: bool = false) -> Dictionar
 		"action": "start_deal",
 		"resting_cards": resting_cards,
 		"drawn": turn_drawn,
+	}
+	state_changed.emit(result)
+	return result
+
+
+func set_current_drink(drink_id: String) -> Dictionary:
+	if not DrinkCatalog.is_known(drink_id):
+		return _failure("Unknown Drink ID: %s" % drink_id)
+	current_drink_id = drink_id
+	scoring.current_drink_id = drink_id
+	var result := {
+		"ok": true,
+		"action": "drink_selected",
+		"drink_id": drink_id,
+		"effect_implemented": DrinkCatalog.is_effect_implemented(drink_id),
 	}
 	state_changed.emit(result)
 	return result
@@ -61,12 +99,16 @@ func create_meld(selected_cards: Array[CardData]) -> Dictionary:
 	_remove_from_hand(selected_cards)
 	var meld := MeldState.new(_next_meld_id, meld_type, selected_cards)
 	_next_meld_id += 1
-	var context := scoring.score_new_meld(meld.cards, meld.meld_type, current_phase)
-	meld.scored_points = context.theoretical_score
+	var context := scoring.score_new_meld(meld.cards, meld.meld_type, current_phase, phase_metrics.new_phom_count)
+	# Temporary Drink bonuses belong to the score event, not the persistent table object.
+	meld.scored_points = ScoringPipeline.meld_value(meld.cards)
 	melds.append(meld)
-	phase_new_meld_count += 1
-	phase_earnings_points += context.final_points
-	wallet.apply_points(context.final_points, "new_meld")
+	phase_metrics.new_phom_count += 1
+	phase_new_meld_count = phase_metrics.new_phom_count
+	if state == STATE_ACTIVE:
+		_turn_committed_card_count += selected_cards.size()
+	_record_phase_points(context.final_points, "new_meld")
+	new_phom_scored.emit(context)
 	var result := {
 		"ok": true,
 		"action": "new_meld",
@@ -86,13 +128,18 @@ func extend_meld(meld_id: int, selected_cards: Array[CardData]) -> Dictionary:
 		return _failure("Choose a table Meld to extend.")
 	if not meld.can_extend(selected_cards):
 		return _failure("Those cards do not legally extend the chosen Meld.")
-	var old_score := meld.scored_points
+	var old_score := ScoringPipeline.meld_value(meld.cards)
 	_remove_from_hand(selected_cards)
+	if state == STATE_ACTIVE:
+		_turn_committed_card_count += selected_cards.size()
+	var additions: Array[CardData] = []
+	additions.append_array(selected_cards)
 	meld.extend(selected_cards)
-	var context := scoring.score_extension(meld.cards, meld.meld_type, old_score, current_phase)
-	meld.scored_points = context.theoretical_score
-	phase_earnings_points += context.final_points
-	wallet.apply_points(context.final_points, "extension")
+	var context := scoring.score_extension(meld.cards, meld.meld_type, old_score, current_phase, additions)
+	meld.scored_points = ScoringPipeline.meld_value(meld.cards)
+	phase_metrics.extension_count += 1
+	_record_phase_points(context.final_points, "extension")
+	extension_scored.emit(context)
 	var result := {
 		"ok": true,
 		"action": "extension",
@@ -108,19 +155,39 @@ func discard_card(card: CardData) -> Dictionary:
 		return _failure("Discarding is unavailable right now.")
 	if card == null or not hand.has(card):
 		return _failure("Choose one loose card to discard.")
+	var completed_u := _turn_started_with_ten and _turn_committed_card_count == 9 and hand.size() == 1
 	hand.erase(card)
 	deck.discard(card)
 	discard_count += 1
+	discard_history.append(DiscardRecord.new(card, current_phase, discard_count))
+	if completed_u:
+		phase_metrics.u = true
+		u_triggered.emit({"phase": current_phase, "card": card})
 	var result := {
 		"ok": true,
 		"action": "discard",
 		"card": card,
 		"drawn": [] as Array[CardData],
+		"u_triggered": completed_u,
 	}
 	if discard_count >= DISCARDS_PER_PHASE:
-		result["phase_resolution"] = _finish_phase()
+		state = STATE_FINAL_COMMIT_WINDOW
+		result["final_commit_window"] = true
 	else:
 		result["drawn"] = _begin_active_turn()
+	state_changed.emit(result)
+	return result
+
+
+func settle_phase() -> Dictionary:
+	if state != STATE_FINAL_COMMIT_WINDOW:
+		return _failure("Phase settlement is only available during the final commit window.")
+	var resolution := _finish_phase()
+	var result := {
+		"ok": true,
+		"action": "phase_settlement",
+		"phase_resolution": resolution,
+	}
 	state_changed.emit(result)
 	return result
 
@@ -135,8 +202,7 @@ func choose_phase_two(keep_hand: bool) -> Dictionary:
 		hand.clear()
 	current_phase = 2
 	discard_count = 0
-	phase_earnings_points = 0
-	phase_new_meld_count = 0
+	_reset_phase_metrics()
 	state = STATE_ACTIVE
 	var drawn := _begin_active_turn()
 	var result := {
@@ -157,11 +223,11 @@ func get_meld(meld_id: int) -> MeldState:
 
 
 func can_create_meld(selected_cards: Array[CardData]) -> bool:
-	return state == STATE_ACTIVE and _validate_commit_selection(selected_cards).is_empty() and MeldRules.classify(selected_cards) != MeldRules.TYPE_INVALID
+	return _card_actions_available() and _validate_commit_selection(selected_cards).is_empty() and MeldRules.classify(selected_cards) != MeldRules.TYPE_INVALID
 
 
 func can_extend_meld(meld_id: int, selected_cards: Array[CardData]) -> bool:
-	if state != STATE_ACTIVE or not _validate_commit_selection(selected_cards).is_empty():
+	if not _card_actions_available() or not _validate_commit_selection(selected_cards).is_empty():
 		return false
 	var meld := get_meld(meld_id)
 	return meld != null and meld.can_extend(selected_cards)
@@ -171,38 +237,99 @@ func deadwood_points() -> int:
 	return ScoringPipeline.deadwood_points(hand)
 
 
+func discard_history_for_phase(phase: int) -> Array[DiscardRecord]:
+	var records: Array[DiscardRecord] = []
+	for record in discard_history:
+		if record.phase == phase:
+			records.append(record)
+	return records
+
+
 func _begin_active_turn() -> Array[CardData]:
-	return deck.refill(hand, ACTIVE_HAND_TARGET)
+	var all_drawn: Array[CardData] = []
+	all_drawn.append_array(deck.refill(hand, ACTIVE_HAND_TARGET))
+	while hand.size() == ACTIVE_HAND_TARGET and not _has_near_meld(hand):
+		var payout := 0
+		for card in hand:
+			payout += card.score_value()
+		payout *= 9
+		phase_metrics.u_khan_count += 1
+		_record_phase_points(payout, "u_khan")
+		var replaced: Array[CardData] = []
+		replaced.append_array(hand)
+		u_triggered.emit({"phase": current_phase, "u_khan": true, "payout": payout, "hand": replaced})
+		deck.discard_many(hand)
+		hand.clear()
+		var replacement := deck.refill(hand, ACTIVE_HAND_TARGET)
+		all_drawn.append_array(replacement)
+		if replacement.size() < ACTIVE_HAND_TARGET:
+			break
+	_turn_started_with_ten = hand.size() == ACTIVE_HAND_TARGET
+	_turn_committed_card_count = 0
+	return all_drawn
 
 
 func _finish_phase() -> Dictionary:
-	var resolution := {
+	var settle_context := {
 		"phase": current_phase,
-		"mom": phase_new_meld_count == 0,
-		"forfeit_points": 0,
-		"deadwood_points": 0,
+		"raw_gross": phase_metrics.raw_gross,
+		"gross_multiplier": 2 if phase_metrics.u else 1,
+		"hand": hand,
 	}
-	if resolution["mom"]:
-		var forfeit_points := maxi(phase_earnings_points, 0)
-		resolution["forfeit_points"] = forfeit_points
-		if forfeit_points > 0:
-			phase_earnings_points -= forfeit_points
-			wallet.apply_points(-forfeit_points, "mom_forfeit")
+	phase_about_to_settle.emit(settle_context)
+	var raw_gross: int = settle_context.get("raw_gross", phase_metrics.raw_gross)
+	var gross_after_u: int = raw_gross * int(settle_context.get("gross_multiplier", 1))
+	var gross_adjustment := gross_after_u - phase_metrics.raw_gross
+	if gross_adjustment != 0:
+		wallet.apply_points(gross_adjustment, "phase_gross_resolution")
+	var deadwood_context := {"phase": current_phase, "cards": hand, "deadwood": deadwood_points()}
+	deadwood_calculated.emit(deadwood_context)
+	var deadwood: int = maxi(int(deadwood_context.get("deadwood", 0)), 0)
+	if deadwood > 0:
+		wallet.apply_points(-deadwood, "deadwood")
+	var settlement := PhaseSettlement.new()
+	settlement.phase = current_phase
+	settlement.raw_gross = raw_gross
+	settlement.gross_after_u = gross_after_u
+	settlement.deadwood = deadwood
+	settlement.net = gross_after_u - deadwood
+	settlement.new_phom_count = phase_metrics.new_phom_count
+	settlement.extension_count = phase_metrics.extension_count
+	settlement.mom = phase_metrics.new_phom_count == 0
+	settlement.u = phase_metrics.u
+	settlement.u_khan_count = phase_metrics.u_khan_count
+	settlement.remaining_hand.append_array(hand)
+	settlements.append(settlement)
+	phase_earnings_points = settlement.net
+	if settlement.mom:
+		mom_strikes_banked += 1
+		mom_strike_banked.emit({"phase": current_phase, "banked": mom_strikes_banked, "settlement": settlement})
 	if current_phase == 1:
 		state = STATE_PHASE_CHOICE
 	else:
-		var penalty := deadwood_points()
-		resolution["deadwood_points"] = penalty
-		phase_earnings_points -= penalty
-		if penalty > 0:
-			wallet.apply_points(-penalty, "deadwood")
+		_resolve_deal()
 		state = STATE_DEAL_OVER
-	last_phase_resolution = resolution
-	return resolution
+	last_phase_resolution = settlement.to_dictionary()
+	return last_phase_resolution
+
+
+func _resolve_deal() -> void:
+	var deal_context := {"settlements": settlements, "mom_strikes_banked": mom_strikes_banked}
+	deal_about_to_resolve.emit(deal_context)
+	var raw_mom := maxi(int(deal_context.get("mom_strikes_banked", mom_strikes_banked)), 0)
+	var protection := 1 if current_drink_id == DrinkCatalog.SAM_DUA and raw_mom > 0 else 0
+	var mom_context := {
+		"raw_mom": raw_mom,
+		"protection": protection,
+		"resolved_mom": maxi(0, raw_mom - protection),
+		"drink_id": current_drink_id,
+	}
+	mom_about_to_resolve.emit(mom_context)
+	mom_strikes_resolved = maxi(int(mom_context.get("resolved_mom", raw_mom)), 0)
 
 
 func _validate_loose_selection(selected_cards: Array[CardData]) -> String:
-	if state != STATE_ACTIVE:
+	if not _card_actions_available():
 		return "Card actions are unavailable right now."
 	if selected_cards.is_empty():
 		return "Select loose cards first."
@@ -220,9 +347,28 @@ func _validate_commit_selection(selected_cards: Array[CardData]) -> String:
 	var guard := _validate_loose_selection(selected_cards)
 	if not guard.is_empty():
 		return guard
-	if selected_cards.size() >= hand.size():
+	if state != STATE_FINAL_COMMIT_WINDOW and selected_cards.size() >= hand.size():
 		return "Keep at least one loose card for the mandatory discard."
 	return ""
+
+
+func _card_actions_available() -> bool:
+	return state == STATE_ACTIVE or state == STATE_FINAL_COMMIT_WINDOW
+
+
+func _record_phase_points(points: int, reason: String) -> void:
+	phase_metrics.raw_gross += points
+	phase_earnings_points = phase_metrics.raw_gross
+	if points != 0:
+		wallet.apply_points(points, reason)
+
+
+func _reset_phase_metrics() -> void:
+	phase_metrics.reset()
+	phase_earnings_points = 0
+	phase_new_meld_count = 0
+	_turn_started_with_ten = false
+	_turn_committed_card_count = 0
 
 
 func _remove_from_hand(cards: Array[CardData]) -> void:
@@ -232,3 +378,15 @@ func _remove_from_hand(cards: Array[CardData]) -> void:
 
 func _failure(message: String) -> Dictionary:
 	return {"ok": false, "message": message}
+
+
+static func _has_near_meld(cards: Array[CardData]) -> bool:
+	for left_index in range(cards.size()):
+		for right_index in range(left_index + 1, cards.size()):
+			var left := cards[left_index]
+			var right := cards[right_index]
+			if left.rank == right.rank:
+				return true
+			if left.suit == right.suit and absi(left.rank_index - right.rank_index) in [1, 2]:
+				return true
+	return false
