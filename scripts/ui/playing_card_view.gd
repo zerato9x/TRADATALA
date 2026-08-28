@@ -4,6 +4,7 @@ extends Control
 signal card_pressed(card: CardData)
 
 const CARD_SIZE := Vector2(86, 119)
+const CardActionOutlineScript := preload("res://scripts/ui/card_action_outline.gd")
 
 var card: CardData
 var selected: bool = false
@@ -12,13 +13,17 @@ var base_rotation: float = 0.0
 var _hovered := false
 var _stack_order: int = 0
 var _shadow: Panel
-var _outline: Panel
+var _action_outline: Control
+var _beat_visual: Control
 var _texture: TextureRect
 var _meld_chance_badge: Label
 var _motion_tween: Tween
 var _feedback_tween: Tween
+var _beat_tween: Tween
 var _interaction_enabled: bool = true
 var _chance_tooltip: String = ""
+var _can_meld: bool = false
+var _can_extend: bool = false
 
 
 func _ready() -> void:
@@ -40,12 +45,11 @@ func set_card(value: CardData) -> void:
 	_apply_card_texture()
 
 
-func set_meld_chance(probability: float, ready: bool, target_label: String, needed_text: String, draw_count: int) -> void:
+func set_meld_chance(probability: float, is_ready: bool, target_label: String, needed_text: String, draw_count: int) -> void:
 	if _meld_chance_badge == null:
 		return
 	var percent := clampi(int(round(probability * 100.0)), 0, 100)
-	_meld_chance_badge.visible = true
-	if ready:
+	if is_ready:
 		_meld_chance_badge.text = "✓"
 		_meld_chance_badge.add_theme_color_override("font_color", Color.WHITE)
 		_meld_chance_badge.add_theme_stylebox_override("normal", PresentationTheme.panel_style(Color("#3d702df2"), PresentationTheme.TEA, 1, 2, 2))
@@ -59,13 +63,35 @@ func set_meld_chance(probability: float, ready: bool, target_label: String, need
 			PresentationTheme.GOLD if active else Color("#51483b"), 1, 2, 2
 		))
 		_chance_tooltip = "%s: %.3f%% trong %d lá refill kế tiếp\nCần: %s" % [target_label, probability * 100.0, draw_count, needed_text]
+	_refresh_probability_visibility()
 	_refresh_tooltip()
+
+
+func set_action_cues(can_meld: bool, can_extend: bool) -> void:
+	_can_meld = can_meld
+	_can_extend = can_extend
+	_refresh_action_outline()
+
+
+func play_beat_pulse(strength: float) -> void:
+	if _beat_visual == null or not is_visible_in_tree():
+		return
+	if _beat_tween != null and _beat_tween.is_valid():
+		_beat_tween.kill()
+	var pulse_strength := clampf(strength, 0.2, 1.0)
+	_beat_visual.pivot_offset = CARD_SIZE * 0.5
+	_beat_visual.scale = Vector2.ONE
+	var peak := Vector2(
+		1.0 + lerpf(0.025, 0.065, pulse_strength),
+		1.0 + lerpf(0.055, 0.13, pulse_strength)
+	)
+	_beat_tween = create_tween()
+	_beat_tween.tween_property(_beat_visual, "scale", peak, 0.075).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	_beat_tween.tween_property(_beat_visual, "scale", Vector2.ONE, 0.19).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 
 
 func set_selected(value: bool, animate: bool = true) -> void:
 	selected = value
-	if _outline != null:
-		_outline.visible = selected
 	_refresh_z_index()
 	_update_pose(animate)
 
@@ -79,6 +105,8 @@ func set_interaction_enabled(enabled: bool) -> void:
 	_interaction_enabled = enabled
 	mouse_filter = Control.MOUSE_FILTER_STOP if enabled else Control.MOUSE_FILTER_IGNORE
 	mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND if enabled else Control.CURSOR_ARROW
+	_refresh_probability_visibility()
+	_refresh_action_outline()
 	_refresh_tooltip()
 	if not enabled and _hovered:
 		_hovered = false
@@ -110,22 +138,27 @@ func play_reject() -> void:
 
 
 func _build_visuals() -> void:
+	_beat_visual = Control.new()
+	_beat_visual.name = "BeatVisual"
+	_beat_visual.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_beat_visual.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_beat_visual.pivot_offset = CARD_SIZE * 0.5
+	add_child(_beat_visual)
+
 	_shadow = Panel.new()
 	_shadow.name = "Shadow"
 	_shadow.position = Vector2(5, 7)
 	_shadow.size = CARD_SIZE
 	_shadow.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_shadow.add_theme_stylebox_override("panel", PresentationTheme.panel_style(Color("#050302a8"), Color.TRANSPARENT, 0, 2, 4))
-	add_child(_shadow)
+	_beat_visual.add_child(_shadow)
 
-	_outline = Panel.new()
-	_outline.name = "SelectionGlow"
-	_outline.position = Vector2(-4, -4)
-	_outline.size = CARD_SIZE + Vector2(8, 8)
-	_outline.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_outline.add_theme_stylebox_override("panel", PresentationTheme.panel_style(Color("#79c84324"), PresentationTheme.TEA, 3, 2, 4))
-	_outline.visible = false
-	add_child(_outline)
+	_action_outline = CardActionOutlineScript.new()
+	_action_outline.name = "ActionOutline"
+	_action_outline.position = Vector2(-6, -6)
+	_action_outline.size = CARD_SIZE + Vector2(12, 12)
+	_action_outline.visible = false
+	add_child(_action_outline)
 
 	_texture = TextureRect.new()
 	_texture.name = "Face"
@@ -134,7 +167,7 @@ func _build_visuals() -> void:
 	_texture.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	_texture.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_texture.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	add_child(_texture)
+	_beat_visual.add_child(_texture)
 
 	_meld_chance_badge = Label.new()
 	_meld_chance_badge.name = "MeldChance"
@@ -153,7 +186,7 @@ func _build_visuals() -> void:
 	sheen.size = Vector2(CARD_SIZE.x - 10, 2)
 	sheen.color = Color(1, 1, 1, 0.23)
 	sheen.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(sheen)
+	_beat_visual.add_child(sheen)
 
 
 func _apply_card_texture() -> void:
@@ -166,7 +199,7 @@ func _refresh_tooltip() -> void:
 	if not _interaction_enabled or card == null:
 		tooltip_text = ""
 		return
-	tooltip_text = "%s  •  %d điểm" % [card.short_label(), card.score_value()]
+	tooltip_text = tr("CARD_POINTS") % [card.short_label(), card.score_value()]
 	if not _chance_tooltip.is_empty():
 		tooltip_text += "\n" + _chance_tooltip
 
@@ -182,14 +215,26 @@ func _gui_input(event: InputEvent) -> void:
 
 func _on_mouse_entered() -> void:
 	_hovered = true
+	_refresh_probability_visibility()
 	_refresh_z_index()
 	_update_pose(true)
 
 
 func _on_mouse_exited() -> void:
 	_hovered = false
+	_refresh_probability_visibility()
 	_refresh_z_index()
 	_update_pose(true)
+
+
+func _refresh_probability_visibility() -> void:
+	if _meld_chance_badge != null:
+		_meld_chance_badge.visible = _hovered and _interaction_enabled and not _meld_chance_badge.text.is_empty()
+
+
+func _refresh_action_outline() -> void:
+	if _action_outline != null:
+		_action_outline.set_cues(_can_meld and _interaction_enabled, _can_extend and _interaction_enabled)
 
 
 func _refresh_z_index() -> void:

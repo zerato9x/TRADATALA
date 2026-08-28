@@ -8,6 +8,8 @@ var _title: Label
 var _cards_row: HBoxContainer
 var _score: Label
 var _hint: Label
+var _card_views: Dictionary = {}
+var _card_beat_tweens: Dictionary = {}
 
 
 func _ready() -> void:
@@ -23,25 +25,70 @@ func set_meld(meld: MeldState, is_selected: bool, extension_is_legal: bool) -> v
 	meld_id = meld.meld_id
 	if _title == null:
 		return
-	_title.text = "%s  %02d" % ["SẢNH" if meld.meld_type == MeldRules.TYPE_RUN else "BỘ", meld.meld_id]
-	_score.text = "%d ĐIỂM  •  %s" % [meld.scored_points, VndWallet.format_vnd(VndWallet.points_to_vnd(meld.scored_points))]
-	_hint.text = "SẴN SÀNG GHÉP" if extension_is_legal else ("ĐANG CHỌN" if is_selected else "CHỌN ĐỂ GHÉP")
+	_title.text = "%s  %02d" % [tr("MELD_RUN") if meld.meld_type == MeldRules.TYPE_RUN else tr("MELD_SET"), meld.meld_id]
+	_score.text = tr("MELD_POINTS") % [meld.scored_points, VndWallet.format_vnd(VndWallet.points_to_vnd(meld.scored_points))]
+	_hint.text = tr("MELD_READY_EXTEND") if extension_is_legal else (tr("MELD_SELECTED") if is_selected else tr("MELD_SELECT_EXTEND"))
 	_hint.add_theme_color_override("font_color", PresentationTheme.TEA if extension_is_legal else (PresentationTheme.GOLD if is_selected else PresentationTheme.MUTED))
 	var border := PresentationTheme.TEA if extension_is_legal else (PresentationTheme.GOLD if is_selected else Color("#8d5b30"))
 	var background := Color("#2d251eee") if is_selected else Color("#19130fe8")
 	add_theme_stylebox_override("panel", PresentationTheme.panel_style(background, border, 2 if is_selected or extension_is_legal else 1, 2, 4))
-	for child in _cards_row.get_children():
-		child.queue_free()
-	for card in meld.cards:
-		var texture := TextureRect.new()
-		texture.custom_minimum_size = Vector2(49, 68)
-		texture.texture = load(card.texture_path()) as Texture2D
-		texture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		texture.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		texture.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-		texture.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		_cards_row.add_child(texture)
-	tooltip_text = "Click to target this %s for EXTEND." % ("Run" if meld.meld_type == MeldRules.TYPE_RUN else "Set")
+	_sync_cards(meld.cards)
+	tooltip_text = tr("MELD_TOOLTIP") % (tr("MELD_RUN") if meld.meld_type == MeldRules.TYPE_RUN else tr("MELD_SET"))
+
+
+func play_card_beat_pulse(card_id: String, strength: float) -> void:
+	var texture := _card_views.get(card_id) as TextureRect
+	if texture == null or not texture.is_visible_in_tree():
+		return
+	var previous := _card_beat_tweens.get(card_id) as Tween
+	if previous != null and previous.is_valid():
+		previous.kill()
+	var pulse_strength := clampf(strength, 0.2, 1.0)
+	texture.pivot_offset = texture.size * 0.5
+	texture.scale = Vector2.ONE
+	var peak := Vector2(
+		1.0 + lerpf(0.025, 0.065, pulse_strength),
+		1.0 + lerpf(0.055, 0.13, pulse_strength)
+	)
+	var tween := create_tween()
+	_card_beat_tweens[card_id] = tween
+	tween.tween_property(texture, "scale", peak, 0.075).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tween.tween_property(texture, "scale", Vector2.ONE, 0.19).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+
+
+func _sync_cards(cards: Array[CardData]) -> void:
+	var active_card_ids := {}
+	for card in cards:
+		active_card_ids[card.unique_id] = true
+	for existing_id in _card_views.keys():
+		if active_card_ids.has(existing_id):
+			continue
+		var stale_texture := _card_views[existing_id] as TextureRect
+		if stale_texture != null:
+			_cards_row.remove_child(stale_texture)
+			stale_texture.queue_free()
+		var stale_tween := _card_beat_tweens.get(existing_id) as Tween
+		if stale_tween != null and stale_tween.is_valid():
+			stale_tween.kill()
+		_card_beat_tweens.erase(existing_id)
+		_card_views.erase(existing_id)
+	for index in range(cards.size()):
+		var card := cards[index]
+		var texture := _card_views.get(card.unique_id) as TextureRect
+		if texture == null:
+			texture = TextureRect.new()
+			texture.custom_minimum_size = Vector2(49, 68)
+			texture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			texture.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			texture.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+			texture.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			_cards_row.add_child(texture)
+			_card_views[card.unique_id] = texture
+		var texture_path := card.texture_path()
+		if texture.texture == null or texture.texture.resource_path != texture_path:
+			texture.texture = load(texture_path) as Texture2D
+		if texture.get_index() != index:
+			_cards_row.move_child(texture, index)
 
 
 func _build_content() -> void:

@@ -1,6 +1,8 @@
 @tool
 extends McpTestSuite
 
+const MUSIC_BEAT_DETECTOR_PATH := "res://scripts/audio/music_beat_detector.gd"
+
 
 func suite_name() -> String:
 	return "core_deal"
@@ -8,6 +10,7 @@ func suite_name() -> String:
 
 func suite_setup(_ctx: Dictionary) -> void:
 	ResourceLoader.load("res://scripts/gameplay/deal_state.gd", "GDScript", ResourceLoader.CACHE_MODE_REPLACE)
+	ResourceLoader.load(MUSIC_BEAT_DETECTOR_PATH, "GDScript", ResourceLoader.CACHE_MODE_REPLACE)
 
 
 func test_standard_deck_has_52_unique_cards() -> void:
@@ -18,6 +21,34 @@ func test_standard_deck_has_52_unique_cards() -> void:
 		ids[card.unique_id] = true
 	assert_eq(cards.size(), 52)
 	assert_eq(ids.size(), 52)
+
+
+func test_music_beat_detector_triggers_on_onsets_with_a_cooldown() -> void:
+	var detector = _new_music_detector()
+	for _sample in range(45):
+		assert_false(detector.process_energy_sample(0.08, 1.0 / 60.0))
+	assert_true(detector.process_energy_sample(0.9, 1.0 / 60.0))
+	assert_false(detector.process_energy_sample(0.9, 1.0 / 60.0))
+	for _sample in range(20):
+		detector.process_energy_sample(0.04, 1.0 / 60.0)
+	assert_true(detector.process_energy_sample(0.9, 1.0 / 60.0))
+	detector.free()
+
+
+func test_music_frequency_bands_map_independently_to_logo_units() -> void:
+	var detector = _new_music_detector()
+	var constants: Dictionary = detector.get_script().get_script_constant_map()
+	assert_eq(constants.get(&"BAND_NAMES", []), ["TRA", "DA", "TA", "LA"])
+	assert_eq(constants.get(&"BAND_RANGES_HZ", []).size(), 4)
+	for _sample in range(45):
+		for band_index in range(int(constants.get(&"BAND_COUNT", 0))):
+			assert_false(detector.process_band_energy_sample(band_index, 0.04, 1.0 / 60.0))
+	assert_true(detector.process_band_energy_sample(0, 0.9, 1.0 / 60.0))
+	assert_true(detector.process_band_energy_sample(1, 0.9, 1.0 / 60.0))
+	assert_false(detector.process_band_energy_sample(0, 0.9, 1.0 / 60.0))
+	assert_false(detector.process_band_energy_sample(1, 0.9, 1.0 / 60.0))
+	assert_eq(detector.band_pulse_counts, PackedInt32Array([1, 1, 0, 0]))
+	detector.free()
 
 
 func test_card_rank_and_mutable_value_are_separate() -> void:
@@ -300,6 +331,26 @@ func test_hand_advisor_preserves_discard_normally_but_not_in_last_call() -> void
 	assert_eq(HandAdvisor.recommend(hand, [] as Array[MeldState], null, 1, 0, false)["action"], HandAdvisor.ACTION_NEW_MELD)
 
 
+func test_legal_action_card_ids_distinguish_new_melds_extensions_and_both() -> void:
+	var deal := DealState.new()
+	var six_spades := _card("6", "Spades", "both")
+	var six_hearts := _card("6", "Hearts", "meld")
+	var six_diamonds := _card("6", "Diamonds", "meld")
+	var discard := _card("K", "Clubs", "discard")
+	deal.hand = [six_spades, six_hearts, six_diamonds, discard]
+	deal.melds = [MeldState.new(1, MeldRules.TYPE_RUN, [
+		_card("3", "Spades", "table"), _card("4", "Spades", "table"), _card("5", "Spades", "table"),
+	] as Array[CardData])]
+	deal.state = DealState.STATE_ACTIVE
+	var actionable := deal.legal_action_card_ids()
+	assert_true(actionable["meld"].has(six_spades.unique_id))
+	assert_true(actionable["extend"].has(six_spades.unique_id))
+	assert_true(actionable["meld"].has(six_hearts.unique_id))
+	assert_false(actionable["extend"].has(six_hearts.unique_id))
+	assert_false(actionable["meld"].has(discard.unique_id))
+	assert_false(actionable["extend"].has(discard.unique_id))
+
+
 func test_meld_probability_reports_exact_set_outs_for_the_next_refill() -> void:
 	var hand: Array[CardData] = [_card("7", "Spades"), _card("7", "Hearts")]
 	var draw_pile: Array[CardData] = [
@@ -407,6 +458,17 @@ func _u_khan_hand() -> Array[CardData]:
 func _card(rank: String, suit: String, suffix: String = "") -> CardData:
 	var rank_index := DeckManager.RANKS.find(rank) + 1
 	return CardData.new("test_%s_%s_%s" % [rank, suit, suffix], rank, rank_index, suit, rank_index)
+
+
+func _new_music_detector():
+	var detector_script := GDScript.new()
+	var source_code := FileAccess.get_file_as_string(MUSIC_BEAT_DETECTOR_PATH)
+	source_code = source_code.replace("class_name MusicBeatDetector\r\n", "")
+	source_code = source_code.replace("class_name MusicBeatDetector\n", "")
+	detector_script.source_code = source_code
+	var reload_error: Error = detector_script.reload()
+	assert_eq(reload_error, OK, "music detector script reloads from disk")
+	return detector_script.new()
 
 
 func _ids(cards: Array[CardData]) -> Dictionary:

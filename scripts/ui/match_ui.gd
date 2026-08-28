@@ -3,6 +3,8 @@ extends Control
 
 const CARD_SIZE := PlayingCardView.CARD_SIZE
 const INITIAL_RELIC_SLOT_COUNT := 4
+const MUSIC_BAND_COUNT := 4
+const GAME_SETTINGS_SCRIPT := preload("res://scripts/settings/game_settings.gd")
 
 var deal := DealState.new()
 var selected_card_ids: Dictionary = {}
@@ -14,29 +16,44 @@ var sort_mode: int = 0
 var modal_mode: String = ""
 var game_started: bool = false
 var menu_transitioning: bool = false
+var settings
 
 var game_layer: Control
 var menu_layer: Control
 var play_button: Button
+var menu_button: Button
+var music_slider: HSlider
+var sound_slider: HSlider
+var music_settings_label: Label
+var sound_settings_label: Label
+var language_settings_label: Label
+var music_value_label: Label
+var sound_value_label: Label
+var language_selector: OptionButton
+var logo_segments: Array[Label] = []
+var logo_bounce_tweens: Dictionary = {}
+var reactive_hand_cards_by_band: Dictionary = {}
+var reactive_meld_cards_by_band: Dictionary = {}
+var music_controller: ReactiveMusicController
 var relic_grid: GridContainer
 var drink_name_label: Label
 
-var phase_value: Label
-var turn_value: Label
 var earnings_value: Label
 var wallet_value: Label
-var phase_clock: Label
+var header_caption_labels: Dictionary = {}
 var draw_count: Label
 var discard_count_label: Label
+var pile_caption_labels: Dictionary = {}
+var pile_archive_buttons: Dictionary = {}
 var discard_texture: TextureRect
-var discard_history_row: HBoxContainer
-var hand_count: Label
-var selection_label: Label
 var status_label: Label
 var hand_layer: Control
 var meld_scroll: ScrollContainer
 var meld_row: HBoxContainer
 var empty_meld_label: Label
+var meld_views: Dictionary = {}
+var discard_history_row: HBoxContainer
+var discard_history_title: Label
 var draw_pile_visual: Control
 var discard_pile_visual: Control
 var ha_button: Button
@@ -45,7 +62,17 @@ var discard_button: Button
 var settle_button: Button
 var hint_button: Button
 var sort_button: Button
+var drink_title_label: Label
+var relic_title_label: Label
 var particle_layer: Control
+
+var discard_archive_overlay: Control
+var pile_archive_title: Label
+var pile_archive_mode: String = "discard"
+var discard_archive_count: Label
+var discard_archive_suit_grids: Dictionary = {}
+var discard_archive_suit_titles: Dictionary = {}
+var discard_archive_close: Button
 
 var score_overlay: Control
 var score_panel: Panel
@@ -71,7 +98,14 @@ func _ready() -> void:
 	theme = PresentationTheme.create_game_theme()
 	custom_minimum_size = Vector2(960, 620)
 	interaction_locked = true
+	settings = get_node_or_null("/root/GameSettings")
+	if settings == null:
+		settings = GAME_SETTINGS_SCRIPT.new()
+		settings.name = "GameSettings"
+		get_tree().root.add_child(settings)
 	_build_interface()
+	_build_music()
+	settings.locale_changed.connect(_on_locale_changed)
 	get_viewport().size_changed.connect(_on_viewport_size_changed)
 	var result := deal.start_deal(-1, true)
 	displayed_wallet_vnd = deal.wallet.balance_vnd
@@ -116,81 +150,261 @@ func _build_main_menu() -> void:
 	var shade := ColorRect.new()
 	shade.name = "MenuShade"
 	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	shade.color = Color("#0907048f")
+	shade.color = Color("#090704a6")
 	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	menu_layer.add_child(shade)
 
-	var panel := PanelContainer.new()
-	panel.name = "MenuPanel"
-	panel.set_anchors_preset(Control.PRESET_CENTER_LEFT)
-	panel.position = Vector2(64, -218)
-	panel.size = Vector2(486, 436)
-	panel.add_theme_stylebox_override("panel", PresentationTheme.panel_style(Color("#17120ff5"), Color("#8d5b30"), 3, 3, 8))
-	menu_layer.add_child(panel)
+	var center := CenterContainer.new()
+	center.name = "MenuCenter"
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	menu_layer.add_child(center)
 
-	var margin := MarginContainer.new()
-	margin.add_theme_constant_override("margin_left", 34)
-	margin.add_theme_constant_override("margin_top", 30)
-	margin.add_theme_constant_override("margin_right", 34)
-	margin.add_theme_constant_override("margin_bottom", 28)
-	panel.add_child(margin)
 	var column := VBoxContainer.new()
-	column.add_theme_constant_override("separation", 8)
-	margin.add_child(column)
+	column.name = "MenuContent"
+	column.custom_minimum_size = Vector2(760, 430)
+	column.alignment = BoxContainer.ALIGNMENT_CENTER
+	column.add_theme_constant_override("separation", 20)
+	center.add_child(column)
 
-	var eyebrow := Label.new()
-	eyebrow.text = "BÀN VỈA HÈ SỐ 07"
-	eyebrow.add_theme_font_size_override("font_size", 13)
-	eyebrow.add_theme_color_override("font_color", PresentationTheme.MUTED)
-	column.add_child(eyebrow)
-	var title := Label.new()
-	title.text = "TRADATALA"
-	title.add_theme_font_size_override("font_size", 48)
-	title.add_theme_color_override("font_color", PresentationTheme.GOLD)
-	column.add_child(title)
-	var subtitle := Label.new()
-	subtitle.text = "TRÀ ĐÁ  •  TÁ LẢ  •  TIỀN LẺ"
-	subtitle.add_theme_font_size_override("font_size", 16)
-	subtitle.add_theme_color_override("font_color", PresentationTheme.INK)
-	column.add_child(subtitle)
-	var divider := HSeparator.new()
-	divider.custom_minimum_size.y = 18
-	column.add_child(divider)
-	var pitch := Label.new()
-	pitch.text = "HẠ PHỎM. GIỮ TIỀN.\nĐỪNG ĐỂ CÁI BÀN NHÌN THẤY BẠN MÓM."
-	pitch.add_theme_font_size_override("font_size", 15)
-	pitch.add_theme_color_override("font_color", Color("#e5d5a2"))
-	pitch.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	pitch.custom_minimum_size.y = 68
-	column.add_child(pitch)
-	var spacer := Control.new()
-	spacer.custom_minimum_size.y = 24
-	column.add_child(spacer)
+	var logo := HBoxContainer.new()
+	logo.name = "Logo"
+	logo.alignment = BoxContainer.ALIGNMENT_CENTER
+	logo.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	logo.add_theme_constant_override("separation", -2)
+	column.add_child(logo)
+	for segment_text in ["TRA", "DA", "TA", "LA"]:
+		var segment := Label.new()
+		segment.name = segment_text
+		segment.text = segment_text
+		segment.custom_minimum_size.y = 94
+		segment.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		segment.add_theme_font_size_override("font_size", 78)
+		segment.add_theme_color_override("font_color", PresentationTheme.GOLD)
+		segment.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		logo.add_child(segment)
+		logo_segments.append(segment)
+
+	_build_menu_settings(column)
+
 	play_button = Button.new()
 	play_button.name = "PlayButton"
-	play_button.text = "CHƠI  [ENTER]"
-	play_button.custom_minimum_size = Vector2(0, 58)
-	play_button.add_theme_font_size_override("font_size", 19)
+	play_button.text = tr("MENU_NEW_GAME")
+	play_button.custom_minimum_size = Vector2(280, 54)
+	play_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	PresentationTheme.configure_button(play_button, "gold")
+	play_button.add_theme_font_size_override("font_size", 18)
 	play_button.pressed.connect(_on_play_pressed)
 	column.add_child(play_button)
-	var note := Label.new()
-	note.text = "SOLO PHỎM  •  2 GIAI ĐOẠN  •  4 LƯỢT BỎ"
-	note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	note.add_theme_font_size_override("font_size", 10)
-	note.add_theme_color_override("font_color", PresentationTheme.MUTED)
-	column.add_child(note)
+	call_deferred("_refresh_logo_pivots")
 
-	var footer := Label.new()
-	footer.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-	footer.position = Vector2(-432, -42)
-	footer.size = Vector2(400, 24)
-	footer.text = "DFVN PEXEL GROTESK  •  MỘT VÁN BÀI RẤT NGHIÊM TÚC"
-	footer.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	footer.add_theme_font_size_override("font_size", 10)
-	footer.add_theme_color_override("font_color", Color("#c5ad82"))
-	footer.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	menu_layer.add_child(footer)
+
+func _build_menu_settings(parent: VBoxContainer) -> void:
+	var panel := PanelContainer.new()
+	panel.name = "SettingsPanel"
+	panel.custom_minimum_size = Vector2(520, 184)
+	panel.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	panel.add_theme_stylebox_override("panel", PresentationTheme.panel_style(Color("#17120ff2"), Color("#8d5b30"), 2, 8, 6))
+	parent.add_child(panel)
+	var margin := MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 20)
+	margin.add_theme_constant_override("margin_top", 16)
+	margin.add_theme_constant_override("margin_right", 20)
+	margin.add_theme_constant_override("margin_bottom", 16)
+	panel.add_child(margin)
+	var rows := VBoxContainer.new()
+	rows.add_theme_constant_override("separation", 12)
+	margin.add_child(rows)
+
+	var music_row := HBoxContainer.new()
+	music_row.name = "MusicRow"
+	music_row.add_theme_constant_override("separation", 12)
+	rows.add_child(music_row)
+	music_settings_label = _build_settings_label(music_row, "MENU_MUSIC")
+	music_slider = _build_volume_slider(music_row, settings.music_volume_percent)
+	music_slider.name = "MusicSlider"
+	music_value_label = _build_volume_value(music_row, settings.music_volume_percent)
+	music_slider.value_changed.connect(_on_music_volume_changed)
+
+	var sound_row := HBoxContainer.new()
+	sound_row.name = "SoundRow"
+	sound_row.add_theme_constant_override("separation", 12)
+	rows.add_child(sound_row)
+	sound_settings_label = _build_settings_label(sound_row, "MENU_SOUND")
+	sound_slider = _build_volume_slider(sound_row, settings.sound_volume_percent)
+	sound_slider.name = "SoundSlider"
+	sound_value_label = _build_volume_value(sound_row, settings.sound_volume_percent)
+	sound_slider.value_changed.connect(_on_sound_volume_changed)
+
+	var language_row := HBoxContainer.new()
+	language_row.name = "LanguageRow"
+	language_row.add_theme_constant_override("separation", 12)
+	rows.add_child(language_row)
+	language_settings_label = _build_settings_label(language_row, "MENU_LANGUAGE")
+	language_selector = OptionButton.new()
+	language_selector.name = "LanguageSelector"
+	language_selector.custom_minimum_size = Vector2(310, 42)
+	language_selector.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	PresentationTheme.configure_button(language_selector, "neutral")
+	language_row.add_child(language_selector)
+	_refresh_language_options()
+	language_selector.item_selected.connect(_on_language_selected)
+
+
+func _build_settings_label(parent: Container, key: String) -> Label:
+	var label := Label.new()
+	label.text = tr(key)
+	label.custom_minimum_size = Vector2(122, 42)
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.add_theme_font_size_override("font_size", 13)
+	label.add_theme_color_override("font_color", PresentationTheme.INK)
+	parent.add_child(label)
+	return label
+
+
+func _build_volume_slider(parent: Container, initial_value: float) -> HSlider:
+	var slider := HSlider.new()
+	slider.min_value = 0.0
+	slider.max_value = 100.0
+	slider.step = 1.0
+	slider.custom_minimum_size = Vector2(250, 42)
+	slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	slider.set_value_no_signal(initial_value)
+	parent.add_child(slider)
+	return slider
+
+
+func _build_volume_value(parent: Container, initial_value: float) -> Label:
+	var label := Label.new()
+	label.text = "%d%%" % roundi(initial_value)
+	label.custom_minimum_size = Vector2(54, 42)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.add_theme_font_size_override("font_size", 12)
+	label.add_theme_color_override("font_color", PresentationTheme.GOLD)
+	parent.add_child(label)
+	return label
+
+
+func _on_music_volume_changed(value: float) -> void:
+	music_value_label.text = "%d%%" % roundi(value)
+	settings.set_music_volume(value)
+
+
+func _on_sound_volume_changed(value: float) -> void:
+	sound_value_label.text = "%d%%" % roundi(value)
+	settings.set_sound_volume(value)
+
+
+func _on_language_selected(index: int) -> void:
+	if index < 0 or index >= settings.SUPPORTED_LOCALES.size():
+		return
+	settings.set_locale(settings.SUPPORTED_LOCALES[index])
+
+
+func _refresh_language_options() -> void:
+	var selected_index: int = int(settings.locale_index())
+	language_selector.clear()
+	language_selector.add_item(tr("LANG_VI"))
+	language_selector.add_item(tr("LANG_EN"))
+	language_selector.select(selected_index)
+
+
+func _on_locale_changed(_locale_code: String) -> void:
+	_refresh_localized_ui()
+
+
+func _refresh_localized_ui() -> void:
+	play_button.text = tr("MENU_NEW_GAME")
+	music_settings_label.text = tr("MENU_MUSIC")
+	sound_settings_label.text = tr("MENU_SOUND")
+	language_settings_label.text = tr("MENU_LANGUAGE")
+	_refresh_language_options()
+	menu_button.text = tr("HUD_MENU")
+	menu_button.tooltip_text = tr("HUD_MENU_TOOLTIP")
+	discard_history_title.text = tr("HUD_DISCARD_HISTORY")
+	(header_caption_labels.get("IncomeStat") as Label).text = tr("HUD_INCOME")
+	(header_caption_labels.get("WalletStat") as Label).text = tr("HUD_WALLET")
+	empty_meld_label.text = tr("TABLE_EMPTY_MELD")
+	(pile_caption_labels.get("draw") as Label).text = tr("PILE_DRAW")
+	(pile_caption_labels.get("discard") as Label).text = tr("PILE_DISCARD")
+	(pile_archive_buttons.get("draw") as Button).tooltip_text = tr("PILE_DRAW_TOOLTIP")
+	(pile_archive_buttons.get("discard") as Button).tooltip_text = tr("PILE_DISCARD_TOOLTIP")
+	drink_title_label.text = tr("HUD_DRINK")
+	relic_title_label.text = tr("HUD_RELICS")
+	hint_button.text = tr("ACTION_HINT")
+	hint_button.tooltip_text = tr("ACTION_HINT_TOOLTIP")
+	sort_button.text = tr("ACTION_SORT_RANK") if sort_mode == 0 else tr("ACTION_SORT_SUIT")
+	sort_button.tooltip_text = tr("ACTION_SORT_TOOLTIP")
+	ha_button.text = tr("ACTION_MELD")
+	ha_button.tooltip_text = tr("ACTION_MELD_TOOLTIP")
+	extend_button.text = tr("ACTION_EXTEND")
+	extend_button.tooltip_text = tr("ACTION_EXTEND_TOOLTIP")
+	discard_button.text = tr("ACTION_DISCARD")
+	discard_button.tooltip_text = tr("ACTION_DISCARD_TOOLTIP")
+	settle_button.text = tr("ACTION_SETTLE")
+	settle_button.tooltip_text = tr("ACTION_SETTLE_TOOLTIP")
+	discard_archive_close.text = tr("ARCHIVE_CLOSE")
+	for suit in DeckManager.SUITS:
+		(discard_archive_suit_titles.get(suit) as Label).text = _discard_suit_title(suit)
+	_sync_all()
+
+
+func _build_music() -> void:
+	music_controller = ReactiveMusicController.new()
+	music_controller.name = "ReactiveMusic"
+	music_controller.band_pulse.connect(_on_music_band_pulse)
+	add_child(music_controller)
+
+
+func _refresh_logo_pivots() -> void:
+	for segment in logo_segments:
+		segment.pivot_offset = segment.size * 0.5
+
+
+func _on_music_band_pulse(band_index: int, strength: float) -> void:
+	if band_index < 0 or band_index >= MUSIC_BAND_COUNT:
+		return
+	if menu_layer != null and menu_layer.visible:
+		_pulse_logo_band(band_index, strength)
+		return
+	if not game_started or interaction_locked or modal_overlay.visible or score_overlay.visible or discard_archive_overlay.visible:
+		return
+	var hand_assignments: Array = reactive_hand_cards_by_band.get(band_index, [])
+	for assignment_index in range(hand_assignments.size()):
+		var hand_view = hand_assignments[assignment_index]
+		hand_view.play_beat_pulse(strength)
+	var meld_assignments: Array = reactive_meld_cards_by_band.get(band_index, [])
+	for assignment_index in range(meld_assignments.size()):
+		var assignment: Dictionary = meld_assignments[assignment_index]
+		var meld_view := assignment.get("view") as MeldView
+		if meld_view != null:
+			meld_view.play_card_beat_pulse(String(assignment.get("card_id", "")), strength)
+
+
+func _pulse_logo_band(band_index: int, strength: float) -> void:
+	if band_index >= logo_segments.size():
+		return
+	var pulse_strength := clampf(strength, 0.2, 1.0)
+	var segment := logo_segments[band_index]
+	var previous := logo_bounce_tweens.get(band_index) as Tween
+	if previous != null and previous.is_valid():
+		previous.kill()
+	segment.pivot_offset = segment.size * 0.5
+	segment.scale = Vector2.ONE
+	segment.rotation = 0.0
+	var peak_scale := Vector2(
+		1.0 + lerpf(0.035, 0.075, pulse_strength),
+		1.0 + lerpf(0.07, 0.15, pulse_strength)
+	)
+	var tilt := deg_to_rad(lerpf(0.35, 1.2, pulse_strength))
+	if band_index % 2 == 0:
+		tilt = -tilt
+	var tween := create_tween()
+	logo_bounce_tweens[band_index] = tween
+	tween.tween_property(segment, "scale", peak_scale, 0.075).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tween.parallel().tween_property(segment, "rotation", tilt, 0.075).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tween.tween_property(segment, "scale", Vector2.ONE, 0.19).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tween.parallel().tween_property(segment, "rotation", 0.0, 0.19).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 
 
 func _park_game_layer() -> void:
@@ -200,7 +414,24 @@ func _park_game_layer() -> void:
 
 
 func _on_play_pressed() -> void:
-	if game_started or menu_transitioning:
+	if menu_transitioning:
+		return
+	if game_started:
+		menu_transitioning = true
+		play_button.disabled = true
+		menu_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var close_tween := create_tween()
+		close_tween.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+		close_tween.tween_property(menu_layer, "modulate", Color(1, 1, 1, 0), 0.22)
+		await close_tween.finished
+		menu_layer.visible = false
+		menu_layer.position = Vector2.ZERO
+		menu_layer.modulate = Color.WHITE
+		menu_transitioning = false
+		interaction_locked = false
+		_set_hand_interaction_enabled(true)
+		_start_new_deal()
+		play_button.disabled = false
 		return
 	menu_transitioning = true
 	play_button.disabled = true
@@ -218,7 +449,39 @@ func _on_play_pressed() -> void:
 	interaction_locked = false
 	_set_hand_interaction_enabled(true)
 	_refresh_actions()
-	_show_banner("VÁN MỚI  •  CHỌN BÀI, HẠ PHỎM, RỒI BỎ 1 LÁ")
+	_show_banner(tr("BANNER_NEW_DEAL"))
+
+
+func _on_menu_pressed() -> void:
+	if not game_started or menu_transitioning or interaction_locked or modal_overlay.visible or score_overlay.visible or discard_archive_overlay.visible:
+		return
+	interaction_locked = true
+	_set_hand_interaction_enabled(false)
+	menu_layer.position = Vector2.ZERO
+	menu_layer.modulate = Color(1, 1, 1, 0)
+	menu_layer.visible = true
+	menu_layer.mouse_filter = Control.MOUSE_FILTER_STOP
+	play_button.disabled = false
+	var tween := create_tween()
+	tween.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tween.tween_property(menu_layer, "modulate", Color.WHITE, 0.18)
+
+
+func _close_menu_to_game() -> void:
+	if not game_started or menu_transitioning or not menu_layer.visible:
+		return
+	menu_transitioning = true
+	menu_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var tween := create_tween()
+	tween.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	tween.tween_property(menu_layer, "modulate", Color(1, 1, 1, 0), 0.16)
+	await tween.finished
+	menu_layer.visible = false
+	menu_layer.modulate = Color.WHITE
+	menu_transitioning = false
+	interaction_locked = false
+	_set_hand_interaction_enabled(true)
+	_refresh_actions()
 
 
 func _build_header() -> void:
@@ -232,51 +495,65 @@ func _build_header() -> void:
 	game_layer.add_child(header)
 
 	var row := HBoxContainer.new()
+	row.name = "HeaderRow"
 	row.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	row.add_theme_constant_override("separation", 10)
 	header.add_child(row)
 
-	var identity_panel := PanelContainer.new()
-	identity_panel.custom_minimum_size = Vector2(318, 86)
-	identity_panel.add_theme_stylebox_override("panel", PresentationTheme.panel_style(Color("#19130ff0"), Color("#8d5b30"), 2, 2, 5))
-	row.add_child(identity_panel)
-	var identity_margin := MarginContainer.new()
-	identity_margin.add_theme_constant_override("margin_left", 16)
-	identity_margin.add_theme_constant_override("margin_top", 8)
-	identity_margin.add_theme_constant_override("margin_right", 16)
-	identity_margin.add_theme_constant_override("margin_bottom", 8)
-	identity_panel.add_child(identity_margin)
-	var identity := VBoxContainer.new()
-	identity.add_theme_constant_override("separation", -1)
-	identity_margin.add_child(identity)
-	var title := Label.new()
-	title.text = "TRADATALA"
-	title.add_theme_font_size_override("font_size", 28)
-	title.add_theme_color_override("font_color", PresentationTheme.GOLD)
-	identity.add_child(title)
-	var subtitle := Label.new()
-	subtitle.text = "BÀN VỈA HÈ SỐ 07  •  SOLO PHỎM"
-	subtitle.add_theme_font_size_override("font_size", 12)
-	subtitle.add_theme_color_override("font_color", PresentationTheme.INK)
-	identity.add_child(subtitle)
-	var rules := Label.new()
-	rules.text = "2 GIAI ĐOẠN  •  4 LƯỢT BỎ"
-	rules.add_theme_font_size_override("font_size", 10)
-	rules.add_theme_color_override("font_color", PresentationTheme.MUTED)
-	identity.add_child(rules)
+	menu_button = _make_action_button(row, tr("HUD_MENU"), "neutral", 94)
+	menu_button.name = "MenuButton"
+	menu_button.custom_minimum_size.y = 72
+	menu_button.tooltip_text = tr("HUD_MENU_TOOLTIP")
+	menu_button.pressed.connect(_on_menu_pressed)
+
+	_build_discard_history_hud(row)
 
 	var spacer := Control.new()
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(spacer)
 
-	phase_value = _add_header_stat(row, "GIAI ĐOẠN", 108)
-	turn_value = _add_header_stat(row, "LƯỢT BỎ", 112)
-	earnings_value = _add_header_stat(row, "THU NHẬP", 144)
-	wallet_value = _add_header_stat(row, "VÍ CỦA BẠN", 178, true)
+	earnings_value = _add_header_stat(row, "HUD_INCOME", 144, false, "IncomeStat")
+	wallet_value = _add_header_stat(row, "HUD_WALLET", 178, true, "WalletStat")
 
 
-func _add_header_stat(parent: Container, caption: String, minimum_width: float, emphasize: bool = false) -> Label:
+func _build_discard_history_hud(parent: Container) -> void:
 	var panel := PanelContainer.new()
+	panel.name = "DiscardHistoryHUD"
+	panel.custom_minimum_size = Vector2(340, 72)
+	panel.add_theme_stylebox_override("panel", PresentationTheme.panel_style(Color("#19130ff0"), Color("#8d5b30"), 2, 2, 5))
+	parent.add_child(panel)
+	var margin := MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 8)
+	margin.add_theme_constant_override("margin_top", 5)
+	margin.add_theme_constant_override("margin_right", 8)
+	margin.add_theme_constant_override("margin_bottom", 5)
+	panel.add_child(margin)
+	var column := VBoxContainer.new()
+	column.add_theme_constant_override("separation", 2)
+	margin.add_child(column)
+	discard_history_title = Label.new()
+	discard_history_title.text = tr("HUD_DISCARD_HISTORY")
+	discard_history_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	discard_history_title.add_theme_font_size_override("font_size", 9)
+	discard_history_title.add_theme_color_override("font_color", PresentationTheme.GOLD)
+	column.add_child(discard_history_title)
+	var scroll := ScrollContainer.new()
+	scroll.name = "DiscardHistoryScroll"
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	column.add_child(scroll)
+	discard_history_row = HBoxContainer.new()
+	discard_history_row.name = "DiscardHistoryRow"
+	discard_history_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	discard_history_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	discard_history_row.add_theme_constant_override("separation", 3)
+	scroll.add_child(discard_history_row)
+
+
+func _add_header_stat(parent: Container, caption: String, minimum_width: float, emphasize: bool = false, panel_name: String = "") -> Label:
+	var panel := PanelContainer.new()
+	panel.name = panel_name
 	panel.custom_minimum_size = Vector2(minimum_width, 72)
 	panel.add_theme_stylebox_override("panel", PresentationTheme.panel_style(Color("#19130ff0"), Color("#8d5b30"), 2, 2, 4))
 	parent.add_child(panel)
@@ -290,10 +567,11 @@ func _add_header_stat(parent: Container, caption: String, minimum_width: float, 
 	column.add_theme_constant_override("separation", -2)
 	margin.add_child(column)
 	var caption_label := Label.new()
-	caption_label.text = caption
+	caption_label.text = tr(caption)
 	caption_label.add_theme_font_size_override("font_size", 11)
 	caption_label.add_theme_color_override("font_color", PresentationTheme.MUTED)
 	column.add_child(caption_label)
+	header_caption_labels[panel_name] = caption_label
 	var value := Label.new()
 	value.add_theme_font_size_override("font_size", 19 if emphasize else 17)
 	value.add_theme_color_override("font_color", PresentationTheme.GOLD if emphasize else PresentationTheme.INK)
@@ -313,18 +591,6 @@ func _build_table() -> void:
 	table.add_theme_stylebox_override("panel", PresentationTheme.panel_style(Color.TRANSPARENT, Color.TRANSPARENT, 0, 0, 0))
 	game_layer.add_child(table)
 
-	phase_clock = Label.new()
-	phase_clock.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
-	phase_clock.offset_left = 150
-	phase_clock.offset_top = 8
-	phase_clock.offset_right = -150
-	phase_clock.offset_bottom = 35
-	phase_clock.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	phase_clock.add_theme_font_size_override("font_size", 14)
-	phase_clock.add_theme_color_override("font_color", PresentationTheme.GOLD)
-	phase_clock.add_theme_stylebox_override("normal", PresentationTheme.panel_style(Color("#17120fd9"), Color("#8d5b30"), 1, 2, 2))
-	table.add_child(phase_clock)
-
 	draw_pile_visual = _build_pile(table, true)
 	discard_pile_visual = _build_pile(table, false)
 
@@ -332,9 +598,9 @@ func _build_table() -> void:
 	meld_scroll.name = "MeldScroll"
 	meld_scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	meld_scroll.offset_left = 250
-	meld_scroll.offset_top = 48
+	meld_scroll.offset_top = 10
 	meld_scroll.offset_right = -250
-	meld_scroll.offset_bottom = -88
+	meld_scroll.offset_bottom = -10
 	meld_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
 	meld_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	table.add_child(meld_scroll)
@@ -349,17 +615,16 @@ func _build_table() -> void:
 	empty_meld_label = Label.new()
 	empty_meld_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	empty_meld_label.offset_left = 260
-	empty_meld_label.offset_top = 52
+	empty_meld_label.offset_top = 16
 	empty_meld_label.offset_right = -260
-	empty_meld_label.offset_bottom = -88
-	empty_meld_label.text = "CHƯA CÓ PHỎM TRÊN BÀN\n\nChọn từ 3 lá hợp lệ rồi nhấn HẠ."
+	empty_meld_label.offset_bottom = -10
+	empty_meld_label.text = tr("TABLE_EMPTY_MELD")
 	empty_meld_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	empty_meld_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	empty_meld_label.add_theme_font_size_override("font_size", 14)
 	empty_meld_label.add_theme_color_override("font_color", Color("#e5d5a2"))
 	empty_meld_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	table.add_child(empty_meld_label)
-	_build_discard_history_tray(table)
 
 
 func _build_pile(parent: Control, is_draw_pile: bool) -> Control:
@@ -373,12 +638,14 @@ func _build_pile(parent: Control, is_draw_pile: bool) -> Control:
 	var caption := Label.new()
 	caption.position = Vector2(0, 0)
 	caption.size = Vector2(112, 21)
-	caption.text = "BỐC" if is_draw_pile else "BỎ"
+	caption.text = tr("PILE_DRAW") if is_draw_pile else tr("PILE_DISCARD")
 	caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	caption.add_theme_font_size_override("font_size", 10)
 	caption.add_theme_color_override("font_color", PresentationTheme.INK)
 	caption.add_theme_stylebox_override("normal", PresentationTheme.panel_style(Color("#19130feb"), Color("#8d5b30"), 1, 2, 2))
+	caption.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	pile.add_child(caption)
+	pile_caption_labels["draw" if is_draw_pile else "discard"] = caption
 
 	for depth in range(3, 0, -1):
 		var backing := TextureRect.new()
@@ -402,51 +669,23 @@ func _build_pile(parent: Control, is_draw_pile: bool) -> Control:
 	badge.add_theme_font_size_override("font_size", 12)
 	badge.add_theme_color_override("font_color", PresentationTheme.INK)
 	badge.add_theme_stylebox_override("normal", PresentationTheme.panel_style(Color("#19130ff2"), PresentationTheme.GOLD_DARK, 2, 2, 2))
+	badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	pile.add_child(badge)
 	if is_draw_pile:
 		draw_count = badge
 	else:
 		discard_count_label = badge
+	var archive_button := Button.new()
+	archive_button.name = "OpenDrawArchive" if is_draw_pile else "OpenDiscardArchive"
+	archive_button.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	archive_button.flat = true
+	archive_button.focus_mode = Control.FOCUS_NONE
+	archive_button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	archive_button.tooltip_text = tr("PILE_DRAW_TOOLTIP") if is_draw_pile else tr("PILE_DISCARD_TOOLTIP")
+	archive_button.pressed.connect(_on_draw_archive_pressed if is_draw_pile else _on_discard_archive_pressed)
+	pile.add_child(archive_button)
+	pile_archive_buttons["draw" if is_draw_pile else "discard"] = archive_button
 	return pile
-
-
-func _build_discard_history_tray(parent: Control) -> void:
-	var panel := PanelContainer.new()
-	panel.name = "DiscardHistoryTray"
-	panel.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
-	panel.offset_left = 230
-	panel.offset_top = -82
-	panel.offset_right = -230
-	panel.offset_bottom = -6
-	panel.add_theme_stylebox_override("panel", PresentationTheme.panel_style(Color("#17120fe8"), Color("#8d5b30"), 1, 2, 3))
-	parent.add_child(panel)
-	var margin := MarginContainer.new()
-	margin.add_theme_constant_override("margin_left", 7)
-	margin.add_theme_constant_override("margin_top", 3)
-	margin.add_theme_constant_override("margin_right", 7)
-	margin.add_theme_constant_override("margin_bottom", 3)
-	panel.add_child(margin)
-	var column := VBoxContainer.new()
-	column.add_theme_constant_override("separation", 2)
-	margin.add_child(column)
-	var title := Label.new()
-	title.text = "TẤT CẢ LÁ ĐÃ BỎ  •  GIAI ĐOẠN + THỨ TỰ"
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 9)
-	title.add_theme_color_override("font_color", PresentationTheme.GOLD)
-	column.add_child(title)
-	var scroll := ScrollContainer.new()
-	scroll.name = "DiscardHistoryScroll"
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
-	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	column.add_child(scroll)
-	discard_history_row = HBoxContainer.new()
-	discard_history_row.name = "DiscardHistoryRow"
-	discard_history_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	discard_history_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	discard_history_row.add_theme_constant_override("separation", 4)
-	scroll.add_child(discard_history_row)
 
 
 func _build_hand() -> void:
@@ -460,29 +699,11 @@ func _build_hand() -> void:
 	hand_panel.add_theme_stylebox_override("panel", PresentationTheme.panel_style(Color.TRANSPARENT, Color.TRANSPARENT, 0, 0, 0))
 	game_layer.add_child(hand_panel)
 
-	var label_row := HBoxContainer.new()
-	label_row.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
-	label_row.offset_left = 15
-	label_row.offset_top = 7
-	label_row.offset_right = -15
-	label_row.offset_bottom = 27
-	label_row.add_theme_constant_override("separation", 12)
-	hand_panel.add_child(label_row)
-	hand_count = Label.new()
-	hand_count.add_theme_font_size_override("font_size", 11)
-	hand_count.add_theme_color_override("font_color", PresentationTheme.INK)
-	hand_count.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	label_row.add_child(hand_count)
-	selection_label = Label.new()
-	selection_label.add_theme_font_size_override("font_size", 11)
-	selection_label.add_theme_color_override("font_color", PresentationTheme.TEA)
-	label_row.add_child(selection_label)
-
 	hand_layer = Control.new()
 	hand_layer.name = "CardFan"
 	hand_layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	hand_layer.offset_left = 10
-	hand_layer.offset_top = 27
+	hand_layer.offset_top = 6
 	hand_layer.offset_right = -10
 	hand_layer.offset_bottom = 4
 	hand_layer.clip_contents = false
@@ -503,14 +724,14 @@ func _build_future_slots() -> void:
 	drink_panel.size = Vector2(134, 106)
 	drink_panel.add_theme_stylebox_override("panel", PresentationTheme.panel_style(Color("#17120fe8"), Color("#8d5b30"), 2, 2, 4))
 	rail.add_child(drink_panel)
-	var drink_title := Label.new()
-	drink_title.position = Vector2(9, 7)
-	drink_title.size = Vector2(116, 18)
-	drink_title.text = "DRINK"
-	drink_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	drink_title.add_theme_font_size_override("font_size", 12)
-	drink_title.add_theme_color_override("font_color", PresentationTheme.GOLD)
-	drink_panel.add_child(drink_title)
+	drink_title_label = Label.new()
+	drink_title_label.position = Vector2(9, 7)
+	drink_title_label.size = Vector2(116, 18)
+	drink_title_label.text = tr("HUD_DRINK")
+	drink_title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	drink_title_label.add_theme_font_size_override("font_size", 12)
+	drink_title_label.add_theme_color_override("font_color", PresentationTheme.GOLD)
+	drink_panel.add_child(drink_title_label)
 	var drink_slot := Panel.new()
 	drink_slot.name = "DrinkSlot"
 	drink_slot.position = Vector2(34, 30)
@@ -520,14 +741,14 @@ func _build_future_slots() -> void:
 	drink_panel.add_child(drink_slot)
 	drink_name_label = Label.new()
 	drink_name_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	drink_name_label.text = DrinkCatalog.display_name(deal.current_drink_id).to_upper()
+	drink_name_label.text = tr(DrinkCatalog.display_name(deal.current_drink_id)).to_upper()
 	drink_name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	drink_name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	drink_name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	drink_name_label.add_theme_font_size_override("font_size", 11)
 	drink_name_label.add_theme_color_override("font_color", PresentationTheme.TEA)
 	drink_name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	drink_slot.tooltip_text = "Drink hiện tại: %s" % DrinkCatalog.display_name(deal.current_drink_id)
+	drink_slot.tooltip_text = tr("HUD_CURRENT_DRINK") % tr(DrinkCatalog.display_name(deal.current_drink_id))
 	drink_slot.add_child(drink_name_label)
 
 	var relic_panel := Panel.new()
@@ -536,14 +757,14 @@ func _build_future_slots() -> void:
 	relic_panel.size = Vector2(134, 232)
 	relic_panel.add_theme_stylebox_override("panel", PresentationTheme.panel_style(Color("#17120fe8"), Color("#8d5b30"), 2, 2, 4))
 	rail.add_child(relic_panel)
-	var relic_title := Label.new()
-	relic_title.position = Vector2(9, 7)
-	relic_title.size = Vector2(116, 18)
-	relic_title.text = "RELICS"
-	relic_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	relic_title.add_theme_font_size_override("font_size", 12)
-	relic_title.add_theme_color_override("font_color", PresentationTheme.GOLD)
-	relic_panel.add_child(relic_title)
+	relic_title_label = Label.new()
+	relic_title_label.position = Vector2(9, 7)
+	relic_title_label.size = Vector2(116, 18)
+	relic_title_label.text = tr("HUD_RELICS")
+	relic_title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	relic_title_label.add_theme_font_size_override("font_size", 12)
+	relic_title_label.add_theme_color_override("font_color", PresentationTheme.GOLD)
+	relic_panel.add_child(relic_title_label)
 	var relic_scroll := ScrollContainer.new()
 	relic_scroll.name = "RelicScroll"
 	relic_scroll.position = Vector2(9, 30)
@@ -612,23 +833,23 @@ func _build_action_dock() -> void:
 	status_label.add_theme_color_override("font_color", PresentationTheme.MUTED)
 	row.add_child(status_label)
 
-	hint_button = _make_action_button(row, "GỢI Ý  [G]", "gold", 104)
-	hint_button.tooltip_text = "Chọn Phỏm mới có điểm cao nhất, hoặc một nước Ghép hợp lệ."
+	hint_button = _make_action_button(row, tr("ACTION_HINT"), "gold", 104)
+	hint_button.tooltip_text = tr("ACTION_HINT_TOOLTIP")
 	hint_button.pressed.connect(_on_hint_pressed)
-	sort_button = _make_action_button(row, "SẮP BÀI  [S]", "neutral", 104)
-	sort_button.tooltip_text = "Đổi cách xếp bài giữa số và chất."
+	sort_button = _make_action_button(row, tr("ACTION_SORT"), "neutral", 104)
+	sort_button.tooltip_text = tr("ACTION_SORT_TOOLTIP")
 	sort_button.pressed.connect(_on_sort_pressed)
-	ha_button = _make_action_button(row, "HẠ  [H]", "tea", 108)
-	ha_button.tooltip_text = "Hạ các lá đã chọn thành Bộ hoặc Sảnh mới."
+	ha_button = _make_action_button(row, tr("ACTION_MELD"), "tea", 108)
+	ha_button.tooltip_text = tr("ACTION_MELD_TOOLTIP")
 	ha_button.pressed.connect(_on_ha_pressed)
-	extend_button = _make_action_button(row, "GHÉP  [E]", "gold", 116)
-	extend_button.tooltip_text = "Ghép các lá đã chọn vào Phỏm đang nhắm tới."
+	extend_button = _make_action_button(row, tr("ACTION_EXTEND"), "gold", 116)
+	extend_button.tooltip_text = tr("ACTION_EXTEND_TOOLTIP")
 	extend_button.pressed.connect(_on_extend_pressed)
-	discard_button = _make_action_button(row, "BỎ BÀI  [D]", "danger", 120)
-	discard_button.tooltip_text = "Bỏ đúng một lá bài rời để kết thúc lượt."
+	discard_button = _make_action_button(row, tr("ACTION_DISCARD"), "danger", 120)
+	discard_button.tooltip_text = tr("ACTION_DISCARD_TOOLTIP")
 	discard_button.pressed.connect(_on_discard_pressed)
-	settle_button = _make_action_button(row, "CHỐT  [C]", "tea", 108)
-	settle_button.tooltip_text = "Kết thúc cửa Hạ cuối và tính điểm Giai đoạn."
+	settle_button = _make_action_button(row, tr("ACTION_SETTLE"), "tea", 108)
+	settle_button.tooltip_text = tr("ACTION_SETTLE_TOOLTIP")
 	settle_button.pressed.connect(_on_settle_pressed)
 
 
@@ -649,9 +870,218 @@ func _build_effect_layers() -> void:
 	particle_layer.z_index = 100
 	game_layer.add_child(particle_layer)
 
+	_build_discard_archive()
 	_build_score_overlay()
 	_build_banner()
 	_build_modal()
+
+
+func _build_discard_archive() -> void:
+	discard_archive_overlay = Control.new()
+	discard_archive_overlay.name = "DiscardArchiveOverlay"
+	discard_archive_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	discard_archive_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	discard_archive_overlay.z_index = 160
+	discard_archive_overlay.visible = false
+	game_layer.add_child(discard_archive_overlay)
+
+	var dim := ColorRect.new()
+	dim.name = "ArchiveDim"
+	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	dim.color = Color("#020302b8")
+	dim.mouse_filter = Control.MOUSE_FILTER_STOP
+	dim.gui_input.connect(_on_discard_archive_dim_input)
+	discard_archive_overlay.add_child(dim)
+
+	var panel := Panel.new()
+	panel.name = "ArchivePanel"
+	panel.set_anchors_preset(Control.PRESET_CENTER)
+	panel.position = Vector2(-460, -250)
+	panel.size = Vector2(920, 500)
+	panel.mouse_filter = Control.MOUSE_FILTER_STOP
+	panel.add_theme_stylebox_override("panel", PresentationTheme.panel_style(Color("#14100dfb"), PresentationTheme.GOLD, 2, 16, 10))
+	discard_archive_overlay.add_child(panel)
+
+	var margin := MarginContainer.new()
+	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	margin.add_theme_constant_override("margin_left", 24)
+	margin.add_theme_constant_override("margin_top", 20)
+	margin.add_theme_constant_override("margin_right", 24)
+	margin.add_theme_constant_override("margin_bottom", 20)
+	panel.add_child(margin)
+	var column := VBoxContainer.new()
+	column.add_theme_constant_override("separation", 14)
+	margin.add_child(column)
+
+	var header := HBoxContainer.new()
+	header.add_theme_constant_override("separation", 12)
+	column.add_child(header)
+	var title_column := VBoxContainer.new()
+	title_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title_column.add_theme_constant_override("separation", -2)
+	header.add_child(title_column)
+	pile_archive_title = Label.new()
+	pile_archive_title.name = "ArchiveTitle"
+	pile_archive_title.text = tr("ARCHIVE_DISCARD_TITLE")
+	pile_archive_title.add_theme_font_size_override("font_size", 24)
+	pile_archive_title.add_theme_color_override("font_color", PresentationTheme.GOLD)
+	title_column.add_child(pile_archive_title)
+	discard_archive_count = Label.new()
+	discard_archive_count.name = "ArchiveCount"
+	discard_archive_count.add_theme_font_size_override("font_size", 11)
+	discard_archive_count.add_theme_color_override("font_color", PresentationTheme.MUTED)
+	title_column.add_child(discard_archive_count)
+	discard_archive_close = _make_action_button(header, tr("ARCHIVE_CLOSE"), "danger", 122)
+	discard_archive_close.name = "CloseArchive"
+	discard_archive_close.pressed.connect(_hide_discard_archive)
+
+	var suits_row := HBoxContainer.new()
+	suits_row.name = "SuitColumns"
+	suits_row.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	suits_row.add_theme_constant_override("separation", 10)
+	column.add_child(suits_row)
+	for suit in DeckManager.SUITS:
+		var suit_panel := PanelContainer.new()
+		suit_panel.name = "%sColumn" % suit
+		suit_panel.custom_minimum_size = Vector2(210, 0)
+		suit_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		suit_panel.add_theme_stylebox_override("panel", PresentationTheme.panel_style(Color("#211a15ed"), _discard_suit_color(suit), 1, 8, 5))
+		suits_row.add_child(suit_panel)
+		var suit_margin := MarginContainer.new()
+		suit_margin.add_theme_constant_override("margin_left", 10)
+		suit_margin.add_theme_constant_override("margin_top", 10)
+		suit_margin.add_theme_constant_override("margin_right", 10)
+		suit_margin.add_theme_constant_override("margin_bottom", 10)
+		suit_panel.add_child(suit_margin)
+		var suit_column := VBoxContainer.new()
+		suit_column.add_theme_constant_override("separation", 8)
+		suit_margin.add_child(suit_column)
+		var suit_title := Label.new()
+		suit_title.text = _discard_suit_title(suit)
+		suit_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		suit_title.add_theme_font_size_override("font_size", 14)
+		suit_title.add_theme_color_override("font_color", _discard_suit_color(suit))
+		suit_column.add_child(suit_title)
+		discard_archive_suit_titles[suit] = suit_title
+		var scroll := ScrollContainer.new()
+		scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+		scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+		suit_column.add_child(scroll)
+		var grid := GridContainer.new()
+		grid.name = "%sCards" % suit
+		grid.columns = 3
+		grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		grid.add_theme_constant_override("h_separation", 4)
+		grid.add_theme_constant_override("v_separation", 5)
+		scroll.add_child(grid)
+		discard_archive_suit_grids[suit] = grid
+
+
+func _on_draw_archive_pressed() -> void:
+	_toggle_pile_archive("draw")
+
+
+func _on_discard_archive_pressed() -> void:
+	_toggle_pile_archive("discard")
+
+
+func _toggle_pile_archive(mode: String) -> void:
+	if discard_archive_overlay.visible and pile_archive_mode == mode:
+		_hide_discard_archive()
+	else:
+		pile_archive_mode = mode
+		_show_discard_archive()
+
+
+func _show_discard_archive() -> void:
+	if not game_started or interaction_locked or modal_overlay.visible or score_overlay.visible:
+		return
+	_sync_pile_archive()
+	discard_archive_overlay.visible = true
+	discard_archive_overlay.modulate = Color(1, 1, 1, 0)
+	var panel := discard_archive_overlay.get_node("ArchivePanel") as Panel
+	panel.scale = Vector2(0.97, 0.97)
+	panel.pivot_offset = panel.size * 0.5
+	var tween := create_tween().set_parallel(true)
+	tween.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tween.tween_property(discard_archive_overlay, "modulate", Color.WHITE, 0.14)
+	tween.tween_property(panel, "scale", Vector2.ONE, 0.18)
+	discard_archive_close.grab_focus()
+
+
+func _hide_discard_archive() -> void:
+	discard_archive_overlay.visible = false
+	discard_archive_close.release_focus()
+
+
+func _on_discard_archive_dim_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+		_hide_discard_archive()
+
+
+func _sync_pile_archive() -> void:
+	var source_cards: Array[CardData] = deal.deck.draw_pile if pile_archive_mode == "draw" else deal.deck.discard_pile
+	pile_archive_title.text = tr("ARCHIVE_DRAW_TITLE") if pile_archive_mode == "draw" else tr("ARCHIVE_DISCARD_TITLE")
+	discard_archive_count.text = tr("ARCHIVE_COUNT") % source_cards.size()
+	var cards_by_suit := {}
+	for suit in DeckManager.SUITS:
+		cards_by_suit[suit] = [] as Array[CardData]
+	for card in source_cards:
+		if cards_by_suit.has(card.suit):
+			cards_by_suit[card.suit].append(card)
+	for suit in DeckManager.SUITS:
+		var grid: GridContainer = discard_archive_suit_grids[suit]
+		for child in grid.get_children():
+			grid.remove_child(child)
+			child.queue_free()
+		var suit_cards: Array[CardData] = cards_by_suit[suit]
+		suit_cards.sort_custom(_discard_card_less)
+		if suit_cards.is_empty():
+			var empty := Label.new()
+			empty.custom_minimum_size = Vector2(172, 52)
+			empty.text = tr("ARCHIVE_DRAW_EMPTY") if pile_archive_mode == "draw" else tr("ARCHIVE_DISCARD_EMPTY")
+			empty.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			empty.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+			empty.add_theme_font_size_override("font_size", 10)
+			empty.add_theme_color_override("font_color", PresentationTheme.MUTED)
+			grid.add_child(empty)
+			continue
+		for card in suit_cards:
+			grid.add_child(_build_discard_archive_card(card))
+
+
+func _build_discard_archive_card(card: CardData) -> Control:
+	var holder := Control.new()
+	holder.custom_minimum_size = Vector2(54, 75)
+	holder.tooltip_text = tr("CARD_POINTS") % [card.short_label(), card.score_value()]
+	var texture := TextureRect.new()
+	texture.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	texture.texture = load(card.texture_path()) as Texture2D
+	texture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	texture.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	texture.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	texture.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	holder.add_child(texture)
+	return holder
+
+
+func _discard_card_less(left: CardData, right: CardData) -> bool:
+	if left.rank_index != right.rank_index:
+		return left.rank_index < right.rank_index
+	return left.unique_id < right.unique_id
+
+
+func _discard_suit_title(suit: String) -> String:
+	match suit:
+		"Spades": return tr("SUIT_SPADES")
+		"Hearts": return tr("SUIT_HEARTS")
+		"Diamonds": return tr("SUIT_DIAMONDS")
+		_: return tr("SUIT_CLUBS")
+
+
+func _discard_suit_color(suit: String) -> Color:
+	return PresentationTheme.RED if suit in ["Hearts", "Diamonds"] else PresentationTheme.INK
 
 
 func _build_score_overlay() -> void:
@@ -783,12 +1213,16 @@ func _sync_all(result: Dictionary = {}, animate_all_cards: bool = false) -> void
 		animated_cards.append_array(deal.hand)
 	_sync_hand(animated_cards)
 	_sync_card_probability_badges()
+	var actionable := _sync_card_action_outlines()
 	_sync_melds()
+	_sync_music_reactive_cards(actionable)
 	_sync_piles()
 	_sync_discard_history()
+	if discard_archive_overlay.visible:
+		_sync_pile_archive()
 	if drink_name_label != null:
-		drink_name_label.text = DrinkCatalog.display_name(deal.current_drink_id).to_upper()
-		drink_name_label.get_parent().tooltip_text = "Drink hiện tại: %s" % DrinkCatalog.display_name(deal.current_drink_id)
+		drink_name_label.text = tr(DrinkCatalog.display_name(deal.current_drink_id)).to_upper()
+		drink_name_label.get_parent().tooltip_text = tr("HUD_CURRENT_DRINK") % tr(DrinkCatalog.display_name(deal.current_drink_id))
 	_refresh_stats()
 	_refresh_actions()
 
@@ -841,6 +1275,56 @@ func _sync_card_probability_badges() -> void:
 		)
 
 
+func _sync_card_action_outlines() -> Dictionary:
+	var actionable := deal.legal_action_card_ids()
+	var meld_card_ids: Dictionary = actionable["meld"]
+	var extension_card_ids: Dictionary = actionable["extend"]
+	for card in deal.hand:
+		var view: PlayingCardView = hand_views.get(card.unique_id)
+		if view != null:
+			view.set_action_cues(meld_card_ids.has(card.unique_id), extension_card_ids.has(card.unique_id))
+	return actionable
+
+
+func _sync_music_reactive_cards(actionable: Dictionary = {}) -> void:
+	_reactive_assignments_clear()
+	if actionable.is_empty():
+		actionable = deal.legal_action_card_ids()
+	var meld_card_ids: Dictionary = actionable.get("meld", {})
+	var hand_assignment_index := 0
+	for card in deal.hand:
+		if not meld_card_ids.has(card.unique_id):
+			continue
+		var view := hand_views.get(card.unique_id) as PlayingCardView
+		if view != null:
+			reactive_hand_cards_by_band[hand_assignment_index % MUSIC_BAND_COUNT].append(view)
+			hand_assignment_index += 1
+
+	var selected := _selected_cards()
+	if selected.is_empty():
+		return
+	for meld in deal.melds:
+		if not deal.can_extend_meld(meld.meld_id, selected):
+			continue
+		var view := meld_views.get(meld.meld_id) as MeldView
+		if view == null:
+			continue
+		for card_index in range(meld.cards.size()):
+			var card: CardData = meld.cards[card_index]
+			reactive_meld_cards_by_band[card_index % MUSIC_BAND_COUNT].append({
+				"view": view,
+				"card_id": card.unique_id,
+			})
+
+
+func _reactive_assignments_clear() -> void:
+	reactive_hand_cards_by_band.clear()
+	reactive_meld_cards_by_band.clear()
+	for band_index in range(MUSIC_BAND_COUNT):
+		reactive_hand_cards_by_band[band_index] = []
+		reactive_meld_cards_by_band[band_index] = []
+
+
 func _layout_hand(animate: bool) -> void:
 	if hand_layer == null or hand_layer.size.x <= 0:
 		return
@@ -863,21 +1347,39 @@ func _layout_hand(animate: bool) -> void:
 
 
 func _sync_melds() -> void:
-	for child in meld_row.get_children():
-		child.queue_free()
 	empty_meld_label.visible = deal.melds.is_empty()
+	var active_meld_ids := {}
+	for meld in deal.melds:
+		active_meld_ids[meld.meld_id] = true
+	for existing_id in meld_views.keys():
+		if active_meld_ids.has(existing_id):
+			continue
+		var stale_view := meld_views[existing_id] as MeldView
+		if stale_view != null:
+			meld_row.remove_child(stale_view)
+			stale_view.queue_free()
+		meld_views.erase(existing_id)
 	if deal.melds.is_empty():
 		selected_meld_id = -1
 		return
 	if selected_meld_id >= 0 and deal.get_meld(selected_meld_id) == null:
 		selected_meld_id = -1
 	var selected_cards := _selected_cards()
-	for meld in deal.melds:
-		var view := MeldView.new()
-		meld_row.add_child(view)
+	for index in range(deal.melds.size()):
+		var meld := deal.melds[index]
+		var view: MeldView = meld_views.get(meld.meld_id)
+		var is_new := view == null
+		if is_new:
+			view = MeldView.new()
+			meld_row.add_child(view)
+			meld_views[meld.meld_id] = view
+			view.meld_pressed.connect(_on_meld_pressed)
+		elif view.get_index() != index:
+			meld_row.move_child(view, index)
 		var legal := deal.can_extend_meld(meld.meld_id, selected_cards)
 		view.set_meld(meld, meld.meld_id == selected_meld_id, legal)
-		view.meld_pressed.connect(_on_meld_pressed)
+		if not is_new:
+			continue
 		view.modulate = Color(1, 1, 1, 0)
 		view.scale = Vector2(0.94, 0.94)
 		var tween := view.create_tween().set_parallel(true)
@@ -887,8 +1389,8 @@ func _sync_melds() -> void:
 
 
 func _sync_piles() -> void:
-	draw_count.text = "%d LÁ" % deal.deck.draw_pile.size()
-	discard_count_label.text = "%d LÁ" % deal.deck.discard_pile.size()
+	draw_count.text = tr("PILE_COUNT") % deal.deck.draw_pile.size()
+	discard_count_label.text = tr("PILE_COUNT") % deal.deck.discard_pile.size()
 	if deal.deck.discard_pile.is_empty():
 		discard_texture.texture = load("res://cards/red_backing.png") as Texture2D
 		discard_texture.modulate = Color(1, 1, 1, 0.12)
@@ -903,7 +1405,7 @@ func _sync_discard_history() -> void:
 		child.queue_free()
 	if deal.discard_history.is_empty():
 		var empty := Label.new()
-		empty.text = "CHƯA CÓ LÁ BỎ"
+		empty.text = tr("HUD_NO_DISCARDS")
 		empty.add_theme_font_size_override("font_size", 10)
 		empty.add_theme_color_override("font_color", PresentationTheme.MUTED)
 		discard_history_row.add_child(empty)
@@ -913,8 +1415,8 @@ func _sync_discard_history() -> void:
 		if records.is_empty():
 			continue
 		var phase_label := Label.new()
-		phase_label.text = "P%d" % phase_number
-		phase_label.custom_minimum_size = Vector2(24, 43)
+		phase_label.text = tr("HUD_PHASE_SHORT") % phase_number
+		phase_label.custom_minimum_size = Vector2(20, 38)
 		phase_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		phase_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		phase_label.add_theme_font_size_override("font_size", 10)
@@ -926,8 +1428,8 @@ func _sync_discard_history() -> void:
 
 func _build_discard_thumbnail(record: DiscardRecord) -> Control:
 	var holder := Control.new()
-	holder.custom_minimum_size = Vector2(31, 43)
-	holder.tooltip_text = "Giai đoạn %d  •  Lá bỏ #%d  •  %s" % [record.phase, record.discard_number, record.card.short_label()]
+	holder.custom_minimum_size = Vector2(27, 38)
+	holder.tooltip_text = tr("HUD_DISCARD_TOOLTIP") % [record.phase, record.discard_number, record.card.short_label()]
 	var texture := TextureRect.new()
 	texture.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	texture.texture = load(record.card.texture_path()) as Texture2D
@@ -938,8 +1440,8 @@ func _build_discard_thumbnail(record: DiscardRecord) -> Control:
 	holder.add_child(texture)
 	var badge := Label.new()
 	badge.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-	badge.position = Vector2(-15, -14)
-	badge.size = Vector2(15, 14)
+	badge.position = Vector2(-14, -13)
+	badge.size = Vector2(14, 13)
 	badge.text = str(record.discard_number)
 	badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	badge.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -952,18 +1454,8 @@ func _build_discard_thumbnail(record: DiscardRecord) -> Control:
 
 
 func _refresh_stats() -> void:
-	phase_value.text = "%d / 2" % deal.current_phase
-	turn_value.text = "%d / %d" % [deal.discard_count, DealState.DISCARDS_PER_PHASE]
 	earnings_value.text = VndWallet.format_vnd(VndWallet.points_to_vnd(deal.phase_earnings_points), true)
 	wallet_value.text = VndWallet.format_vnd(displayed_wallet_vnd)
-	var window_text := "   •   LAST CALL" if deal.state == DealState.STATE_FINAL_COMMIT_WINDOW else ""
-	phase_clock.text = "GIAI ĐOẠN %d   •   ĐÃ BỎ %d / %d   •   PHỎM MỚI %d%s" % [deal.current_phase, deal.discard_count, DealState.DISCARDS_PER_PHASE, deal.phase_new_meld_count, window_text]
-	hand_count.text = "BÀI TRÊN TAY  •  %d LÁ" % deal.hand.size()
-	var selected := _selected_cards()
-	var selected_sum := 0
-	for card in selected:
-		selected_sum += card.score_value()
-	selection_label.text = "%d CHỌN  •  Σ %d" % [selected.size(), selected_sum]
 
 
 func _refresh_actions() -> void:
@@ -977,27 +1469,27 @@ func _refresh_actions() -> void:
 	hint_button.disabled = not card_window or deal.hand.is_empty()
 	sort_button.disabled = not card_window or deal.hand.size() < 2
 	if interaction_locked:
-		status_label.text = "ĐANG GIẢI QUYẾT…"
+		status_label.text = tr("STATUS_RESOLVING")
 		status_label.add_theme_color_override("font_color", PresentationTheme.MUTED)
 		return
 	if deal.state == DealState.STATE_PHASE_CHOICE:
-		status_label.text = "GIAI ĐOẠN 1 ĐÃ KHÉP LẠI  •  CHỌN GIỮ HOẶC ĐỔI BÀI"
+		status_label.text = tr("STATUS_PHASE_CHOICE")
 		return
 	if deal.state == DealState.STATE_DEAL_OVER:
-		status_label.text = "VÁN ĐÃ KẾT THÚC"
+		status_label.text = tr("STATUS_DEAL_OVER")
 		return
 	if deal.state == DealState.STATE_FINAL_COMMIT_WINDOW and selected.is_empty():
-		status_label.text = "LAST CALL  •  HẠ/GHÉP TÙY Ý  •  KHÔNG BỎ THÊM  •  NHẤN CHỐT"
+		status_label.text = tr("STATUS_LAST_CALL")
 		status_label.add_theme_color_override("font_color", PresentationTheme.GOLD)
 		return
 	if selected.is_empty():
-		status_label.text = "CHỌN BÀI  •  HẠ BỘ/SẢNH  •  HOẶC CHỌN 1 LÁ ĐỂ BỎ"
+		status_label.text = tr("STATUS_CHOOSE")
 		status_label.add_theme_color_override("font_color", PresentationTheme.MUTED)
 	elif deal.can_create_meld(selected):
 		var kind := MeldRules.classify(selected)
 		var points := HandAdvisor.estimate_new_meld_points(selected, deal.scoring, deal.current_phase, deal.phase_new_meld_count)
-		status_label.text = "%s HỢP LỆ  •  +%d ĐIỂM / %s  •  NHẤN HẠ" % [
-			"SẢNH" if kind == MeldRules.TYPE_RUN else "BỘ",
+		status_label.text = tr("STATUS_VALID_MELD") % [
+			tr("MELD_RUN") if kind == MeldRules.TYPE_RUN else tr("MELD_SET"),
 			points,
 			VndWallet.format_vnd(VndWallet.points_to_vnd(points), true),
 		]
@@ -1006,17 +1498,17 @@ func _refresh_actions() -> void:
 		var points := HandAdvisor.estimate_extension_points(
 			deal.get_meld(selected_meld_id), selected, deal.scoring, deal.current_phase
 		)
-		status_label.text = "GHÉP PHỎM %02d  •  +%d ĐIỂM / %s  •  NHẤN GHÉP" % [
+		status_label.text = tr("STATUS_VALID_EXTEND") % [
 			selected_meld_id,
 			points,
 			VndWallet.format_vnd(VndWallet.points_to_vnd(points), true),
 		]
 		status_label.add_theme_color_override("font_color", PresentationTheme.GOLD)
 	elif selected.size() == 1:
-		status_label.text = "1 LÁ ĐÃ CHỌN  •  BỎ BÀI, HOẶC CHỌN THÊM ĐỂ TẠO PHỎM"
+		status_label.text = tr("STATUS_ONE_SELECTED")
 		status_label.add_theme_color_override("font_color", PresentationTheme.INK)
 	else:
-		status_label.text = "CHƯA THÀNH BỘ/SẢNH  •  ĐIỀU CHỈNH LỰA CHỌN"
+		status_label.text = tr("STATUS_INVALID_MELD")
 		status_label.add_theme_color_override("font_color", PresentationTheme.RED)
 
 
@@ -1029,6 +1521,7 @@ func _on_card_pressed(card: CardData) -> void:
 		selected_card_ids[card.unique_id] = true
 	_layout_hand(true)
 	_sync_melds()
+	_sync_music_reactive_cards()
 	_refresh_stats()
 	_refresh_actions()
 
@@ -1038,6 +1531,7 @@ func _on_meld_pressed(meld_id: int) -> void:
 		return
 	selected_meld_id = -1 if selected_meld_id == meld_id else meld_id
 	_sync_melds()
+	_sync_music_reactive_cards()
 	_refresh_actions()
 
 
@@ -1093,12 +1587,12 @@ func _on_discard_pressed() -> void:
 	selected_card_ids.clear()
 	_sync_all(result)
 	if result.get("final_commit_window", false):
-		_show_banner("LAST CALL  •  HẠ / GHÉP LẦN CUỐI  •  NHẤN CHỐT KHI XONG")
+		_show_banner(tr("BANNER_LAST_CALL"))
 		interaction_locked = false
 		_refresh_actions()
 	else:
 		var drawn: Array[CardData] = _cards_from_result(result)
-		_show_banner("RÚT %d LÁ  •  ĐÃ BỎ %d / %d" % [drawn.size(), deal.discard_count, DealState.DISCARDS_PER_PHASE])
+		_show_banner(tr("BANNER_DRAW") % [drawn.size(), deal.discard_count, DealState.DISCARDS_PER_PHASE])
 		interaction_locked = false
 		_refresh_actions()
 
@@ -1133,7 +1627,7 @@ func _on_sort_pressed() -> void:
 				return DeckManager.SUITS.find(left.suit) < DeckManager.SUITS.find(right.suit)
 			return left.rank_index < right.rank_index
 		)
-		sort_button.text = "SẮP: SỐ  [S]"
+		sort_button.text = tr("ACTION_SORT_RANK")
 	else:
 		deal.hand.sort_custom(func(left: CardData, right: CardData) -> bool:
 			var left_suit := DeckManager.SUITS.find(left.suit)
@@ -1142,8 +1636,9 @@ func _on_sort_pressed() -> void:
 				return left.rank_index < right.rank_index
 			return left_suit < right_suit
 		)
-		sort_button.text = "SẮP: CHẤT  [S]"
+		sort_button.text = tr("ACTION_SORT_SUIT")
 	_layout_hand(true)
+	_sync_music_reactive_cards()
 
 
 func _on_hint_pressed() -> void:
@@ -1160,52 +1655,53 @@ func _on_hint_pressed() -> void:
 		deal.state == DealState.STATE_ACTIVE
 	)
 	if recommendation["action"] == HandAdvisor.ACTION_NONE:
-		_show_banner("CHƯA CÓ PHỎM HỢP LỆ  •  CHỌN 1 LÁ ĐỂ BỎ")
+		_show_banner(tr("BANNER_NO_HINT"))
 	else:
 		for card: CardData in recommendation["cards"]:
 			selected_card_ids[card.unique_id] = true
 		if recommendation["action"] == HandAdvisor.ACTION_EXTENSION:
 			selected_meld_id = recommendation["meld_id"]
-		var verb := "HẠ" if recommendation["action"] == HandAdvisor.ACTION_NEW_MELD else "GHÉP"
-		_show_banner("GỢI Ý %s  •  +%d ĐIỂM DỰ KIẾN" % [verb, recommendation["estimated_points"]])
+		var verb := tr("MELD_ACTION") if recommendation["action"] == HandAdvisor.ACTION_NEW_MELD else tr("EXTEND_ACTION")
+		_show_banner(tr("BANNER_HINT") % [verb, recommendation["estimated_points"]])
 	_layout_hand(true)
 	_sync_melds()
+	_sync_music_reactive_cards()
 	_refresh_stats()
 	_refresh_actions()
 
 
 func _show_scoring(context: ScoringContext) -> void:
-	var kind := "SẢNH" if context.meld_type == MeldRules.TYPE_RUN else "BỘ"
+	var kind := tr("MELD_RUN") if context.meld_type == MeldRules.TYPE_RUN else tr("MELD_SET")
 	if context.action_type == "new_meld":
-		score_title.text = "HẠ THÀNH CÔNG  •  %s  •  GIAI ĐOẠN %d" % [kind, context.phase]
+		score_title.text = tr("SCORE_MELD_SUCCESS") % [kind, context.phase]
 		score_line_a.text = "%s   →   %d" % [context.value_equation(), context.card_value_sum]
-		score_line_b.text = "%d × %d   →   %d ĐIỂM" % [context.base_score, context.local_mult, context.theoretical_score]
+		score_line_b.text = tr("SCORE_POINTS_EQUATION") % [context.base_score, context.local_mult, context.theoretical_score]
 		score_payout.text = "%d × ₫1.000   →   %s" % [context.final_points, VndWallet.format_vnd(VndWallet.points_to_vnd(context.final_points), true)]
 	else:
-		score_title.text = "GHÉP THÀNH CÔNG  •  %s  •  GIAI ĐOẠN %d" % [kind, context.phase]
-		score_line_a.text = "ĐIỂM CŨ  %d   →   ĐIỂM MỚI  %d" % [context.old_meld_score, context.theoretical_score]
+		score_title.text = tr("SCORE_EXTEND_SUCCESS") % [kind, context.phase]
+		score_line_a.text = tr("SCORE_OLD_NEW") % [context.old_meld_score, context.theoretical_score]
 		if context.drink_bonus_points > 0:
-			score_line_b.text = "DELTA %d  +  DRINK %d   →   +%d ĐIỂM" % [context.base_extension_score, context.drink_bonus_points, context.final_points]
+			score_line_b.text = tr("SCORE_DRINK_BONUS") % [context.base_extension_score, context.drink_bonus_points, context.final_points]
 		else:
-			score_line_b.text = "%d − %d   →   +%d ĐIỂM" % [context.theoretical_score, context.old_meld_score, context.final_points]
-		score_payout.text = "PHẦN TĂNG   →   %s" % VndWallet.format_vnd(VndWallet.points_to_vnd(context.final_points), true)
+			score_line_b.text = tr("SCORE_DELTA") % [context.theoretical_score, context.old_meld_score, context.final_points]
+		score_payout.text = tr("SCORE_INCREASE") % VndWallet.format_vnd(VndWallet.points_to_vnd(context.final_points), true)
 	await _play_score_panel(deal.wallet.balance_vnd, context.final_points >= 0)
 
 
 func _show_phase_resolution(resolution: Dictionary) -> void:
 	var is_mom: bool = resolution["mom"]
 	var phase_number: int = resolution["phase"]
-	score_title.text = "TỔNG KẾT GIAI ĐOẠN %d" % phase_number
+	score_title.text = tr("SCORE_PHASE_RESULT") % phase_number
 	if is_mom:
-		score_line_a.text = "MÓM  •  KHÔNG CÓ PHỎM MỚI TRONG GIAI ĐOẠN"
+		score_line_a.text = tr("SCORE_MOM")
 		score_line_a.add_theme_color_override("font_color", PresentationTheme.RED)
-		score_line_b.text = "ĐÃ GHI 1 STRIKE  •  TỔNG BANK %d  •  KHÔNG TRỪ TIỀN" % deal.mom_strikes_banked
+		score_line_b.text = tr("SCORE_MOM_BANK") % deal.mom_strikes_banked
 	else:
-		score_line_a.text = "KHÔNG MÓM  •  ĐÃ HẠ %d PHỎM MỚI" % resolution["new_phom_count"]
+		score_line_a.text = tr("SCORE_SAFE") % resolution["new_phom_count"]
 		score_line_a.add_theme_color_override("font_color", PresentationTheme.TEA)
-		score_line_b.text = "GROSS %d%s" % [resolution["gross_after_u"], "  •  Ù ×2" if resolution["u"] else ""]
+		score_line_b.text = tr("SCORE_GROSS") % [resolution["gross_after_u"], tr("SCORE_U_BONUS") if resolution["u"] else ""]
 	var deadwood: int = resolution["deadwood_points"]
-	score_payout.text = "NET %d  =  GROSS %d  −  DEADWOOD %d" % [resolution["net"], resolution["gross_after_u"], deadwood]
+	score_payout.text = tr("SCORE_NET") % [resolution["net"], resolution["gross_after_u"], deadwood]
 	await _play_score_panel(deal.wallet.balance_vnd, not is_mom)
 	score_line_a.add_theme_color_override("font_color", PresentationTheme.INK)
 
@@ -1279,12 +1775,12 @@ func _spawn_money_float(_delta_vnd: int, positive: bool) -> void:
 func _show_phase_choice(resolution: Dictionary) -> void:
 	interaction_locked = false
 	modal_mode = "phase_choice"
-	modal_kicker.text = "GIAI ĐOẠN 1 HOÀN TẤT  •  %s" % ("MÓM" if resolution["mom"] else "AN TOÀN")
-	modal_title.text = "GIỮ BÀI HAY ĐỔI BÀI?"
-	modal_body.text = "GIỮ mang toàn bộ %d lá bài rời sang Giai đoạn 2.\nĐỔI bỏ cả tay và rút một tay mới — không được chọn lọc." % deal.hand.size()
-	modal_detail.text = "Các Phỏm đã Hạ vẫn nằm trên bàn và có thể Ghép trong Giai đoạn 2.\nChỉ một Phỏm MỚI mới tránh được Móm Giai đoạn 2."
-	modal_primary.text = "GIỮ  [K]\nGIỮ %d LÁ" % deal.hand.size()
-	modal_secondary.text = "ĐỔI  [X]\nĐỔI TOÀN BỘ"
+	modal_kicker.text = tr("MODAL_PHASE1_KICKER") % (tr("MOM") if resolution["mom"] else tr("SAFE"))
+	modal_title.text = tr("MODAL_KEEP_OR_REDRAW")
+	modal_body.text = tr("MODAL_PHASE1_BODY") % deal.hand.size()
+	modal_detail.text = tr("MODAL_PHASE1_DETAIL")
+	modal_primary.text = tr("MODAL_KEEP") % deal.hand.size()
+	modal_secondary.text = tr("MODAL_REDRAW")
 	modal_secondary.visible = true
 	_show_modal()
 	_refresh_actions()
@@ -1293,17 +1789,19 @@ func _show_phase_choice(resolution: Dictionary) -> void:
 func _show_deal_over(resolution: Dictionary) -> void:
 	interaction_locked = false
 	modal_mode = "deal_over"
-	modal_kicker.text = "VÁN HOÀN TẤT  •  GIAI ĐOẠN 2 %s" % ("MÓM" if resolution["mom"] else "AN TOÀN")
+	modal_kicker.text = tr("MODAL_DEAL_KICKER") % (tr("MOM") if resolution["mom"] else tr("SAFE"))
 	modal_title.text = VndWallet.format_vnd(deal.wallet.balance_vnd)
-	modal_body.text = "Ví cuối ván sau hai lần tính Gross − Deadwood.\nBạn đã Hạ %d Phỏm trên bàn." % deal.melds.size()
-	modal_detail.text = "MÓM BANK %d  →  RESOLVED %d  •  BÀI RỜI P2: %d\nAccount consequence remains outside this card scene." % [deal.mom_strikes_banked, deal.mom_strikes_resolved, resolution["deadwood_points"]]
-	modal_primary.text = "CHIA VÁN MỚI  [R]"
+	modal_body.text = tr("MODAL_DEAL_BODY") % deal.melds.size()
+	modal_detail.text = tr("MODAL_DEAL_DETAIL") % [deal.mom_strikes_banked, deal.mom_strikes_resolved, resolution["deadwood_points"]]
+	modal_primary.text = tr("MODAL_NEW_DEAL")
 	modal_secondary.visible = false
 	_show_modal()
 	_refresh_actions()
 
 
 func _show_modal() -> void:
+	if discard_archive_overlay.visible:
+		_hide_discard_archive()
 	_set_hand_interaction_enabled(false)
 	modal_overlay.visible = true
 	modal_overlay.modulate = Color(1, 1, 1, 0)
@@ -1343,7 +1841,7 @@ func _begin_phase_two(keep_hand: bool) -> void:
 	selected_card_ids.clear()
 	selected_meld_id = -1
 	_sync_all(result)
-	_show_banner("GIAI ĐOẠN 2  •  %s  •  HẠ ÍT NHẤT 1 PHỎM MỚI" % ("GIỮ BÀI" if keep_hand else "ĐỔI BÀI"))
+	_show_banner(tr("BANNER_PHASE2") % (tr("KEEP_HAND") if keep_hand else tr("REDRAW_HAND")))
 	interaction_locked = false
 	_refresh_actions()
 
@@ -1359,7 +1857,7 @@ func _start_new_deal() -> void:
 	var result := deal.start_deal(-1, false)
 	displayed_wallet_vnd = deal.wallet.balance_vnd
 	_sync_all(result, true)
-	_show_banner("VÁN MỚI  •  VÍ VND ĐƯỢC GIỮ NGUYÊN")
+	_show_banner(tr("BANNER_NEW_DEAL_WALLET"))
 	interaction_locked = false
 	_refresh_actions()
 
@@ -1449,9 +1947,15 @@ func _on_viewport_size_changed() -> void:
 func _unhandled_key_input(event: InputEvent) -> void:
 	if not event is InputEventKey or not event.pressed or event.echo:
 		return
-	if not game_started:
-		if not menu_transitioning and event.keycode in [KEY_ENTER, KEY_KP_ENTER, KEY_SPACE]:
+	if menu_layer.visible:
+		if game_started and event.keycode == KEY_ESCAPE:
+			_close_menu_to_game()
+		elif not menu_transitioning and event.keycode in [KEY_ENTER, KEY_KP_ENTER, KEY_SPACE]:
 			_on_play_pressed()
+		return
+	if discard_archive_overlay.visible:
+		if event.keycode == KEY_ESCAPE:
+			_hide_discard_archive()
 		return
 	if modal_overlay.visible:
 		if modal_mode == "phase_choice" and event.keycode == KEY_K:

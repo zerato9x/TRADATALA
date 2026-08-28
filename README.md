@@ -11,8 +11,18 @@ The project opens on a dedicated title menu over the fixed sidewalk-table backgr
 Open `project.godot` in Godot 4.7.1 Stable and run the project (`F6`/`F5`), or launch from a console:
 
 ```powershell
-Godot_v4.7.1-stable_win64_console.exe --path C:\Stuffs\TRADATALA
+Godot_v4.7.1-stable_win64_console.exe --path G:\PHOM\TRADATALA
 ```
+
+## Windows V1 build
+
+The committed `Windows Desktop` preset produces the x86_64 V1 build in `build/windows/`. Install the matching Godot 4.7.1 export templates, then run:
+
+```powershell
+Godot_v4.7.1-stable_win64_console.exe --headless --path G:\PHOM\TRADATALA --export-release "Windows Desktop"
+```
+
+Distribute `TRADATALA-v1.0.0.exe` together with `TRADATALA-v1.0.0.pck`. The PCK remains separate so the build can be code-signed later and is less likely to trigger antivirus heuristics. The current local checkpoint is unsigned; signing requires a Windows signing certificate and is a separate release operation.
 
 ## Controls
 
@@ -24,7 +34,9 @@ Godot_v4.7.1-stable_win64_console.exe --path C:\Stuffs\TRADATALA
 - `C`: CHỐT the Phase from LAST CALL after any final HẠ / EXTEND actions.
 - `S`: cycle rank/suit hand sorting.
 - `G`: select the highest-scoring legal new Meld; if none exists, select the best legal table extension.
-- Each loose card carries a tiny top-right meld badge: `✓` means it already belongs to a ready Phỏm; otherwise the badge shows that card's best exact completion percentage. Hover for the target and missing-card calculation.
+- Hover a loose card to reveal its top-right meld badge: `✓` means it already belongs to a ready Phỏm; otherwise the badge shows that card's best exact completion percentage. The badge hides again when the pointer leaves.
+- Ready action cards carry an animated outline: flowing green for a legal new Phỏm, yellow for a legal table extension, and a blended green/yellow sweep when both actions are available.
+- Click the `BỎ • XEM` pile to open every discarded card grouped into Bích, Cơ, Rô, and Tép columns.
 - `K` / `X`: KEEP / DUMP at the Phase 1 settlement.
 - `Esc`: clear card and Meld selection.
 - `R`: start another Deal after Phase 2 while preserving the wallet.
@@ -52,23 +64,25 @@ The prototype now follows the two-Phase Deal contract: each Phase has four manda
 - Ù is Phase-scoped: a ten-card turn that commits exactly nine cards and discards the last doubles that Phase's Gross, not Deadwood.
 - Ù Khan uses the prototype near-meld definition, pays `hand value × 9`, replaces the hand, and checks the refill again.
 - Sets accept any number of same-rank physical cards; Runs require one suit, unique consecutive ranks, A low, and no wrap.
-- All eight mandatory discards remain visible as card faces with Phase and discard-number provenance.
-- Each card's badge summarizes its best canonical three-card Set/Run target. Percentages are exact without-replacement odds for the next refill toward ten, using the known remaining deck; the full target and missing-card calculation stay in the tooltip so probability information does not obstruct the table.
+- Every card sent to the discard pile remains available through the suit-grouped discard archive; mandatory discards retain Phase and discard-number provenance in the Deal record.
+- Each card's hover badge summarizes its best canonical three-card Set/Run target. Percentages are exact without-replacement odds for the next refill toward ten, using the known remaining deck; the full target and missing-card calculation stay in the tooltip so probability information does not obstruct the table.
 - Basic Drink scoring is implemented: Trà đá, Nước vối, Nhân trần, and final-resolution Sâm dứa protection. Trà đá is the current free starter. Advanced Caffeine/Energy/Sugar IDs and categories exist without invented formulas.
 - Scoring and resolution expose controlled hooks for new Phỏm, Extensions, settlement, Deadwood, MÓM, Deal resolution, and Ù.
 
-The day/event/shop loop that chooses Drinks twice per day is not present in this vertical prototype, so its schedule and paid progression cannot yet be wired to a real authority. Relic formulas, advanced Drink formulas, Account-layer MÓM punishment, Xăm, bosses, campaign progression, multiplayer, AI opponents, audio, and 3D presentation remain intentionally unimplemented.
+The menu includes persistent Music/Sound controls, Vietnamese/English localization, and a looping reactive music mix with four frequency bands driving presentation pulses. The day/event/shop loop that chooses Drinks twice per day is not present in this vertical prototype, so its schedule and paid progression cannot yet be wired to a real authority. Relic formulas, advanced Drink formulas, Account-layer MÓM punishment, Xăm, bosses, campaign progression, multiplayer, AI opponents, sound effects, and 3D presentation remain intentionally unimplemented.
 
 ## Verification
 
 Current Godot 4.7.1 checkpoint (2026-08-28):
 
-- Core rules and probability suite: **31 / 31 passed**.
+- Core rules, probability, action-cue, and music-reactivity suite: **34 / 34 passed**.
 - Runtime scene smoke: **passed**.
 - Headless editor import and global-class registration: **passed**.
+- Live editor menu-to-match flow at 1280×720, reactive audio diagnostics, and both locale paths: **passed**.
+- Exported Windows release startup in headless mode: **passed**.
 
 ```powershell
-Godot_v4.7.1-stable_win64_console.exe --headless --path C:\Stuffs\TRADATALA --script res://tests/run_headless.gd
-Godot_v4.7.1-stable_win64_console.exe --headless --path C:\Stuffs\TRADATALA --script res://tests/runtime_scene_smoke.gd
+Godot_v4.7.1-stable_win64_console.exe --headless --path G:\PHOM\TRADATALA --script res://tests/run_headless.gd
+Godot_v4.7.1-stable_win64_console.exe --headless --path G:\PHOM\TRADATALA --script res://tests/runtime_scene_smoke.gd
 ```
 

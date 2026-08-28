@@ -233,6 +233,27 @@ func can_extend_meld(meld_id: int, selected_cards: Array[CardData]) -> bool:
 	return meld != null and meld.can_extend(selected_cards)
 
 
+func legal_action_card_ids() -> Dictionary:
+	var meld_card_ids := {}
+	var extension_card_ids := {}
+	if not _card_actions_available():
+		return {"meld": meld_card_ids, "extend": extension_card_ids}
+	for mask in range(1, 1 << hand.size()):
+		var cards: Array[CardData] = []
+		for index in range(hand.size()):
+			if mask & (1 << index):
+				cards.append(hand[index])
+		if cards.size() >= 3 and can_create_meld(cards):
+			for card in cards:
+				meld_card_ids[card.unique_id] = true
+		for meld in melds:
+			if can_extend_meld(meld.meld_id, cards):
+				for card in cards:
+					extension_card_ids[card.unique_id] = true
+				break
+	return {"meld": meld_card_ids, "extend": extension_card_ids}
+
+
 func deadwood_points() -> int:
 	return ScoringPipeline.deadwood_points(hand)
 
