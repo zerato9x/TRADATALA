@@ -1,10 +1,32 @@
 class_name MatchUI
 extends Control
 
+signal tutorial_step_changed(step: StringName)
+
 const CARD_SIZE := PlayingCardView.CARD_SIZE
 const INITIAL_RELIC_SLOT_COUNT := 4
 const MUSIC_BAND_COUNT := 4
 const GAME_SETTINGS_SCRIPT := preload("res://scripts/settings/game_settings.gd")
+const TUTORIAL_SPOTLIGHT_SCRIPT := preload("res://scripts/ui/tutorial_spotlight.gd")
+const TUTORIAL_SELECT_RUN := &"select_run"
+const TUTORIAL_PLAY_RUN := &"play_run"
+const TUTORIAL_MELD_SCORE := &"meld_score"
+const TUTORIAL_SELECT_DISCARD := &"select_discard"
+const TUTORIAL_DISCARD := &"discard"
+const TUTORIAL_SELECT_EXTEND := &"select_extend"
+const TUTORIAL_SELECT_MELD := &"select_meld"
+const TUTORIAL_EXTEND := &"extend"
+const TUTORIAL_EXTEND_SCORE := &"extend_score"
+const TUTORIAL_SELECT_FINAL_DISCARD := &"select_final_discard"
+const TUTORIAL_FINAL_DISCARD := &"final_discard"
+const TUTORIAL_MOM := &"mom"
+const TUTORIAL_U := &"u"
+const TUTORIAL_U_KHAN := &"u_khan"
+const TUTORIAL_COMPLETE := &"complete"
+const TUTORIAL_RUN_IDS := [&"standard_4_hearts", &"standard_5_hearts", &"standard_6_hearts"]
+const TUTORIAL_FIRST_DISCARD_ID := &"standard_q_diamonds"
+const TUTORIAL_EXTENSION_ID := &"standard_7_hearts"
+const TUTORIAL_FINAL_DISCARD_ID := &"standard_k_spades"
 
 var deal := DealState.new()
 var selected_card_ids: Dictionary = {}
@@ -20,7 +42,15 @@ var settings
 
 var game_layer: Control
 var menu_layer: Control
+var menu_home_panel: VBoxContainer
+var how_to_play_panel: PanelContainer
+var options_panel: PanelContainer
 var play_button: Button
+var how_to_play_button: Button
+var tutorial_button: Button
+var options_button: Button
+var how_to_play_back_button: Button
+var options_back_button: Button
 var menu_button: Button
 var music_slider: HSlider
 var sound_slider: HSlider
@@ -30,6 +60,25 @@ var language_settings_label: Label
 var music_value_label: Label
 var sound_value_label: Label
 var language_selector: OptionButton
+var menu_page: StringName = &"home"
+var menu_localized_controls: Dictionary = {}
+var tutorial_active: bool = false
+var tutorial_step: StringName = &""
+var tutorial_wallet_before: int = 0
+var tutorial_meld_id: int = -1
+var tutorial_outcome_visible: bool = false
+var tutorial_coach: PanelContainer
+var tutorial_progress_label: Label
+var tutorial_title_label: Label
+var tutorial_body_label: Label
+var tutorial_exit_button: Button
+var tutorial_spotlight: TutorialSpotlight
+var how_to_play_tab: StringName = &"cards"
+var how_tab_buttons: Dictionary = {}
+var how_tab_pages: Dictionary = {}
+var how_scoring_topic: StringName = &"basic"
+var how_scoring_topic_buttons: Dictionary = {}
+var how_scoring_topic_pages: Dictionary = {}
 var logo_segments: Array[Label] = []
 var logo_bounce_tweens: Dictionary = {}
 var reactive_hand_cards_by_band: Dictionary = {}
@@ -161,9 +210,9 @@ func _build_main_menu() -> void:
 
 	var column := VBoxContainer.new()
 	column.name = "MenuContent"
-	column.custom_minimum_size = Vector2(760, 430)
+	column.custom_minimum_size = Vector2(980, 620)
 	column.alignment = BoxContainer.ALIGNMENT_CENTER
-	column.add_theme_constant_override("separation", 20)
+	column.add_theme_constant_override("separation", 12)
 	center.add_child(column)
 
 	var logo := HBoxContainer.new()
@@ -176,44 +225,356 @@ func _build_main_menu() -> void:
 		var segment := Label.new()
 		segment.name = segment_text
 		segment.text = segment_text
-		segment.custom_minimum_size.y = 94
+		segment.custom_minimum_size.y = 80
 		segment.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		segment.add_theme_font_size_override("font_size", 78)
+		segment.add_theme_font_size_override("font_size", 66)
 		segment.add_theme_color_override("font_color", PresentationTheme.GOLD)
 		segment.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		logo.add_child(segment)
 		logo_segments.append(segment)
 
-	_build_menu_settings(column)
-
+	menu_home_panel = VBoxContainer.new()
+	menu_home_panel.name = "HomePanel"
+	menu_home_panel.custom_minimum_size = Vector2(500, 220)
+	menu_home_panel.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	menu_home_panel.alignment = BoxContainer.ALIGNMENT_CENTER
+	menu_home_panel.add_theme_constant_override("separation", 12)
+	column.add_child(menu_home_panel)
 	play_button = Button.new()
 	play_button.name = "PlayButton"
-	play_button.text = tr("MENU_NEW_GAME")
-	play_button.custom_minimum_size = Vector2(280, 54)
+	_register_menu_text(play_button, "MENU_NEW_GAME")
+	play_button.custom_minimum_size = Vector2(500, 54)
 	play_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	PresentationTheme.configure_button(play_button, "gold")
 	play_button.add_theme_font_size_override("font_size", 18)
 	play_button.pressed.connect(_on_play_pressed)
-	column.add_child(play_button)
+	menu_home_panel.add_child(play_button)
+
+	var learn_row := HBoxContainer.new()
+	learn_row.name = "LearnRow"
+	learn_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	learn_row.add_theme_constant_override("separation", 12)
+	menu_home_panel.add_child(learn_row)
+	how_to_play_button = _build_menu_navigation_button(learn_row, "HowToPlayButton", "MENU_HOW_TO_PLAY", 244)
+	how_to_play_button.pressed.connect(_show_menu_page.bind(&"how_to_play"))
+	tutorial_button = _build_menu_navigation_button(learn_row, "TutorialButton", "MENU_TUTORIAL", 244)
+	tutorial_button.pressed.connect(_on_tutorial_pressed)
+	options_button = _build_menu_navigation_button(menu_home_panel, "OptionsButton", "MENU_OPTIONS", 500)
+	options_button.pressed.connect(_show_menu_page.bind(&"options"))
+
+	_build_how_to_play(column)
+	_build_menu_settings(column)
+	_show_menu_page(&"home")
 	call_deferred("_refresh_logo_pivots")
 
 
-func _build_menu_settings(parent: VBoxContainer) -> void:
+func _build_menu_navigation_button(parent: Container, node_name: String, translation_key: String, width: float = 340.0) -> Button:
+	var button := Button.new()
+	button.name = node_name
+	button.custom_minimum_size = Vector2(width, 48)
+	button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	_register_menu_text(button, translation_key)
+	PresentationTheme.configure_button(button, "neutral")
+	button.add_theme_font_size_override("font_size", 16)
+	parent.add_child(button)
+	return button
+
+
+func _build_how_to_play(parent: VBoxContainer) -> void:
+	how_to_play_panel = PanelContainer.new()
+	how_to_play_panel.name = "HowToPlayPanel"
+	how_to_play_panel.custom_minimum_size = Vector2(940, 450)
+	how_to_play_panel.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	how_to_play_panel.add_theme_stylebox_override("panel", PresentationTheme.panel_style(Color("#17120ff2"), Color("#8d5b30"), 2, 8, 6))
+	parent.add_child(how_to_play_panel)
+
+	var margin := MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 22)
+	margin.add_theme_constant_override("margin_top", 16)
+	margin.add_theme_constant_override("margin_right", 22)
+	margin.add_theme_constant_override("margin_bottom", 16)
+	how_to_play_panel.add_child(margin)
+	var column := VBoxContainer.new()
+	column.add_theme_constant_override("separation", 8)
+	margin.add_child(column)
+
+	var title := _build_menu_copy(column, "HOW_TITLE", 25, PresentationTheme.GOLD)
+	title.name = "Title"
+	var tabs := HBoxContainer.new()
+	tabs.name = "Tabs"
+	tabs.alignment = BoxContainer.ALIGNMENT_CENTER
+	tabs.add_theme_constant_override("separation", 8)
+	column.add_child(tabs)
+	var tab_group := ButtonGroup.new()
+	_build_how_tab_button(tabs, tab_group, &"cards", "HOW_TAB_CARDS")
+	_build_how_tab_button(tabs, tab_group, &"phases", "HOW_TAB_PHASES")
+	_build_how_tab_button(tabs, tab_group, &"scoring", "HOW_TAB_SCORING")
+
+	var tab_content := VBoxContainer.new()
+	tab_content.name = "TabContent"
+	tab_content.custom_minimum_size = Vector2(896, 270)
+	tab_content.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	column.add_child(tab_content)
+	_build_how_cards_tab(tab_content)
+	_build_how_phases_tab(tab_content)
+	_build_how_scoring_tab(tab_content)
+	_show_how_tab(&"cards")
+
+	how_to_play_back_button = _build_menu_back_button(column, "HowToPlayBackButton")
+	how_to_play_back_button.pressed.connect(_show_menu_page.bind(&"home"))
+
+
+func _build_how_tab_button(parent: Container, group: ButtonGroup, tab_id: StringName, translation_key: String) -> void:
+	var button := Button.new()
+	button.name = "%sTabButton" % String(tab_id).capitalize().replace(" ", "")
+	button.custom_minimum_size = Vector2(286, 38)
+	button.toggle_mode = true
+	button.button_group = group
+	_register_menu_text(button, translation_key)
+	PresentationTheme.configure_button(button, "neutral")
+	button.pressed.connect(_show_how_tab.bind(tab_id))
+	parent.add_child(button)
+	how_tab_buttons[tab_id] = button
+
+
+func _build_how_cards_tab(parent: VBoxContainer) -> void:
+	var page := VBoxContainer.new()
+	page.name = "CardsTab"
+	page.add_theme_constant_override("separation", 7)
+	parent.add_child(page)
+	how_tab_pages[&"cards"] = page
+	var intro := _build_menu_copy(page, "HOW_INTRO", 13, PresentationTheme.INK)
+	intro.name = "Intro"
+	var examples := HBoxContainer.new()
+	examples.name = "CardExamples"
+	examples.alignment = BoxContainer.ALIGNMENT_CENTER
+	examples.add_theme_constant_override("separation", 10)
+	page.add_child(examples)
+	_build_how_example(examples, "RunExample", "HOW_RUN_TITLE", "HOW_RUN_BODY", [
+		["4", 4, "Hearts"], ["5", 5, "Hearts"], ["6", 6, "Hearts"],
+	], PresentationTheme.TEA, 214, 218)
+	_build_how_example(examples, "SetExample", "HOW_SET_TITLE", "HOW_SET_BODY", [
+		["9", 9, "Spades"], ["9", 9, "Hearts"], ["9", 9, "Diamonds"],
+	], PresentationTheme.GOLD, 214, 218)
+	_build_how_example(examples, "ExtendExample", "HOW_EXTEND_TITLE", "HOW_EXTEND_BODY", [
+		["7", 7, "Clubs"], ["8", 8, "Clubs"], ["9", 9, "Clubs"], ["10", 10, "Clubs"],
+	], PresentationTheme.TEA, 214, 218)
+	_build_how_example(examples, "DiscardExample", "HOW_DISCARD_TITLE", "HOW_DISCARD_BODY", [
+		["Q", 12, "Diamonds"], ["BACK", 0, ""],
+	], PresentationTheme.RED, 214, 218)
+
+
+func _build_how_phases_tab(parent: VBoxContainer) -> void:
+	var page := VBoxContainer.new()
+	page.name = "PhasesTab"
+	page.add_theme_constant_override("separation", 7)
+	parent.add_child(page)
+	how_tab_pages[&"phases"] = page
+	var intro := _build_menu_copy(page, "HOW_PHASES_INTRO", 13, PresentationTheme.INK)
+	intro.name = "PhasesIntro"
+	var examples := HBoxContainer.new()
+	examples.name = "PhaseExamples"
+	examples.alignment = BoxContainer.ALIGNMENT_CENTER
+	examples.add_theme_constant_override("separation", 12)
+	page.add_child(examples)
+	_build_how_example(examples, "TurnExample", "HOW_TURN_TITLE", "HOW_TURN_BODY", [
+		["BACK", 0, ""], ["7", 7, "Hearts"], ["Q", 12, "Diamonds"],
+	], PresentationTheme.TEA, 286, 226)
+	_build_how_example(examples, "PhaseEndExample", "HOW_PHASE_END_TITLE", "HOW_PHASE_END_BODY", [
+		["2", 2, "Clubs"], ["5", 5, "Diamonds"], ["8", 8, "Spades"], ["Q", 12, "Hearts"],
+	], PresentationTheme.GOLD, 286, 226)
+	_build_how_example(examples, "PhaseChoiceExample", "HOW_PHASE_CHOICE_TITLE", "HOW_PHASE_CHOICE_BODY", [
+		["9", 9, "Spades"], ["9", 9, "Hearts"], ["9", 9, "Diamonds"],
+	], PresentationTheme.TEA, 286, 226)
+
+
+func _build_how_scoring_tab(parent: VBoxContainer) -> void:
+	var page := VBoxContainer.new()
+	page.name = "ScoringTab"
+	page.add_theme_constant_override("separation", 6)
+	parent.add_child(page)
+	how_tab_pages[&"scoring"] = page
+	var intro := _build_menu_copy(page, "HOW_SCORING_INTRO", 13, PresentationTheme.INK)
+	intro.name = "ScoringIntro"
+	var topics := HBoxContainer.new()
+	topics.name = "ScoringTopics"
+	topics.alignment = BoxContainer.ALIGNMENT_CENTER
+	topics.add_theme_constant_override("separation", 8)
+	page.add_child(topics)
+	var topic_group := ButtonGroup.new()
+	_build_how_scoring_topic_button(topics, topic_group, &"basic", "HOW_SCORE_TOPIC_BASIC")
+	_build_how_scoring_topic_button(topics, topic_group, &"special", "HOW_SCORE_TOPIC_SPECIAL")
+
+	var topic_content := Control.new()
+	topic_content.name = "ScoringTopicContent"
+	topic_content.custom_minimum_size = Vector2(896, 226)
+	page.add_child(topic_content)
+	_build_how_basic_scoring_page(topic_content)
+	_build_how_special_scoring_page(topic_content)
+	_show_how_scoring_topic(&"basic")
+
+
+func _build_how_scoring_topic_button(parent: Container, group: ButtonGroup, topic_id: StringName, translation_key: String) -> void:
+	var button := Button.new()
+	button.name = "%sTopicButton" % String(topic_id).capitalize()
+	button.custom_minimum_size = Vector2(216, 30)
+	button.toggle_mode = true
+	button.button_group = group
+	_register_menu_text(button, translation_key)
+	PresentationTheme.configure_button(button, "neutral")
+	button.add_theme_font_size_override("font_size", 12)
+	button.pressed.connect(_show_how_scoring_topic.bind(topic_id))
+	parent.add_child(button)
+	how_scoring_topic_buttons[topic_id] = button
+
+
+func _build_how_basic_scoring_page(parent: Control) -> void:
+	var examples := HBoxContainer.new()
+	examples.name = "BasicScoring"
+	examples.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	examples.alignment = BoxContainer.ALIGNMENT_CENTER
+	examples.add_theme_constant_override("separation", 12)
+	parent.add_child(examples)
+	how_scoring_topic_pages[&"basic"] = examples
+	_build_how_example(examples, "MeldScoreExample", "HOW_SCORE_MELD_TITLE", "HOW_SCORE_MELD_BODY", [
+		["4", 4, "Hearts"], ["5", 5, "Hearts"], ["6", 6, "Hearts"],
+	], PresentationTheme.TEA, 286, 226)
+	_build_how_example(examples, "ExtendScoreExample", "HOW_SCORE_EXTEND_TITLE", "HOW_SCORE_EXTEND_BODY", [
+		["4", 4, "Hearts"], ["5", 5, "Hearts"], ["6", 6, "Hearts"], ["7", 7, "Hearts"],
+	], PresentationTheme.GOLD, 286, 226)
+	_build_how_example(examples, "PhaseScoreExample", "HOW_SCORE_PHASE_TITLE", "HOW_SCORE_PHASE_BODY", [
+		["Q", 12, "Diamonds"], ["K", 13, "Spades"],
+	], PresentationTheme.RED, 286, 226)
+
+
+func _build_how_special_scoring_page(parent: Control) -> void:
+	var examples := HBoxContainer.new()
+	examples.name = "SpecialOutcomes"
+	examples.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	examples.alignment = BoxContainer.ALIGNMENT_CENTER
+	examples.add_theme_constant_override("separation", 12)
+	parent.add_child(examples)
+	how_scoring_topic_pages[&"special"] = examples
+	_build_how_example(examples, "MomExample", "HOW_MOM_TITLE", "HOW_MOM_BODY", [
+		["Q", 12, "Diamonds"], ["K", 13, "Spades"], ["A", 1, "Clubs"],
+	], PresentationTheme.RED, 286, 226)
+	_build_how_example(examples, "UExample", "HOW_U_TITLE", "HOW_U_BODY", [
+		["2", 2, "Spades"], ["2", 2, "Hearts"], ["2", 2, "Diamonds"], ["5", 5, "Clubs"],
+	], PresentationTheme.TEA, 286, 226)
+	_build_how_example(examples, "UKhanExample", "HOW_U_KHAN_TITLE", "HOW_U_KHAN_BODY", [
+		["2", 2, "Spades"], ["5", 5, "Hearts"], ["8", 8, "Clubs"], ["Q", 12, "Diamonds"],
+	], PresentationTheme.GOLD, 286, 226)
+
+
+func _show_how_scoring_topic(topic_id: StringName) -> void:
+	if not how_scoring_topic_pages.has(topic_id):
+		return
+	how_scoring_topic = topic_id
+	for candidate in how_scoring_topic_pages:
+		(how_scoring_topic_pages[candidate] as Control).visible = candidate == topic_id
+		(how_scoring_topic_buttons[candidate] as Button).set_pressed_no_signal(candidate == topic_id)
+
+
+func _show_how_tab(tab_id: StringName) -> void:
+	if not how_tab_pages.has(tab_id):
+		return
+	if tab_id == &"scoring":
+		_show_how_scoring_topic(&"basic")
+	how_to_play_tab = tab_id
+	for candidate in how_tab_pages:
+		(how_tab_pages[candidate] as Control).visible = candidate == tab_id
+		(how_tab_buttons[candidate] as Button).set_pressed_no_signal(candidate == tab_id)
+
+
+func _build_how_example(
+	parent: Container,
+	node_name: String,
+	title_key: String,
+	body_key: String,
+	card_specs: Array,
+	accent: Color,
+	panel_width: float = 214.0,
+	panel_height: float = 246.0
+) -> void:
 	var panel := PanelContainer.new()
-	panel.name = "SettingsPanel"
-	panel.custom_minimum_size = Vector2(520, 184)
-	panel.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	panel.add_theme_stylebox_override("panel", PresentationTheme.panel_style(Color("#17120ff2"), Color("#8d5b30"), 2, 8, 6))
+	panel.name = node_name
+	panel.custom_minimum_size = Vector2(panel_width, panel_height)
+	panel.add_theme_stylebox_override("panel", PresentationTheme.panel_style(Color("#231c17f0"), accent.darkened(0.2), 1, 5, 2))
 	parent.add_child(panel)
+	var margin := MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 8)
+	margin.add_theme_constant_override("margin_top", 10)
+	margin.add_theme_constant_override("margin_right", 8)
+	margin.add_theme_constant_override("margin_bottom", 9)
+	panel.add_child(margin)
+	var column := VBoxContainer.new()
+	column.alignment = BoxContainer.ALIGNMENT_CENTER
+	column.add_theme_constant_override("separation", 7)
+	margin.add_child(column)
+	var title := _build_menu_copy(column, title_key, 15, accent)
+	title.custom_minimum_size.y = 22
+	var cards := HBoxContainer.new()
+	cards.name = "Cards"
+	cards.custom_minimum_size.y = 112
+	cards.alignment = BoxContainer.ALIGNMENT_CENTER
+	cards.add_theme_constant_override("separation", -4 if card_specs.size() >= 4 else 2)
+	column.add_child(cards)
+	for card_spec in card_specs:
+		cards.add_child(_build_tutorial_card(card_spec))
+	var body := _build_menu_copy(column, body_key, 11, PresentationTheme.INK)
+	body.custom_minimum_size.y = 48
+	body.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+
+
+func _build_tutorial_card(card_spec: Array) -> TextureRect:
+	var card_image := TextureRect.new()
+	card_image.custom_minimum_size = Vector2(48, 86)
+	card_image.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	card_image.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	card_image.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	card_image.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if String(card_spec[0]) == "BACK":
+		card_image.texture = load("res://cards/red_backing.png") as Texture2D
+		return card_image
+	var card := CardData.new(
+		"tutorial_%s_%s" % [String(card_spec[0]).to_lower(), String(card_spec[2]).to_lower()],
+		String(card_spec[0]), int(card_spec[1]), String(card_spec[2]), int(card_spec[1])
+	)
+	card_image.texture = load(card.texture_path()) as Texture2D
+	card_image.tooltip_text = card.short_label()
+	return card_image
+
+
+func _build_menu_copy(parent: Container, translation_key: String, font_size: int, color: Color) -> Label:
+	var label := Label.new()
+	_register_menu_text(label, translation_key)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.add_theme_font_size_override("font_size", font_size)
+	label.add_theme_color_override("font_color", color)
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	parent.add_child(label)
+	return label
+
+
+func _build_menu_settings(parent: VBoxContainer) -> void:
+	options_panel = PanelContainer.new()
+	options_panel.name = "OptionsPanel"
+	options_panel.custom_minimum_size = Vector2(620, 330)
+	options_panel.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	options_panel.add_theme_stylebox_override("panel", PresentationTheme.panel_style(Color("#17120ff2"), Color("#8d5b30"), 2, 8, 6))
+	parent.add_child(options_panel)
 	var margin := MarginContainer.new()
 	margin.add_theme_constant_override("margin_left", 20)
 	margin.add_theme_constant_override("margin_top", 16)
 	margin.add_theme_constant_override("margin_right", 20)
 	margin.add_theme_constant_override("margin_bottom", 16)
-	panel.add_child(margin)
+	options_panel.add_child(margin)
 	var rows := VBoxContainer.new()
 	rows.add_theme_constant_override("separation", 12)
 	margin.add_child(rows)
+	var title := _build_menu_copy(rows, "MENU_OPTIONS", 25, PresentationTheme.GOLD)
+	title.name = "Title"
 
 	var music_row := HBoxContainer.new()
 	music_row.name = "MusicRow"
@@ -248,6 +609,38 @@ func _build_menu_settings(parent: VBoxContainer) -> void:
 	language_row.add_child(language_selector)
 	_refresh_language_options()
 	language_selector.item_selected.connect(_on_language_selected)
+	options_back_button = _build_menu_back_button(rows, "OptionsBackButton")
+	options_back_button.pressed.connect(_show_menu_page.bind(&"home"))
+
+
+func _build_menu_back_button(parent: Container, node_name: String) -> Button:
+	var button := Button.new()
+	button.name = node_name
+	button.custom_minimum_size = Vector2(220, 42)
+	button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	_register_menu_text(button, "MENU_BACK")
+	PresentationTheme.configure_button(button, "neutral")
+	parent.add_child(button)
+	return button
+
+
+func _register_menu_text(control: Control, translation_key: String) -> void:
+	menu_localized_controls[control] = translation_key
+	control.set("text", tr(translation_key))
+
+
+func _show_menu_page(page: StringName) -> void:
+	menu_page = page
+	menu_home_panel.visible = page == &"home"
+	how_to_play_panel.visible = page == &"how_to_play"
+	options_panel.visible = page == &"options"
+	if page == &"home":
+		play_button.call_deferred("grab_focus")
+	elif page == &"how_to_play":
+		_show_how_tab(&"cards")
+		(how_tab_buttons[&"cards"] as Button).call_deferred("grab_focus")
+	else:
+		language_selector.call_deferred("grab_focus")
 
 
 func _build_settings_label(parent: Container, key: String) -> Label:
@@ -314,7 +707,9 @@ func _on_locale_changed(_locale_code: String) -> void:
 
 
 func _refresh_localized_ui() -> void:
-	play_button.text = tr("MENU_NEW_GAME")
+	for control in menu_localized_controls:
+		if is_instance_valid(control):
+			control.set("text", tr(String(menu_localized_controls[control])))
 	music_settings_label.text = tr("MENU_MUSIC")
 	sound_settings_label.text = tr("MENU_SOUND")
 	language_settings_label.text = tr("MENU_LANGUAGE")
@@ -344,6 +739,8 @@ func _refresh_localized_ui() -> void:
 	settle_button.text = tr("ACTION_SETTLE")
 	settle_button.tooltip_text = tr("ACTION_SETTLE_TOOLTIP")
 	discard_archive_close.text = tr("ARCHIVE_CLOSE")
+	if tutorial_active:
+		_refresh_tutorial_coach()
 	for suit in DeckManager.SUITS:
 		(discard_archive_suit_titles.get(suit) as Label).text = _discard_suit_title(suit)
 	_sync_all()
@@ -452,11 +849,232 @@ func _on_play_pressed() -> void:
 	_show_banner(tr("BANNER_NEW_DEAL"))
 
 
+func _on_tutorial_pressed() -> void:
+	if menu_transitioning:
+		return
+	menu_transitioning = true
+	tutorial_button.disabled = true
+	menu_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if game_started:
+		var close_tween := create_tween()
+		close_tween.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+		close_tween.tween_property(menu_layer, "modulate", Color(1, 1, 1, 0), 0.22)
+		await close_tween.finished
+	else:
+		var viewport_width := get_viewport_rect().size.x
+		var entrance := create_tween().set_parallel(true)
+		entrance.set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_OUT)
+		entrance.tween_property(game_layer, "position:x", 0.0, 0.72)
+		entrance.tween_property(menu_layer, "position:x", -viewport_width * 0.34, 0.62)
+		entrance.tween_property(menu_layer, "modulate", Color(1, 1, 1, 0), 0.48)
+		await entrance.finished
+	menu_layer.visible = false
+	menu_layer.position = Vector2.ZERO
+	menu_layer.modulate = Color.WHITE
+	game_started = true
+	menu_transitioning = false
+	tutorial_button.disabled = false
+	_start_tutorial_deal()
+
+
+func _start_tutorial_deal() -> void:
+	if tutorial_active:
+		_deactivate_tutorial(true)
+	tutorial_wallet_before = deal.wallet.balance_vnd
+	tutorial_active = true
+	tutorial_step = TUTORIAL_SELECT_RUN
+	interaction_locked = true
+	modal_overlay.visible = false
+	selected_card_ids.clear()
+	selected_meld_id = -1
+	tutorial_meld_id = -1
+	var result := deal.start_tutorial_deal()
+	displayed_wallet_vnd = deal.wallet.balance_vnd
+	_sync_all(result, true)
+	tutorial_coach.visible = true
+	interaction_locked = false
+	_set_hand_interaction_enabled(true)
+	_refresh_tutorial_coach()
+	_refresh_tutorial_spotlight()
+	_refresh_actions()
+
+
+func _deactivate_tutorial(restore_wallet: bool) -> void:
+	if not tutorial_active:
+		return
+	tutorial_active = false
+	tutorial_step = &""
+	tutorial_meld_id = -1
+	tutorial_outcome_visible = false
+	tutorial_coach.visible = false
+	tutorial_spotlight.set_targets([] as Array[Control])
+	score_overlay.visible = false
+	if restore_wallet:
+		deal.wallet.reset(tutorial_wallet_before)
+		displayed_wallet_vnd = tutorial_wallet_before
+
+
+func _on_tutorial_exit_pressed() -> void:
+	match tutorial_step:
+		TUTORIAL_MOM:
+			_set_tutorial_step(TUTORIAL_U)
+			return
+		TUTORIAL_U:
+			_set_tutorial_step(TUTORIAL_U_KHAN)
+			return
+		TUTORIAL_U_KHAN:
+			_set_tutorial_step(TUTORIAL_COMPLETE)
+			return
+	var completed := tutorial_step == TUTORIAL_COMPLETE
+	_deactivate_tutorial(true)
+	interaction_locked = false
+	_start_new_deal()
+	if not completed:
+		_on_menu_pressed()
+
+
+func _set_tutorial_step(step: StringName) -> void:
+	if not tutorial_active:
+		return
+	tutorial_step = step
+	tutorial_step_changed.emit(step)
+	_refresh_tutorial_outcome()
+	_refresh_tutorial_coach()
+	_refresh_tutorial_spotlight()
+	_sync_card_action_outlines()
+	_refresh_actions()
+
+
+func _refresh_tutorial_coach() -> void:
+	if not tutorial_active or tutorial_coach == null:
+		return
+	tutorial_coach.visible = true
+	tutorial_exit_button.disabled = interaction_locked
+	if tutorial_step == TUTORIAL_COMPLETE:
+		tutorial_exit_button.text = tr("TUTORIAL_PLAY_REAL_DEAL")
+	elif tutorial_step in [TUTORIAL_MOM, TUTORIAL_U, TUTORIAL_U_KHAN]:
+		tutorial_exit_button.text = tr("TUTORIAL_NEXT")
+	else:
+		tutorial_exit_button.text = tr("TUTORIAL_EXIT")
+	match tutorial_step:
+		TUTORIAL_SELECT_RUN:
+			_set_tutorial_copy(_tutorial_progress(1, "1 / 10"), "TUTORIAL_SELECT_RUN_TITLE", "TUTORIAL_SELECT_RUN_BODY")
+		TUTORIAL_PLAY_RUN:
+			_set_tutorial_copy(_tutorial_progress(1, "2 / 10"), "TUTORIAL_PLAY_RUN_TITLE", "TUTORIAL_PLAY_RUN_BODY")
+		TUTORIAL_MELD_SCORE:
+			_set_tutorial_copy(_tutorial_progress(1, "3 / 10"), "TUTORIAL_MELD_SCORE_TITLE", "TUTORIAL_MELD_SCORE_BODY")
+		TUTORIAL_SELECT_DISCARD:
+			_set_tutorial_copy(_tutorial_progress(1, "4 / 10"), "TUTORIAL_SELECT_DISCARD_TITLE", "TUTORIAL_SELECT_DISCARD_BODY")
+		TUTORIAL_DISCARD:
+			_set_tutorial_copy(_tutorial_progress(1, "4 / 10"), "TUTORIAL_DISCARD_TITLE", "TUTORIAL_DISCARD_BODY")
+		TUTORIAL_SELECT_EXTEND:
+			_set_tutorial_copy(_tutorial_progress(2, "5 / 10"), "TUTORIAL_SELECT_EXTEND_TITLE", "TUTORIAL_SELECT_EXTEND_BODY")
+		TUTORIAL_SELECT_MELD:
+			_set_tutorial_copy(_tutorial_progress(2, "5 / 10"), "TUTORIAL_SELECT_MELD_TITLE", "TUTORIAL_SELECT_MELD_BODY")
+		TUTORIAL_EXTEND:
+			_set_tutorial_copy(_tutorial_progress(2, "5 / 10"), "TUTORIAL_EXTEND_TITLE", "TUTORIAL_EXTEND_BODY")
+		TUTORIAL_EXTEND_SCORE:
+			_set_tutorial_copy(_tutorial_progress(2, "6 / 10"), "TUTORIAL_EXTEND_SCORE_TITLE", "TUTORIAL_EXTEND_SCORE_BODY")
+		TUTORIAL_SELECT_FINAL_DISCARD:
+			_set_tutorial_copy(_tutorial_progress(2, "7 / 10"), "TUTORIAL_SELECT_FINAL_DISCARD_TITLE", "TUTORIAL_SELECT_FINAL_DISCARD_BODY")
+		TUTORIAL_FINAL_DISCARD:
+			_set_tutorial_copy(_tutorial_progress(2, "7 / 10"), "TUTORIAL_FINAL_DISCARD_TITLE", "TUTORIAL_FINAL_DISCARD_BODY")
+		TUTORIAL_MOM:
+			_set_tutorial_copy(tr("TUTORIAL_SPECIAL_PROGRESS") % [8, 10], "TUTORIAL_MOM_TITLE", "TUTORIAL_MOM_BODY")
+		TUTORIAL_U:
+			_set_tutorial_copy(tr("TUTORIAL_SPECIAL_PROGRESS") % [9, 10], "TUTORIAL_U_TITLE", "TUTORIAL_U_BODY")
+		TUTORIAL_U_KHAN:
+			_set_tutorial_copy(tr("TUTORIAL_SPECIAL_PROGRESS") % [10, 10], "TUTORIAL_U_KHAN_TITLE", "TUTORIAL_U_KHAN_BODY")
+		TUTORIAL_COMPLETE:
+			_set_tutorial_copy(tr("TUTORIAL_SPECIAL_COMPLETE"), "TUTORIAL_COMPLETE_TITLE", "TUTORIAL_COMPLETE_BODY")
+
+
+func _refresh_tutorial_outcome() -> void:
+	var is_special := tutorial_step in [TUTORIAL_MOM, TUTORIAL_U, TUTORIAL_U_KHAN]
+	if not is_special:
+		if tutorial_outcome_visible:
+			tutorial_outcome_visible = false
+			score_overlay.visible = false
+		return
+	tutorial_outcome_visible = true
+	score_overlay.visible = true
+	score_panel.scale = Vector2.ONE
+	score_panel.modulate = Color.WHITE
+	for label in [score_title, score_line_a, score_line_b, score_payout]:
+		label.modulate = Color.WHITE
+	match tutorial_step:
+		TUTORIAL_MOM:
+			score_title.text = tr("TUTORIAL_MOM_PANEL_TITLE")
+			score_line_a.text = tr("TUTORIAL_MOM_PANEL_LINE_A")
+			score_line_b.text = tr("TUTORIAL_MOM_PANEL_LINE_B")
+			score_payout.text = tr("TUTORIAL_MOM_PANEL_RESULT")
+		TUTORIAL_U:
+			score_title.text = tr("TUTORIAL_U_PANEL_TITLE")
+			score_line_a.text = tr("TUTORIAL_U_PANEL_LINE_A")
+			score_line_b.text = tr("TUTORIAL_U_PANEL_LINE_B")
+			score_payout.text = tr("TUTORIAL_U_PANEL_RESULT")
+		TUTORIAL_U_KHAN:
+			score_title.text = tr("TUTORIAL_U_KHAN_PANEL_TITLE")
+			score_line_a.text = tr("TUTORIAL_U_KHAN_PANEL_LINE_A")
+			score_line_b.text = tr("TUTORIAL_U_KHAN_PANEL_LINE_B")
+			score_payout.text = tr("TUTORIAL_U_KHAN_PANEL_RESULT")
+
+
+func _set_tutorial_copy(progress: String, title_key: String, body_key: String) -> void:
+	tutorial_progress_label.text = progress
+	tutorial_title_label.text = tr(title_key)
+	tutorial_body_label.text = tr(body_key)
+
+
+func _tutorial_progress(turn_number: int, step_text: String) -> String:
+	return "%s\n%s" % [tr("TUTORIAL_CONTEXT") % [1, turn_number], step_text]
+
+
+func _refresh_tutorial_spotlight() -> void:
+	if not tutorial_active or tutorial_spotlight == null:
+		return
+	var targets: Array[Control] = []
+	match tutorial_step:
+		TUTORIAL_SELECT_RUN:
+			for card_id in TUTORIAL_RUN_IDS:
+				var run_view := hand_views.get(String(card_id)) as Control
+				if run_view != null:
+					targets.append(run_view)
+		TUTORIAL_PLAY_RUN:
+			targets.append(ha_button)
+		TUTORIAL_MELD_SCORE, TUTORIAL_EXTEND_SCORE, TUTORIAL_MOM, TUTORIAL_U, TUTORIAL_U_KHAN:
+			targets.append(score_panel)
+		TUTORIAL_SELECT_DISCARD:
+			var discard_view := hand_views.get(String(TUTORIAL_FIRST_DISCARD_ID)) as Control
+			if discard_view != null:
+				targets.append(discard_view)
+		TUTORIAL_DISCARD, TUTORIAL_FINAL_DISCARD:
+			targets.append(discard_button)
+		TUTORIAL_SELECT_EXTEND:
+			var extend_card_view := hand_views.get(String(TUTORIAL_EXTENSION_ID)) as Control
+			if extend_card_view != null:
+				targets.append(extend_card_view)
+		TUTORIAL_SELECT_MELD:
+			var meld_view := meld_views.get(tutorial_meld_id) as Control
+			if meld_view != null:
+				targets.append(meld_view)
+		TUTORIAL_EXTEND:
+			targets.append(extend_button)
+		TUTORIAL_SELECT_FINAL_DISCARD:
+			var final_discard_view := hand_views.get(String(TUTORIAL_FINAL_DISCARD_ID)) as Control
+			if final_discard_view != null:
+				targets.append(final_discard_view)
+		TUTORIAL_COMPLETE:
+			targets.append(tutorial_exit_button)
+	tutorial_spotlight.set_targets(targets)
+
+
 func _on_menu_pressed() -> void:
 	if not game_started or menu_transitioning or interaction_locked or modal_overlay.visible or score_overlay.visible or discard_archive_overlay.visible:
 		return
 	interaction_locked = true
 	_set_hand_interaction_enabled(false)
+	_show_menu_page(&"home")
 	menu_layer.position = Vector2.ZERO
 	menu_layer.modulate = Color(1, 1, 1, 0)
 	menu_layer.visible = true
@@ -874,6 +1492,61 @@ func _build_effect_layers() -> void:
 	_build_score_overlay()
 	_build_banner()
 	_build_modal()
+	tutorial_spotlight = TUTORIAL_SPOTLIGHT_SCRIPT.new()
+	tutorial_spotlight.name = "TutorialSpotlight"
+	tutorial_spotlight.z_index = 105
+	tutorial_spotlight.visible = false
+	game_layer.add_child(tutorial_spotlight)
+	_build_tutorial_coach()
+
+
+func _build_tutorial_coach() -> void:
+	tutorial_coach = PanelContainer.new()
+	tutorial_coach.name = "TutorialCoach"
+	tutorial_coach.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	tutorial_coach.position = Vector2(-370, 112)
+	tutorial_coach.size = Vector2(740, 106)
+	tutorial_coach.mouse_filter = Control.MOUSE_FILTER_STOP
+	tutorial_coach.z_index = 110
+	tutorial_coach.visible = false
+	tutorial_coach.add_theme_stylebox_override("panel", PresentationTheme.panel_style(Color("#102a24f7"), PresentationTheme.TEA, 2, 10, 7))
+	game_layer.add_child(tutorial_coach)
+
+	var margin := MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 16)
+	margin.add_theme_constant_override("margin_top", 10)
+	margin.add_theme_constant_override("margin_right", 12)
+	margin.add_theme_constant_override("margin_bottom", 10)
+	tutorial_coach.add_child(margin)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 12)
+	margin.add_child(row)
+	tutorial_progress_label = Label.new()
+	tutorial_progress_label.custom_minimum_size = Vector2(78, 0)
+	tutorial_progress_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	tutorial_progress_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	tutorial_progress_label.add_theme_font_size_override("font_size", 12)
+	tutorial_progress_label.add_theme_color_override("font_color", PresentationTheme.GOLD)
+	row.add_child(tutorial_progress_label)
+	var copy := VBoxContainer.new()
+	copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	copy.alignment = BoxContainer.ALIGNMENT_CENTER
+	copy.add_theme_constant_override("separation", 3)
+	row.add_child(copy)
+	tutorial_title_label = Label.new()
+	tutorial_title_label.add_theme_font_size_override("font_size", 16)
+	tutorial_title_label.add_theme_color_override("font_color", PresentationTheme.INK)
+	copy.add_child(tutorial_title_label)
+	tutorial_body_label = Label.new()
+	tutorial_body_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	tutorial_body_label.add_theme_font_size_override("font_size", 12)
+	tutorial_body_label.add_theme_color_override("font_color", PresentationTheme.MUTED)
+	copy.add_child(tutorial_body_label)
+	tutorial_exit_button = Button.new()
+	tutorial_exit_button.custom_minimum_size = Vector2(128, 46)
+	PresentationTheme.configure_button(tutorial_exit_button, "neutral")
+	tutorial_exit_button.pressed.connect(_on_tutorial_exit_pressed)
+	row.add_child(tutorial_exit_button)
 
 
 func _build_discard_archive() -> void:
@@ -1279,6 +1952,15 @@ func _sync_card_action_outlines() -> Dictionary:
 	var actionable := deal.legal_action_card_ids()
 	var meld_card_ids: Dictionary = actionable["meld"]
 	var extension_card_ids: Dictionary = actionable["extend"]
+	if tutorial_active:
+		meld_card_ids = {}
+		extension_card_ids = {}
+		if tutorial_step in [TUTORIAL_SELECT_RUN, TUTORIAL_PLAY_RUN]:
+			for card_id in TUTORIAL_RUN_IDS:
+				meld_card_ids[card_id] = true
+		elif tutorial_step in [TUTORIAL_SELECT_EXTEND, TUTORIAL_SELECT_MELD, TUTORIAL_EXTEND]:
+			extension_card_ids[TUTORIAL_EXTENSION_ID] = true
+		actionable = {"meld": meld_card_ids, "extend": extension_card_ids}
 	for card in deal.hand:
 		var view: PlayingCardView = hand_views.get(card.unique_id)
 		if view != null:
@@ -1468,6 +2150,13 @@ func _refresh_actions() -> void:
 	settle_button.disabled = deal.state != DealState.STATE_FINAL_COMMIT_WINDOW or interaction_locked
 	hint_button.disabled = not card_window or deal.hand.is_empty()
 	sort_button.disabled = not card_window or deal.hand.size() < 2
+	if tutorial_active:
+		ha_button.disabled = ha_button.disabled or tutorial_step != TUTORIAL_PLAY_RUN
+		extend_button.disabled = extend_button.disabled or tutorial_step != TUTORIAL_EXTEND
+		discard_button.disabled = discard_button.disabled or tutorial_step not in [TUTORIAL_DISCARD, TUTORIAL_FINAL_DISCARD]
+		settle_button.disabled = true
+		hint_button.disabled = true
+		tutorial_exit_button.disabled = interaction_locked
 	if interaction_locked:
 		status_label.text = tr("STATUS_RESOLVING")
 		status_label.add_theme_color_override("font_color", PresentationTheme.MUTED)
@@ -1515,6 +2204,12 @@ func _refresh_actions() -> void:
 func _on_card_pressed(card: CardData) -> void:
 	if interaction_locked or deal.state not in [DealState.STATE_ACTIVE, DealState.STATE_FINAL_COMMIT_WINDOW]:
 		return
+	if tutorial_active and not _tutorial_card_press_allowed(card):
+		var rejected_view := hand_views.get(card.unique_id) as PlayingCardView
+		if rejected_view != null:
+			rejected_view.play_reject()
+		_show_banner(tr("TUTORIAL_FOLLOW_STEP"))
+		return
 	if selected_card_ids.has(card.unique_id):
 		selected_card_ids.erase(card.unique_id)
 	else:
@@ -1524,15 +2219,51 @@ func _on_card_pressed(card: CardData) -> void:
 	_sync_music_reactive_cards()
 	_refresh_stats()
 	_refresh_actions()
+	_advance_tutorial_after_card_selection()
+
+
+func _tutorial_card_press_allowed(card: CardData) -> bool:
+	match tutorial_step:
+		TUTORIAL_SELECT_RUN:
+			return StringName(card.unique_id) in TUTORIAL_RUN_IDS
+		TUTORIAL_SELECT_DISCARD:
+			return StringName(card.unique_id) == TUTORIAL_FIRST_DISCARD_ID
+		TUTORIAL_SELECT_EXTEND:
+			return StringName(card.unique_id) == TUTORIAL_EXTENSION_ID
+		TUTORIAL_SELECT_FINAL_DISCARD:
+			return StringName(card.unique_id) == TUTORIAL_FINAL_DISCARD_ID
+		_:
+			return false
+
+
+func _advance_tutorial_after_card_selection() -> void:
+	if not tutorial_active:
+		return
+	if tutorial_step == TUTORIAL_SELECT_RUN:
+		for card_id in TUTORIAL_RUN_IDS:
+			if not selected_card_ids.has(String(card_id)):
+				return
+		_set_tutorial_step(TUTORIAL_PLAY_RUN)
+	elif tutorial_step == TUTORIAL_SELECT_DISCARD and selected_card_ids.has(String(TUTORIAL_FIRST_DISCARD_ID)):
+		_set_tutorial_step(TUTORIAL_DISCARD)
+	elif tutorial_step == TUTORIAL_SELECT_EXTEND and selected_card_ids.has(String(TUTORIAL_EXTENSION_ID)):
+		_set_tutorial_step(TUTORIAL_SELECT_MELD)
+	elif tutorial_step == TUTORIAL_SELECT_FINAL_DISCARD and selected_card_ids.has(String(TUTORIAL_FINAL_DISCARD_ID)):
+		_set_tutorial_step(TUTORIAL_FINAL_DISCARD)
 
 
 func _on_meld_pressed(meld_id: int) -> void:
 	if interaction_locked or deal.state not in [DealState.STATE_ACTIVE, DealState.STATE_FINAL_COMMIT_WINDOW]:
 		return
+	if tutorial_active and (tutorial_step != TUTORIAL_SELECT_MELD or meld_id != tutorial_meld_id):
+		_show_banner(tr("TUTORIAL_FOLLOW_STEP"))
+		return
 	selected_meld_id = -1 if selected_meld_id == meld_id else meld_id
 	_sync_melds()
 	_sync_music_reactive_cards()
 	_refresh_actions()
+	if tutorial_active and tutorial_step == TUTORIAL_SELECT_MELD and selected_meld_id == tutorial_meld_id:
+		_set_tutorial_step(TUTORIAL_EXTEND)
 
 
 func _on_ha_pressed() -> void:
@@ -1548,10 +2279,17 @@ func _on_ha_pressed() -> void:
 		return
 	selected_card_ids.clear()
 	selected_meld_id = result["meld_id"]
+	if tutorial_active:
+		tutorial_meld_id = selected_meld_id
 	_sync_all(result)
+	if tutorial_active:
+		_set_tutorial_step(TUTORIAL_MELD_SCORE)
 	await _show_scoring(result["context"])
 	interaction_locked = false
-	_refresh_actions()
+	if tutorial_active:
+		_set_tutorial_step(TUTORIAL_SELECT_DISCARD)
+	else:
+		_refresh_actions()
 
 
 func _on_extend_pressed() -> void:
@@ -1567,14 +2305,21 @@ func _on_extend_pressed() -> void:
 		return
 	selected_card_ids.clear()
 	_sync_all(result)
+	if tutorial_active:
+		_set_tutorial_step(TUTORIAL_EXTEND_SCORE)
 	await _show_scoring(result["context"])
 	interaction_locked = false
-	_refresh_actions()
+	if tutorial_active:
+		selected_meld_id = -1
+		_set_tutorial_step(TUTORIAL_SELECT_FINAL_DISCARD)
+	else:
+		_refresh_actions()
 
 
 func _on_discard_pressed() -> void:
 	if discard_button.disabled:
 		return
+	var completed_tutorial_step := tutorial_step
 	var selected := _selected_cards()
 	var card := selected[0]
 	interaction_locked = true
@@ -1595,6 +2340,11 @@ func _on_discard_pressed() -> void:
 		_show_banner(tr("BANNER_DRAW") % [drawn.size(), deal.discard_count, DealState.DISCARDS_PER_PHASE])
 		interaction_locked = false
 		_refresh_actions()
+	if tutorial_active and completed_tutorial_step == TUTORIAL_DISCARD:
+		selected_meld_id = -1
+		_set_tutorial_step(TUTORIAL_SELECT_EXTEND)
+	elif tutorial_active and completed_tutorial_step == TUTORIAL_FINAL_DISCARD:
+		_set_tutorial_step(TUTORIAL_MOM)
 
 
 func _on_settle_pressed() -> void:
@@ -1722,7 +2472,8 @@ func _play_score_panel(target_wallet: int, positive: bool) -> void:
 	await _reveal_score_label(score_payout)
 	await _animate_wallet_to(target_wallet, 0.52)
 	_spawn_money_float(target_wallet - displayed_wallet_vnd, positive)
-	await get_tree().create_timer(0.34).timeout
+	var result_hold := 1.2 if tutorial_active else 0.34
+	await get_tree().create_timer(result_hold).timeout
 	var outro := create_tween().set_parallel(true)
 	outro.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 	outro.tween_property(score_panel, "scale", Vector2(1.04, 1.04), 0.14)
@@ -1849,6 +2600,8 @@ func _begin_phase_two(keep_hand: bool) -> void:
 func _start_new_deal() -> void:
 	if interaction_locked:
 		return
+	if tutorial_active:
+		_deactivate_tutorial(true)
 	interaction_locked = true
 	modal_overlay.visible = false
 	_set_hand_interaction_enabled(true)
@@ -1948,9 +2701,11 @@ func _unhandled_key_input(event: InputEvent) -> void:
 	if not event is InputEventKey or not event.pressed or event.echo:
 		return
 	if menu_layer.visible:
-		if game_started and event.keycode == KEY_ESCAPE:
+		if event.keycode == KEY_ESCAPE and menu_page != &"home":
+			_show_menu_page(&"home")
+		elif game_started and event.keycode == KEY_ESCAPE:
 			_close_menu_to_game()
-		elif not menu_transitioning and event.keycode in [KEY_ENTER, KEY_KP_ENTER, KEY_SPACE]:
+		elif menu_page == &"home" and not menu_transitioning and event.keycode in [KEY_ENTER, KEY_KP_ENTER, KEY_SPACE]:
 			_on_play_pressed()
 		return
 	if discard_archive_overlay.visible:

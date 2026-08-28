@@ -15,6 +15,15 @@ const RESTING_HAND_SIZE := 9
 const ACTIVE_HAND_TARGET := 10
 const DISCARDS_PER_PHASE := 4
 
+const TUTORIAL_HAND_SPECS := [
+	["4", "Hearts"], ["5", "Hearts"], ["6", "Hearts"],
+	["9", "Spades"], ["9", "Hearts"], ["9", "Diamonds"],
+	["Q", "Diamonds"], ["K", "Spades"], ["2", "Clubs"], ["J", "Clubs"],
+]
+const TUTORIAL_DRAW_SPECS := [
+	["7", "Hearts"], ["3", "Spades"], ["8", "Diamonds"], ["K", "Clubs"],
+]
+
 const STATE_ACTIVE := "active"
 const STATE_FINAL_COMMIT_WINDOW := "final_commit_window"
 const STATE_PHASE_CHOICE := "phase_choice"
@@ -69,6 +78,39 @@ func start_deal(shuffle_seed: int = -1, reset_wallet: bool = false) -> Dictionar
 		"action": "start_deal",
 		"resting_cards": resting_cards,
 		"drawn": turn_drawn,
+	}
+	state_changed.emit(result)
+	return result
+
+
+func start_tutorial_deal() -> Dictionary:
+	deck.reset(0)
+	hand.clear()
+	melds.clear()
+	discard_history.clear()
+	settlements.clear()
+	current_phase = 1
+	discard_count = 0
+	mom_strikes_banked = 0
+	mom_strikes_resolved = 0
+	state = STATE_ACTIVE
+	last_phase_resolution.clear()
+	_next_meld_id = 1
+	_reset_phase_metrics()
+	scoring.current_drink_id = current_drink_id
+	for spec in TUTORIAL_HAND_SPECS:
+		hand.append(_take_tutorial_card(String(spec[0]), String(spec[1])))
+	var tutorial_draws: Array[CardData] = []
+	for spec in TUTORIAL_DRAW_SPECS:
+		tutorial_draws.append(_take_tutorial_card(String(spec[0]), String(spec[1])))
+	for index in range(tutorial_draws.size() - 1, -1, -1):
+		deck.draw_pile.append(tutorial_draws[index])
+	_turn_started_with_ten = true
+	_turn_committed_card_count = 0
+	var result := {
+		"ok": true,
+		"action": "start_tutorial_deal",
+		"drawn": hand.duplicate(),
 	}
 	state_changed.emit(result)
 	return result
@@ -273,7 +315,7 @@ func _begin_active_turn() -> Array[CardData]:
 		var payout := 0
 		for card in hand:
 			payout += card.score_value()
-		payout *= 9
+		payout *= 10
 		phase_metrics.u_khan_count += 1
 		_record_phase_points(payout, "u_khan")
 		var replaced: Array[CardData] = []
@@ -288,6 +330,15 @@ func _begin_active_turn() -> Array[CardData]:
 	_turn_started_with_ten = hand.size() == ACTIVE_HAND_TARGET
 	_turn_committed_card_count = 0
 	return all_drawn
+
+
+func _take_tutorial_card(rank: String, suit: String) -> CardData:
+	for card in deck.draw_pile:
+		if card.rank == rank and card.suit == suit:
+			deck.draw_pile.erase(card)
+			return card
+	push_error("Tutorial card is missing from the standard deck: %s of %s" % [rank, suit])
+	return null
 
 
 func _finish_phase() -> Dictionary:

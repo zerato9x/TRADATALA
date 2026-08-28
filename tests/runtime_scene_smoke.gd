@@ -35,8 +35,57 @@ func _run() -> void:
 			if child is Label:
 				logo_text += child.text
 	_check(logo_text == "TRADATALA", "reactive logo units preserve the exact TRADATALA title")
-	_check(scene.get_node_or_null("MainMenu/MenuCenter/MenuContent/SettingsPanel") != null, "menu contains the audio and localization settings panel")
-	_check(scene.play_button != null and scene.play_button.text == "VÁN MỚI", "Vietnamese New Game action exists below the settings")
+	var menu_home := scene.get_node_or_null("MainMenu/MenuCenter/MenuContent/HomePanel") as VBoxContainer
+	var how_panel := scene.get_node_or_null("MainMenu/MenuCenter/MenuContent/HowToPlayPanel") as PanelContainer
+	var options_panel := scene.get_node_or_null("MainMenu/MenuCenter/MenuContent/OptionsPanel") as PanelContainer
+	_check(menu_home != null and menu_home.visible, "main menu opens on its compact action list")
+	_check(scene.play_button != null and scene.play_button.text == "VÁN MỚI", "Vietnamese New Game action exists on the main menu")
+	_check(scene.how_to_play_button != null and scene.how_to_play_button.text == "CÁCH CHƠI", "main menu exposes the localized How to Play section")
+	_check(scene.tutorial_button != null and scene.tutorial_button.text == "TẬP CHƠI", "main menu exposes a separate playable Tutorial")
+	_check(scene.tutorial_button.get_parent() == scene.how_to_play_button.get_parent() and scene.tutorial_button.position.x > scene.how_to_play_button.position.x, "Tutorial sits beside How to Play")
+	_check(scene.options_button != null and scene.options_button.text == "TÙY CHỌN", "main menu exposes the localized Options section")
+	_check(how_panel != null and not how_panel.visible and options_panel != null and not options_panel.visible, "secondary menu sections begin hidden")
+	scene.how_to_play_button.pressed.emit()
+	_check(how_panel.visible and not menu_home.visible, "How to Play opens as its own menu section")
+	var cards_tab := scene.how_tab_pages.get(&"cards") as Control
+	var phases_tab := scene.how_tab_pages.get(&"phases") as Control
+	var scoring_tab := scene.how_tab_pages.get(&"scoring") as Control
+	_check(scene.how_tab_buttons.size() == 3 and cards_tab.visible and not phases_tab.visible and not scoring_tab.visible, "How to Play opens on Cards and Melds with three available tabs")
+	var tutorial_cards := cards_tab.find_children("*", "TextureRect", true, false)
+	_check(tutorial_cards.size() == 12, "How to Play demonstrates Run, Set, Extend, and Discard with twelve real card images")
+	var how_intro := cards_tab.find_child("Intro", true, false) as Label
+	_check(how_intro != null and how_intro.text == "Chọn bài. Hạ Phỏm hoặc Ghép. Rồi bỏ 1 lá.", "How to Play uses a short Vietnamese core-loop instruction")
+	(scene.how_tab_buttons[&"phases"] as Button).pressed.emit()
+	_check(phases_tab.visible and not cards_tab.visible and scene.how_to_play_tab == &"phases", "Phases and Turns tab replaces the card reference in place")
+	var phases_intro := phases_tab.find_child("PhasesIntro", true, false) as Label
+	_check(phases_intro != null and phases_intro.text.contains("2 Giai đoạn") and phases_intro.text.contains("4 lần bỏ bài"), "Phases tab explains the two-Phase and four-turn structure")
+	(scene.how_tab_buttons[&"scoring"] as Button).pressed.emit()
+	_check(scoring_tab.visible and not phases_tab.visible and scene.how_to_play_tab == &"scoring", "Scoring tab replaces the Phase reference in place")
+	var scoring_labels := scoring_tab.find_children("*", "Label", true, false)
+	var has_meld_formula := false
+	var has_extend_delta := false
+	var has_phase_net := false
+	for scoring_label in scoring_labels:
+		has_meld_formula = has_meld_formula or scoring_label.text.contains("(4+5+6) × 3 = 45")
+		has_extend_delta = has_extend_delta or scoring_label.text.contains("+43 điểm")
+		has_phase_net = has_phase_net or scoring_label.text.contains("Gross − bài rời = Net")
+	_check(has_meld_formula and has_extend_delta and has_phase_net, "Scoring tab exposes Meld, Extend delta, and Phase net formulas")
+	_check(scene.how_scoring_topic_buttons.size() == 2 and scene.how_scoring_topic == &"basic", "Scoring opens on Basic with a separate Special Outcomes view")
+	(scene.how_scoring_topic_buttons[&"special"] as Button).pressed.emit()
+	var special_page := scene.how_scoring_topic_pages[&"special"] as Control
+	var special_labels := special_page.find_children("*", "Label", true, false)
+	var has_mom_rule := false
+	var has_u_rule := false
+	var has_u_khan_rule := false
+	for special_label in special_labels:
+		has_mom_rule = has_mom_rule or (special_label.text.contains("0 Phỏm MỚI") and special_label.text.contains("Ghép không cứu Móm"))
+		has_u_rule = has_u_rule or (special_label.text.contains("dùng đúng 9") and special_label.text.contains("Gross ×2"))
+		has_u_khan_rule = has_u_khan_rule or (special_label.text.contains("cách nhau 1–2 số") and special_label.text.contains("×10"))
+	_check(special_page.visible and has_mom_rule and has_u_rule and has_u_khan_rule, "Special Outcomes explains Móm, Ù, and the ×10 Ù Khan authority")
+	scene.how_to_play_back_button.pressed.emit()
+	_check(menu_home.visible and not how_panel.visible, "How to Play Back returns to the main actions")
+	scene.options_button.pressed.emit()
+	_check(options_panel.visible and not menu_home.visible, "Options owns the audio and language controls")
 	_check(scene.music_slider != null and is_equal_approx(scene.music_slider.value, settings.music_volume_percent), "Music slider reflects the persisted Music volume")
 	_check(scene.sound_slider != null and is_equal_approx(scene.sound_slider.value, settings.sound_volume_percent), "Sound slider reflects the persisted Sound volume")
 	_check(scene.language_selector != null and scene.language_selector.item_count == 2 and scene.language_selector.selected == 0, "language selector offers Vietnamese and English with Vietnamese as default")
@@ -52,12 +101,18 @@ func _run() -> void:
 	scene.language_selector.item_selected.emit(1)
 	await process_frame
 	_check(TranslationServer.get_locale() == "en" and scene.play_button.text == "NEW GAME", "English selection localizes the menu immediately")
-	_check(scene.music_settings_label.text == "MUSIC" and scene.sound_settings_label.text == "SOUND" and scene.hint_button.text == "HINT  [G]", "English selection refreshes menu and gameplay controls")
+	_check(scene.how_to_play_button.text == "HOW TO PLAY" and scene.tutorial_button.text == "TUTORIAL" and scene.options_button.text == "OPTIONS", "English selection refreshes main-menu navigation")
+	_check((scene.how_tab_buttons[&"cards"] as Button).text == "CARDS & MELDS" and (scene.how_tab_buttons[&"phases"] as Button).text == "PHASES & TURNS" and (scene.how_tab_buttons[&"scoring"] as Button).text == "SCORING", "English selection refreshes all How to Play tabs")
+	_check((scene.how_scoring_topic_buttons[&"basic"] as Button).text == "BASIC SCORING" and (scene.how_scoring_topic_buttons[&"special"] as Button).text == "SPECIAL OUTCOMES", "English selection refreshes both Scoring topics")
+	_check(scene.music_settings_label.text == "MUSIC" and scene.sound_settings_label.text == "SOUND" and scene.hint_button.text == "HINT  [G]", "English selection refreshes Options and gameplay controls")
+	_check(how_intro != null and how_intro.text == "Pick cards. Meld or Extend. Then discard 1.", "English selection refreshes the visual tutorial copy while it is hidden")
 	scene.language_selector.item_selected.emit(0)
 	await process_frame
 	_check(TranslationServer.get_locale() == "vi" and scene.play_button.text == "VÁN MỚI", "Vietnamese selection restores the interface immediately")
 	var saved_settings := ConfigFile.new()
 	_check(saved_settings.load(settings.SETTINGS_PATH) == OK and String(saved_settings.get_value("localization", "locale", "")) == "vi", "audio and language preferences persist to the player settings file")
+	scene.options_back_button.pressed.emit()
+	_check(menu_home.visible and not options_panel.visible, "Options Back returns to the main actions")
 	_check(scene.music_controller != null, "reactive music controller exists")
 	_check(scene.music_controller.full_mix_player != null and scene.music_controller.full_mix_player.stream != null, "current full mix is loaded")
 	var current_mix := scene.music_controller.full_mix_player.stream as AudioStreamWAV

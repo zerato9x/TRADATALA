@@ -62,7 +62,7 @@ The prototype now follows the two-Phase Deal contract: each Phase has four manda
 - MÓM is checked independently per Phase from new Phỏm count. Strikes are banked and resolved after Phase 2 without altering Deal money.
 - Active-turn HẠ / EXTEND must preserve one mandatory discard card; LAST CALL removes that restriction and forbids further discards/refills.
 - Ù is Phase-scoped: a ten-card turn that commits exactly nine cards and discards the last doubles that Phase's Gross, not Deadwood.
-- Ù Khan uses the prototype near-meld definition, pays `hand value × 9`, replaces the hand, and checks the refill again.
+- Ù Khan uses the prototype near-meld definition, pays `hand value × 10`, replaces the hand, and checks the refill again.
 - Sets accept any number of same-rank physical cards; Runs require one suit, unique consecutive ranks, A low, and no wrap.
 - Every card sent to the discard pile remains available through the suit-grouped discard archive; mandatory discards retain Phase and discard-number provenance in the Deal record.
 - Each card's hover badge summarizes its best canonical three-card Set/Run target. Percentages are exact without-replacement odds for the next refill toward ten, using the known remaining deck; the full target and missing-card calculation stay in the tooltip so probability information does not obstruct the table.
@@ -84,5 +84,6 @@ Current Godot 4.7.1 checkpoint (2026-08-28):
 ```powershell
 Godot_v4.7.1-stable_win64_console.exe --headless --path G:\PHOM\TRADATALA --script res://tests/run_headless.gd
 Godot_v4.7.1-stable_win64_console.exe --headless --path G:\PHOM\TRADATALA --script res://tests/runtime_scene_smoke.gd
+Godot_v4.7.1-stable_win64_console.exe --headless --path G:\PHOM\TRADATALA --script res://tests/tutorial_scene_smoke.gd
 ```
 

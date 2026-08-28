@@ -23,6 +23,29 @@ func test_standard_deck_has_52_unique_cards() -> void:
 	assert_eq(ids.size(), 52)
 
 
+func test_tutorial_deal_has_a_fixed_run_set_and_extension_draw() -> void:
+	var deal := DealState.new()
+	var result := deal.start_tutorial_deal()
+	assert_true(result.get("ok", false))
+	assert_eq(deal.hand.size(), DealState.ACTIVE_HAND_TARGET)
+	var by_id := {}
+	for card in deal.hand:
+		by_id[card.unique_id] = card
+	var run_cards: Array[CardData] = [
+		by_id["standard_4_hearts"], by_id["standard_5_hearts"], by_id["standard_6_hearts"],
+	]
+	var set_cards: Array[CardData] = [
+		by_id["standard_9_spades"], by_id["standard_9_hearts"], by_id["standard_9_diamonds"],
+	]
+	assert_true(deal.can_create_meld(run_cards))
+	assert_true(deal.can_create_meld(set_cards))
+	assert_eq(deal.deck.draw_pile[-1].unique_id, "standard_7_hearts")
+	var all_ids := {}
+	for card in deal.hand + deal.deck.draw_pile:
+		all_ids[card.unique_id] = true
+	assert_eq(all_ids.size(), 52)
+
+
 func test_music_beat_detector_triggers_on_onsets_with_a_cooldown() -> void:
 	var detector = _new_music_detector()
 	for _sample in range(45):
@@ -259,7 +282,7 @@ func test_u_khan_uses_the_prototype_near_meld_rule_and_replaces_hand() -> void:
 	])
 	deal.wallet.reset()
 	deal.phase_metrics.reset()
-	var expected := ScoringPipeline.deadwood_points(deal.hand) * 9
+	var expected := ScoringPipeline.deadwood_points(deal.hand) * 10
 	deal._begin_active_turn()
 	assert_eq(deal.phase_metrics.u_khan_count, 1)
 	assert_eq(deal.phase_metrics.raw_gross, expected)
