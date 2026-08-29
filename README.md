@@ -1,10 +1,10 @@
 # TRADATALA / TRÀ ĐÁ TÁ LẢ
 
-A Godot 4.7.1 vertical prototype for one solo-derived Phỏm Deal. The project uses the complete card-face set in `res://cards/` and separates testable rules from presentation.
+A Godot 4.7.1 early-campaign prototype built above the existing solo-derived Phỏm Deal. The project uses the complete card-face set in `res://cards/` and separates campaign progression, events, economy, rules, and presentation.
 
 The official presentation uses the generated Vietnamese sidewalk-table plate at `res://assets/environment/sidewalk_table.png`, with `DFVN Pexel Grotesk` as the global game font. Cards and HUD elements remain live Godot controls layered over the environment.
 
-The project opens on a dedicated title menu over the fixed sidewalk-table background. Choosing **CHƠI** leaves that environment stationary while the menu exits and the match UI slides in from the right. The match layout shows the current Drink and reserves an expandable, scrollable Relics grid initialized with four presentation-only slots.
+The project opens on a dedicated title menu over the fixed sidewalk-table background. Choosing **VÁN MỚI** starts Monday's Starter Event, where Cô Trà Đá supplies the Drink used by the Morning and Noon Deals. The same table then carries the player through four Deals and four Event slots per day for seven days. The match layout shows the active Drink, current day/goal, and an expandable Relics grid initialized with four presentation-only slots.
 
 ## Run
 
@@ -39,7 +39,7 @@ Distribute `TRADATALA-v1.0.1.exe` together with `TRADATALA-v1.0.1.pck`. The PCK 
 - Click the `BỎ • XEM` pile to open every discarded card grouped into Bích, Cơ, Rô, and Tép columns.
 - `K` / `X`: KEEP / DUMP at the Phase 1 settlement.
 - `Esc`: clear card and Meld selection.
-- `R`: start another Deal after Phase 2 while preserving the wallet.
+- After Phase 2, continue into the next campaign Event; the wallet persists across all 28 Deals.
 
 Buttons remain disabled until their action is legal. The footer explains the current selection.
 
@@ -50,6 +50,7 @@ Buttons remain disabled until their action is legal. The footer explains the cur
 - `scripts/melds/` — Set/Run authority, extension legality, and persistent table Meld state.
 - `scripts/scoring/` — reusable scoring contexts, Drink catalog/effects, extension deltas, settlement deadwood, and controlled modifier hooks.
 - `scripts/economy/` — 64-bit integer VND wallet and point conversion.
+- `scripts/campaign/` — seven-day state machine, data-configured requirements, generic Event/NPC interactions, Drink purchase windows, and progression signals.
 - `scripts/gameplay/` — the authoritative two-Phase Deal state machine, read-only hand advisor, and exact meld-probability analysis.
 - `scripts/ui/` — card fan, Meld views, café-table composition, staged equations, wallet tweening, card travel, banners, and settlements.
 - `tests/` — pure-rule suite plus a runtime scene smoke.
@@ -59,7 +60,7 @@ Buttons remain disabled until their action is legal. The footer explains the cur
 The prototype now follows the two-Phase Deal contract: each Phase has four mandatory discards, a player-confirmed LAST CALL window, and its own settlement. Table Phỏm persist across Phases; Phase 1 then offers KEEP or DUMP, with DUMP refilling toward ten.
 
 - Deadwood is calculated once per Phase as the simple sum of remaining loose-card values. Phase Net is `Gross after Ù − Deadwood`.
-- MÓM is checked independently per Phase from new Phỏm count. Strikes are banked and resolved after Phase 2 without altering Deal money.
+- MÓM is checked independently per Phase from new Phỏm count. Strikes are banked and resolved after Phase 2 against the full Wallet: one resolved strike removes 10%, while two remove 25% total. Sâm dứa cancels one strike before this tier is chosen.
 - Active-turn HẠ / EXTEND must preserve one mandatory discard card; LAST CALL removes that restriction and forbids further discards/refills.
 - Ù is Phase-scoped: a ten-card turn that commits exactly nine cards and discards the last doubles that Phase's Gross, not Deadwood.
 - Ù Khan uses the prototype near-meld definition, pays `hand value × 10`, replaces the hand, and checks the refill again.
@@ -69,13 +70,21 @@ The prototype now follows the two-Phase Deal contract: each Phase has four manda
 - Basic Drink scoring is implemented: Trà đá, Nước vối, Nhân trần, and final-resolution Sâm dứa protection. Trà đá is the current free starter. Advanced Caffeine/Energy/Sugar IDs and categories exist without invented formulas.
 - Scoring and resolution expose controlled hooks for new Phỏm, Extensions, settlement, Deadwood, MÓM, Deal resolution, and Ù.
 
-The menu includes persistent Music/Sound controls, Vietnamese/English localization, and a looping reactive music mix with four frequency bands driving presentation pulses. The day/event/shop loop that chooses Drinks twice per day is not present in this vertical prototype, so its schedule and paid progression cannot yet be wired to a real authority. Relic formulas, advanced Drink formulas, Account-layer MÓM punishment, Xăm, bosses, campaign progression, multiplayer, AI opponents, sound effects, and 3D presentation remain intentionally unimplemented.
+## Early campaign
+
+- A run is Monday through Sunday. Every day follows `Starter Event → Morning Deal → Morning Event → Noon Deal → Noon Event → Afternoon Deal → Afternoon Event → Evening Deal → requirement check` with no Evening Event.
+- Cô Trà Đá is a guaranteed participant in Starter and Noon Events, but Events own participant lists and can contain zero, one, or multiple NPCs. Her mandatory interaction selects/purchases the Drink for the next two Deals.
+- Morning and Afternoon Events are valid empty Events with an enabled Continue action. The same interaction model supports optional future NPCs without changing campaign progression.
+- Daily VND thresholds and Drink prices are provisional data in `campaign_config.gd` and `drink_manager.gd`; thresholds are not deducted, and the wallet carries across days.
+- Failing any end-of-day threshold ends the run. Passing Sunday's threshold wins the current early campaign without a Zodiac boss.
+
+The menu includes persistent Music/Sound controls, Vietnamese/English localization, and a looping reactive music mix with four frequency bands driving presentation pulses. Relics, advanced Drink formulas, Xăm, Zodiac bosses, special weekday mechanics, story chains, shops, multiplayer, AI opponents, sound effects, and 3D presentation remain intentionally unimplemented.
 
 ## Verification
 
 Current Godot 4.7.1 source checkpoint (2026-08-29):
 
-- Core rules, probability, action-cue, localization, and music-reactivity suite: **36 / 36 passed**.
+- Core Deal and campaign suite: **45 / 45 passed**.
 - Runtime scene smoke: **passed**.
 - Headless editor import and global-class registration: **passed**.
 - Live editor menu-to-match flow at 1280×720, reactive audio diagnostics, and both locale paths: **passed**.

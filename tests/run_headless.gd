@@ -1,11 +1,12 @@
 extends SceneTree
 
 const TestSuiteScript := preload("res://tests/test_core_deal.gd")
+const CampaignTestSuiteScript := preload("res://tests/test_campaign.gd")
 
 
 func _initialize() -> void:
 	var runner := McpTestRunner.new()
-	var result := runner.run_suites([TestSuiteScript.new()], "", "", {}, true)
+	var result := runner.run_suites([TestSuiteScript.new(), CampaignTestSuiteScript.new()], "", "", {}, true)
 	print("TRADATALA_TESTS total=%d passed=%d failed=%d skipped=%d" % [
 		result["total"], result["passed"], result["failed"], result["skipped"]
 	])
@@ -15,4 +16,3 @@ func _initialize() -> void:
 		quit(1)
 	else:
 		quit(0)
-

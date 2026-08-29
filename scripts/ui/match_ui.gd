@@ -8,6 +8,17 @@ const INITIAL_RELIC_SLOT_COUNT := 4
 const MUSIC_BAND_COUNT := 4
 const GAME_SETTINGS_SCRIPT := preload("res://scripts/settings/game_settings.gd")
 const TUTORIAL_SPOTLIGHT_SCRIPT := preload("res://scripts/ui/tutorial_spotlight.gd")
+const CARD_DRAG_PAYLOAD_SCRIPT := preload("res://scripts/ui/card_drag_payload.gd")
+const DROP_TARGET_NONE := &"none"
+const DROP_TARGET_HAND := &"hand"
+const DROP_TARGET_TABLE := &"table"
+const DROP_TARGET_MELD := &"meld"
+const DROP_TARGET_DISCARD := &"discard"
+const DRAG_ACTION_NONE := &"none"
+const DRAG_ACTION_REORDER := &"reorder"
+const DRAG_ACTION_CREATE_MELD := &"create_meld"
+const DRAG_ACTION_EXTEND_MELD := &"extend_meld"
+const DRAG_ACTION_DISCARD := &"discard"
 const TUTORIAL_SELECT_RUN := &"select_run"
 const TUTORIAL_PLAY_RUN := &"play_run"
 const TUTORIAL_MELD_SCORE := &"meld_score"
@@ -29,6 +40,10 @@ const TUTORIAL_EXTENSION_ID := &"standard_7_hearts"
 const TUTORIAL_FINAL_DISCARD_ID := &"standard_k_spades"
 
 var deal := DealState.new()
+var event_manager: EventManager
+var drink_manager: DrinkManager
+var campaign: CampaignManager
+var current_campaign_event: EventInstance
 var selected_card_ids: Dictionary = {}
 var selected_meld_id: int = -1
 var hand_views: Dictionary = {}
@@ -89,6 +104,7 @@ var drink_name_label: Label
 
 var earnings_value: Label
 var wallet_value: Label
+var campaign_value: Label
 var header_caption_labels: Dictionary = {}
 var draw_count: Label
 var discard_count_label: Label
@@ -96,6 +112,7 @@ var pile_caption_labels: Dictionary = {}
 var pile_archive_buttons: Dictionary = {}
 var discard_texture: TextureRect
 var status_label: Label
+var table_surface: Control
 var hand_layer: Control
 var meld_scroll: ScrollContainer
 var meld_row: HBoxContainer
@@ -114,6 +131,10 @@ var sort_button: Button
 var drink_title_label: Label
 var relic_title_label: Label
 var particle_layer: Control
+var active_drag_payload
+var active_drag_source: PlayingCardView
+var drag_preview: Control
+var drag_target_overlays: Array[Control] = []
 
 var discard_archive_overlay: Control
 var pile_archive_title: Label
@@ -141,6 +162,13 @@ var modal_secondary: Button
 var banner_panel: PanelContainer
 var banner_label: Label
 
+var campaign_overlay: Control
+var campaign_event_kicker: Label
+var campaign_event_title: Label
+var campaign_event_wallet: Label
+var campaign_participants: VBoxContainer
+var campaign_continue_button: Button
+
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -158,9 +186,33 @@ func _ready() -> void:
 	get_viewport().size_changed.connect(_on_viewport_size_changed)
 	var result := deal.start_deal(-1, true)
 	displayed_wallet_vnd = deal.wallet.balance_vnd
+	event_manager = EventManager.new()
+	CampaignNpcCatalog.register_initial_npcs(event_manager)
+	drink_manager = DrinkManager.new(deal.wallet)
+	campaign = CampaignManager.new(deal.wallet, event_manager, drink_manager)
+	campaign.event_started.connect(_on_campaign_event_started)
+	campaign.deal_requested.connect(_on_campaign_deal_requested)
+	campaign.requirement_passed.connect(_on_campaign_requirement_passed)
+	campaign.campaign_won.connect(_on_campaign_won)
+	campaign.campaign_lost.connect(_on_campaign_lost)
 	_sync_all(result, true)
 	_set_hand_interaction_enabled(false)
 	_park_game_layer()
+
+
+func _exit_tree() -> void:
+	if campaign == null:
+		return
+	var connections := [
+		[&"event_started", Callable(self, "_on_campaign_event_started")],
+		[&"deal_requested", Callable(self, "_on_campaign_deal_requested")],
+		[&"requirement_passed", Callable(self, "_on_campaign_requirement_passed")],
+		[&"campaign_won", Callable(self, "_on_campaign_won")],
+		[&"campaign_lost", Callable(self, "_on_campaign_lost")],
+	]
+	for connection in connections:
+		if campaign.is_connected(connection[0], connection[1]):
+			campaign.disconnect(connection[0], connection[1])
 
 
 func _build_interface() -> void:
@@ -719,6 +771,7 @@ func _refresh_localized_ui() -> void:
 	discard_history_title.text = tr("HUD_DISCARD_HISTORY")
 	(header_caption_labels.get("IncomeStat") as Label).text = tr("HUD_INCOME")
 	(header_caption_labels.get("WalletStat") as Label).text = tr("HUD_WALLET")
+	(header_caption_labels.get("CampaignStat") as Label).text = tr("HUD_CAMPAIGN")
 	empty_meld_label.text = tr("TABLE_EMPTY_MELD")
 	(pile_caption_labels.get("draw") as Label).text = tr("PILE_DRAW")
 	(pile_caption_labels.get("discard") as Label).text = tr("PILE_DISCARD")
@@ -741,6 +794,8 @@ func _refresh_localized_ui() -> void:
 	discard_archive_close.text = tr("ARCHIVE_CLOSE")
 	if tutorial_active:
 		_refresh_tutorial_coach()
+	if campaign_overlay.visible and current_campaign_event != null:
+		_show_campaign_event(current_campaign_event)
 	for suit in DeckManager.SUITS:
 		(discard_archive_suit_titles.get(suit) as Label).text = _discard_suit_title(suit)
 	_sync_all()
@@ -827,7 +882,7 @@ func _on_play_pressed() -> void:
 		menu_transitioning = false
 		interaction_locked = false
 		_set_hand_interaction_enabled(true)
-		_start_new_deal()
+		_start_campaign()
 		play_button.disabled = false
 		return
 	menu_transitioning = true
@@ -843,10 +898,7 @@ func _on_play_pressed() -> void:
 	menu_layer.visible = false
 	game_started = true
 	menu_transitioning = false
-	interaction_locked = false
-	_set_hand_interaction_enabled(true)
-	_refresh_actions()
-	_show_banner(tr("BANNER_NEW_DEAL"))
+	_start_campaign()
 
 
 func _on_tutorial_pressed() -> void:
@@ -928,8 +980,10 @@ func _on_tutorial_exit_pressed() -> void:
 	var completed := tutorial_step == TUTORIAL_COMPLETE
 	_deactivate_tutorial(true)
 	interaction_locked = false
-	_start_new_deal()
-	if not completed:
+	if completed:
+		_start_campaign()
+	else:
+		_start_new_deal()
 		_on_menu_pressed()
 
 
@@ -1130,6 +1184,7 @@ func _build_header() -> void:
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(spacer)
 
+	campaign_value = _add_header_stat(row, "HUD_CAMPAIGN", 178, false, "CampaignStat")
 	earnings_value = _add_header_stat(row, "HUD_INCOME", 144, false, "IncomeStat")
 	wallet_value = _add_header_stat(row, "HUD_WALLET", 178, true, "WalletStat")
 
@@ -1200,6 +1255,7 @@ func _add_header_stat(parent: Container, caption: String, minimum_width: float, 
 
 func _build_table() -> void:
 	var table := Panel.new()
+	table_surface = table
 	table.name = "TableSurface"
 	table.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	table.offset_left = 72
@@ -1492,6 +1548,7 @@ func _build_effect_layers() -> void:
 	_build_score_overlay()
 	_build_banner()
 	_build_modal()
+	_build_campaign_overlay()
 	tutorial_spotlight = TUTORIAL_SPOTLIGHT_SCRIPT.new()
 	tutorial_spotlight.name = "TutorialSpotlight"
 	tutorial_spotlight.z_index = 105
@@ -1879,6 +1936,165 @@ func _build_modal() -> void:
 	modal_secondary.pressed.connect(_on_modal_secondary_pressed)
 
 
+func _build_campaign_overlay() -> void:
+	campaign_overlay = Control.new()
+	campaign_overlay.name = "CampaignEventOverlay"
+	campaign_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	campaign_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	campaign_overlay.z_index = 190
+	campaign_overlay.visible = false
+	game_layer.add_child(campaign_overlay)
+	var dim := ColorRect.new()
+	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	dim.color = Color("#090704d9")
+	dim.mouse_filter = Control.MOUSE_FILTER_STOP
+	campaign_overlay.add_child(dim)
+	var panel := Panel.new()
+	panel.set_anchors_preset(Control.PRESET_CENTER)
+	panel.position = Vector2(-410, -270)
+	panel.size = Vector2(820, 540)
+	panel.add_theme_stylebox_override("panel", PresentationTheme.panel_style(Color("#17120ffc"), PresentationTheme.GOLD, 2, 18, 12))
+	campaign_overlay.add_child(panel)
+	var column := VBoxContainer.new()
+	column.position = Vector2(34, 26)
+	column.size = Vector2(752, 488)
+	column.add_theme_constant_override("separation", 10)
+	panel.add_child(column)
+	campaign_event_kicker = Label.new()
+	campaign_event_kicker.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	campaign_event_kicker.add_theme_font_size_override("font_size", 12)
+	campaign_event_kicker.add_theme_color_override("font_color", PresentationTheme.GOLD)
+	column.add_child(campaign_event_kicker)
+	campaign_event_title = Label.new()
+	campaign_event_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	campaign_event_title.add_theme_font_size_override("font_size", 30)
+	campaign_event_title.add_theme_color_override("font_color", PresentationTheme.INK)
+	column.add_child(campaign_event_title)
+	campaign_event_wallet = Label.new()
+	campaign_event_wallet.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	campaign_event_wallet.add_theme_font_size_override("font_size", 13)
+	campaign_event_wallet.add_theme_color_override("font_color", PresentationTheme.TEA)
+	column.add_child(campaign_event_wallet)
+	var divider := HSeparator.new()
+	divider.add_theme_constant_override("separation", 8)
+	column.add_child(divider)
+	var scroll := ScrollContainer.new()
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	column.add_child(scroll)
+	campaign_participants = VBoxContainer.new()
+	campaign_participants.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	campaign_participants.add_theme_constant_override("separation", 10)
+	scroll.add_child(campaign_participants)
+	campaign_continue_button = Button.new()
+	campaign_continue_button.name = "CampaignContinueButton"
+	campaign_continue_button.custom_minimum_size = Vector2(280, 48)
+	campaign_continue_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	PresentationTheme.configure_button(campaign_continue_button, "tea")
+	campaign_continue_button.pressed.connect(_on_campaign_continue_pressed)
+	column.add_child(campaign_continue_button)
+
+
+func _show_campaign_event(event: EventInstance) -> void:
+	current_campaign_event = event
+	interaction_locked = true
+	_set_hand_interaction_enabled(false)
+	modal_overlay.visible = false
+	campaign_overlay.visible = true
+	var day: Dictionary = event.context.get("day", campaign.current_day())
+	campaign_event_kicker.text = tr(EventManager.slot_name_key(event.slot))
+	campaign_event_title.text = tr(String(day.get("name_key", "")))
+	campaign_event_wallet.text = tr("CAMPAIGN_WALLET_REQUIREMENT") % [
+		VndWallet.format_vnd(deal.wallet.balance_vnd),
+		VndWallet.format_vnd(int(day.get("required_vnd", 0))),
+	]
+	_clear_campaign_participants()
+	if event.participants.is_empty():
+		var empty := Label.new()
+		empty.text = tr("EVENT_NO_PARTICIPANTS")
+		empty.custom_minimum_size.y = 170
+		empty.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		empty.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		empty.add_theme_font_size_override("font_size", 16)
+		empty.add_theme_color_override("font_color", PresentationTheme.MUTED)
+		campaign_participants.add_child(empty)
+	else:
+		for participant in event.participants:
+			_build_campaign_participant(participant, event)
+	campaign_continue_button.text = tr("EVENT_CONTINUE")
+	campaign_continue_button.disabled = not event.can_exit
+	campaign_continue_button.call_deferred("grab_focus")
+	_refresh_stats()
+
+
+func _clear_campaign_participants() -> void:
+	for child in campaign_participants.get_children():
+		campaign_participants.remove_child(child)
+		child.queue_free()
+
+
+func _build_campaign_participant(participant: NPCDefinition, event: EventInstance) -> void:
+	var panel := PanelContainer.new()
+	panel.add_theme_stylebox_override("panel", PresentationTheme.panel_style(Color("#231c17f0"), Color("#8d5b30"), 1, 8, 5))
+	campaign_participants.add_child(panel)
+	var margin := MarginContainer.new()
+	for side in ["left", "top", "right", "bottom"]:
+		margin.add_theme_constant_override("margin_%s" % side, 10)
+	panel.add_child(margin)
+	var column := VBoxContainer.new()
+	column.add_theme_constant_override("separation", 7)
+	margin.add_child(column)
+	var name_label := Label.new()
+	name_label.text = tr(participant.display_name_key)
+	name_label.add_theme_font_size_override("font_size", 19)
+	name_label.add_theme_color_override("font_color", PresentationTheme.GOLD)
+	column.add_child(name_label)
+	for interaction in event.interactions:
+		if interaction.participant_id != participant.id:
+			continue
+		if interaction.action_type == "choose_drink":
+			_build_drink_choices(column, event, interaction)
+		else:
+			var interact_button := Button.new()
+			interact_button.text = tr("EVENT_INTERACT_DONE") if interaction.completed else tr("EVENT_INTERACT")
+			interact_button.disabled = interaction.completed
+			PresentationTheme.configure_button(interact_button, "neutral")
+			interact_button.pressed.connect(_on_campaign_interaction_pressed.bind(interaction.id))
+			column.add_child(interact_button)
+
+
+func _build_drink_choices(parent: VBoxContainer, event: EventInstance, interaction: EventInteraction) -> void:
+	var instruction := Label.new()
+	var period_key := "DRINK_PERIOD_MORNING_NOON" if event.slot == EventManager.EventSlot.STARTER else "DRINK_PERIOD_AFTERNOON_EVENING"
+	instruction.text = tr("EVENT_CHOOSE_DRINK") % tr(period_key)
+	instruction.add_theme_font_size_override("font_size", 13)
+	instruction.add_theme_color_override("font_color", PresentationTheme.MUTED)
+	parent.add_child(instruction)
+	if interaction.completed:
+		var selected := Label.new()
+		selected.text = tr("EVENT_DRINK_SELECTED") % tr(DrinkCatalog.display_name(drink_manager.active_drink_id))
+		selected.add_theme_font_size_override("font_size", 16)
+		selected.add_theme_color_override("font_color", PresentationTheme.TEA)
+		parent.add_child(selected)
+		return
+	var choices := GridContainer.new()
+	choices.columns = 4
+	choices.add_theme_constant_override("h_separation", 8)
+	parent.add_child(choices)
+	for drink_id in drink_manager.available_drink_ids():
+		var button := Button.new()
+		button.name = "Drink_%s" % drink_id
+		button.custom_minimum_size = Vector2(174, 60)
+		button.text = "%s\n%s" % [
+			tr(DrinkCatalog.display_name(drink_id)).to_upper(),
+			VndWallet.format_vnd(drink_manager.price_for(drink_id)),
+		]
+		button.disabled = not drink_manager.can_afford(drink_id)
+		PresentationTheme.configure_button(button, "tea" if drink_id == DrinkCatalog.TRA_DA else "neutral")
+		button.pressed.connect(_on_campaign_drink_pressed.bind(event.slot, interaction.id, drink_id))
+		choices.add_child(button)
+
+
 func _sync_all(result: Dictionary = {}, animate_all_cards: bool = false) -> void:
 	var animated_cards := _cards_from_result(result)
 	if animate_all_cards:
@@ -1886,9 +2102,9 @@ func _sync_all(result: Dictionary = {}, animate_all_cards: bool = false) -> void
 		animated_cards.append_array(deal.hand)
 	_sync_hand(animated_cards)
 	_sync_card_probability_badges()
-	var actionable := _sync_card_action_outlines()
+	_sync_card_action_outlines()
 	_sync_melds()
-	_sync_music_reactive_cards(actionable)
+	_sync_music_reactive_cards()
 	_sync_piles()
 	_sync_discard_history()
 	if discard_archive_overlay.visible:
@@ -1912,6 +2128,7 @@ func _sync_hand(animated_cards: Array[CardData]) -> void:
 			hand_layer.add_child(view)
 			view.set_card(card)
 			view.card_pressed.connect(_on_card_pressed)
+			view.card_drag_started.connect(_on_card_drag_started.bind(view))
 			hand_views[card.unique_id] = view
 			if animated_ids.has(card.unique_id):
 				var origin := draw_pile_visual.get_global_rect().get_center() - hand_layer.global_position
@@ -1968,25 +2185,23 @@ func _sync_card_action_outlines() -> Dictionary:
 	return actionable
 
 
-func _sync_music_reactive_cards(actionable: Dictionary = {}) -> void:
+func _sync_music_reactive_cards() -> void:
 	_reactive_assignments_clear()
-	if actionable.is_empty():
-		actionable = deal.legal_action_card_ids()
-	var meld_card_ids: Dictionary = actionable.get("meld", {})
+	var selected := _selected_cards()
+	var targets := deal.legal_action_targets_for_selection(selected, selected_meld_id)
+	var hand_card_ids: Dictionary = targets.get("hand", {})
 	var hand_assignment_index := 0
 	for card in deal.hand:
-		if not meld_card_ids.has(card.unique_id):
+		if not hand_card_ids.has(card.unique_id):
 			continue
 		var view := hand_views.get(card.unique_id) as PlayingCardView
 		if view != null:
 			reactive_hand_cards_by_band[hand_assignment_index % MUSIC_BAND_COUNT].append(view)
 			hand_assignment_index += 1
 
-	var selected := _selected_cards()
-	if selected.is_empty():
-		return
+	var table_meld_ids: Dictionary = targets.get("melds", {})
 	for meld in deal.melds:
-		if not deal.can_extend_meld(meld.meld_id, selected):
+		if not table_meld_ids.has(meld.meld_id):
 			continue
 		var view := meld_views.get(meld.meld_id) as MeldView
 		if view == null:
@@ -2138,6 +2353,14 @@ func _build_discard_thumbnail(record: DiscardRecord) -> Control:
 func _refresh_stats() -> void:
 	earnings_value.text = VndWallet.format_vnd(VndWallet.points_to_vnd(deal.phase_earnings_points), true)
 	wallet_value.text = VndWallet.format_vnd(displayed_wallet_vnd)
+	if campaign_value != null:
+		if campaign == null or campaign.current_day().is_empty():
+			campaign_value.text = "—"
+		else:
+			campaign_value.text = "%s  •  %s" % [
+				tr(String(campaign.current_day().get("name_key", ""))),
+				VndWallet.format_vnd(campaign.daily_requirement()),
+			]
 
 
 func _refresh_actions() -> void:
@@ -2199,6 +2422,277 @@ func _refresh_actions() -> void:
 	else:
 		status_label.text = tr("STATUS_INVALID_MELD")
 		status_label.add_theme_color_override("font_color", PresentationTheme.RED)
+
+
+func _input(event: InputEvent) -> void:
+	if active_drag_payload == null:
+		return
+	if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
+		get_viewport().set_input_as_handled()
+		_cancel_card_drag()
+	elif event is InputEventMouseMotion:
+		_update_card_drag(event.position)
+	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and not event.pressed:
+		var drop_position: Vector2 = event.position
+		get_viewport().set_input_as_handled()
+		_finish_card_drag(drop_position)
+
+
+func _on_card_drag_started(card: CardData, global_position: Vector2, source: PlayingCardView) -> void:
+	if interaction_locked or deal.state not in [DealState.STATE_ACTIVE, DealState.STATE_FINAL_COMMIT_WINDOW]:
+		source.finish_drag_interaction()
+		return
+	var payload_cards: Array[CardData] = [card]
+	if selected_card_ids.has(card.unique_id):
+		payload_cards = _selected_cards()
+	active_drag_payload = CARD_DRAG_PAYLOAD_SCRIPT.new(
+		CARD_DRAG_PAYLOAD_SCRIPT.SOURCE_HAND,
+		-1,
+		card.unique_id,
+		payload_cards
+	)
+	active_drag_source = source
+	_build_card_drag_preview(active_drag_payload)
+	_refresh_card_drag_targets(active_drag_payload)
+	_update_card_drag(global_position)
+
+
+func _update_card_drag(global_position: Vector2) -> void:
+	if drag_preview == null or particle_layer == null:
+		return
+	drag_preview.position = _drag_layer_local_position(global_position) - CARD_SIZE * 0.5
+
+
+func _finish_card_drag(global_position: Vector2) -> void:
+	var payload = active_drag_payload
+	var source := active_drag_source
+	var target := _card_drop_target_at(global_position)
+	_clear_card_drag_visuals()
+	if source != null:
+		source.finish_drag_interaction()
+	_perform_card_drop(payload, target, global_position, source)
+
+
+func _card_drop_target_at(global_position: Vector2) -> Dictionary:
+	if discard_pile_visual != null and discard_pile_visual.get_global_rect().has_point(global_position):
+		return {"kind": DROP_TARGET_DISCARD, "meld_id": -1}
+	for meld in deal.melds:
+		var meld_view := meld_views.get(meld.meld_id) as MeldView
+		if meld_view != null and meld_view.get_global_rect().has_point(global_position):
+			return {"kind": DROP_TARGET_MELD, "meld_id": meld.meld_id}
+	if hand_layer != null and hand_layer.get_global_rect().grow(28.0).has_point(global_position):
+		return {"kind": DROP_TARGET_HAND, "meld_id": -1}
+	if table_surface != null and table_surface.get_global_rect().has_point(global_position):
+		if draw_pile_visual == null or not draw_pile_visual.get_global_rect().has_point(global_position):
+			return {"kind": DROP_TARGET_TABLE, "meld_id": -1}
+	return {"kind": DROP_TARGET_NONE, "meld_id": -1}
+
+
+func _card_drag_action(payload, target: Dictionary) -> StringName:
+	if payload == null:
+		return DRAG_ACTION_NONE
+	var target_kind: StringName = target.get("kind", DROP_TARGET_NONE)
+	if payload.source_zone == CARD_DRAG_PAYLOAD_SCRIPT.SOURCE_HAND:
+		match target_kind:
+			DROP_TARGET_HAND:
+				return DRAG_ACTION_REORDER
+			DROP_TARGET_TABLE:
+				return DRAG_ACTION_CREATE_MELD
+			DROP_TARGET_MELD:
+				return DRAG_ACTION_EXTEND_MELD
+			DROP_TARGET_DISCARD:
+				return DRAG_ACTION_DISCARD
+	return DRAG_ACTION_NONE
+
+
+func _cards_for_drop_target(payload, target: Dictionary) -> Array[CardData]:
+	var cards: Array[CardData] = []
+	if payload == null:
+		return cards
+	var anchor := payload.anchor_card() as CardData
+	var action := _card_drag_action(payload, target)
+	match action:
+		DRAG_ACTION_REORDER:
+			if not tutorial_active and anchor != null:
+				cards.append(anchor)
+		DRAG_ACTION_DISCARD:
+			if deal.state == DealState.STATE_ACTIVE and anchor != null and deal.hand.has(anchor):
+				if not tutorial_active or tutorial_step in [TUTORIAL_DISCARD, TUTORIAL_FINAL_DISCARD]:
+					cards.append(anchor)
+		DRAG_ACTION_CREATE_MELD:
+			if (not tutorial_active or tutorial_step == TUTORIAL_PLAY_RUN) and deal.can_create_meld(payload.cards):
+				cards.append_array(payload.cards)
+		DRAG_ACTION_EXTEND_MELD:
+			var meld_id := int(target.get("meld_id", -1))
+			if tutorial_active and tutorial_step != TUTORIAL_EXTEND:
+				return cards
+			if deal.can_extend_meld(meld_id, payload.cards):
+				cards.append_array(payload.cards)
+			elif anchor != null and deal.can_extend_meld(meld_id, [anchor] as Array[CardData]):
+				cards.append(anchor)
+	return cards
+
+
+func _perform_card_drop(payload, target: Dictionary, global_position: Vector2, source: PlayingCardView) -> void:
+	if payload == null or interaction_locked:
+		_layout_hand(true)
+		return
+	var target_kind: StringName = target.get("kind", DROP_TARGET_NONE)
+	if target_kind == DROP_TARGET_NONE:
+		_layout_hand(true)
+		return
+	var action := _card_drag_action(payload, target)
+	var drop_cards := _cards_for_drop_target(payload, target)
+	if drop_cards.is_empty():
+		if source != null:
+			source.play_reject()
+		_layout_hand(true)
+		return
+	match action:
+		DRAG_ACTION_REORDER:
+			_reorder_hand_card(drop_cards[0], global_position.x)
+		DRAG_ACTION_CREATE_MELD:
+			_apply_drag_selection(drop_cards, -1)
+			_on_ha_pressed()
+		DRAG_ACTION_EXTEND_MELD:
+			_apply_drag_selection(drop_cards, int(target.get("meld_id", -1)))
+			_on_extend_pressed()
+		DRAG_ACTION_DISCARD:
+			_apply_drag_selection(drop_cards, -1)
+			_on_discard_pressed()
+
+
+func _apply_drag_selection(cards: Array[CardData], meld_id: int) -> void:
+	selected_card_ids.clear()
+	for card in cards:
+		selected_card_ids[card.unique_id] = true
+	selected_meld_id = meld_id
+	_layout_hand(true)
+	_sync_melds()
+	_sync_music_reactive_cards()
+	_refresh_actions()
+
+
+func _reorder_hand_card(card: CardData, global_x: float) -> bool:
+	if card == null or not deal.hand.has(card):
+		return false
+	var reordered: Array[CardData] = []
+	var insertion_index := 0
+	for existing_card in deal.hand:
+		if existing_card == card:
+			continue
+		var existing_view := hand_views.get(existing_card.unique_id) as PlayingCardView
+		if existing_view != null and global_x > existing_view.get_global_rect().get_center().x:
+			insertion_index += 1
+		reordered.append(existing_card)
+	insertion_index = clampi(insertion_index, 0, reordered.size())
+	reordered.insert(insertion_index, card)
+	var changed := reordered != deal.hand
+	if changed:
+		deal.hand.clear()
+		deal.hand.append_array(reordered)
+	_layout_hand(true)
+	_sync_music_reactive_cards()
+	return changed
+
+
+func _build_card_drag_preview(payload) -> void:
+	if particle_layer == null:
+		return
+	drag_preview = Control.new()
+	drag_preview.name = "CardDragPreview"
+	drag_preview.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	drag_preview.z_index = 10
+	particle_layer.add_child(drag_preview)
+	var shown_count := mini(payload.cards.size(), 4)
+	for index in range(shown_count):
+		var card: CardData = payload.cards[index]
+		var texture := TextureRect.new()
+		texture.position = Vector2(index * 9.0, -index * 4.0)
+		texture.size = CARD_SIZE
+		texture.texture = load(card.texture_path()) as Texture2D
+		texture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		texture.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		texture.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		texture.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		texture.modulate = Color(1, 1, 1, 0.9)
+		drag_preview.add_child(texture)
+	if payload.cards.size() > 1:
+		var count_badge := Label.new()
+		count_badge.position = Vector2(CARD_SIZE.x - 8, -12)
+		count_badge.size = Vector2(30, 24)
+		count_badge.text = "×%d" % payload.cards.size()
+		count_badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		count_badge.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		count_badge.add_theme_font_size_override("font_size", 12)
+		count_badge.add_theme_color_override("font_color", Color.WHITE)
+		count_badge.add_theme_stylebox_override("normal", PresentationTheme.panel_style(Color("#17120ff2"), PresentationTheme.TEA, 2, 2, 2))
+		count_badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		drag_preview.add_child(count_badge)
+
+
+func _refresh_card_drag_targets(payload) -> void:
+	_clear_card_drag_target_overlays()
+	if particle_layer == null:
+		return
+	var table_target := {"kind": DROP_TARGET_TABLE, "meld_id": -1}
+	if not _cards_for_drop_target(payload, table_target).is_empty():
+		_add_card_drag_target_overlay(table_surface.get_global_rect(), PresentationTheme.TEA)
+	if not tutorial_active:
+		_add_card_drag_target_overlay(hand_layer.get_global_rect().grow(18.0), Color("#70a7df"))
+	var discard_target := {"kind": DROP_TARGET_DISCARD, "meld_id": -1}
+	if not _cards_for_drop_target(payload, discard_target).is_empty():
+		_add_card_drag_target_overlay(discard_pile_visual.get_global_rect(), PresentationTheme.RED)
+	for meld in deal.melds:
+		var target := {"kind": DROP_TARGET_MELD, "meld_id": meld.meld_id}
+		if _cards_for_drop_target(payload, target).is_empty():
+			continue
+		var meld_view := meld_views.get(meld.meld_id) as MeldView
+		if meld_view != null:
+			_add_card_drag_target_overlay(meld_view.get_global_rect(), PresentationTheme.GOLD)
+
+
+func _add_card_drag_target_overlay(global_rect: Rect2, color: Color) -> void:
+	var overlay := Panel.new()
+	overlay.name = "CardDropTarget"
+	overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	overlay.position = _drag_layer_local_position(global_rect.position)
+	overlay.size = _drag_layer_local_position(global_rect.end) - overlay.position
+	var fill := color
+	fill.a = 0.13
+	var border := color
+	border.a = 0.9
+	overlay.add_theme_stylebox_override("panel", PresentationTheme.panel_style(fill, border, 3, 3, 5))
+	particle_layer.add_child(overlay)
+	drag_target_overlays.append(overlay)
+
+
+func _drag_layer_local_position(global_position: Vector2) -> Vector2:
+	return particle_layer.get_global_transform_with_canvas().affine_inverse() * global_position
+
+
+func _clear_card_drag_target_overlays() -> void:
+	for overlay in drag_target_overlays:
+		if is_instance_valid(overlay):
+			overlay.queue_free()
+	drag_target_overlays.clear()
+
+
+func _clear_card_drag_visuals() -> void:
+	_clear_card_drag_target_overlays()
+	if drag_preview != null:
+		drag_preview.queue_free()
+	drag_preview = null
+	active_drag_payload = null
+	active_drag_source = null
+
+
+func _cancel_card_drag() -> void:
+	var source := active_drag_source
+	_clear_card_drag_visuals()
+	if source != null and is_instance_valid(source):
+		source.finish_drag_interaction()
+	_layout_hand(true)
 
 
 func _on_card_pressed(card: CardData) -> void:
@@ -2441,18 +2935,31 @@ func _show_scoring(context: ScoringContext) -> void:
 func _show_phase_resolution(resolution: Dictionary) -> void:
 	var is_mom: bool = resolution["mom"]
 	var phase_number: int = resolution["phase"]
+	var resolved_mom: int = int(resolution.get("mom_strikes_resolved", 0))
+	var mom_penalty_percent: int = int(resolution.get("mom_penalty_percent", 0))
+	var mom_penalty_vnd: int = int(resolution.get("mom_penalty_vnd", 0))
 	score_title.text = tr("SCORE_PHASE_RESULT") % phase_number
 	if is_mom:
 		score_line_a.text = tr("SCORE_MOM")
 		score_line_a.add_theme_color_override("font_color", PresentationTheme.RED)
-		score_line_b.text = tr("SCORE_MOM_BANK") % deal.mom_strikes_banked
 	else:
 		score_line_a.text = tr("SCORE_SAFE") % resolution["new_phom_count"]
 		score_line_a.add_theme_color_override("font_color", PresentationTheme.TEA)
+	if phase_number == 2 and resolved_mom > 0:
+		score_line_b.text = tr("SCORE_MOM_PENALTY") % [
+			resolved_mom,
+			mom_penalty_percent,
+			VndWallet.format_vnd(mom_penalty_vnd),
+		]
+	elif phase_number == 2 and deal.mom_strikes_banked > 0:
+		score_line_b.text = tr("SCORE_MOM_PROTECTED")
+	elif is_mom:
+		score_line_b.text = tr("SCORE_MOM_BANK") % deal.mom_strikes_banked
+	else:
 		score_line_b.text = tr("SCORE_GROSS") % [resolution["gross_after_u"], tr("SCORE_U_BONUS") if resolution["u"] else ""]
 	var deadwood: int = resolution["deadwood_points"]
 	score_payout.text = tr("SCORE_NET") % [resolution["net"], resolution["gross_after_u"], deadwood]
-	await _play_score_panel(deal.wallet.balance_vnd, not is_mom)
+	await _play_score_panel(deal.wallet.balance_vnd, not is_mom and mom_penalty_vnd == 0)
 	score_line_a.add_theme_color_override("font_color", PresentationTheme.INK)
 
 
@@ -2539,12 +3046,18 @@ func _show_phase_choice(resolution: Dictionary) -> void:
 
 func _show_deal_over(resolution: Dictionary) -> void:
 	interaction_locked = false
-	modal_mode = "deal_over"
+	modal_mode = "campaign_deal_over" if campaign != null and CampaignManager.DEAL_PHASE_TO_PERIOD.has(campaign.current_phase) else "deal_over"
 	modal_kicker.text = tr("MODAL_DEAL_KICKER") % (tr("MOM") if resolution["mom"] else tr("SAFE"))
 	modal_title.text = VndWallet.format_vnd(deal.wallet.balance_vnd)
 	modal_body.text = tr("MODAL_DEAL_BODY") % deal.melds.size()
-	modal_detail.text = tr("MODAL_DEAL_DETAIL") % [deal.mom_strikes_banked, deal.mom_strikes_resolved, resolution["deadwood_points"]]
-	modal_primary.text = tr("MODAL_NEW_DEAL")
+	modal_detail.text = tr("MODAL_DEAL_DETAIL") % [
+		deal.mom_strikes_banked,
+		deal.mom_strikes_resolved,
+		deal.mom_penalty_percent,
+		VndWallet.format_vnd(deal.mom_penalty_vnd),
+		resolution["deadwood_points"],
+	]
+	modal_primary.text = tr("EVENT_CONTINUE") if modal_mode == "campaign_deal_over" else tr("MODAL_NEW_DEAL")
 	modal_secondary.visible = false
 	_show_modal()
 	_refresh_actions()
@@ -2568,6 +3081,10 @@ func _show_modal() -> void:
 func _on_modal_primary_pressed() -> void:
 	if modal_mode == "phase_choice":
 		_begin_phase_two(true)
+	elif modal_mode == "campaign_deal_over":
+		interaction_locked = true
+		modal_overlay.visible = false
+		campaign.complete_deal(deal.last_phase_resolution)
 	elif modal_mode == "deal_over":
 		_start_new_deal()
 
@@ -2595,6 +3112,128 @@ func _begin_phase_two(keep_hand: bool) -> void:
 	_show_banner(tr("BANNER_PHASE2") % (tr("KEEP_HAND") if keep_hand else tr("REDRAW_HAND")))
 	interaction_locked = false
 	_refresh_actions()
+
+
+func _start_campaign() -> void:
+	if tutorial_active:
+		_deactivate_tutorial(true)
+	interaction_locked = true
+	modal_overlay.visible = false
+	campaign_overlay.visible = false
+	selected_card_ids.clear()
+	selected_meld_id = -1
+	displayed_wallet_vnd = 0
+	campaign.start_campaign(true)
+	_refresh_stats()
+
+
+func _on_campaign_event_started(event: EventInstance) -> void:
+	_show_campaign_event(event)
+
+
+func _on_campaign_deal_requested(day: Dictionary, period: String, drink_id: String) -> void:
+	current_campaign_event = null
+	campaign_overlay.visible = false
+	interaction_locked = true
+	modal_overlay.visible = false
+	_set_hand_interaction_enabled(true)
+	selected_card_ids.clear()
+	selected_meld_id = -1
+	var drink_result := deal.set_current_drink(drink_id)
+	if not drink_result.get("ok", false):
+		deal.set_current_drink(DrinkCatalog.TRA_DA)
+	var result := deal.start_deal(-1, false)
+	displayed_wallet_vnd = deal.wallet.balance_vnd
+	_sync_all(result, true)
+	interaction_locked = false
+	_set_hand_interaction_enabled(true)
+	_refresh_actions()
+	_show_banner(tr("CAMPAIGN_DEAL_BANNER") % [
+		tr(String(day.get("name_key", ""))),
+		tr(_campaign_period_key(period)),
+	])
+
+
+func _on_campaign_drink_pressed(event_slot: int, interaction_id: String, drink_id: String) -> void:
+	var result := drink_manager.select_for_event(event_slot, drink_id)
+	if not result.get("ok", false):
+		_show_banner(tr("EVENT_NOT_ENOUGH_VND"))
+		return
+	event_manager.complete_interaction(interaction_id)
+	displayed_wallet_vnd = deal.wallet.balance_vnd
+	_refresh_stats()
+	if current_campaign_event != null:
+		_show_campaign_event(current_campaign_event)
+
+
+func _on_campaign_interaction_pressed(interaction_id: String) -> void:
+	event_manager.complete_interaction(interaction_id)
+	if current_campaign_event != null:
+		_show_campaign_event(current_campaign_event)
+
+
+func _on_campaign_continue_pressed() -> void:
+	if campaign.current_phase in [CampaignManager.CampaignPhase.CAMPAIGN_VICTORY, CampaignManager.CampaignPhase.CAMPAIGN_FAILURE]:
+		_start_campaign()
+		return
+	if current_campaign_event == null or not current_campaign_event.can_exit:
+		return
+	campaign_overlay.visible = false
+	current_campaign_event = null
+	campaign.complete_current_event()
+
+
+func _on_campaign_requirement_passed(day: Dictionary) -> void:
+	_show_banner(tr("CAMPAIGN_REQUIREMENT_PASSED") % [
+		tr(String(day.get("name_key", ""))),
+		VndWallet.format_vnd(int(day.get("required_vnd", 0))),
+	])
+
+
+func _on_campaign_won() -> void:
+	_show_campaign_outcome(true)
+
+
+func _on_campaign_lost() -> void:
+	_show_campaign_outcome(false)
+
+
+func _show_campaign_outcome(won: bool) -> void:
+	current_campaign_event = null
+	interaction_locked = true
+	_set_hand_interaction_enabled(false)
+	modal_overlay.visible = false
+	campaign_overlay.visible = true
+	campaign_event_kicker.text = tr("CAMPAIGN_COMPLETE" if won else "CAMPAIGN_ENDED")
+	campaign_event_title.text = tr("CAMPAIGN_VICTORY" if won else "CAMPAIGN_FAILURE")
+	campaign_event_wallet.text = tr("CAMPAIGN_FINAL_WALLET") % VndWallet.format_vnd(deal.wallet.balance_vnd)
+	_clear_campaign_participants()
+	var result_label := Label.new()
+	result_label.text = tr("CAMPAIGN_VICTORY_BODY") if won else tr("CAMPAIGN_FAILURE_BODY") % VndWallet.format_vnd(campaign.daily_requirement())
+	result_label.custom_minimum_size.y = 190
+	result_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	result_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	result_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	result_label.add_theme_font_size_override("font_size", 17)
+	result_label.add_theme_color_override("font_color", PresentationTheme.TEA if won else PresentationTheme.RED)
+	campaign_participants.add_child(result_label)
+	campaign_continue_button.text = tr("CAMPAIGN_NEW_RUN")
+	campaign_continue_button.disabled = false
+	campaign_continue_button.call_deferred("grab_focus")
+	_refresh_stats()
+
+
+func _campaign_period_key(period: String) -> String:
+	match period:
+		"morning":
+			return "PERIOD_MORNING"
+		"noon":
+			return "PERIOD_NOON"
+		"afternoon":
+			return "PERIOD_AFTERNOON"
+		"evening":
+			return "PERIOD_EVENING"
+	return ""
 
 
 func _start_new_deal() -> void:
@@ -2680,6 +3319,8 @@ func _set_hand_interaction_enabled(enabled: bool) -> void:
 		var view := value as PlayingCardView
 		if view != null:
 			view.set_interaction_enabled(enabled)
+	if not enabled and active_drag_payload != null:
+		_cancel_card_drag()
 
 
 func _cards_from_result(result: Dictionary) -> Array[CardData]:

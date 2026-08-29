@@ -2,8 +2,10 @@ class_name PlayingCardView
 extends Control
 
 signal card_pressed(card: CardData)
+signal card_drag_started(card: CardData, global_position: Vector2)
 
 const CARD_SIZE := Vector2(86, 119)
+const DRAG_THRESHOLD := 8.0
 const CardActionOutlineScript := preload("res://scripts/ui/card_action_outline.gd")
 
 var card: CardData
@@ -24,6 +26,9 @@ var _interaction_enabled: bool = true
 var _chance_tooltip: String = ""
 var _can_meld: bool = false
 var _can_extend: bool = false
+var _press_active: bool = false
+var _dragging: bool = false
+var _press_position := Vector2.ZERO
 
 
 func _ready() -> void:
@@ -112,6 +117,15 @@ func set_interaction_enabled(enabled: bool) -> void:
 		_hovered = false
 		_refresh_z_index()
 		_update_pose(true)
+	if not enabled:
+		finish_drag_interaction()
+
+
+func finish_drag_interaction() -> void:
+	_press_active = false
+	_dragging = false
+	_refresh_z_index()
+	_update_pose(true)
 
 
 func layout_to(target_position: Vector2, target_rotation: float, animate: bool = true) -> void:
@@ -158,7 +172,7 @@ func _build_visuals() -> void:
 	_action_outline.position = Vector2(-6, -6)
 	_action_outline.size = CARD_SIZE + Vector2(12, 12)
 	_action_outline.visible = false
-	add_child(_action_outline)
+	_beat_visual.add_child(_action_outline)
 
 	_texture = TextureRect.new()
 	_texture.name = "Face"
@@ -205,9 +219,26 @@ func _refresh_tooltip() -> void:
 
 
 func _gui_input(event: InputEvent) -> void:
-	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		accept_event()
-		card_pressed.emit(card)
+		if event.pressed:
+			_press_active = true
+			_dragging = false
+			_press_position = event.position
+		elif _press_active:
+			var was_dragging := _dragging
+			_press_active = false
+			_dragging = false
+			if not was_dragging:
+				card_pressed.emit(card)
+			_refresh_z_index()
+			_update_pose(true)
+	elif event is InputEventMouseMotion and _press_active:
+		if not _dragging and event.position.distance_to(_press_position) >= DRAG_THRESHOLD:
+			_dragging = true
+			_refresh_z_index()
+			_update_pose(true)
+			card_drag_started.emit(card, get_global_mouse_position())
 	elif event is InputEventMouseMotion and _hovered:
 		var horizontal := clampf((event.position.x / CARD_SIZE.x) - 0.5, -0.5, 0.5)
 		rotation = base_rotation + horizontal * 0.045
@@ -238,7 +269,7 @@ func _refresh_action_outline() -> void:
 
 
 func _refresh_z_index() -> void:
-	z_index = _stack_order + (100 if selected else 0) + (200 if _hovered else 0)
+	z_index = _stack_order + (100 if selected else 0) + (200 if _hovered else 0) + (400 if _dragging else 0)
 
 
 func _update_pose(animate: bool) -> void:
@@ -252,17 +283,18 @@ func _update_pose(animate: bool) -> void:
 	var target_position := base_position + Vector2(0, lift)
 	var target_scale := Vector2.ONE * (1.07 if _hovered else (1.035 if selected else 1.0))
 	var target_rotation := base_rotation if not _hovered else rotation
+	var target_modulate := Color(1, 1, 1, 0.42) if _dragging else Color.WHITE
 	if _motion_tween != null and _motion_tween.is_running():
 		_motion_tween.kill()
 	if not animate:
 		position = target_position
 		rotation = target_rotation
 		scale = target_scale
-		modulate = Color.WHITE
+		modulate = target_modulate
 		return
 	_motion_tween = create_tween().set_parallel(true)
 	_motion_tween.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	_motion_tween.tween_property(self, "position", target_position, 0.18)
 	_motion_tween.tween_property(self, "rotation", target_rotation, 0.18)
 	_motion_tween.tween_property(self, "scale", target_scale, 0.18)
-	_motion_tween.tween_property(self, "modulate", Color.WHITE, 0.14)
+	_motion_tween.tween_property(self, "modulate", target_modulate, 0.14)

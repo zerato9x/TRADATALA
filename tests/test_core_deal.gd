@@ -2,6 +2,7 @@
 extends McpTestSuite
 
 const MUSIC_BEAT_DETECTOR_PATH := "res://scripts/audio/music_beat_detector.gd"
+const CARD_DRAG_PAYLOAD_SCRIPT := preload("res://scripts/ui/card_drag_payload.gd")
 
 
 func suite_name() -> String:
@@ -191,6 +192,40 @@ func test_mom_banks_a_strike_without_altering_in_play_money() -> void:
 	assert_eq(deal.wallet.balance_vnd, VndWallet.points_to_vnd(57))
 
 
+func test_mom_resolution_penalizes_the_full_wallet_by_strike_tier() -> void:
+	var one_strike := DealState.new()
+	one_strike.wallet.reset(1_000_000)
+	one_strike.phase_earnings_points = 5
+	one_strike.mom_strikes_banked = 1
+	one_strike._resolve_deal()
+	assert_eq(one_strike.mom_strikes_resolved, 1)
+	assert_eq(one_strike.mom_penalty_percent, 10)
+	assert_eq(one_strike.wallet_before_mom_penalty_vnd, 1_000_000)
+	assert_eq(one_strike.mom_penalty_vnd, 100_000)
+	assert_eq(one_strike.wallet.balance_vnd, 900_000)
+
+	var two_strikes := DealState.new()
+	two_strikes.wallet.reset(1_000_000)
+	two_strikes.phase_earnings_points = 5
+	two_strikes.mom_strikes_banked = 2
+	two_strikes._resolve_deal()
+	assert_eq(two_strikes.mom_strikes_resolved, 2)
+	assert_eq(two_strikes.mom_penalty_percent, 25)
+	assert_eq(two_strikes.wallet_before_mom_penalty_vnd, 1_000_000)
+	assert_eq(two_strikes.mom_penalty_vnd, 250_000)
+	assert_eq(two_strikes.wallet.balance_vnd, 750_000)
+
+
+func test_mom_resolution_never_turns_a_non_positive_wallet_into_a_reward() -> void:
+	var deal := DealState.new()
+	deal.wallet.reset(-100_000)
+	deal.mom_strikes_banked = 2
+	deal._resolve_deal()
+	assert_eq(deal.mom_penalty_percent, 25)
+	assert_eq(deal.mom_penalty_vnd, 0)
+	assert_eq(deal.wallet.balance_vnd, -100_000)
+
+
 func test_extension_does_not_count_as_a_new_phom_for_mom() -> void:
 	var deal := _fresh_deal(16)
 	var base_cards: Array[CardData] = [_card("7", "Spades"), _card("7", "Hearts"), _card("7", "Diamonds")]
@@ -326,9 +361,15 @@ func test_sam_dua_cancels_one_banked_mom_only_at_final_resolution() -> void:
 	deal.choose_phase_two(true)
 	_advance_to_last_call(deal)
 	deal.hand.clear()
-	deal.settle_phase()
+	deal.wallet.reset(1_000_000)
+	var resolution: Dictionary = deal.settle_phase()["phase_resolution"]
 	assert_eq(deal.mom_strikes_banked, 2)
 	assert_eq(deal.mom_strikes_resolved, 1)
+	assert_eq(deal.mom_penalty_percent, 10)
+	assert_eq(deal.mom_penalty_vnd, 100_000)
+	assert_eq(deal.wallet.balance_vnd, 900_000)
+	assert_eq(resolution["wallet_before_mom_penalty_vnd"], 1_000_000)
+	assert_eq(resolution["wallet_after_mom_penalty_vnd"], 900_000)
 
 
 func test_advanced_drink_taxonomy_exists_without_invented_effects() -> void:
@@ -372,6 +413,46 @@ func test_legal_action_card_ids_distinguish_new_melds_extensions_and_both() -> v
 	assert_false(actionable["extend"].has(six_hearts.unique_id))
 	assert_false(actionable["meld"].has(discard.unique_id))
 	assert_false(actionable["extend"].has(discard.unique_id))
+
+
+func test_legal_action_targets_require_and_follow_the_current_selection() -> void:
+	var deal := DealState.new()
+	var six_spades := _card("6", "Spades", "both")
+	var six_hearts := _card("6", "Hearts", "meld")
+	var six_diamonds := _card("6", "Diamonds", "meld")
+	var discard := _card("K", "Clubs", "discard")
+	deal.hand = [six_spades, six_hearts, six_diamonds, discard]
+	deal.melds = [MeldState.new(1, MeldRules.TYPE_RUN, [
+		_card("3", "Spades", "table"), _card("4", "Spades", "table"), _card("5", "Spades", "table"),
+	] as Array[CardData])]
+	deal.state = DealState.STATE_ACTIVE
+	var idle_targets := deal.legal_action_targets_for_selection([] as Array[CardData])
+	assert_true(idle_targets["hand"].is_empty())
+	assert_true(idle_targets["melds"].is_empty())
+	var meld_targets := deal.legal_action_targets_for_selection([six_hearts] as Array[CardData])
+	assert_eq(meld_targets["hand"].size(), 3)
+	assert_true(meld_targets["hand"].has(six_spades.unique_id))
+	assert_true(meld_targets["hand"].has(six_hearts.unique_id))
+	assert_true(meld_targets["hand"].has(six_diamonds.unique_id))
+	assert_true(meld_targets["melds"].is_empty())
+	var table_targets := deal.legal_action_targets_for_selection([] as Array[CardData], 1)
+	assert_eq(table_targets["hand"].size(), 1)
+	assert_true(table_targets["hand"].has(six_spades.unique_id))
+	var extension_targets := deal.legal_action_targets_for_selection([six_spades] as Array[CardData])
+	assert_true(extension_targets["melds"].has(1))
+
+
+func test_card_drag_payload_preserves_its_source_for_future_table_card_verbs() -> void:
+	var card := _card("8", "Clubs", "drag")
+	var payload = CARD_DRAG_PAYLOAD_SCRIPT.new(
+		CARD_DRAG_PAYLOAD_SCRIPT.SOURCE_TABLE_MELD,
+		12,
+		card.unique_id,
+		[card] as Array[CardData]
+	)
+	assert_eq(payload.source_zone, CARD_DRAG_PAYLOAD_SCRIPT.SOURCE_TABLE_MELD)
+	assert_eq(payload.source_meld_id, 12)
+	assert_eq(payload.anchor_card(), card)
 
 
 func test_meld_probability_reports_exact_set_outs_for_the_next_refill() -> void:

@@ -14,6 +14,8 @@ signal u_triggered(context: Dictionary)
 const RESTING_HAND_SIZE := 9
 const ACTIVE_HAND_TARGET := 10
 const DISCARDS_PER_PHASE := 4
+const MOM_ONE_STRIKE_PENALTY_PERCENT := 10
+const MOM_TWO_STRIKE_PENALTY_PERCENT := 25
 
 const TUTORIAL_HAND_SPECS := [
 	["4", "Hearts"], ["5", "Hearts"], ["6", "Hearts"],
@@ -46,6 +48,9 @@ var state: String = STATE_ACTIVE
 var last_phase_resolution: Dictionary = {}
 var mom_strikes_banked: int = 0
 var mom_strikes_resolved: int = 0
+var mom_penalty_percent: int = 0
+var mom_penalty_vnd: int = 0
+var wallet_before_mom_penalty_vnd: int = 0
 var current_drink_id: String = DrinkCatalog.TRA_DA
 
 var _next_meld_id: int = 1
@@ -65,6 +70,9 @@ func start_deal(shuffle_seed: int = -1, reset_wallet: bool = false) -> Dictionar
 	discard_count = 0
 	mom_strikes_banked = 0
 	mom_strikes_resolved = 0
+	mom_penalty_percent = 0
+	mom_penalty_vnd = 0
+	wallet_before_mom_penalty_vnd = wallet.balance_vnd
 	state = STATE_ACTIVE
 	last_phase_resolution.clear()
 	_next_meld_id = 1
@@ -93,6 +101,9 @@ func start_tutorial_deal() -> Dictionary:
 	discard_count = 0
 	mom_strikes_banked = 0
 	mom_strikes_resolved = 0
+	mom_penalty_percent = 0
+	mom_penalty_vnd = 0
+	wallet_before_mom_penalty_vnd = wallet.balance_vnd
 	state = STATE_ACTIVE
 	last_phase_resolution.clear()
 	_next_meld_id = 1
@@ -280,11 +291,8 @@ func legal_action_card_ids() -> Dictionary:
 	var extension_card_ids := {}
 	if not _card_actions_available():
 		return {"meld": meld_card_ids, "extend": extension_card_ids}
-	for mask in range(1, 1 << hand.size()):
-		var cards: Array[CardData] = []
-		for index in range(hand.size()):
-			if mask & (1 << index):
-				cards.append(hand[index])
+	for combination in _hand_card_combinations():
+		var cards: Array[CardData] = combination
 		if cards.size() >= 3 and can_create_meld(cards):
 			for card in cards:
 				meld_card_ids[card.unique_id] = true
@@ -294,6 +302,47 @@ func legal_action_card_ids() -> Dictionary:
 					extension_card_ids[card.unique_id] = true
 				break
 	return {"meld": meld_card_ids, "extend": extension_card_ids}
+
+
+func legal_action_targets_for_selection(selected_cards: Array[CardData], selected_meld_id: int = -1) -> Dictionary:
+	var hand_card_ids := {}
+	var table_meld_ids := {}
+	if not _card_actions_available() or (selected_cards.is_empty() and selected_meld_id < 0):
+		return {"hand": hand_card_ids, "melds": table_meld_ids}
+	var selected_ids := {}
+	for card in selected_cards:
+		selected_ids[card.unique_id] = true
+	for combination in _hand_card_combinations():
+		var cards: Array[CardData] = combination
+		if not selected_ids.is_empty() and cards.size() >= 3 and _cards_include_ids(cards, selected_ids) and can_create_meld(cards):
+			for card in cards:
+				hand_card_ids[card.unique_id] = true
+		if selected_meld_id >= 0 and can_extend_meld(selected_meld_id, cards):
+			for card in cards:
+				hand_card_ids[card.unique_id] = true
+	if not selected_cards.is_empty():
+		for meld in melds:
+			if can_extend_meld(meld.meld_id, selected_cards):
+				table_meld_ids[meld.meld_id] = true
+	return {"hand": hand_card_ids, "melds": table_meld_ids}
+
+
+func _hand_card_combinations() -> Array:
+	var combinations: Array = []
+	for mask in range(1, 1 << hand.size()):
+		var cards: Array[CardData] = []
+		for index in range(hand.size()):
+			if mask & (1 << index):
+				cards.append(hand[index])
+		combinations.append(cards)
+	return combinations
+
+
+func _cards_include_ids(cards: Array[CardData], required_ids: Dictionary) -> bool:
+	var remaining := required_ids.duplicate()
+	for card in cards:
+		remaining.erase(card.unique_id)
+	return remaining.is_empty()
 
 
 func deadwood_points() -> int:
@@ -382,6 +431,15 @@ func _finish_phase() -> Dictionary:
 		_resolve_deal()
 		state = STATE_DEAL_OVER
 	last_phase_resolution = settlement.to_dictionary()
+	if current_phase == 2:
+		last_phase_resolution.merge({
+			"mom_strikes_banked": mom_strikes_banked,
+			"mom_strikes_resolved": mom_strikes_resolved,
+			"mom_penalty_percent": mom_penalty_percent,
+			"mom_penalty_vnd": mom_penalty_vnd,
+			"wallet_before_mom_penalty_vnd": wallet_before_mom_penalty_vnd,
+			"wallet_after_mom_penalty_vnd": wallet.balance_vnd,
+		})
 	return last_phase_resolution
 
 
@@ -398,6 +456,20 @@ func _resolve_deal() -> void:
 	}
 	mom_about_to_resolve.emit(mom_context)
 	mom_strikes_resolved = maxi(int(mom_context.get("resolved_mom", raw_mom)), 0)
+	mom_penalty_percent = mom_penalty_percent_for_strikes(mom_strikes_resolved)
+	wallet_before_mom_penalty_vnd = wallet.balance_vnd
+	var penalty_base_vnd := maxi(wallet_before_mom_penalty_vnd, 0)
+	mom_penalty_vnd = penalty_base_vnd * mom_penalty_percent / 100
+	if mom_penalty_vnd > 0:
+		wallet.apply_vnd(-mom_penalty_vnd, "mom_penalty")
+
+
+static func mom_penalty_percent_for_strikes(strikes: int) -> int:
+	if strikes <= 0:
+		return 0
+	if strikes == 1:
+		return MOM_ONE_STRIKE_PENALTY_PERCENT
+	return MOM_TWO_STRIKE_PENALTY_PERCENT
 
 
 func _validate_loose_selection(selected_cards: Array[CardData]) -> String:

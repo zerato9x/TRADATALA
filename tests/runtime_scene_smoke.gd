@@ -1,6 +1,7 @@
 extends SceneTree
 
 const CardActionOutlineScript := preload("res://scripts/ui/card_action_outline.gd")
+const CardDragPayloadScript := preload("res://scripts/ui/card_drag_payload.gd")
 
 var _failures: Array[String] = []
 
@@ -78,10 +79,10 @@ func _run() -> void:
 	var has_u_rule := false
 	var has_u_khan_rule := false
 	for special_label in special_labels:
-		has_mom_rule = has_mom_rule or (special_label.text.contains("0 Phỏm MỚI") and special_label.text.contains("Ghép không cứu Móm"))
+		has_mom_rule = has_mom_rule or (special_label.text.contains("0 Phỏm MỚI") and special_label.text.contains("Ví −10%") and special_label.text.contains("Ví −25%"))
 		has_u_rule = has_u_rule or (special_label.text.contains("dùng đúng 9") and special_label.text.contains("Gross ×2"))
 		has_u_khan_rule = has_u_khan_rule or (special_label.text.contains("cách nhau 1–2 số") and special_label.text.contains("×10"))
-	_check(special_page.visible and has_mom_rule and has_u_rule and has_u_khan_rule, "Special Outcomes explains Móm, Ù, and the ×10 Ù Khan authority")
+	_check(special_page.visible and has_mom_rule and has_u_rule and has_u_khan_rule, "Special Outcomes explains Móm wallet penalties, Ù, and the ×10 Ù Khan authority")
 	scene.how_to_play_back_button.pressed.emit()
 	_check(menu_home.visible and not how_panel.visible, "How to Play Back returns to the main actions")
 	scene.options_button.pressed.emit()
@@ -139,6 +140,19 @@ func _run() -> void:
 	_check(scene.game_started and not menu.visible, "play hides the menu after its exit transition")
 	_check(is_equal_approx(game_layer.position.x, 0.0), "game layer slides fully into place")
 	_check(background != null and background.global_position.is_equal_approx(background_position_before), "background remains fixed while UI layers transition")
+	_check(scene.campaign.current_phase == CampaignManager.CampaignPhase.STARTER_EVENT, "New Game starts the Monday Starter Event before any Deal")
+	_check(scene.campaign_overlay.visible and scene.current_campaign_event != null, "generic campaign Event UI opens above the existing Deal table")
+	_check(scene.current_campaign_event.participants.size() == 1 and scene.current_campaign_event.participants[0].id == CampaignNpcCatalog.TRA_DA_AUNTIE, "Cô Trà Đá is the guaranteed Starter Event participant")
+	_check(not scene.current_campaign_event.can_exit and scene.campaign_continue_button.disabled, "mandatory Drink selection blocks Event exit")
+	var starter_drink_button := scene.campaign_overlay.find_child("Drink_tra_da", true, false) as Button
+	_check(starter_drink_button != null and not starter_drink_button.disabled, "free Trà đá is purchasable in the Starter Event")
+	starter_drink_button.pressed.emit()
+	await process_frame
+	_check(scene.current_campaign_event.can_exit and not scene.campaign_continue_button.disabled, "selecting a Drink completes Cô Trà Đá's mandatory interaction")
+	_check(scene.drink_manager.morning_drink_id == DrinkCatalog.TRA_DA and scene.deal.wallet.balance_vnd == 0, "Starter Drink is assigned to Morning/Noon without inventing a charge for free Trà đá")
+	scene.campaign_continue_button.pressed.emit()
+	await process_frame
+	_check(scene.campaign.current_phase == CampaignManager.CampaignPhase.MORNING_DEAL and not scene.campaign_overlay.visible, "continuing the Starter Event hands off to the existing Morning Deal")
 	_check(scene.deal.hand.size() == DealState.ACTIVE_HAND_TARGET, "opening hand refills to 10")
 	_check(scene.hand_views.size() == DealState.ACTIVE_HAND_TARGET, "ten interactive card views are rendered")
 	_check(scene.deal.deck.draw_pile.size() == 42, "draw pile count reflects opening draw")
@@ -167,6 +181,7 @@ func _run() -> void:
 	_check(scene.get_node_or_null("GameLayer/Header/HeaderRow/IdentityPanel") == null, "game title and description panel is removed from gameplay")
 	_check(scene.get_node_or_null("GameLayer/Header/HeaderRow/IncomeStat") != null, "Income remains in the top stat row")
 	_check(scene.get_node_or_null("GameLayer/Header/HeaderRow/WalletStat") != null, "Wallet remains in the top stat row")
+	_check(scene.get_node_or_null("GameLayer/Header/HeaderRow/CampaignStat") != null and scene.campaign_value.text.contains("THỨ HAI"), "campaign day and requirement remain visible during the Deal")
 	_check(scene.get_node_or_null("GameLayer/Header/HeaderRow/PhaseStat") == null and scene.get_node_or_null("GameLayer/Header/HeaderRow/TurnStat") == null, "Phase and Turn stat cards are removed")
 	_check(scene.get_node_or_null("GameLayer/UtilityRail/DrinkArea/DrinkSlot") != null, "Drink slot exists")
 	_check(scene.drink_name_label != null and scene.drink_name_label.text == "TRÀ ĐÁ", "free Trà đá is the visible starter Drink")
@@ -224,14 +239,40 @@ func _run() -> void:
 		var card_view: PlayingCardView = scene.hand_views[card.unique_id]
 		var card_badge := card_view.get_node_or_null("MeldChance") as Label
 		_check(card_badge != null and not card_badge.visible, "non-hovered meld chance stays hidden for %s" % card.unique_id)
-	var action_outline := first_view.get_node_or_null("ActionOutline")
+	var action_outline := first_view.get_node_or_null("BeatVisual/ActionOutline")
 	_check(action_outline != null, "each loose card has an animated action outline")
+	_check(action_outline != null and action_outline.get_parent() == first_view._beat_visual, "action outline shares the card's beat transform")
 	first_view.set_action_cues(true, false)
 	_check(action_outline != null and action_outline.visible and action_outline.cue_mode() == CardActionOutlineScript.CUE_MELD and action_outline.is_processing(), "meldable cards animate with the green cue")
 	first_view.set_action_cues(false, true)
 	_check(action_outline != null and action_outline.visible and action_outline.cue_mode() == CardActionOutlineScript.CUE_EXTEND, "extendable cards animate with the yellow cue")
 	first_view.set_action_cues(false, false)
 	_check(action_outline != null and not action_outline.visible and not action_outline.is_processing(), "non-actionable cards do not carry an outline")
+	var input_test_view := PlayingCardView.new()
+	root.add_child(input_test_view)
+	input_test_view.set_card(CardData.new("drag_input_8_clubs", "8", 8, "Clubs", 8))
+	var input_clicks := [0]
+	var input_drags := [0]
+	input_test_view.card_pressed.connect(func(_card: CardData) -> void: input_clicks[0] += 1)
+	input_test_view.card_drag_started.connect(func(_card: CardData, _position: Vector2) -> void: input_drags[0] += 1)
+	var input_press := InputEventMouseButton.new()
+	input_press.button_index = MOUSE_BUTTON_LEFT
+	input_press.pressed = true
+	input_press.position = Vector2(20, 20)
+	var input_release := InputEventMouseButton.new()
+	input_release.button_index = MOUSE_BUTTON_LEFT
+	input_release.pressed = false
+	input_release.position = Vector2(20, 20)
+	input_test_view._gui_input(input_press)
+	input_test_view._gui_input(input_release)
+	_check(input_clicks[0] == 1 and input_drags[0] == 0, "a press and release remains a normal card click")
+	var input_drag_motion := InputEventMouseMotion.new()
+	input_drag_motion.position = Vector2(40, 20)
+	input_test_view._gui_input(input_press)
+	input_test_view._gui_input(input_drag_motion)
+	input_test_view._gui_input(input_release)
+	_check(input_clicks[0] == 1 and input_drags[0] == 1, "crossing the drag threshold starts one drag without also clicking the card")
+	input_test_view.queue_free()
 	var archive_cards: Array[CardData] = [
 		CardData.new("archive_2_spades", "2", 2, "Spades", 2),
 		CardData.new("archive_k_spades", "K", 13, "Spades", 13),
@@ -307,7 +348,9 @@ func _run() -> void:
 	scene.selected_meld_id = -1
 	scene._sync_all()
 	await create_timer(0.22).timeout
-	_check(scene.reactive_hand_cards_by_band[0].size() == 1 and scene.reactive_hand_cards_by_band[1].size() == 1 and scene.reactive_hand_cards_by_band[2].size() == 1 and scene.reactive_hand_cards_by_band[3].is_empty(), "legal loose Meld cards map left-to-right across independent frequency bands")
+	_check(scene.reactive_hand_cards_by_band[0].is_empty() and scene.reactive_hand_cards_by_band[1].is_empty() and scene.reactive_hand_cards_by_band[2].is_empty() and scene.reactive_hand_cards_by_band[3].is_empty(), "legal loose Meld cards stay still until the player selects one")
+	scene._on_card_pressed(beat_meld_cards[0])
+	_check(scene.reactive_hand_cards_by_band[0].size() == 1 and scene.reactive_hand_cards_by_band[1].size() == 1 and scene.reactive_hand_cards_by_band[2].size() == 1 and scene.reactive_hand_cards_by_band[3].is_empty(), "selecting one legal Meld card maps that Meld left-to-right across frequency bands")
 	var beat_hand_views: Array[PlayingCardView] = []
 	for beat_card: CardData in beat_meld_cards.slice(0, 3):
 		var beat_view := scene.hand_views[beat_card.unique_id] as PlayingCardView
@@ -330,9 +373,15 @@ func _run() -> void:
 	scene.deal.melds.clear()
 	scene.deal.melds.append(beat_table_meld)
 	scene.selected_card_ids.clear()
-	scene.selected_card_ids[extension_card.unique_id] = true
+	scene.selected_meld_id = -1
 	scene._sync_all()
 	await create_timer(0.22).timeout
+	_check(scene.reactive_hand_cards_by_band[0].is_empty(), "an extendable hand card stays still before a table Meld is selected")
+	scene._on_meld_pressed(beat_table_meld.meld_id)
+	_check(scene.reactive_hand_cards_by_band[0].size() == 1 and scene.reactive_hand_cards_by_band[0][0] == scene.hand_views[extension_card.unique_id], "selecting a table Meld makes its extendable hand card reactive")
+	scene._on_meld_pressed(beat_table_meld.meld_id)
+	_check(scene.reactive_hand_cards_by_band[0].is_empty(), "deselecting the table Meld stops the extendable hand-card cue")
+	scene._on_card_pressed(extension_card)
 	_check(scene.reactive_meld_cards_by_band[0].size() == 1 and scene.reactive_meld_cards_by_band[1].size() == 1 and scene.reactive_meld_cards_by_band[2].size() == 1, "selected legal extension maps the target Meld cards left-to-right across frequency bands")
 	var beat_meld_view := scene.meld_views[beat_table_meld.meld_id] as MeldView
 	var beat_table_textures: Array[TextureRect] = []
@@ -344,6 +393,65 @@ func _run() -> void:
 	await create_timer(0.06).timeout
 	_check(beat_table_textures[2].scale.y > 1.01, "third target-Meld card pulses on its assigned TA frequency band")
 	_check(beat_table_textures[0].scale.is_equal_approx(Vector2.ONE) and beat_table_textures[1].scale.is_equal_approx(Vector2.ONE), "TA pulse leaves differently assigned target-Meld cards still")
+
+	var drag_run: Array[CardData] = [
+		CardData.new("drag_3_hearts", "3", 3, "Hearts", 3),
+		CardData.new("drag_4_hearts", "4", 4, "Hearts", 4),
+		CardData.new("drag_5_hearts", "5", 5, "Hearts", 5),
+	]
+	var drag_extension := CardData.new("drag_6_hearts", "6", 6, "Hearts", 6)
+	var drag_discard := CardData.new("drag_k_clubs", "K", 13, "Clubs", 13)
+	scene.deal.hand.clear()
+	scene.deal.hand.append_array(drag_run)
+	scene.deal.hand.append_array([drag_extension, drag_discard] as Array[CardData])
+	scene.deal.melds.clear()
+	scene.deal.state = DealState.STATE_ACTIVE
+	scene.deal.discard_count = 0
+	scene.selected_card_ids.clear()
+	for drag_card in drag_run:
+		scene.selected_card_ids[drag_card.unique_id] = true
+	scene.selected_meld_id = -1
+	scene.interaction_locked = false
+	scene._sync_all()
+	await process_frame
+	var original_last_id := scene.deal.hand[-1].unique_id
+	var reordered := scene._reorder_hand_card(drag_discard, scene.hand_layer.get_global_rect().position.x)
+	_check(reordered and scene.deal.hand[0] == drag_discard and original_last_id == drag_discard.unique_id, "dropping within the hand reorders the dragged card without changing gameplay state")
+	var run_source := scene.hand_views[drag_run[0].unique_id] as PlayingCardView
+	scene._on_card_drag_started(drag_run[0], run_source.get_global_rect().get_center(), run_source)
+	_check(scene.active_drag_payload != null and scene.active_drag_payload.source_zone == CardDragPayloadScript.SOURCE_HAND and scene.active_drag_payload.cards.size() == 3, "dragging one selected Meld card carries the full selected group from the hand source")
+	_check(scene.drag_preview != null and not scene.drag_target_overlays.is_empty(), "an active drag shows a card preview and legal drop-target feedback")
+	var future_table_payload = CardDragPayloadScript.new(
+		CardDragPayloadScript.SOURCE_TABLE_MELD,
+		99,
+		drag_run[0].unique_id,
+		[drag_run[0]] as Array[CardData]
+	)
+	_check(scene._card_drag_action(future_table_payload, {"kind": scene.DROP_TARGET_HAND, "meld_id": -1}) == scene.DRAG_ACTION_NONE, "table-Meld drag sources are represented but remain disabled until the future verb is balanced")
+	var table_drop_position := scene.table_surface.get_global_rect().get_center()
+	_check(scene._card_drop_target_at(table_drop_position)["kind"] == scene.DROP_TARGET_TABLE, "the open table resolves as the new-Meld drop target")
+	scene._finish_card_drag(table_drop_position)
+	_check(await _wait_for_scene_unlock(scene), "dragging selected cards to the table completes the Meld action")
+	_check(scene.deal.melds.size() == 1 and scene.deal.melds[0].cards.size() == 3, "the table drop commits the selected three-card Meld")
+	var created_meld_id: int = scene.deal.melds[0].meld_id
+	var extension_source := scene.hand_views[drag_extension.unique_id] as PlayingCardView
+	var created_meld_view := scene.meld_views[created_meld_id] as MeldView
+	scene._on_card_drag_started(drag_extension, extension_source.get_global_rect().get_center(), extension_source)
+	_check(scene._card_drop_target_at(created_meld_view.get_global_rect().get_center())["kind"] == scene.DROP_TARGET_MELD, "an existing Meld resolves as an extension drop target")
+	scene._finish_card_drag(created_meld_view.get_global_rect().get_center())
+	_check(await _wait_for_scene_unlock(scene), "dragging a compatible loose card onto a Meld completes the extension action")
+	_check(scene.deal.melds[0].cards.size() == 4 and scene.deal.melds[0].cards.has(drag_extension), "the Meld drop commits the dragged extension card")
+	var discard_source := scene.hand_views[drag_discard.unique_id] as PlayingCardView
+	scene._on_card_drag_started(drag_discard, discard_source.get_global_rect().get_center(), discard_source)
+	var discard_drop_position := scene.discard_pile_visual.get_global_rect().get_center()
+	_check(scene._card_drop_target_at(discard_drop_position)["kind"] == scene.DROP_TARGET_DISCARD, "the discard pile resolves as the discard drop target")
+	scene._finish_card_drag(discard_drop_position)
+	_check(await _wait_for_scene_unlock(scene), "dragging one card to the discard pile completes the discard action")
+	_check(not scene.deal.deck.discard_pile.is_empty() and scene.deal.deck.discard_pile[-1] == drag_discard, "the discard drop commits only the dragged card")
+	scene._show_campaign_outcome(true)
+	_check(scene.campaign_overlay.visible and scene.campaign_event_title.text == "CHIẾN THẮNG" and not scene.campaign_continue_button.disabled, "campaign victory uses the generic campaign overlay and offers a new run")
+	scene._show_campaign_outcome(false)
+	_check(scene.campaign_event_title.text == "CHƯA ĐỦ TIỀN" and scene.campaign_event_wallet.text.contains("Ví cuối"), "campaign failure reports the final wallet on the same outcome surface")
 	for active_tween in scene.logo_bounce_tweens.values():
 		if active_tween is Tween and active_tween.is_valid():
 			active_tween.kill()
@@ -361,6 +469,14 @@ func _run() -> void:
 			autoload_node.queue_free()
 	await process_frame
 	_finish()
+
+
+func _wait_for_scene_unlock(scene: MatchUI, max_frames: int = 480) -> bool:
+	for _frame in range(max_frames):
+		if not scene.interaction_locked and not scene.score_overlay.visible:
+			return true
+		await process_frame
+	return false
 
 
 func _check(condition: bool, message: String) -> void:
