@@ -101,6 +101,9 @@ var reactive_meld_cards_by_band: Dictionary = {}
 var music_controller: ReactiveMusicController
 var relic_grid: GridContainer
 var drink_name_label: Label
+var drink_button: Button
+var selected_drink_meld_id: int = -1
+var selected_drink_meld_card_id: String = ""
 
 var earnings_value: Label
 var wallet_value: Label
@@ -1406,13 +1409,16 @@ func _build_future_slots() -> void:
 	drink_title_label.add_theme_font_size_override("font_size", 12)
 	drink_title_label.add_theme_color_override("font_color", PresentationTheme.GOLD)
 	drink_panel.add_child(drink_title_label)
-	var drink_slot := Panel.new()
-	drink_slot.name = "DrinkSlot"
-	drink_slot.position = Vector2(34, 30)
-	drink_slot.size = Vector2(66, 64)
-	drink_slot.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	drink_slot.add_theme_stylebox_override("panel", PresentationTheme.panel_style(Color("#0b0907c0"), Color("#6b5138"), 1, 2, 2))
-	drink_panel.add_child(drink_slot)
+	drink_button = Button.new()
+	drink_button.name = "DrinkSlot"
+	drink_button.position = Vector2(34, 30)
+	drink_button.size = Vector2(66, 64)
+	drink_button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	drink_button.add_theme_stylebox_override("normal", PresentationTheme.panel_style(Color("#0b0907c0"), Color("#6b5138"), 1, 2, 2))
+	drink_button.add_theme_stylebox_override("hover", PresentationTheme.panel_style(Color("#17221ee8"), PresentationTheme.TEA, 2, 2, 2))
+	drink_button.add_theme_stylebox_override("pressed", PresentationTheme.panel_style(Color("#0b1714f0"), PresentationTheme.GOLD, 2, 2, 2))
+	drink_button.pressed.connect(_on_drink_pressed)
+	drink_panel.add_child(drink_button)
 	drink_name_label = Label.new()
 	drink_name_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	drink_name_label.text = tr(DrinkCatalog.display_name(deal.current_drink_id)).to_upper()
@@ -1422,8 +1428,7 @@ func _build_future_slots() -> void:
 	drink_name_label.add_theme_font_size_override("font_size", 11)
 	drink_name_label.add_theme_color_override("font_color", PresentationTheme.TEA)
 	drink_name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	drink_slot.tooltip_text = tr("HUD_CURRENT_DRINK") % tr(DrinkCatalog.display_name(deal.current_drink_id))
-	drink_slot.add_child(drink_name_label)
+	drink_button.add_child(drink_name_label)
 
 	var relic_panel := Panel.new()
 	relic_panel.name = "RelicsArea"
@@ -2111,7 +2116,7 @@ func _sync_all(result: Dictionary = {}, animate_all_cards: bool = false) -> void
 		_sync_pile_archive()
 	if drink_name_label != null:
 		drink_name_label.text = tr(DrinkCatalog.display_name(deal.current_drink_id)).to_upper()
-		drink_name_label.get_parent().tooltip_text = tr("HUD_CURRENT_DRINK") % tr(DrinkCatalog.display_name(deal.current_drink_id))
+		drink_button.tooltip_text = _drink_tooltip()
 	_refresh_stats()
 	_refresh_actions()
 
@@ -2258,9 +2263,14 @@ func _sync_melds() -> void:
 		meld_views.erase(existing_id)
 	if deal.melds.is_empty():
 		selected_meld_id = -1
+		selected_drink_meld_id = -1
+		selected_drink_meld_card_id = ""
 		return
 	if selected_meld_id >= 0 and deal.get_meld(selected_meld_id) == null:
 		selected_meld_id = -1
+	if selected_drink_meld_id >= 0 and deal.get_meld(selected_drink_meld_id) == null:
+		selected_drink_meld_id = -1
+		selected_drink_meld_card_id = ""
 	var selected_cards := _selected_cards()
 	for index in range(deal.melds.size()):
 		var meld := deal.melds[index]
@@ -2271,10 +2281,24 @@ func _sync_melds() -> void:
 			meld_row.add_child(view)
 			meld_views[meld.meld_id] = view
 			view.meld_pressed.connect(_on_meld_pressed)
+			view.meld_card_pressed.connect(_on_meld_card_pressed)
 		elif view.get_index() != index:
 			meld_row.move_child(view, index)
 		var legal := deal.can_extend_meld(meld.meld_id, selected_cards)
-		view.set_meld(meld, meld.meld_id == selected_meld_id, legal)
+		var drink_selection_enabled := deal.current_drink_id == DrinkCatalog.NUOC_VOI and deal.state in [DealState.STATE_ACTIVE, DealState.STATE_FINAL_COMMIT_WINDOW] and not deal.nuoc_voi_used_phases.has(deal.current_phase)
+		var removable_card_ids := {}
+		if drink_selection_enabled:
+			for table_card in meld.cards:
+				if deal.can_use_nuoc_voi(meld.meld_id, table_card):
+					removable_card_ids[table_card.unique_id] = true
+		view.set_meld(
+			meld,
+			meld.meld_id == selected_meld_id,
+			legal,
+			drink_selection_enabled,
+			removable_card_ids,
+			selected_drink_meld_card_id if selected_drink_meld_id == meld.meld_id else ""
+		)
 		if not is_new:
 			continue
 		view.modulate = Color(1, 1, 1, 0)
@@ -2365,6 +2389,8 @@ func _refresh_stats() -> void:
 
 func _refresh_actions() -> void:
 	var selected := _selected_cards()
+	if drink_button != null:
+		drink_button.disabled = tutorial_active or interaction_locked or deal.current_drink_id == DrinkCatalog.NONE
 	var card_window := deal.state in [DealState.STATE_ACTIVE, DealState.STATE_FINAL_COMMIT_WINDOW] and not interaction_locked
 	var active_turn := deal.state == DealState.STATE_ACTIVE and not interaction_locked
 	ha_button.disabled = not card_window or not deal.can_create_meld(selected)
@@ -2708,6 +2734,8 @@ func _on_card_pressed(card: CardData) -> void:
 		selected_card_ids.erase(card.unique_id)
 	else:
 		selected_card_ids[card.unique_id] = true
+	selected_drink_meld_id = -1
+	selected_drink_meld_card_id = ""
 	_layout_hand(true)
 	_sync_melds()
 	_sync_music_reactive_cards()
@@ -2753,11 +2781,108 @@ func _on_meld_pressed(meld_id: int) -> void:
 		_show_banner(tr("TUTORIAL_FOLLOW_STEP"))
 		return
 	selected_meld_id = -1 if selected_meld_id == meld_id else meld_id
+	selected_drink_meld_id = -1
+	selected_drink_meld_card_id = ""
 	_sync_melds()
 	_sync_music_reactive_cards()
 	_refresh_actions()
 	if tutorial_active and tutorial_step == TUTORIAL_SELECT_MELD and selected_meld_id == tutorial_meld_id:
 		_set_tutorial_step(TUTORIAL_EXTEND)
+
+
+func _on_meld_card_pressed(meld_id: int, card: CardData) -> void:
+	if interaction_locked or deal.current_drink_id != DrinkCatalog.NUOC_VOI:
+		return
+	if deal.state not in [DealState.STATE_ACTIVE, DealState.STATE_FINAL_COMMIT_WINDOW]:
+		return
+	selected_card_ids.clear()
+	selected_meld_id = -1
+	if selected_drink_meld_id == meld_id and selected_drink_meld_card_id == card.unique_id:
+		selected_drink_meld_id = -1
+		selected_drink_meld_card_id = ""
+	else:
+		selected_drink_meld_id = meld_id
+		selected_drink_meld_card_id = card.unique_id
+	_layout_hand(true)
+	_sync_melds()
+	_refresh_actions()
+
+
+func _on_drink_pressed() -> void:
+	if tutorial_active or interaction_locked:
+		return
+	var result: Dictionary = {}
+	match deal.current_drink_id:
+		DrinkCatalog.TRA_DA:
+			var selected := _selected_cards()
+			if selected.size() != 1:
+				_reject_action(tr("DRINK_SELECT_ONE_LOOSE"))
+				return
+			interaction_locked = true
+			_refresh_actions()
+			await _fly_cards(selected, discard_texture.get_global_rect().get_center())
+			result = deal.use_tra_da(selected[0])
+		DrinkCatalog.NHAN_TRAN:
+			var selected := _selected_cards()
+			if selected.size() != 1:
+				_reject_action(tr("DRINK_SELECT_ONE_LOOSE"))
+				return
+			interaction_locked = true
+			_refresh_actions()
+			await _fly_cards(selected, discard_texture.get_global_rect().get_center())
+			result = deal.use_nhan_tran(selected[0])
+		DrinkCatalog.NUOC_VOI:
+			var meld := deal.get_meld(selected_drink_meld_id)
+			var table_card: CardData = null
+			if meld != null:
+				for candidate in meld.cards:
+					if candidate.unique_id == selected_drink_meld_card_id:
+						table_card = candidate
+						break
+			result = deal.use_nuoc_voi(selected_drink_meld_id, table_card)
+		DrinkCatalog.SAM_DUA:
+			result = deal.select_sam_dua_preserves(_selected_cards())
+		_:
+			result = {"ok": false, "message": tr("DRINK_NO_BASIC_EFFECT")}
+	if not result.get("ok", false):
+		_reject_action(result.get("message", tr("DRINK_USE_FAILED")))
+		return
+	if deal.current_drink_id != DrinkCatalog.SAM_DUA:
+		selected_card_ids.clear()
+	selected_drink_meld_id = -1
+	selected_drink_meld_card_id = ""
+	interaction_locked = false
+	_sync_all(result)
+	var banner_key: String = {
+		DrinkCatalog.TRA_DA: "BANNER_DRINK_TRA_DA",
+		DrinkCatalog.NHAN_TRAN: "BANNER_DRINK_NHAN_TRAN",
+		DrinkCatalog.NUOC_VOI: "BANNER_DRINK_NUOC_VOI",
+		DrinkCatalog.SAM_DUA: "BANNER_DRINK_SAM_DUA",
+	}.get(deal.current_drink_id, "BANNER_DRINK_USED")
+	if deal.current_drink_id == DrinkCatalog.SAM_DUA:
+		_show_banner(tr(banner_key) % result.get("preserved", []).size())
+	else:
+		_show_banner(tr(banner_key))
+
+
+func _drink_tooltip() -> String:
+	var drink_name := tr(DrinkCatalog.display_name(deal.current_drink_id))
+	var effect_key: String = {
+		DrinkCatalog.TRA_DA: "DRINK_TRA_DA_TOOLTIP",
+		DrinkCatalog.NHAN_TRAN: "DRINK_NHAN_TRAN_TOOLTIP",
+		DrinkCatalog.NUOC_VOI: "DRINK_NUOC_VOI_TOOLTIP",
+		DrinkCatalog.SAM_DUA: "DRINK_SAM_DUA_TOOLTIP",
+	}.get(deal.current_drink_id, "DRINK_NO_BASIC_EFFECT")
+	var status := ""
+	if deal.current_drink_id == DrinkCatalog.TRA_DA and deal.tra_da_used_this_turn:
+		status = "\n\n%s" % tr("DRINK_USED_THIS_TURN")
+	elif deal.current_drink_id == DrinkCatalog.NHAN_TRAN and deal.nhan_tran_used_this_turn:
+		status = "\n\n%s" % tr("DRINK_USED_THIS_TURN")
+	elif deal.current_drink_id == DrinkCatalog.NUOC_VOI and deal.nuoc_voi_used_phases.has(deal.current_phase):
+		status = "\n\n%s" % tr("DRINK_USED_THIS_PHASE")
+	elif deal.current_drink_id == DrinkCatalog.SAM_DUA and not deal.sam_dua_preserved_cards.is_empty():
+		status = "\n\n%s" % (tr("DRINK_SAM_DUA_SELECTED") % deal.sam_dua_preserved_cards.size())
+	return "%s\n\n%s%s" % [tr("HUD_CURRENT_DRINK") % drink_name, tr(effect_key), status]
 
 
 func _on_ha_pressed() -> void:
@@ -2924,10 +3049,7 @@ func _show_scoring(context: ScoringContext) -> void:
 	else:
 		score_title.text = tr("SCORE_EXTEND_SUCCESS") % [kind, context.phase]
 		score_line_a.text = tr("SCORE_OLD_NEW") % [context.old_meld_score, context.theoretical_score]
-		if context.drink_bonus_points > 0:
-			score_line_b.text = tr("SCORE_DRINK_BONUS") % [context.base_extension_score, context.drink_bonus_points, context.final_points]
-		else:
-			score_line_b.text = tr("SCORE_DELTA") % [context.theoretical_score, context.old_meld_score, context.final_points]
+		score_line_b.text = tr("SCORE_DELTA") % [context.theoretical_score, context.old_meld_score, context.final_points]
 		score_payout.text = tr("SCORE_INCREASE") % VndWallet.format_vnd(VndWallet.points_to_vnd(context.final_points), true)
 	await _play_score_panel(deal.wallet.balance_vnd, context.final_points >= 0)
 
@@ -3035,10 +3157,13 @@ func _show_phase_choice(resolution: Dictionary) -> void:
 	modal_mode = "phase_choice"
 	modal_kicker.text = tr("MODAL_PHASE1_KICKER") % (tr("MOM") if resolution["mom"] else tr("SAFE"))
 	modal_title.text = tr("MODAL_KEEP_OR_REDRAW")
-	modal_body.text = tr("MODAL_PHASE1_BODY") % deal.hand.size()
+	if deal.current_drink_id == DrinkCatalog.SAM_DUA:
+		modal_body.text = tr("MODAL_PHASE1_BODY_SAM_DUA") % [deal.hand.size(), deal.sam_dua_preserved_cards.size()]
+	else:
+		modal_body.text = tr("MODAL_PHASE1_BODY") % deal.hand.size()
 	modal_detail.text = tr("MODAL_PHASE1_DETAIL")
 	modal_primary.text = tr("MODAL_KEEP") % deal.hand.size()
-	modal_secondary.text = tr("MODAL_REDRAW")
+	modal_secondary.text = tr("MODAL_REDRAW_SAM_DUA") % deal.sam_dua_preserved_cards.size() if deal.current_drink_id == DrinkCatalog.SAM_DUA else tr("MODAL_REDRAW")
 	modal_secondary.visible = true
 	_show_modal()
 	_refresh_actions()
@@ -3101,7 +3226,11 @@ func _begin_phase_two(keep_hand: bool) -> void:
 	modal_overlay.visible = false
 	_set_hand_interaction_enabled(true)
 	if not keep_hand:
-		await _fly_cards(deal.hand, discard_texture.get_global_rect().get_center())
+		var cards_to_dump: Array[CardData] = []
+		for card in deal.hand:
+			if not deal.sam_dua_preserved_cards.has(card):
+				cards_to_dump.append(card)
+		await _fly_cards(cards_to_dump, discard_texture.get_global_rect().get_center())
 	var result := deal.choose_phase_two(keep_hand)
 	if not result.get("ok", false):
 		_reject_action(result.get("message", "Phase transition failed."))
@@ -3109,7 +3238,10 @@ func _begin_phase_two(keep_hand: bool) -> void:
 	selected_card_ids.clear()
 	selected_meld_id = -1
 	_sync_all(result)
-	_show_banner(tr("BANNER_PHASE2") % (tr("KEEP_HAND") if keep_hand else tr("REDRAW_HAND")))
+	if not keep_hand and not result.get("preserved", []).is_empty():
+		_show_banner(tr("BANNER_PHASE2_SAM_DUA") % result["preserved"].size())
+	else:
+		_show_banner(tr("BANNER_PHASE2") % (tr("KEEP_HAND") if keep_hand else tr("REDRAW_HAND")))
 	interaction_locked = false
 	_refresh_actions()
 

@@ -52,6 +52,10 @@ var mom_penalty_percent: int = 0
 var mom_penalty_vnd: int = 0
 var wallet_before_mom_penalty_vnd: int = 0
 var current_drink_id: String = DrinkCatalog.TRA_DA
+var tra_da_used_this_turn: bool = false
+var nhan_tran_used_this_turn: bool = false
+var nuoc_voi_used_phases: Dictionary = {}
+var sam_dua_preserved_cards: Array[CardData] = []
 
 var _next_meld_id: int = 1
 var _turn_started_with_ten: bool = false
@@ -76,8 +80,8 @@ func start_deal(shuffle_seed: int = -1, reset_wallet: bool = false) -> Dictionar
 	state = STATE_ACTIVE
 	last_phase_resolution.clear()
 	_next_meld_id = 1
+	_reset_drink_usage()
 	_reset_phase_metrics()
-	scoring.current_drink_id = current_drink_id
 	var resting_cards := deck.draw(RESTING_HAND_SIZE)
 	hand.append_array(resting_cards)
 	var turn_drawn := _begin_active_turn()
@@ -107,8 +111,8 @@ func start_tutorial_deal() -> Dictionary:
 	state = STATE_ACTIVE
 	last_phase_resolution.clear()
 	_next_meld_id = 1
+	_reset_drink_usage()
 	_reset_phase_metrics()
-	scoring.current_drink_id = current_drink_id
 	for spec in TUTORIAL_HAND_SPECS:
 		hand.append(_take_tutorial_card(String(spec[0]), String(spec[1])))
 	var tutorial_draws: Array[CardData] = []
@@ -131,12 +135,121 @@ func set_current_drink(drink_id: String) -> Dictionary:
 	if not DrinkCatalog.is_known(drink_id):
 		return _failure("Unknown Drink ID: %s" % drink_id)
 	current_drink_id = drink_id
-	scoring.current_drink_id = drink_id
 	var result := {
 		"ok": true,
 		"action": "drink_selected",
 		"drink_id": drink_id,
 		"effect_implemented": DrinkCatalog.is_effect_implemented(drink_id),
+	}
+	state_changed.emit(result)
+	return result
+
+
+func use_tra_da(card: CardData) -> Dictionary:
+	if current_drink_id != DrinkCatalog.TRA_DA:
+		return _failure("Trà đá is not the active Drink.")
+	if state != STATE_ACTIVE:
+		return _failure("Trà đá is only available during an active turn.")
+	if tra_da_used_this_turn:
+		return _failure("Trà đá has already been used this turn.")
+	if card == null or not hand.has(card):
+		return _failure("Select one loose hand card to swap.")
+	if deck.discard_pile.is_empty():
+		return _failure("There is no latest discard to swap.")
+	var recovered: CardData = deck.discard_pile[-1]
+	deck.discard_pile[-1] = card
+	hand.erase(card)
+	hand.append(recovered)
+	if not discard_history.is_empty() and discard_history[-1].card == recovered:
+		discard_history[-1].card = card
+	tra_da_used_this_turn = true
+	var result := {
+		"ok": true,
+		"action": "tra_da_swap",
+		"discarded": card,
+		"recovered": recovered,
+	}
+	state_changed.emit(result)
+	return result
+
+
+func use_nhan_tran(card: CardData) -> Dictionary:
+	if current_drink_id != DrinkCatalog.NHAN_TRAN:
+		return _failure("Nhân trần is not the active Drink.")
+	if state != STATE_ACTIVE or discard_count >= DISCARDS_PER_PHASE:
+		return _failure("The extra discard is unavailable after the final mandatory discard.")
+	if nhan_tran_used_this_turn:
+		return _failure("Nhân trần has already been used this turn.")
+	if card == null or not hand.has(card):
+		return _failure("Select one loose hand card for the extra discard.")
+	if hand.size() <= 1:
+		return _failure("Keep one loose card for the mandatory discard.")
+	hand.erase(card)
+	deck.discard(card)
+	nhan_tran_used_this_turn = true
+	var result := {
+		"ok": true,
+		"action": "nhan_tran_extra_discard",
+		"card": card,
+		"drawn": [] as Array[CardData],
+	}
+	state_changed.emit(result)
+	return result
+
+
+func can_use_nuoc_voi(meld_id: int, card: CardData) -> bool:
+	if current_drink_id != DrinkCatalog.NUOC_VOI or not _card_actions_available():
+		return false
+	if nuoc_voi_used_phases.has(current_phase):
+		return false
+	var meld := get_meld(meld_id)
+	if meld == null or card == null or not meld.cards.has(card) or meld.cards.size() <= 3:
+		return false
+	if meld.meld_type == MeldRules.TYPE_RUN and card != meld.cards[0] and card != meld.cards[-1]:
+		return false
+	var remaining: Array[CardData] = []
+	for existing in meld.cards:
+		if existing != card:
+			remaining.append(existing)
+	return remaining.size() >= 3 and MeldRules.classify(remaining) == meld.meld_type
+
+
+func use_nuoc_voi(meld_id: int, card: CardData) -> Dictionary:
+	if not can_use_nuoc_voi(meld_id, card):
+		return _failure("Choose a removable Meld card; Runs allow endpoints only and at least three cards must remain.")
+	var meld := get_meld(meld_id)
+	meld.cards.erase(card)
+	meld.cards = MeldRules.sorted_for_display(meld.cards, meld.meld_type)
+	hand.append(card)
+	nuoc_voi_used_phases[current_phase] = true
+	var result := {
+		"ok": true,
+		"action": "nuoc_voi_return",
+		"meld_id": meld_id,
+		"card": card,
+	}
+	state_changed.emit(result)
+	return result
+
+
+func select_sam_dua_preserves(cards: Array[CardData]) -> Dictionary:
+	if current_drink_id != DrinkCatalog.SAM_DUA:
+		return _failure("Sâm dứa is not the active Drink.")
+	if current_phase != 1 or state not in [STATE_FINAL_COMMIT_WINDOW, STATE_PHASE_CHOICE]:
+		return _failure("Sâm dứa is prepared during the Phase 1 to Phase 2 transition.")
+	if cards.size() > 2:
+		return _failure("Sâm dứa can preserve at most two loose cards.")
+	var seen_ids := {}
+	for card in cards:
+		if card == null or not hand.has(card) or seen_ids.has(card.unique_id):
+			return _failure("Sâm dứa can preserve only distinct loose hand cards.")
+		seen_ids[card.unique_id] = true
+	sam_dua_preserved_cards.clear()
+	sam_dua_preserved_cards.append_array(cards)
+	var result := {
+		"ok": true,
+		"action": "sam_dua_selected",
+		"preserved": sam_dua_preserved_cards.duplicate(),
 	}
 	state_changed.emit(result)
 	return result
@@ -153,7 +266,6 @@ func create_meld(selected_cards: Array[CardData]) -> Dictionary:
 	var meld := MeldState.new(_next_meld_id, meld_type, selected_cards)
 	_next_meld_id += 1
 	var context := scoring.score_new_meld(meld.cards, meld.meld_type, current_phase, phase_metrics.new_phom_count)
-	# Temporary Drink bonuses belong to the score event, not the persistent table object.
 	meld.scored_points = ScoringPipeline.meld_value(meld.cards)
 	melds.append(meld)
 	phase_metrics.new_phom_count += 1
@@ -181,7 +293,7 @@ func extend_meld(meld_id: int, selected_cards: Array[CardData]) -> Dictionary:
 		return _failure("Choose a table Meld to extend.")
 	if not meld.can_extend(selected_cards):
 		return _failure("Those cards do not legally extend the chosen Meld.")
-	var old_score := ScoringPipeline.meld_value(meld.cards)
+	var old_score := meld.scored_points if meld.scored_points > 0 else ScoringPipeline.meld_value(meld.cards)
 	_remove_from_hand(selected_cards)
 	if state == STATE_ACTIVE:
 		_turn_committed_card_count += selected_cards.size()
@@ -189,7 +301,7 @@ func extend_meld(meld_id: int, selected_cards: Array[CardData]) -> Dictionary:
 	additions.append_array(selected_cards)
 	meld.extend(selected_cards)
 	var context := scoring.score_extension(meld.cards, meld.meld_type, old_score, current_phase, additions)
-	meld.scored_points = ScoringPipeline.meld_value(meld.cards)
+	meld.scored_points = maxi(old_score, context.theoretical_score)
 	phase_metrics.extension_count += 1
 	_record_phase_points(context.final_points, "extension")
 	extension_scored.emit(context)
@@ -249,10 +361,18 @@ func choose_phase_two(keep_hand: bool) -> Dictionary:
 	if state != STATE_PHASE_CHOICE or current_phase != 1:
 		return _failure("KEEP / DUMP is only available between Phases.")
 	var dumped: Array[CardData] = []
+	var preserved: Array[CardData] = []
 	if not keep_hand:
-		dumped.append_array(hand)
-		deck.discard_many(hand)
+		if current_drink_id == DrinkCatalog.SAM_DUA:
+			for card in sam_dua_preserved_cards:
+				if hand.has(card) and preserved.size() < 2:
+					preserved.append(card)
+		for card in hand:
+			if not preserved.has(card):
+				dumped.append(card)
+		deck.discard_many(dumped)
 		hand.clear()
+		hand.append_array(preserved)
 	current_phase = 2
 	discard_count = 0
 	_reset_phase_metrics()
@@ -262,8 +382,10 @@ func choose_phase_two(keep_hand: bool) -> Dictionary:
 		"ok": true,
 		"action": "keep" if keep_hand else "dump",
 		"dumped": dumped,
+		"preserved": preserved,
 		"drawn": drawn,
 	}
+	sam_dua_preserved_cards.clear()
 	state_changed.emit(result)
 	return result
 
@@ -358,6 +480,8 @@ func discard_history_for_phase(phase: int) -> Array[DiscardRecord]:
 
 
 func _begin_active_turn() -> Array[CardData]:
+	tra_da_used_this_turn = false
+	nhan_tran_used_this_turn = false
 	var all_drawn: Array[CardData] = []
 	all_drawn.append_array(deck.refill(hand, ACTIVE_HAND_TARGET))
 	while hand.size() == ACTIVE_HAND_TARGET and not _has_near_meld(hand):
@@ -447,11 +571,10 @@ func _resolve_deal() -> void:
 	var deal_context := {"settlements": settlements, "mom_strikes_banked": mom_strikes_banked}
 	deal_about_to_resolve.emit(deal_context)
 	var raw_mom := maxi(int(deal_context.get("mom_strikes_banked", mom_strikes_banked)), 0)
-	var protection := 1 if current_drink_id == DrinkCatalog.SAM_DUA and raw_mom > 0 else 0
 	var mom_context := {
 		"raw_mom": raw_mom,
-		"protection": protection,
-		"resolved_mom": maxi(0, raw_mom - protection),
+		"protection": 0,
+		"resolved_mom": raw_mom,
 		"drink_id": current_drink_id,
 	}
 	mom_about_to_resolve.emit(mom_context)
@@ -513,6 +636,13 @@ func _reset_phase_metrics() -> void:
 	phase_new_meld_count = 0
 	_turn_started_with_ten = false
 	_turn_committed_card_count = 0
+
+
+func _reset_drink_usage() -> void:
+	tra_da_used_this_turn = false
+	nhan_tran_used_this_turn = false
+	nuoc_voi_used_phases.clear()
+	sam_dua_preserved_cards.clear()
 
 
 func _remove_from_hand(cards: Array[CardData]) -> void:

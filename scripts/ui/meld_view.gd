@@ -2,6 +2,7 @@ class_name MeldView
 extends PanelContainer
 
 signal meld_pressed(meld_id: int)
+signal meld_card_pressed(meld_id: int, card: CardData)
 
 var meld_id: int = -1
 var _title: Label
@@ -21,7 +22,14 @@ func _ready() -> void:
 	gui_input.connect(_on_gui_input)
 
 
-func set_meld(meld: MeldState, is_selected: bool, extension_is_legal: bool) -> void:
+func set_meld(
+	meld: MeldState,
+	is_selected: bool,
+	extension_is_legal: bool,
+	drink_selection_enabled: bool = false,
+	drink_removable_card_ids: Dictionary = {},
+	selected_drink_card_id: String = ""
+) -> void:
 	meld_id = meld.meld_id
 	if _title == null:
 		return
@@ -32,7 +40,7 @@ func set_meld(meld: MeldState, is_selected: bool, extension_is_legal: bool) -> v
 	var border := PresentationTheme.TEA if extension_is_legal else (PresentationTheme.GOLD if is_selected else Color("#8d5b30"))
 	var background := Color("#2d251eee") if is_selected else Color("#19130fe8")
 	add_theme_stylebox_override("panel", PresentationTheme.panel_style(background, border, 2 if is_selected or extension_is_legal else 1, 2, 4))
-	_sync_cards(meld.cards)
+	_sync_cards(meld.cards, drink_selection_enabled, drink_removable_card_ids, selected_drink_card_id)
 	tooltip_text = tr("MELD_TOOLTIP") % (tr("MELD_RUN") if meld.meld_type == MeldRules.TYPE_RUN else tr("MELD_SET"))
 
 
@@ -56,7 +64,12 @@ func play_card_beat_pulse(card_id: String, strength: float) -> void:
 	tween.tween_property(texture, "scale", Vector2.ONE, 0.19).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 
 
-func _sync_cards(cards: Array[CardData]) -> void:
+func _sync_cards(
+	cards: Array[CardData],
+	drink_selection_enabled: bool,
+	drink_removable_card_ids: Dictionary,
+	selected_drink_card_id: String
+) -> void:
 	var active_card_ids := {}
 	for card in cards:
 		active_card_ids[card.unique_id] = true
@@ -81,7 +94,8 @@ func _sync_cards(cards: Array[CardData]) -> void:
 			texture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 			texture.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 			texture.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-			texture.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			texture.mouse_filter = Control.MOUSE_FILTER_STOP
+			texture.gui_input.connect(_on_card_gui_input.bind(card))
 			_cards_row.add_child(texture)
 			_card_views[card.unique_id] = texture
 		var texture_path := card.texture_path()
@@ -89,6 +103,13 @@ func _sync_cards(cards: Array[CardData]) -> void:
 			texture.texture = load(texture_path) as Texture2D
 		if texture.get_index() != index:
 			_cards_row.move_child(texture, index)
+		texture.mouse_filter = Control.MOUSE_FILTER_STOP if drink_selection_enabled else Control.MOUSE_FILTER_IGNORE
+		texture.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND if drink_selection_enabled else Control.CURSOR_ARROW
+		texture.modulate = Color("#fff1b8") if card.unique_id == selected_drink_card_id else Color.WHITE
+		if drink_selection_enabled:
+			texture.tooltip_text = tr("DRINK_NUOC_VOI_CARD_VALID") if drink_removable_card_ids.has(card.unique_id) else tr("DRINK_NUOC_VOI_CARD_INVALID")
+		else:
+			texture.tooltip_text = ""
 
 
 func _build_content() -> void:
@@ -127,3 +148,9 @@ func _on_gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
 		accept_event()
 		meld_pressed.emit(meld_id)
+
+
+func _on_card_gui_input(event: InputEvent, card: CardData) -> void:
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+		accept_event()
+		meld_card_pressed.emit(meld_id, card)

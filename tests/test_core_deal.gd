@@ -325,51 +325,131 @@ func test_u_khan_uses_the_prototype_near_meld_rule_and_replaces_hand() -> void:
 	assert_eq(deal.hand.size(), 10)
 
 
-func test_tra_da_boosts_only_the_first_new_phom_each_phase() -> void:
-	var scoring := ScoringPipeline.new()
-	scoring.current_drink_id = DrinkCatalog.TRA_DA
-	var cards: Array[CardData] = [_card("7", "Clubs"), _card("8", "Clubs"), _card("9", "Clubs")]
-	assert_eq(scoring.preview_new_meld(cards, MeldRules.TYPE_RUN, 1, 0).local_mult, 4)
-	assert_eq(scoring.preview_new_meld(cards, MeldRules.TYPE_RUN, 1, 1).local_mult, 3)
+func test_basic_drinks_do_not_modify_new_meld_or_extension_scoring() -> void:
+	var meld_cards: Array[CardData] = [_card("6", "Spades"), _card("7", "Spades"), _card("8", "Spades")]
+	var extended_cards: Array[CardData] = []
+	extended_cards.append_array(meld_cards)
+	extended_cards.append(_card("9", "Spades"))
+	for drink_id in DrinkCatalog.basic_ids():
+		var deal := DealState.new()
+		deal.set_current_drink(drink_id)
+		var meld_context := deal.scoring.preview_new_meld(meld_cards, MeldRules.TYPE_RUN, 1, 3)
+		var extension_context := deal.scoring.preview_extension(extended_cards, MeldRules.TYPE_RUN, 63, 1, [extended_cards[-1]])
+		assert_eq(meld_context.local_mult, 3)
+		assert_eq(meld_context.final_points, 63)
+		assert_eq(extension_context.final_points, 57)
 
 
-func test_nuoc_voi_scales_each_later_new_phom_with_phase_count() -> void:
-	var scoring := ScoringPipeline.new()
-	scoring.current_drink_id = DrinkCatalog.NUOC_VOI
-	var cards: Array[CardData] = [_card("7", "Clubs"), _card("8", "Clubs"), _card("9", "Clubs")]
-	assert_eq(scoring.preview_new_meld(cards, MeldRules.TYPE_RUN, 1, 0).local_mult, 3)
-	assert_eq(scoring.preview_new_meld(cards, MeldRules.TYPE_RUN, 1, 2).local_mult, 5)
+func test_tra_da_swaps_only_the_latest_discard_once_per_turn() -> void:
+	var deal := _fresh_deal(221, DrinkCatalog.TRA_DA)
+	assert_false(deal.use_tra_da(deal.hand[0])["ok"])
+	var first_discard := deal.hand[0]
+	assert_true(deal.discard_card(first_discard)["ok"])
+	var replacement := deal.hand[0]
+	var hand_size := deal.hand.size()
+	var discard_count := deal.discard_count
+	var result := deal.use_tra_da(replacement)
+	assert_true(result["ok"])
+	assert_eq(deal.hand.size(), hand_size)
+	assert_eq(deal.discard_count, discard_count)
+	assert_true(deal.hand.has(first_discard))
+	assert_false(deal.hand.has(replacement))
+	assert_eq(deal.deck.discard_pile[-1], replacement)
+	assert_eq(deal.discard_history[-1].card, replacement)
+	assert_false(deal.use_tra_da(deal.hand[0])["ok"])
+	assert_true(deal.discard_card(deal.hand[0])["ok"])
+	assert_true(deal.use_tra_da(deal.hand[0])["ok"])
 
 
-func test_nhan_tran_retriggers_only_added_extension_cards() -> void:
-	var scoring := ScoringPipeline.new()
-	scoring.current_drink_id = DrinkCatalog.NHAN_TRAN
-	var all_cards: Array[CardData] = [_card("6", "Spades"), _card("7", "Spades"), _card("8", "Spades"), _card("9", "Spades")]
-	var context := scoring.preview_extension(all_cards, MeldRules.TYPE_RUN, 63, 1, [all_cards[-1]])
-	assert_eq(context.base_extension_score, 57)
-	assert_eq(context.drink_bonus_points, 36)
-	assert_eq(context.final_points, 93)
+func test_nhan_tran_adds_one_optional_discard_without_refill_until_next_turn() -> void:
+	var deal := _fresh_deal(222, DrinkCatalog.NHAN_TRAN)
+	var draw_before := deal.deck.draw_pile.size()
+	var extra := deal.hand[0]
+	assert_true(deal.use_nhan_tran(extra)["ok"])
+	assert_eq(deal.hand.size(), 9)
+	assert_eq(deal.discard_count, 0)
+	assert_eq(deal.deck.draw_pile.size(), draw_before)
+	assert_eq(deal.deck.discard_pile[-1], extra)
+	assert_false(deal.use_nhan_tran(deal.hand[0])["ok"])
+	assert_true(deal.discard_card(deal.hand[0])["ok"])
+	assert_eq(deal.discard_count, 1)
+	assert_eq(deal.hand.size(), DealState.ACTIVE_HAND_TARGET)
+	assert_eq(deal.deck.draw_pile.size(), draw_before - 2)
+	assert_true(deal.use_nhan_tran(deal.hand[0])["ok"])
+	while deal.state == DealState.STATE_ACTIVE:
+		deal.discard_card(deal.hand[0])
+	assert_eq(deal.discard_count, DealState.DISCARDS_PER_PHASE)
+	assert_false(deal.use_nhan_tran(deal.hand[0])["ok"])
+	var stranded := DealState.new()
+	stranded.set_current_drink(DrinkCatalog.NHAN_TRAN)
+	stranded.hand.append(_card("A", "Clubs", "mandatory"))
+	assert_false(stranded.use_nhan_tran(stranded.hand[0])["ok"])
 
 
-func test_sam_dua_cancels_one_banked_mom_only_at_final_resolution() -> void:
-	var deal := _fresh_deal(22, DrinkCatalog.SAM_DUA)
+func test_nuoc_voi_returns_only_a_legal_meld_card_once_per_phase_without_unscoring() -> void:
+	var deal := DealState.new()
+	deal.set_current_drink(DrinkCatalog.NUOC_VOI)
+	deal.state = DealState.STATE_ACTIVE
+	var run_cards: Array[CardData] = [
+		_card("6", "Spades", "voi"), _card("7", "Spades", "voi"),
+		_card("8", "Spades", "voi"), _card("9", "Spades", "voi"),
+	]
+	var run := MeldState.new(1, MeldRules.TYPE_RUN, run_cards)
+	run.scored_points = ScoringPipeline.meld_value(run_cards)
+	deal.melds.append(run)
+	deal.hand.append(_card("K", "Hearts", "discard"))
+	assert_false(deal.can_use_nuoc_voi(1, run_cards[1]))
+	assert_true(deal.can_use_nuoc_voi(1, run_cards[0]))
+	var banked_score := run.scored_points
+	assert_true(deal.use_nuoc_voi(1, run_cards[0])["ok"])
+	assert_eq(run.cards.size(), 3)
+	assert_eq(run.scored_points, banked_score)
+	assert_true(deal.hand.has(run_cards[0]))
+	assert_false(deal.use_nuoc_voi(1, run_cards[-1])["ok"])
+	var extension := deal.extend_meld(1, [run_cards[0]] as Array[CardData])
+	assert_true(extension["ok"])
+	assert_eq(extension["context"].final_points, 0)
+	assert_eq(run.scored_points, banked_score)
+
+	var set_deal := DealState.new()
+	set_deal.set_current_drink(DrinkCatalog.NUOC_VOI)
+	set_deal.state = DealState.STATE_ACTIVE
+	var set_cards: Array[CardData] = [
+		_card("7", "Spades", "voi_set"), _card("7", "Hearts", "voi_set"),
+		_card("7", "Diamonds", "voi_set"), _card("7", "Clubs", "voi_set"),
+	]
+	set_deal.melds.append(MeldState.new(2, MeldRules.TYPE_SET, set_cards))
+	assert_true(set_deal.can_use_nuoc_voi(2, set_cards[1]))
+
+
+func test_sam_dua_preserves_up_to_two_selected_loose_cards_only_on_dump() -> void:
+	var deal := _fresh_deal(223, DrinkCatalog.SAM_DUA)
 	_advance_to_last_call(deal)
-	deal.hand.clear()
-	deal.settle_phase()
-	assert_eq(deal.mom_strikes_banked, 1)
-	assert_eq(deal.mom_strikes_resolved, 0)
-	deal.choose_phase_two(true)
-	_advance_to_last_call(deal)
-	deal.hand.clear()
+	assert_true(deal.settle_phase()["ok"])
+	var original_hand := deal.hand.duplicate()
+	var chosen: Array[CardData] = [deal.hand[0], deal.hand[1]]
+	assert_false(deal.select_sam_dua_preserves([deal.hand[0], deal.hand[1], deal.hand[2]] as Array[CardData])["ok"])
+	assert_true(deal.select_sam_dua_preserves(chosen)["ok"])
+	var result := deal.choose_phase_two(false)
+	assert_true(result["ok"])
+	assert_eq(result["preserved"], chosen)
+	assert_eq(result["dumped"].size(), original_hand.size() - chosen.size())
+	assert_eq(deal.hand.size(), DealState.ACTIVE_HAND_TARGET)
+	for card in chosen:
+		assert_true(deal.hand.has(card))
+	for card in result["dumped"]:
+		assert_false(deal.hand.has(card))
+
+
+func test_sam_dua_does_not_protect_mom_or_other_scoring_rules() -> void:
+	var deal := DealState.new()
+	deal.set_current_drink(DrinkCatalog.SAM_DUA)
 	deal.wallet.reset(1_000_000)
-	var resolution: Dictionary = deal.settle_phase()["phase_resolution"]
-	assert_eq(deal.mom_strikes_banked, 2)
-	assert_eq(deal.mom_strikes_resolved, 1)
-	assert_eq(deal.mom_penalty_percent, 10)
-	assert_eq(deal.mom_penalty_vnd, 100_000)
-	assert_eq(deal.wallet.balance_vnd, 900_000)
-	assert_eq(resolution["wallet_before_mom_penalty_vnd"], 1_000_000)
-	assert_eq(resolution["wallet_after_mom_penalty_vnd"], 900_000)
+	deal.mom_strikes_banked = 2
+	deal._resolve_deal()
+	assert_eq(deal.mom_strikes_resolved, 2)
+	assert_eq(deal.mom_penalty_percent, 25)
+	assert_eq(deal.wallet.balance_vnd, 750_000)
 
 
 func test_advanced_drink_taxonomy_exists_without_invented_effects() -> void:

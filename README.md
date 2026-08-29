@@ -37,6 +37,8 @@ Distribute `TRADATALA-v1.0.1.exe` together with `TRADATALA-v1.0.1.pck`. The PCK 
 - Hover a loose card to reveal its top-right meld badge: `✓` means it already belongs to a ready Phỏm; otherwise the badge shows that card's best exact completion percentage. The badge hides again when the pointer leaves.
 - Ready action cards carry an animated outline: flowing green for a legal new Phỏm, yellow for a legal table extension, and a blended green/yellow sweep when both actions are available.
 - Click the `BỎ • XEM` pile to open every discarded card grouped into Bích, Cơ, Rô, and Tép columns.
+- Hover the active Drink for its complete effect and timing. Select the required loose or table card, then click the Drink slot to activate it.
+- For Sâm dứa, select up to two loose cards during Phase 1 LAST CALL and click the Drink before CHỐT; those marked cards survive only if the following choice is DUMP.
 - `K` / `X`: KEEP / DUMP at the Phase 1 settlement.
 - `Esc`: clear card and Meld selection.
 - After Phase 2, continue into the next campaign Event; the wallet persists across all 28 Deals.
@@ -48,7 +50,7 @@ Buttons remain disabled until their action is legal. The footer explains the cur
 - `scripts/cards/` — card identity, rank, independently mutable scoring value, enhancements, and asset lookup.
 - `scripts/deck/` — standard-deck generation, deterministic seeded shuffle, draw, discard, and refill.
 - `scripts/melds/` — Set/Run authority, extension legality, and persistent table Meld state.
-- `scripts/scoring/` — reusable scoring contexts, Drink catalog/effects, extension deltas, settlement deadwood, and controlled modifier hooks.
+- `scripts/scoring/` — reusable scoring contexts, the Drink catalog, extension deltas, settlement deadwood, and controlled modifier hooks.
 - `scripts/economy/` — 64-bit integer VND wallet and point conversion.
 - `scripts/campaign/` — seven-day state machine, data-configured requirements, generic Event/NPC interactions, Drink purchase windows, and progression signals.
 - `scripts/gameplay/` — the authoritative two-Phase Deal state machine, read-only hand advisor, and exact meld-probability analysis.
@@ -60,14 +62,14 @@ Buttons remain disabled until their action is legal. The footer explains the cur
 The prototype now follows the two-Phase Deal contract: each Phase has four mandatory discards, a player-confirmed LAST CALL window, and its own settlement. Table Phỏm persist across Phases; Phase 1 then offers KEEP or DUMP, with DUMP refilling toward ten.
 
 - Deadwood is calculated once per Phase as the simple sum of remaining loose-card values. Phase Net is `Gross after Ù − Deadwood`.
-- MÓM is checked independently per Phase from new Phỏm count. Strikes are banked and resolved after Phase 2 against the full Wallet: one resolved strike removes 10%, while two remove 25% total. Sâm dứa cancels one strike before this tier is chosen.
+- MÓM is checked independently per Phase from new Phỏm count. Strikes are banked and resolved after Phase 2 against the full Wallet: one resolved strike removes 10%, while two remove 25% total.
 - Active-turn HẠ / EXTEND must preserve one mandatory discard card; LAST CALL removes that restriction and forbids further discards/refills.
 - Ù is Phase-scoped: a ten-card turn that commits exactly nine cards and discards the last doubles that Phase's Gross, not Deadwood.
 - Ù Khan uses the prototype near-meld definition, pays `hand value × 10`, replaces the hand, and checks the refill again.
 - Sets accept any number of same-rank physical cards; Runs require one suit, unique consecutive ranks, A low, and no wrap.
 - Every card sent to the discard pile remains available through the suit-grouped discard archive; mandatory discards retain Phase and discard-number provenance in the Deal record.
 - Each card's hover badge summarizes its best canonical three-card Set/Run target. Percentages are exact without-replacement odds for the next refill toward ten, using the known remaining deck; the full target and missing-card calculation stay in the tooltip so probability information does not obstruct the table.
-- Basic Drink scoring is implemented: Trà đá, Nước vối, Nhân trần, and final-resolution Sâm dứa protection. Trà đá is the current free starter. Advanced Caffeine/Energy/Sugar IDs and categories exist without invented formulas.
+- Exactly one Drink is active at a time, and basic Drinks manipulate card flow only—never scoring: Trà đá swaps one selected loose card with the latest discard once per turn; Nhân trần grants one optional extra discard per turn without an immediate refill and is unavailable after mandatory discard #4; Nước vối returns one legal card from a table Meld once per Phase without removing banked score; Sâm dứa preserves up to two marked loose cards during the Phase 1 DUMP before the normal refill toward ten. Trà đá is the current free starter. Advanced Caffeine/Energy/Sugar IDs and categories exist without invented formulas.
 - Scoring and resolution expose controlled hooks for new Phỏm, Extensions, settlement, Deadwood, MÓM, Deal resolution, and Ù.
 
 ## Early campaign
@@ -84,10 +86,11 @@ The menu includes persistent Music/Sound controls, Vietnamese/English localizati
 
 Current Godot 4.7.1 source checkpoint (2026-08-29):
 
-- Core Deal and campaign suite: **45 / 45 passed**.
+- Core Deal and campaign suite: **47 / 47 passed**.
 - Runtime scene smoke: **passed**.
+- Tutorial scene smoke: **passed**.
 - Headless editor import and global-class registration: **passed**.
-- Live editor menu-to-match flow at 1280×720, reactive audio diagnostics, and both locale paths: **passed**.
+- The previous live-editor 1280×720 presentation baseline was not repeated for this Drink implementation; the updated clickable Drink path and both locale resources are covered by the runtime smoke.
 - Previous v1.0.0 exported Windows startup: **passed**; v1.0.1 was not rebuilt during this source-fix pass.
 
 ```powershell

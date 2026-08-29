@@ -6,7 +6,6 @@ signal new_phom_scored(context: ScoringContext)
 signal extension_scored(context: ScoringContext)
 
 var _modifiers: Array[Callable] = []
-var current_drink_id: String = DrinkCatalog.NONE
 
 
 func add_modifier(modifier: Callable) -> void:
@@ -28,11 +27,6 @@ func score_new_meld(cards: Array[CardData], meld_type: String, phase: int, phase
 func preview_new_meld(cards: Array[CardData], meld_type: String, phase: int, phase_new_phom_count: int = 0) -> ScoringContext:
 	var context := _build_context(cards, meld_type, phase)
 	context.action_type = "new_meld"
-	context.drink_id = current_drink_id
-	if current_drink_id == DrinkCatalog.TRA_DA and phase_new_phom_count == 0:
-		context.local_mult += 1
-	elif current_drink_id == DrinkCatalog.NUOC_VOI:
-		context.local_mult += phase_new_phom_count
 	_apply_modifiers(context)
 	context.theoretical_score = _calculate_theoretical(context)
 	context.final_points = context.theoretical_score
@@ -61,17 +55,12 @@ func preview_extension(
 ) -> ScoringContext:
 	var context := _build_context(all_cards, meld_type, phase)
 	context.action_type = "extension"
-	context.drink_id = current_drink_id
 	context.old_meld_score = old_meld_score
 	context.added_cards.append_array(added_cards)
-	for card in added_cards:
-		context.added_card_value_sum += card.score_value()
 	_apply_modifiers(context)
 	context.theoretical_score = _calculate_theoretical(context)
 	context.base_extension_score = maxi(context.theoretical_score - old_meld_score, 0)
-	if current_drink_id == DrinkCatalog.NHAN_TRAN:
-		context.drink_bonus_points = context.added_card_value_sum * context.local_mult
-	context.final_points = context.base_extension_score + context.drink_bonus_points
+	context.final_points = context.base_extension_score
 	return context
 
 
