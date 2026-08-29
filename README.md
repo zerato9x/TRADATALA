@@ -11,7 +11,7 @@ The project opens on a dedicated title menu over the fixed sidewalk-table backgr
 Open `project.godot` in Godot 4.7.1 Stable and run the project (`F6`/`F5`), or launch from a console:
 
 ```powershell
-Godot_v4.7.1-stable_win64_console.exe --path G:\PHOM\TRADATALA
+Godot_v4.7.1-stable_win64_console.exe --path .
 ```
 
 ## Windows V1 build
@@ -19,10 +19,10 @@ Godot_v4.7.1-stable_win64_console.exe --path G:\PHOM\TRADATALA
 The committed `Windows Desktop` preset produces the x86_64 V1 build in `build/windows/`. Install the matching Godot 4.7.1 export templates, then run:
 
 ```powershell
-Godot_v4.7.1-stable_win64_console.exe --headless --path G:\PHOM\TRADATALA --export-release "Windows Desktop"
+Godot_v4.7.1-stable_win64_console.exe --headless --path . --export-release "Windows Desktop"
 ```
 
-Distribute `TRADATALA-v1.0.0.exe` together with `TRADATALA-v1.0.0.pck`. The PCK remains separate so the build can be code-signed later and is less likely to trigger antivirus heuristics. The current local checkpoint is unsigned; signing requires a Windows signing certificate and is a separate release operation.
+Distribute `TRADATALA-v1.0.1.exe` together with `TRADATALA-v1.0.1.pck`. The PCK remains separate so the build can be code-signed later and is less likely to trigger antivirus heuristics. The current local checkpoint is unsigned; signing requires a Windows signing certificate and is a separate release operation.
 
 ## Controls
 
@@ -73,17 +73,17 @@ The menu includes persistent Music/Sound controls, Vietnamese/English localizati
 
 ## Verification
 
-Current Godot 4.7.1 checkpoint (2026-08-28):
+Current Godot 4.7.1 source checkpoint (2026-08-29):
 
-- Core rules, probability, action-cue, and music-reactivity suite: **34 / 34 passed**.
+- Core rules, probability, action-cue, localization, and music-reactivity suite: **36 / 36 passed**.
 - Runtime scene smoke: **passed**.
 - Headless editor import and global-class registration: **passed**.
 - Live editor menu-to-match flow at 1280×720, reactive audio diagnostics, and both locale paths: **passed**.
-- Exported Windows release startup in headless mode: **passed**.
+- Previous v1.0.0 exported Windows startup: **passed**; v1.0.1 was not rebuilt during this source-fix pass.
 
 ```powershell
-Godot_v4.7.1-stable_win64_console.exe --headless --path G:\PHOM\TRADATALA --script res://tests/run_headless.gd
-Godot_v4.7.1-stable_win64_console.exe --headless --path G:\PHOM\TRADATALA --script res://tests/runtime_scene_smoke.gd
-Godot_v4.7.1-stable_win64_console.exe --headless --path G:\PHOM\TRADATALA --script res://tests/tutorial_scene_smoke.gd
+Godot_v4.7.1-stable_win64_console.exe --headless --path . --script res://tests/run_headless.gd
+Godot_v4.7.1-stable_win64_console.exe --headless --path . --script res://tests/runtime_scene_smoke.gd
+Godot_v4.7.1-stable_win64_console.exe --headless --path . --script res://tests/tutorial_scene_smoke.gd
 ```
 

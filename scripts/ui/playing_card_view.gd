@@ -53,7 +53,7 @@ func set_meld_chance(probability: float, is_ready: bool, target_label: String, n
 		_meld_chance_badge.text = "✓"
 		_meld_chance_badge.add_theme_color_override("font_color", Color.WHITE)
 		_meld_chance_badge.add_theme_stylebox_override("normal", PresentationTheme.panel_style(Color("#3d702df2"), PresentationTheme.TEA, 1, 2, 2))
-		_chance_tooltip = "Sẵn sàng Hạ: %s" % target_label
+		_chance_tooltip = tr("PROBABILITY_READY") % target_label
 	else:
 		_meld_chance_badge.text = "%d%%" % percent
 		var active := probability > 0.0
@@ -62,7 +62,7 @@ func set_meld_chance(probability: float, is_ready: bool, target_label: String, n
 			Color("#9a641ff2") if active else Color("#26231fe8"),
 			PresentationTheme.GOLD if active else Color("#51483b"), 1, 2, 2
 		))
-		_chance_tooltip = "%s: %.3f%% trong %d lá refill kế tiếp\nCần: %s" % [target_label, probability * 100.0, draw_count, needed_text]
+		_chance_tooltip = tr("PROBABILITY_DRAW") % [target_label, probability * 100.0, draw_count, needed_text]
 	_refresh_probability_visibility()
 	_refresh_tooltip()
 

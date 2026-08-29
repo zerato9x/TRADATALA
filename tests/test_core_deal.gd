@@ -450,6 +450,17 @@ func test_best_meld_chance_is_aggregated_per_loose_card() -> void:
 	assert_true(absf(float(by_card[seven_spades.unique_id]["probability"]) - 0.5) < 0.00001)
 
 
+func test_meld_probability_labels_follow_the_active_locale() -> void:
+	var original_locale := TranslationServer.get_locale()
+	TranslationServer.set_locale("en")
+	var hand: Array[CardData] = [_card("7", "Spades"), _card("7", "Hearts")]
+	var draw_pile: Array[CardData] = [_card("7", "Diamonds"), _card("7", "Clubs")]
+	var by_card := MeldProbabilityAdvisor.best_new_meld_chance_by_card(hand, draw_pile, 1)
+	assert_eq(by_card[hand[0].unique_id]["label"], "BỘ 7")
+	assert_eq(MeldProbabilityAdvisor.localized_label(by_card[hand[0].unique_id]), "SET 7")
+	TranslationServer.set_locale(original_locale)
+
+
 func test_point_to_vnd_conversion_uses_integer_thousands() -> void:
 	assert_eq(VndWallet.points_to_vnd(63), 63000)
 	assert_eq(VndWallet.format_vnd(1234567890), "₫1.234.567.890")

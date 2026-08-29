@@ -205,6 +205,11 @@ func _run() -> void:
 	var first_view: PlayingCardView = scene.hand_views[first_card.unique_id]
 	var chance_badge := first_view.get_node_or_null("MeldChance") as Label
 	_check(chance_badge != null and not chance_badge.visible, "meld probability stays hidden until its card is hovered")
+	settings.set_locale("en")
+	await process_frame
+	_check(first_view.tooltip_text.contains("Need:") and not first_view.tooltip_text.contains("Cần:"), "English locale translates the live meld-probability guidance")
+	settings.set_locale("vi")
+	await process_frame
 	first_view._on_mouse_entered()
 	_check(chance_badge != null and chance_badge.visible and not chance_badge.text.is_empty(), "hover reveals the card's meld probability")
 	scene._on_card_pressed(first_card)

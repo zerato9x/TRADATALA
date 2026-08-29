@@ -33,6 +33,10 @@ func _run() -> void:
 	for card_id in MatchUI.TUTORIAL_RUN_IDS:
 		scene._on_card_pressed(_card_by_id(scene, String(card_id)))
 	_check(scene.tutorial_step == MatchUI.TUTORIAL_PLAY_RUN and not scene.ha_button.disabled, "selecting 4H-6H advances to the enabled Meld action")
+	_send_escape(scene)
+	_check(scene.tutorial_step == MatchUI.TUTORIAL_SELECT_RUN and scene.selected_card_ids.is_empty(), "Escape rewinds the Meld action without trapping the tutorial")
+	for card_id in MatchUI.TUTORIAL_RUN_IDS:
+		scene._on_card_pressed(_card_by_id(scene, String(card_id)))
 	_check(scene.tutorial_spotlight.targets.size() == 1 and scene.tutorial_spotlight.targets[0] == scene.ha_button, "Meld step spotlights only the Meld button")
 	_check(scene.extend_button.disabled and scene.discard_button.disabled and scene.hint_button.disabled, "unrelated actions stay gated during the tutorial")
 
@@ -50,6 +54,9 @@ func _run() -> void:
 
 	scene._on_card_pressed(_card_by_id(scene, String(MatchUI.TUTORIAL_EXTENSION_ID)))
 	_check(scene.tutorial_step == MatchUI.TUTORIAL_SELECT_MELD and scene.selected_meld_id == -1, "7H selection asks the player to target the table Meld")
+	_send_escape(scene)
+	_check(scene.tutorial_step == MatchUI.TUTORIAL_SELECT_EXTEND and scene.selected_card_ids.is_empty(), "Escape rewinds Meld targeting to the extension-card step")
+	scene._on_card_pressed(_card_by_id(scene, String(MatchUI.TUTORIAL_EXTENSION_ID)))
 	scene._on_meld_pressed(scene.tutorial_meld_id)
 	_check(scene.tutorial_step == MatchUI.TUTORIAL_EXTEND and not scene.extend_button.disabled, "targeting the Run enables Extend")
 	await scene._on_extend_pressed()
@@ -94,6 +101,13 @@ func _card_by_id(scene: MatchUI, card_id: String) -> CardData:
 		if card.unique_id == card_id:
 			return card
 	return null
+
+
+func _send_escape(scene: MatchUI) -> void:
+	var event := InputEventKey.new()
+	event.pressed = true
+	event.keycode = KEY_ESCAPE
+	scene._unhandled_key_input(event)
 
 
 func _check(condition: bool, message: String) -> void:

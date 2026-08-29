@@ -1936,13 +1936,13 @@ func _sync_card_probability_badges() -> void:
 			continue
 		var candidate: Dictionary = best_by_card.get(card.unique_id, {})
 		if candidate.is_empty():
-			view.set_meld_chance(0.0, false, "Không có mục tiêu Phỏm", "—", draw_number)
+			view.set_meld_chance(0.0, false, tr("PROBABILITY_NO_TARGET"), "—", draw_number)
 			continue
 		var needed_text := "—" if candidate["needed_labels"].is_empty() else " / ".join(candidate["needed_labels"])
 		view.set_meld_chance(
 			float(candidate["probability"]),
 			bool(candidate["ready"]),
-			String(candidate["label"]),
+			MeldProbabilityAdvisor.localized_label(candidate),
 			needed_text,
 			draw_number
 		)
@@ -2697,6 +2697,30 @@ func _on_viewport_size_changed() -> void:
 	_layout_hand(false)
 
 
+func _rewind_tutorial_selection() -> void:
+	var rewind_step := tutorial_step
+	match tutorial_step:
+		TUTORIAL_PLAY_RUN:
+			rewind_step = TUTORIAL_SELECT_RUN
+		TUTORIAL_DISCARD:
+			rewind_step = TUTORIAL_SELECT_DISCARD
+		TUTORIAL_SELECT_MELD, TUTORIAL_EXTEND:
+			rewind_step = TUTORIAL_SELECT_EXTEND
+		TUTORIAL_FINAL_DISCARD:
+			rewind_step = TUTORIAL_SELECT_FINAL_DISCARD
+		TUTORIAL_SELECT_RUN, TUTORIAL_SELECT_DISCARD, TUTORIAL_SELECT_EXTEND, TUTORIAL_SELECT_FINAL_DISCARD:
+			pass
+		_:
+			return
+	selected_card_ids.clear()
+	selected_meld_id = -1
+	_sync_all()
+	if rewind_step != tutorial_step:
+		_set_tutorial_step(rewind_step)
+	else:
+		_refresh_tutorial_spotlight()
+
+
 func _unhandled_key_input(event: InputEvent) -> void:
 	if not event is InputEventKey or not event.pressed or event.echo:
 		return
@@ -2719,6 +2743,9 @@ func _unhandled_key_input(event: InputEvent) -> void:
 			_begin_phase_two(false)
 		elif modal_mode == "deal_over" and event.keycode == KEY_R:
 			_start_new_deal()
+		return
+	if tutorial_active and event.keycode == KEY_ESCAPE:
+		_rewind_tutorial_selection()
 		return
 	match event.keycode:
 		KEY_H:

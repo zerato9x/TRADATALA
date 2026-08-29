@@ -74,7 +74,9 @@ static func _set_candidates(
 			needed_labels,
 			available.size() if needed_count == 1 else 0,
 			needed_count,
-			probability
+			probability,
+			"PROBABILITY_SET",
+			[rank]
 		))
 	return candidates
 
@@ -115,7 +117,13 @@ static func _run_candidates(
 				missing_labels,
 				outs,
 				missing_labels.size(),
-				probability
+				probability,
+				"PROBABILITY_RUN",
+				[
+					DeckManager.RANKS[start_rank - 1],
+					DeckManager.RANKS[start_rank + 1],
+					_suit_symbol(suit),
+				]
 			))
 	return candidates
 
@@ -143,12 +151,14 @@ static func _extension_candidates(
 			if owned.is_empty():
 				candidates.append(_extension_candidate(
 					meld, "GHÉP #%02d  BỘ %s" % [meld.meld_id, rank], owned,
-					["THÊM %s" % rank], outs, 1, _probability_at_least(draw_pile.size(), outs, draw_count, 1)
+					[rank], outs, 1, _probability_at_least(draw_pile.size(), outs, draw_count, 1),
+					"PROBABILITY_EXTEND_SET", [meld.meld_id, rank]
 				))
 			else:
 				candidates.append(_extension_candidate(
 					meld, "GHÉP #%02d  BỘ %s" % [meld.meld_id, rank], owned,
-					[] as Array[String], 0, 0, 1.0
+					[] as Array[String], 0, 0, 1.0,
+					"PROBABILITY_EXTEND_SET", [meld.meld_id, rank]
 				))
 		elif meld.meld_type == MeldRules.TYPE_RUN:
 			var sorted := MeldRules.sorted_for_display(meld.cards, MeldRules.TYPE_RUN)
@@ -170,7 +180,8 @@ static func _extension_candidates(
 					([label] as Array[String]) if owned.is_empty() else ([] as Array[String]),
 					outs if owned.is_empty() else 0,
 					1 if owned.is_empty() else 0,
-					_probability_at_least(draw_pile.size(), outs, draw_count, 1) if owned.is_empty() else 1.0
+					_probability_at_least(draw_pile.size(), outs, draw_count, 1) if owned.is_empty() else 1.0,
+					"PROBABILITY_EXTEND_CARD", [meld.meld_id, label]
 				))
 	return candidates
 
@@ -182,11 +193,15 @@ static func _candidate(
 	needed_labels: Array[String],
 	outs: int,
 	missing_count: int,
-	probability: float
+	probability: float,
+	label_key: String = "",
+	label_args: Array = []
 ) -> Dictionary:
 	return {
 		"kind": kind,
 		"label": label,
+		"label_key": label_key,
+		"label_args": label_args,
 		"owned_cards": owned_cards,
 		"needed_labels": needed_labels,
 		"outs": outs,
@@ -204,9 +219,13 @@ static func _extension_candidate(
 	needed_labels: Array[String],
 	outs: int,
 	missing_count: int,
-	probability: float
+	probability: float,
+	label_key: String = "",
+	label_args: Array = []
 ) -> Dictionary:
-	var candidate := _candidate(KIND_EXTENSION, label, owned_cards, needed_labels, outs, missing_count, probability)
+	var candidate := _candidate(
+		KIND_EXTENSION, label, owned_cards, needed_labels, outs, missing_count, probability, label_key, label_args
+	)
 	candidate["meld_id"] = meld.meld_id
 	return candidate
 
@@ -291,6 +310,13 @@ static func _count_cards(cards: Array[CardData], suit: String, rank_index: int) 
 
 static func _card_label(suit: String, rank_index: int) -> String:
 	return "%s%s" % [DeckManager.RANKS[rank_index - 1], _suit_symbol(suit)]
+
+
+static func localized_label(candidate: Dictionary) -> String:
+	var label_key := String(candidate.get("label_key", ""))
+	if label_key.is_empty():
+		return String(candidate.get("label", ""))
+	return String(TranslationServer.translate(label_key)) % candidate.get("label_args", [])
 
 
 static func _suit_symbol(suit: String) -> String:
