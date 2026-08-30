@@ -1,6 +1,8 @@
 class_name MeldView
 extends PanelContainer
 
+const CARD_ACTION_OUTLINE_SCRIPT := preload("res://scripts/ui/card_action_outline.gd")
+
 signal meld_pressed(meld_id: int)
 signal meld_card_pressed(meld_id: int, card: CardData)
 
@@ -10,6 +12,7 @@ var _cards_row: HBoxContainer
 var _score: Label
 var _hint: Label
 var _card_views: Dictionary = {}
+var _card_drink_outlines: Dictionary = {}
 var _card_beat_tweens: Dictionary = {}
 
 
@@ -84,6 +87,7 @@ func _sync_cards(
 		if stale_tween != null and stale_tween.is_valid():
 			stale_tween.kill()
 		_card_beat_tweens.erase(existing_id)
+		_card_drink_outlines.erase(existing_id)
 		_card_views.erase(existing_id)
 	for index in range(cards.size()):
 		var card := cards[index]
@@ -98,6 +102,13 @@ func _sync_cards(
 			texture.gui_input.connect(_on_card_gui_input.bind(card))
 			_cards_row.add_child(texture)
 			_card_views[card.unique_id] = texture
+			var drink_outline := CARD_ACTION_OUTLINE_SCRIPT.new()
+			drink_outline.name = "DrinkOutline"
+			drink_outline.position = Vector2(-6, -6)
+			drink_outline.size = Vector2(61, 80)
+			drink_outline.visible = false
+			texture.add_child(drink_outline)
+			_card_drink_outlines[card.unique_id] = drink_outline
 		var texture_path := card.texture_path()
 		if texture.texture == null or texture.texture.resource_path != texture_path:
 			texture.texture = load(texture_path) as Texture2D
@@ -106,6 +117,9 @@ func _sync_cards(
 		texture.mouse_filter = Control.MOUSE_FILTER_STOP if drink_selection_enabled else Control.MOUSE_FILTER_IGNORE
 		texture.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND if drink_selection_enabled else Control.CURSOR_ARROW
 		texture.modulate = Color("#fff1b8") if card.unique_id == selected_drink_card_id else Color.WHITE
+		var drink_outline: Control = _card_drink_outlines.get(card.unique_id)
+		if drink_outline != null:
+			drink_outline.set_drink_cue(card.unique_id == selected_drink_card_id)
 		if drink_selection_enabled:
 			texture.tooltip_text = tr("DRINK_NUOC_VOI_CARD_VALID") if drink_removable_card_ids.has(card.unique_id) else tr("DRINK_NUOC_VOI_CARD_INVALID")
 		else:

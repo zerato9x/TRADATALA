@@ -186,6 +186,7 @@ func _run() -> void:
 	_check(scene.get_node_or_null("GameLayer/UtilityRail/DrinkArea/DrinkSlot") == scene.drink_button, "Drink slot is a clickable effect button")
 	_check(scene.drink_name_label != null and scene.drink_name_label.text == "TRÀ ĐÁ", "free Trà đá is the visible starter Drink")
 	_check(not scene.drink_button.disabled, "active Drink remains clickable after Deal setup")
+	_check(scene.drink_charge_outline != null and scene.drink_charge_outline.visible and scene.drink_charge_outline.cue_mode() == CardActionOutlineScript.CUE_DRINK and scene.drink_charge_outline.is_processing(), "unused Drink charge has an animated blue gradient around the right-side Drink box")
 	_check(scene.drink_button.tooltip_text.contains("lá bỏ mới nhất") and scene.drink_button.tooltip_text.contains("nhấn Đồ uống"), "Drink tooltip explains how to activate Trà đá and its latest-discard limit")
 	_check(scene.get_node_or_null("GameLayer/TableSurface/DiscardHistoryTray") == null, "persistent discard tray is replaced by the pile archive")
 	_check(scene.discard_archive_overlay != null and not scene.discard_archive_overlay.visible, "discard archive begins closed")
@@ -251,6 +252,11 @@ func _run() -> void:
 	_check(action_outline != null and action_outline.visible and action_outline.cue_mode() == CardActionOutlineScript.CUE_EXTEND, "extendable cards animate with the yellow cue")
 	first_view.set_action_cues(false, false)
 	_check(action_outline != null and not action_outline.visible and not action_outline.is_processing(), "non-actionable cards do not carry an outline")
+	var drink_outline := first_view.get_node_or_null("BeatVisual/DrinkOutline")
+	first_view.set_drink_preserved(true)
+	_check(drink_outline != null and drink_outline.visible and drink_outline.cue_mode() == CardActionOutlineScript.CUE_DRINK and drink_outline.is_processing(), "Drink-marked cards carry a separate animated blue gradient outline")
+	first_view.set_drink_preserved(false)
+	_check(drink_outline != null and not drink_outline.visible and not drink_outline.is_processing(), "clearing a Drink mark removes only the blue outline")
 	var input_test_view := PlayingCardView.new()
 	root.add_child(input_test_view)
 	input_test_view.set_card(CardData.new("drag_input_8_clubs", "8", 8, "Clubs", 8))
@@ -325,11 +331,18 @@ func _run() -> void:
 	_check(scene.drink_button.tooltip_text.contains("chọn trực tiếp 1 lá trong Phỏm"), "switching Drinks refreshes the clickable effect tooltip")
 	var removable_endpoint: CardData = stable_meld.cards[0]
 	scene._on_meld_card_pressed(stable_meld.meld_id, removable_endpoint)
-	_check(scene.selected_drink_meld_card_id == removable_endpoint.unique_id, "clicking a table card selects it for Nước vối")
+	_check(scene.selected_drink_meld_card_id.is_empty(), "Nước vối ignores table-card targeting until the Drink is clicked first")
 	scene.drink_button.pressed.emit()
 	await process_frame
-	_check(stable_meld.cards.size() == 3 and scene.deal.hand.has(removable_endpoint), "clicking the Drink returns the selected legal endpoint to the loose hand")
+	_check(scene.drink_targeting_active, "clicking charged Nước vối arms its card-targeting mode without spending it")
+	scene._on_meld_card_pressed(stable_meld.meld_id, removable_endpoint)
+	_check(scene.selected_drink_meld_card_id == removable_endpoint.unique_id, "after arming Nước vối, clicking a legal table card selects it")
+	var table_drink_outline := stable_view._card_drink_outlines.get(removable_endpoint.unique_id) as Control
+	_check(table_drink_outline != null and table_drink_outline.visible and table_drink_outline.cue_mode() == CardActionOutlineScript.CUE_DRINK, "the armed Nước vối target receives the blue gradient before resolution")
+	await create_timer(0.2).timeout
+	_check(stable_meld.cards.size() == 3 and scene.deal.hand.has(removable_endpoint), "clicking the armed Nước vối target returns it to the loose hand")
 	_check(scene.deal.nuoc_voi_used_phases.has(scene.deal.current_phase), "Nước vối becomes spent for the current Phase")
+	_check(not scene.drink_charge_outline.visible and not scene.drink_charge_outline.is_processing(), "Nước vối blue charge outline disappears immediately after use")
 	scene.deal.set_current_drink(DrinkCatalog.TRA_DA)
 	scene.deal.melds.clear()
 	scene.selected_card_ids.clear()
@@ -343,14 +356,36 @@ func _run() -> void:
 	_check(scene.discard_button.disabled, "additional discard remains blocked during LAST CALL")
 	scene.deal.set_current_drink(DrinkCatalog.SAM_DUA)
 	scene._sync_all()
+	_check(scene.drink_charge_outline.visible, "unused Sâm dứa charge shows the blue Drink-box outline")
+	var pre_arm_card: CardData = scene.deal.hand[0]
+	scene._on_card_pressed(pre_arm_card)
+	var pre_arm_outline := (scene.hand_views.get(pre_arm_card.unique_id) as PlayingCardView).get_node_or_null("BeatVisual/DrinkOutline") as Control
+	_check(not pre_arm_outline.visible and scene.pending_drink_card_ids.is_empty(), "ordinary card clicks do not become Drink targets before Sâm dứa is armed")
+	scene.selected_card_ids.clear()
+	scene._sync_all()
+	scene.drink_button.pressed.emit()
+	await process_frame
+	_check(scene.drink_targeting_active, "clicking Sâm dứa first arms its multi-card targeting mode")
 	scene._on_card_pressed(scene.deal.hand[0])
 	scene._on_card_pressed(scene.deal.hand[1])
+	_check(scene.pending_drink_card_ids.size() == 2 and scene.deal.sam_dua_preserved_cards.is_empty(), "the first two post-arm card clicks remain a pending Sâm dứa selection")
+	for pending_card in scene._pending_drink_cards():
+		var pending_view := scene.hand_views.get(pending_card.unique_id) as PlayingCardView
+		var pending_outline := pending_view.get_node_or_null("BeatVisual/DrinkOutline") as Control
+		_check(pending_outline.visible and pending_outline.cue_mode() == CardActionOutlineScript.CUE_DRINK, "each pending Sâm dứa card immediately receives the blue gradient")
 	scene.drink_button.pressed.emit()
 	await process_frame
 	_check(scene.deal.sam_dua_preserved_cards.size() == 2, "clicking Sâm dứa during Phase 1 LAST CALL marks up to two selected loose cards for DUMP")
 	_check(scene.drink_button.tooltip_text.contains("Đã đánh dấu giữ 2 lá"), "Sâm dứa tooltip reports the marked preservation count")
+	_check(not scene.drink_charge_outline.visible, "Sâm dứa blue charge outline disappears after its preservation effect is spent")
+	for preserved_card in scene.deal.sam_dua_preserved_cards:
+		var preserved_view := scene.hand_views.get(preserved_card.unique_id) as PlayingCardView
+		var preserved_outline: Control = preserved_view.get_node_or_null("BeatVisual/DrinkOutline") if preserved_view != null else null
+		_check(preserved_outline != null and preserved_outline.visible and preserved_outline.cue_mode() == CardActionOutlineScript.CUE_DRINK, "each Sâm dứa preservation card keeps the blue stay outline")
 	scene.deal.set_current_drink(DrinkCatalog.TRA_DA)
+	scene.deal.sam_dua_preserved_cards.clear()
 	scene.selected_card_ids.clear()
+	scene._sync_card_action_outlines()
 	_check(scene.discard_history_row.get_child_count() == 5, "top-left discard history shows its phase marker and all four discards")
 	_check((scene.discard_history_row.get_child(0) as Label).text == "P1", "top-left discard history labels the owning phase")
 	scene.deal.discard_history.append(DiscardRecord.new(CardData.new("smoke_p2_discard", "A", 1, "Hearts", 1), 2, 1))

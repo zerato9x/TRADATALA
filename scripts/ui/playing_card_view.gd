@@ -15,6 +15,7 @@ var base_rotation: float = 0.0
 var _hovered := false
 var _stack_order: int = 0
 var _shadow: Panel
+var _drink_outline: Control
 var _action_outline: Control
 var _beat_visual: Control
 var _texture: TextureRect
@@ -26,6 +27,7 @@ var _interaction_enabled: bool = true
 var _chance_tooltip: String = ""
 var _can_meld: bool = false
 var _can_extend: bool = false
+var _drink_preserved: bool = false
 var _press_active: bool = false
 var _dragging: bool = false
 var _press_position := Vector2.ZERO
@@ -76,6 +78,11 @@ func set_action_cues(can_meld: bool, can_extend: bool) -> void:
 	_can_meld = can_meld
 	_can_extend = can_extend
 	_refresh_action_outline()
+
+
+func set_drink_preserved(value: bool) -> void:
+	_drink_preserved = value
+	_refresh_drink_outline()
 
 
 func play_beat_pulse(strength: float) -> void:
@@ -166,6 +173,13 @@ func _build_visuals() -> void:
 	_shadow.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_shadow.add_theme_stylebox_override("panel", PresentationTheme.panel_style(Color("#050302a8"), Color.TRANSPARENT, 0, 2, 4))
 	_beat_visual.add_child(_shadow)
+
+	_drink_outline = CardActionOutlineScript.new()
+	_drink_outline.name = "DrinkOutline"
+	_drink_outline.position = Vector2(-10, -10)
+	_drink_outline.size = CARD_SIZE + Vector2(20, 20)
+	_drink_outline.visible = false
+	_beat_visual.add_child(_drink_outline)
 
 	_action_outline = CardActionOutlineScript.new()
 	_action_outline.name = "ActionOutline"
@@ -266,6 +280,11 @@ func _refresh_probability_visibility() -> void:
 func _refresh_action_outline() -> void:
 	if _action_outline != null:
 		_action_outline.set_cues(_can_meld and _interaction_enabled, _can_extend and _interaction_enabled)
+
+
+func _refresh_drink_outline() -> void:
+	if _drink_outline != null:
+		_drink_outline.set_drink_cue(_drink_preserved)
 
 
 func _refresh_z_index() -> void:

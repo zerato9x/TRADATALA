@@ -342,6 +342,7 @@ func test_basic_drinks_do_not_modify_new_meld_or_extension_scoring() -> void:
 
 func test_tra_da_swaps_only_the_latest_discard_once_per_turn() -> void:
 	var deal := _fresh_deal(221, DrinkCatalog.TRA_DA)
+	assert_true(deal.current_drink_has_charge())
 	assert_false(deal.use_tra_da(deal.hand[0])["ok"])
 	var first_discard := deal.hand[0]
 	assert_true(deal.discard_card(first_discard)["ok"])
@@ -356,8 +357,10 @@ func test_tra_da_swaps_only_the_latest_discard_once_per_turn() -> void:
 	assert_false(deal.hand.has(replacement))
 	assert_eq(deal.deck.discard_pile[-1], replacement)
 	assert_eq(deal.discard_history[-1].card, replacement)
+	assert_false(deal.current_drink_has_charge())
 	assert_false(deal.use_tra_da(deal.hand[0])["ok"])
 	assert_true(deal.discard_card(deal.hand[0])["ok"])
+	assert_true(deal.current_drink_has_charge())
 	assert_true(deal.use_tra_da(deal.hand[0])["ok"])
 
 
@@ -365,7 +368,9 @@ func test_nhan_tran_adds_one_optional_discard_without_refill_until_next_turn() -
 	var deal := _fresh_deal(222, DrinkCatalog.NHAN_TRAN)
 	var draw_before := deal.deck.draw_pile.size()
 	var extra := deal.hand[0]
+	assert_true(deal.current_drink_has_charge())
 	assert_true(deal.use_nhan_tran(extra)["ok"])
+	assert_false(deal.current_drink_has_charge())
 	assert_eq(deal.hand.size(), 9)
 	assert_eq(deal.discard_count, 0)
 	assert_eq(deal.deck.draw_pile.size(), draw_before)
@@ -375,6 +380,7 @@ func test_nhan_tran_adds_one_optional_discard_without_refill_until_next_turn() -
 	assert_eq(deal.discard_count, 1)
 	assert_eq(deal.hand.size(), DealState.ACTIVE_HAND_TARGET)
 	assert_eq(deal.deck.draw_pile.size(), draw_before - 2)
+	assert_true(deal.current_drink_has_charge())
 	assert_true(deal.use_nhan_tran(deal.hand[0])["ok"])
 	while deal.state == DealState.STATE_ACTIVE:
 		deal.discard_card(deal.hand[0])
@@ -400,12 +406,17 @@ func test_nuoc_voi_returns_only_a_legal_meld_card_once_per_phase_without_unscori
 	deal.hand.append(_card("K", "Hearts", "discard"))
 	assert_false(deal.can_use_nuoc_voi(1, run_cards[1]))
 	assert_true(deal.can_use_nuoc_voi(1, run_cards[0]))
+	assert_true(deal.current_drink_has_charge())
 	var banked_score := run.scored_points
 	assert_true(deal.use_nuoc_voi(1, run_cards[0])["ok"])
 	assert_eq(run.cards.size(), 3)
 	assert_eq(run.scored_points, banked_score)
 	assert_true(deal.hand.has(run_cards[0]))
+	assert_false(deal.current_drink_has_charge())
 	assert_false(deal.use_nuoc_voi(1, run_cards[-1])["ok"])
+	deal.current_phase = 2
+	assert_true(deal.current_drink_has_charge())
+	deal.current_phase = 1
 	var extension := deal.extend_meld(1, [run_cards[0]] as Array[CardData])
 	assert_true(extension["ok"])
 	assert_eq(extension["context"].final_points, 0)
@@ -430,6 +441,8 @@ func test_sam_dua_preserves_up_to_two_selected_loose_cards_only_on_dump() -> voi
 	var chosen: Array[CardData] = [deal.hand[0], deal.hand[1]]
 	assert_false(deal.select_sam_dua_preserves([deal.hand[0], deal.hand[1], deal.hand[2]] as Array[CardData])["ok"])
 	assert_true(deal.select_sam_dua_preserves(chosen)["ok"])
+	assert_false(deal.current_drink_has_charge())
+	assert_false(deal.select_sam_dua_preserves(chosen)["ok"])
 	var result := deal.choose_phase_two(false)
 	assert_true(result["ok"])
 	assert_eq(result["preserved"], chosen)

@@ -35,10 +35,10 @@ Distribute `TRADATALA-v1.0.1.exe` together with `TRADATALA-v1.0.1.pck`. The PCK 
 - `S`: cycle rank/suit hand sorting.
 - `G`: select the highest-scoring legal new Meld; if none exists, select the best legal table extension.
 - Hover a loose card to reveal its top-right meld badge: `✓` means it already belongs to a ready Phỏm; otherwise the badge shows that card's best exact completion percentage. The badge hides again when the pointer leaves.
-- Ready action cards carry an animated outline: flowing green for a legal new Phỏm, yellow for a legal table extension, and a blended green/yellow sweep when both actions are available.
+- Ready action cards carry an animated outline: flowing green for a legal new Phỏm, yellow for a legal table extension, and a blended green/yellow sweep when both actions are available. A separate blue gradient surrounds the right-side Drink box while its charge is available and disappears when spent; cards committed to Sâm dứa preservation keep the matching blue outline until the Phase transition resolves.
 - Click the `BỎ • XEM` pile to open every discarded card grouped into Bích, Cơ, Rô, and Tép columns.
-- Hover the active Drink for its complete effect and timing. Select the required loose or table card, then click the Drink slot to activate it.
-- For Sâm dứa, select up to two loose cards during Phase 1 LAST CALL and click the Drink before CHỐT; those marked cards survive only if the following choice is DUMP.
+- Hover the active Drink for its complete effect and timing. Click the charged Drink first to arm it, then click the required loose or table card; blue gradients identify Drink targets.
+- For Sâm dứa, click the Drink during Phase 1 LAST CALL, select up to two blue-outlined loose cards, then click the Drink again to confirm before CHỐT; those marked cards survive only if the following choice is DUMP.
 - `K` / `X`: KEEP / DUMP at the Phase 1 settlement.
 - `Esc`: clear card and Meld selection.
 - After Phase 2, continue into the next campaign Event; the wallet persists across all 28 Deals.

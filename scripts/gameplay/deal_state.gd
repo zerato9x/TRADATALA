@@ -56,6 +56,7 @@ var tra_da_used_this_turn: bool = false
 var nhan_tran_used_this_turn: bool = false
 var nuoc_voi_used_phases: Dictionary = {}
 var sam_dua_preserved_cards: Array[CardData] = []
+var sam_dua_used: bool = false
 
 var _next_meld_id: int = 1
 var _turn_started_with_ten: bool = false
@@ -237,6 +238,8 @@ func select_sam_dua_preserves(cards: Array[CardData]) -> Dictionary:
 		return _failure("Sâm dứa is not the active Drink.")
 	if current_phase != 1 or state not in [STATE_FINAL_COMMIT_WINDOW, STATE_PHASE_CHOICE]:
 		return _failure("Sâm dứa is prepared during the Phase 1 to Phase 2 transition.")
+	if sam_dua_used:
+		return _failure("Sâm dứa has already been used this Deal.")
 	if cards.size() > 2:
 		return _failure("Sâm dứa can preserve at most two loose cards.")
 	var seen_ids := {}
@@ -246,6 +249,7 @@ func select_sam_dua_preserves(cards: Array[CardData]) -> Dictionary:
 		seen_ids[card.unique_id] = true
 	sam_dua_preserved_cards.clear()
 	sam_dua_preserved_cards.append_array(cards)
+	sam_dua_used = true
 	var result := {
 		"ok": true,
 		"action": "sam_dua_selected",
@@ -253,6 +257,19 @@ func select_sam_dua_preserves(cards: Array[CardData]) -> Dictionary:
 	}
 	state_changed.emit(result)
 	return result
+
+
+func current_drink_has_charge() -> bool:
+	match current_drink_id:
+		DrinkCatalog.TRA_DA:
+			return not tra_da_used_this_turn and state == STATE_ACTIVE
+		DrinkCatalog.NHAN_TRAN:
+			return not nhan_tran_used_this_turn and state == STATE_ACTIVE and discard_count < DISCARDS_PER_PHASE
+		DrinkCatalog.NUOC_VOI:
+			return current_phase in [1, 2] and not nuoc_voi_used_phases.has(current_phase) and _card_actions_available()
+		DrinkCatalog.SAM_DUA:
+			return not sam_dua_used and current_phase == 1 and state != STATE_DEAL_OVER
+	return false
 
 
 func create_meld(selected_cards: Array[CardData]) -> Dictionary:
@@ -643,6 +660,7 @@ func _reset_drink_usage() -> void:
 	nhan_tran_used_this_turn = false
 	nuoc_voi_used_phases.clear()
 	sam_dua_preserved_cards.clear()
+	sam_dua_used = false
 
 
 func _remove_from_hand(cards: Array[CardData]) -> void:
