@@ -162,23 +162,28 @@ func test_active_turn_hạ_preserves_the_mandatory_discard_card() -> void:
 	assert_contains(result["message"], "mandatory discard")
 
 
-func test_phase_settlement_charges_deadwood_in_both_phases() -> void:
+func test_safe_phase_deadwood_remains_a_simple_value_sum() -> void:
 	var deal := _fresh_deal(14)
 	_advance_to_last_call(deal)
 	deal.wallet.reset()
 	deal.phase_metrics.raw_gross = 40
+	deal.phase_metrics.new_phom_count = 1
 	deal.phase_earnings_points = 40
+	deal.phase_new_meld_count = 1
 	deal.wallet.apply_points(40, "test_gross")
 	deal.hand.clear()
 	deal.hand.append_array([_card("A", "Spades"), _card("4", "Hearts"), _card("K", "Clubs")])
 	var result := deal.settle_phase()
 	var resolution: Dictionary = result["phase_resolution"]
+	assert_false(resolution["mom"])
+	assert_eq(resolution["deadwood_value_sum"], 18)
+	assert_eq(resolution["deadwood_multiplier"], 1)
 	assert_eq(resolution["deadwood"], 18)
 	assert_eq(resolution["net"], 22)
 	assert_eq(deal.wallet.balance_vnd, VndWallet.points_to_vnd(22))
 
 
-func test_mom_banks_a_strike_without_altering_in_play_money() -> void:
+func test_mom_deadwood_uses_value_sum_times_loose_card_count() -> void:
 	var deal := _fresh_deal(15)
 	_advance_to_last_call(deal)
 	deal.wallet.reset()
@@ -186,44 +191,34 @@ func test_mom_banks_a_strike_without_altering_in_play_money() -> void:
 	deal.phase_earnings_points = 57
 	deal.wallet.apply_points(57, "extension_score")
 	deal.hand.clear()
+	deal.hand.append_array([_card("A", "Spades"), _card("4", "Hearts"), _card("K", "Clubs")])
 	var resolution: Dictionary = deal.settle_phase()["phase_resolution"]
 	assert_true(resolution["mom"])
-	assert_eq(deal.mom_strikes_banked, 1)
-	assert_eq(deal.wallet.balance_vnd, VndWallet.points_to_vnd(57))
+	assert_eq(resolution["deadwood_value_sum"], 18)
+	assert_eq(resolution["deadwood_multiplier"], 3)
+	assert_eq(resolution["deadwood"], 54)
+	assert_eq(resolution["net"], 3)
+	assert_eq(resolution["deadwood"], ScoringPipeline.meld_value(resolution["remaining_hand"]))
+	assert_eq(deal.wallet.balance_vnd, VndWallet.points_to_vnd(3))
 
 
-func test_mom_resolution_penalizes_the_full_wallet_by_strike_tier() -> void:
-	var one_strike := DealState.new()
-	one_strike.wallet.reset(1_000_000)
-	one_strike.phase_earnings_points = 5
-	one_strike.mom_strikes_banked = 1
-	one_strike._resolve_deal()
-	assert_eq(one_strike.mom_strikes_resolved, 1)
-	assert_eq(one_strike.mom_penalty_percent, 10)
-	assert_eq(one_strike.wallet_before_mom_penalty_vnd, 1_000_000)
-	assert_eq(one_strike.mom_penalty_vnd, 100_000)
-	assert_eq(one_strike.wallet.balance_vnd, 900_000)
-
-	var two_strikes := DealState.new()
-	two_strikes.wallet.reset(1_000_000)
-	two_strikes.phase_earnings_points = 5
-	two_strikes.mom_strikes_banked = 2
-	two_strikes._resolve_deal()
-	assert_eq(two_strikes.mom_strikes_resolved, 2)
-	assert_eq(two_strikes.mom_penalty_percent, 25)
-	assert_eq(two_strikes.wallet_before_mom_penalty_vnd, 1_000_000)
-	assert_eq(two_strikes.mom_penalty_vnd, 250_000)
-	assert_eq(two_strikes.wallet.balance_vnd, 750_000)
-
-
-func test_mom_resolution_never_turns_a_non_positive_wallet_into_a_reward() -> void:
+func test_empty_mom_hand_has_a_zero_deadwood_equation() -> void:
 	var deal := DealState.new()
-	deal.wallet.reset(-100_000)
-	deal.mom_strikes_banked = 2
+	deal.start_deal(151, true)
+	_advance_to_last_call(deal)
+	deal.hand.clear()
+	var resolution: Dictionary = deal.settle_phase()["phase_resolution"]
+	assert_true(resolution["mom"])
+	assert_eq(resolution["deadwood_value_sum"], 0)
+	assert_eq(resolution["deadwood_multiplier"], 0)
+	assert_eq(resolution["deadwood"], 0)
+
+
+func test_deal_resolution_does_not_apply_a_later_mom_wallet_penalty() -> void:
+	var deal := DealState.new()
+	deal.wallet.reset(1_000_000)
 	deal._resolve_deal()
-	assert_eq(deal.mom_penalty_percent, 25)
-	assert_eq(deal.mom_penalty_vnd, 0)
-	assert_eq(deal.wallet.balance_vnd, -100_000)
+	assert_eq(deal.wallet.balance_vnd, 1_000_000)
 
 
 func test_extension_does_not_count_as_a_new_phom_for_mom() -> void:
@@ -392,6 +387,27 @@ func test_nhan_tran_adds_one_optional_discard_without_refill_until_next_turn() -
 	assert_false(stranded.use_nhan_tran(stranded.hand[0])["ok"])
 
 
+func test_nhan_tran_can_combine_two_selected_cards_into_one_turn_discard() -> void:
+	var deal := _fresh_deal(223, DrinkCatalog.NHAN_TRAN)
+	var draw_before := deal.deck.draw_pile.size()
+	var extra := deal.hand[0]
+	var mandatory := deal.hand[1]
+	var selected: Array[CardData] = [extra, mandatory]
+	assert_true(deal.can_discard_with_nhan_tran(selected))
+	var result := deal.discard_with_nhan_tran(selected)
+	assert_true(result.get("ok", false))
+	assert_eq(result.get("action", ""), "nhan_tran_batch_discard")
+	assert_eq(result.get("extra_card"), extra)
+	assert_eq(result.get("card"), mandatory)
+	assert_false(deal.hand.has(extra))
+	assert_false(deal.hand.has(mandatory))
+	assert_eq(deal.discard_count, 1)
+	assert_eq(deal.hand.size(), DealState.ACTIVE_HAND_TARGET)
+	assert_eq(deal.deck.draw_pile.size(), draw_before - 2)
+	assert_eq(deal.deck.discard_pile[-2], extra)
+	assert_eq(deal.deck.discard_pile[-1], mandatory)
+
+
 func test_nuoc_voi_returns_only_a_legal_meld_card_once_per_phase_without_unscoring() -> void:
 	var deal := DealState.new()
 	deal.set_current_drink(DrinkCatalog.NUOC_VOI)
@@ -454,15 +470,18 @@ func test_sam_dua_preserves_up_to_two_selected_loose_cards_only_on_dump() -> voi
 		assert_false(deal.hand.has(card))
 
 
-func test_sam_dua_does_not_protect_mom_or_other_scoring_rules() -> void:
-	var deal := DealState.new()
-	deal.set_current_drink(DrinkCatalog.SAM_DUA)
-	deal.wallet.reset(1_000_000)
-	deal.mom_strikes_banked = 2
-	deal._resolve_deal()
-	assert_eq(deal.mom_strikes_resolved, 2)
-	assert_eq(deal.mom_penalty_percent, 25)
-	assert_eq(deal.wallet.balance_vnd, 750_000)
+func test_sam_dua_does_not_change_mom_deadwood() -> void:
+	var deal := _fresh_deal(22, DrinkCatalog.SAM_DUA)
+	_advance_to_last_call(deal)
+	deal.wallet.reset()
+	deal.hand.clear()
+	deal.hand.append_array([_card("A", "Spades"), _card("4", "Hearts"), _card("K", "Clubs")])
+	var resolution: Dictionary = deal.settle_phase()["phase_resolution"]
+	assert_true(resolution["mom"])
+	assert_eq(resolution["deadwood_value_sum"], 18)
+	assert_eq(resolution["deadwood_multiplier"], 3)
+	assert_eq(resolution["deadwood"], 54)
+	assert_eq(deal.wallet.balance_vnd, VndWallet.points_to_vnd(-54))
 
 
 func test_advanced_drink_taxonomy_exists_without_invented_effects() -> void:
@@ -635,7 +654,16 @@ func test_meld_probability_labels_follow_the_active_locale() -> void:
 	TranslationServer.set_locale(original_locale)
 
 
-func test_point_to_vnd_conversion_uses_integer_thousands() -> void:
+func test_vnd_per_point_converts_positive_and_negative_point_changes() -> void:
+	var wallet := VndWallet.new()
+	wallet.vnd_per_point = 2500
+	wallet.apply_points(4, "test_gain")
+	assert_eq(wallet.balance_vnd, 10000)
+	wallet.apply_points(-3, "test_loss")
+	assert_eq(wallet.balance_vnd, 2500)
+
+
+func test_point_to_vnd_conversion_uses_integer_thousands_by_default() -> void:
 	assert_eq(VndWallet.points_to_vnd(63), 63000)
 	assert_eq(VndWallet.format_vnd(1234567890), "₫1.234.567.890")
 

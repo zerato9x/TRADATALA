@@ -31,13 +31,14 @@ func set_meld(
 	extension_is_legal: bool,
 	drink_selection_enabled: bool = false,
 	drink_removable_card_ids: Dictionary = {},
-	selected_drink_card_id: String = ""
+	selected_drink_card_id: String = "",
+	vnd_per_point: int = VndWallet.VND_PER_POINT
 ) -> void:
 	meld_id = meld.meld_id
 	if _title == null:
 		return
 	_title.text = "%s  %02d" % [tr("MELD_RUN") if meld.meld_type == MeldRules.TYPE_RUN else tr("MELD_SET"), meld.meld_id]
-	_score.text = tr("MELD_POINTS") % [meld.scored_points, VndWallet.format_vnd(VndWallet.points_to_vnd(meld.scored_points))]
+	_score.text = tr("MELD_POINTS") % [meld.scored_points, VndWallet.format_vnd(VndWallet.points_to_vnd(meld.scored_points, vnd_per_point))]
 	_hint.text = tr("MELD_READY_EXTEND") if extension_is_legal else (tr("MELD_SELECTED") if is_selected else tr("MELD_SELECT_EXTEND"))
 	_hint.add_theme_color_override("font_color", PresentationTheme.TEA if extension_is_legal else (PresentationTheme.GOLD if is_selected else PresentationTheme.MUTED))
 	var border := PresentationTheme.TEA if extension_is_legal else (PresentationTheme.GOLD if is_selected else Color("#8d5b30"))

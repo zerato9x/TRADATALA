@@ -61,8 +61,8 @@ Buttons remain disabled until their action is legal. The footer explains the cur
 
 The prototype now follows the two-Phase Deal contract: each Phase has four mandatory discards, a player-confirmed LAST CALL window, and its own settlement. Table Phỏm persist across Phases; Phase 1 then offers KEEP or DUMP, with DUMP refilling toward ten.
 
-- Deadwood is calculated once per Phase as the simple sum of remaining loose-card values. Phase Net is `Gross after Ù − Deadwood`.
-- MÓM is checked independently per Phase from new Phỏm count. Strikes are banked and resolved after Phase 2 against the full Wallet: one resolved strike removes 10%, while two remove 25% total.
+- Deadwood is calculated once per Phase. A safe Phase uses the simple sum of remaining loose-card values; a MÓM Phase uses `value sum × loose-card count`. Phase Net is `Gross after Ù − Deadwood`.
+- MÓM is checked independently per Phase from new Phỏm count. Its multiplied Deadwood is charged immediately at that Phase's settlement, with no later Wallet percentage penalty.
 - Active-turn HẠ / EXTEND must preserve one mandatory discard card; LAST CALL removes that restriction and forbids further discards/refills.
 - Ù is Phase-scoped: a ten-card turn that commits exactly nine cards and discards the last doubles that Phase's Gross, not Deadwood.
 - Ù Khan uses the prototype near-meld definition, pays `hand value × 10`, replaces the hand, and checks the refill again.

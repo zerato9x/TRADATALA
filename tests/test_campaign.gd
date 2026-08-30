@@ -57,9 +57,11 @@ func test_drink_selection_uses_shared_wallet_and_two_deal_periods() -> void:
 	var afternoon := drinks.select_for_event(EventManager.EventSlot.NOON, DrinkCatalog.SAM_DUA)
 	assert_true(afternoon["ok"])
 	assert_eq(wallet.balance_vnd, 20_000)
-	assert_eq(drinks.morning_drink_id, DrinkCatalog.NONE)
+	assert_eq(drinks.morning_drink_id, DrinkCatalog.NUOC_VOI)
 	assert_eq(drinks.afternoon_drink_id, DrinkCatalog.SAM_DUA)
 	drinks.clear_day()
+	assert_eq(drinks.morning_drink_id, DrinkCatalog.NONE)
+	assert_eq(drinks.afternoon_drink_id, DrinkCatalog.NONE)
 	assert_eq(drinks.active_drink_id, DrinkCatalog.NONE)
 
 

@@ -6,6 +6,7 @@ signal balance_changed(previous_vnd: int, current_vnd: int, delta_vnd: int, reas
 const VND_PER_POINT := 1000
 
 var balance_vnd: int = 0
+var vnd_per_point: int = VND_PER_POINT
 
 
 func reset(amount_vnd: int = 0) -> void:
@@ -15,7 +16,7 @@ func reset(amount_vnd: int = 0) -> void:
 
 
 func apply_points(points: int, reason: String = "score") -> int:
-	return apply_vnd(points_to_vnd(points), reason)
+	return apply_vnd(points_to_vnd(points, vnd_per_point), reason)
 
 
 func apply_vnd(amount_vnd: int, reason: String = "adjustment") -> int:
@@ -25,8 +26,8 @@ func apply_vnd(amount_vnd: int, reason: String = "adjustment") -> int:
 	return amount_vnd
 
 
-static func points_to_vnd(points: int) -> int:
-	return points * VND_PER_POINT
+static func points_to_vnd(points: int, rate_vnd_per_point: int = VND_PER_POINT) -> int:
+	return points * rate_vnd_per_point
 
 
 static func format_vnd(amount_vnd: int, include_sign: bool = false) -> String:
@@ -42,4 +43,3 @@ static func format_vnd(amount_vnd: int, include_sign: bool = false) -> String:
 		digits = digits.left(digits.length() - 3)
 	grouped = digits + grouped
 	return "%s₫%s" % [sign_text, grouped]
-

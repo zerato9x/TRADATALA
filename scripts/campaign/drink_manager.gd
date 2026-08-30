@@ -47,7 +47,6 @@ func select_for_event(event_slot: int, drink_id: String) -> Dictionary:
 	if period == "morning":
 		morning_drink_id = drink_id
 	else:
-		morning_drink_id = DrinkCatalog.NONE
 		afternoon_drink_id = drink_id
 	active_drink_id = drink_id
 	drink_selected.emit(drink_id, period, price)

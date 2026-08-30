@@ -10,6 +10,23 @@ const GAME_SETTINGS_SCRIPT := preload("res://scripts/settings/game_settings.gd")
 const TUTORIAL_SPOTLIGHT_SCRIPT := preload("res://scripts/ui/tutorial_spotlight.gd")
 const CARD_DRAG_PAYLOAD_SCRIPT := preload("res://scripts/ui/card_drag_payload.gd")
 const CARD_ACTION_OUTLINE_SCRIPT := preload("res://scripts/ui/card_action_outline.gd")
+const EMPTY_DRINK_TEXTURE := preload("res://assets/drinks/glass_empty.png")
+const DRINK_FULL_TEXTURES := {
+	DrinkCatalog.TRA_DA: preload("res://assets/drinks/tra_da_full.png"),
+	DrinkCatalog.NUOC_VOI: preload("res://assets/drinks/nuoc_voi_full.png"),
+	DrinkCatalog.NHAN_TRAN: preload("res://assets/drinks/nhan_tran_full.png"),
+	DrinkCatalog.SAM_DUA: preload("res://assets/drinks/sam_dua_full.png"),
+}
+const DRINK_HALF_TEXTURES := {
+	DrinkCatalog.TRA_DA: preload("res://assets/drinks/tra_da_half.png"),
+	DrinkCatalog.NUOC_VOI: preload("res://assets/drinks/nuoc_voi_half.png"),
+	DrinkCatalog.NHAN_TRAN: preload("res://assets/drinks/nhan_tran_half.png"),
+	DrinkCatalog.SAM_DUA: preload("res://assets/drinks/sam_dua_half.png"),
+}
+const DRINK_TABLE_PROP_SIZE := Vector2(112, 144)
+const DRINK_TABLE_MORNING_POSITION := Vector2(70, 260)
+const DRINK_TABLE_EMPTY_POSITION := Vector2(30, 245)
+const DRINK_TABLE_NOON_POSITION := Vector2(100, 260)
 const DROP_TARGET_NONE := &"none"
 const DROP_TARGET_HAND := &"hand"
 const DROP_TARGET_TABLE := &"table"
@@ -104,12 +121,16 @@ var relic_grid: GridContainer
 var drink_name_label: Label
 var drink_button: Button
 var drink_charge_outline: Control
+var drink_table_button: Button
+var drink_table_texture: TextureRect
+var empty_drink_prop: TextureRect
 var drink_targeting_active: bool = false
 var pending_drink_card_ids: Dictionary = {}
 var selected_drink_meld_id: int = -1
 var selected_drink_meld_card_id: String = ""
 
 var earnings_value: Label
+var vnd_per_point_value: Label
 var wallet_value: Label
 var campaign_value: Label
 var header_caption_labels: Dictionary = {}
@@ -777,6 +798,7 @@ func _refresh_localized_ui() -> void:
 	menu_button.tooltip_text = tr("HUD_MENU_TOOLTIP")
 	discard_history_title.text = tr("HUD_DISCARD_HISTORY")
 	(header_caption_labels.get("IncomeStat") as Label).text = tr("HUD_INCOME")
+	(header_caption_labels.get("VndPerPointStat") as Label).text = tr("HUD_VND_PER_POINT")
 	(header_caption_labels.get("WalletStat") as Label).text = tr("HUD_WALLET")
 	(header_caption_labels.get("CampaignStat") as Label).text = tr("HUD_CAMPAIGN")
 	empty_meld_label.text = tr("TABLE_EMPTY_MELD")
@@ -1192,6 +1214,7 @@ func _build_header() -> void:
 	row.add_child(spacer)
 
 	campaign_value = _add_header_stat(row, "HUD_CAMPAIGN", 178, false, "CampaignStat")
+	vnd_per_point_value = _add_header_stat(row, "HUD_VND_PER_POINT", 132, false, "VndPerPointStat")
 	earnings_value = _add_header_stat(row, "HUD_INCOME", 144, false, "IncomeStat")
 	wallet_value = _add_header_stat(row, "HUD_WALLET", 178, true, "WalletStat")
 
@@ -1272,6 +1295,7 @@ func _build_table() -> void:
 	table.add_theme_stylebox_override("panel", PresentationTheme.panel_style(Color.TRANSPARENT, Color.TRANSPARENT, 0, 0, 0))
 	game_layer.add_child(table)
 
+	_build_drink_table_props(table)
 	draw_pile_visual = _build_pile(table, true)
 	discard_pile_visual = _build_pile(table, false)
 
@@ -1306,6 +1330,46 @@ func _build_table() -> void:
 	empty_meld_label.add_theme_color_override("font_color", Color("#e5d5a2"))
 	empty_meld_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	table.add_child(empty_meld_label)
+
+
+func _build_drink_table_props(parent: Control) -> void:
+	var props := Control.new()
+	props.name = "DrinkProps"
+	props.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	props.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	props.z_index = 2
+	parent.add_child(props)
+
+	empty_drink_prop = TextureRect.new()
+	empty_drink_prop.name = "EmptyDrinkProp"
+	empty_drink_prop.position = DRINK_TABLE_EMPTY_POSITION
+	empty_drink_prop.size = DRINK_TABLE_PROP_SIZE
+	empty_drink_prop.texture = EMPTY_DRINK_TEXTURE
+	empty_drink_prop.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	empty_drink_prop.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	empty_drink_prop.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	empty_drink_prop.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	empty_drink_prop.modulate = Color.WHITE
+	props.add_child(empty_drink_prop)
+
+	drink_table_button = Button.new()
+	drink_table_button.name = "ActiveDrink"
+	drink_table_button.position = DRINK_TABLE_MORNING_POSITION
+	drink_table_button.size = DRINK_TABLE_PROP_SIZE
+	drink_table_button.flat = true
+	drink_table_button.focus_mode = Control.FOCUS_NONE
+	drink_table_button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	drink_table_button.pressed.connect(_on_drink_pressed)
+	props.add_child(drink_table_button)
+
+	drink_table_texture = TextureRect.new()
+	drink_table_texture.name = "Sprite"
+	drink_table_texture.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	drink_table_texture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	drink_table_texture.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	drink_table_texture.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	drink_table_texture.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	drink_table_button.add_child(drink_table_texture)
 
 
 func _build_pile(parent: Control, is_draw_pile: bool) -> Control:
@@ -2128,8 +2192,39 @@ func _sync_all(result: Dictionary = {}, animate_all_cards: bool = false) -> void
 		drink_name_label.text = tr(DrinkCatalog.display_name(deal.current_drink_id)).to_upper()
 		drink_button.tooltip_text = _drink_tooltip()
 		drink_charge_outline.set_drink_cue(deal.current_drink_has_charge())
+		_sync_drink_table_visual()
 	_refresh_stats()
 	_refresh_actions()
+
+
+func _drink_is_spent_in_current_window() -> bool:
+	match deal.current_drink_id:
+		DrinkCatalog.TRA_DA:
+			return deal.tra_da_used_this_turn
+		DrinkCatalog.NHAN_TRAN:
+			return deal.nhan_tran_used_this_turn
+		DrinkCatalog.NUOC_VOI:
+			return deal.nuoc_voi_used_phases.has(deal.current_phase)
+		DrinkCatalog.SAM_DUA:
+			return deal.sam_dua_used
+	return false
+
+
+func _sync_drink_table_visual() -> void:
+	if drink_table_button == null or drink_table_texture == null:
+		return
+	var has_previous_drink := drink_manager != null and drink_manager.morning_drink_id != DrinkCatalog.NONE and drink_manager.afternoon_drink_id != DrinkCatalog.NONE
+	empty_drink_prop.visible = has_previous_drink
+	empty_drink_prop.position = DRINK_TABLE_EMPTY_POSITION
+	drink_table_button.position = DRINK_TABLE_NOON_POSITION if has_previous_drink else DRINK_TABLE_MORNING_POSITION
+	var noon_deal := campaign != null and campaign.current_phase == CampaignManager.CampaignPhase.NOON_DEAL
+	var spent: bool = _drink_is_spent_in_current_window() or noon_deal
+	var textures: Dictionary = DRINK_HALF_TEXTURES if spent else DRINK_FULL_TEXTURES
+	var texture := textures.get(deal.current_drink_id) as Texture2D
+	drink_table_button.visible = texture != null
+	drink_table_texture.texture = texture
+	drink_table_texture.modulate = Color(0.94, 0.94, 0.94, 0.92) if spent else Color.WHITE
+	drink_table_button.tooltip_text = _drink_tooltip()
 
 
 func _sync_hand(animated_cards: Array[CardData]) -> void:
@@ -2309,7 +2404,8 @@ func _sync_melds() -> void:
 			legal,
 			drink_selection_enabled,
 			removable_card_ids,
-			selected_drink_meld_card_id if selected_drink_meld_id == meld.meld_id else ""
+			selected_drink_meld_card_id if selected_drink_meld_id == meld.meld_id else "",
+			deal.vnd_per_point
 		)
 		if not is_new:
 			continue
@@ -2386,8 +2482,13 @@ func _build_discard_thumbnail(record: DiscardRecord) -> Control:
 	return holder
 
 
+func _points_to_vnd(points: int) -> int:
+	return VndWallet.points_to_vnd(points, deal.vnd_per_point)
+
+
 func _refresh_stats() -> void:
-	earnings_value.text = VndWallet.format_vnd(VndWallet.points_to_vnd(deal.phase_earnings_points), true)
+	vnd_per_point_value.text = VndWallet.format_vnd(deal.vnd_per_point)
+	earnings_value.text = VndWallet.format_vnd(_points_to_vnd(deal.phase_earnings_points), true)
 	wallet_value.text = VndWallet.format_vnd(displayed_wallet_vnd)
 	if campaign_value != null:
 		if campaign == null or campaign.current_day().is_empty():
@@ -2401,13 +2502,17 @@ func _refresh_stats() -> void:
 
 func _refresh_actions() -> void:
 	var selected := _selected_cards()
+	var can_batch_nhan_tran_discard := not drink_targeting_active and deal.can_discard_with_nhan_tran(selected)
 	if drink_button != null:
 		drink_button.disabled = tutorial_active or interaction_locked or deal.current_drink_id == DrinkCatalog.NONE or (not drink_targeting_active and not deal.current_drink_has_charge())
+		if drink_table_button != null:
+			drink_table_button.disabled = drink_button.disabled
 	var card_window := deal.state in [DealState.STATE_ACTIVE, DealState.STATE_FINAL_COMMIT_WINDOW] and not interaction_locked
 	var active_turn := deal.state == DealState.STATE_ACTIVE and not interaction_locked
 	ha_button.disabled = not card_window or not deal.can_create_meld(selected)
 	extend_button.disabled = not card_window or selected_meld_id < 0 or not deal.can_extend_meld(selected_meld_id, selected)
-	discard_button.disabled = not active_turn or selected.size() != 1
+	discard_button.disabled = not active_turn or (selected.size() != 1 and not can_batch_nhan_tran_discard)
+	discard_button.tooltip_text = tr("ACTION_NHAN_TRAN_DISCARD_TOOLTIP") if can_batch_nhan_tran_discard else tr("ACTION_DISCARD_TOOLTIP")
 	settle_button.disabled = deal.state != DealState.STATE_FINAL_COMMIT_WINDOW or interaction_locked
 	hint_button.disabled = not card_window or deal.hand.is_empty()
 	sort_button.disabled = not card_window or deal.hand.size() < 2
@@ -2452,7 +2557,7 @@ func _refresh_actions() -> void:
 		status_label.text = tr("STATUS_VALID_MELD") % [
 			tr("MELD_RUN") if kind == MeldRules.TYPE_RUN else tr("MELD_SET"),
 			points,
-			VndWallet.format_vnd(VndWallet.points_to_vnd(points), true),
+			VndWallet.format_vnd(_points_to_vnd(points), true),
 		]
 		status_label.add_theme_color_override("font_color", PresentationTheme.TEA)
 	elif selected_meld_id >= 0 and deal.can_extend_meld(selected_meld_id, selected):
@@ -2462,9 +2567,12 @@ func _refresh_actions() -> void:
 		status_label.text = tr("STATUS_VALID_EXTEND") % [
 			selected_meld_id,
 			points,
-			VndWallet.format_vnd(VndWallet.points_to_vnd(points), true),
+			VndWallet.format_vnd(_points_to_vnd(points), true),
 		]
 		status_label.add_theme_color_override("font_color", PresentationTheme.GOLD)
+	elif can_batch_nhan_tran_discard:
+		status_label.text = tr("STATUS_NHAN_TRAN_BATCH_DISCARD")
+		status_label.add_theme_color_override("font_color", CardActionOutline.DRINK_HIGHLIGHT)
 	elif selected.size() == 1:
 		status_label.text = tr("STATUS_ONE_SELECTED")
 		status_label.add_theme_color_override("font_color", PresentationTheme.INK)
@@ -3044,10 +3152,11 @@ func _on_discard_pressed() -> void:
 	var completed_tutorial_step := tutorial_step
 	var selected := _selected_cards()
 	var card := selected[0]
+	var uses_nhan_tran_batch := not drink_targeting_active and deal.can_discard_with_nhan_tran(selected)
 	interaction_locked = true
 	_refresh_actions()
 	await _fly_cards(selected, discard_texture.get_global_rect().get_center())
-	var result := deal.discard_card(card)
+	var result: Dictionary = deal.discard_with_nhan_tran(selected) if uses_nhan_tran_batch else deal.discard_card(card)
 	if not result.get("ok", false):
 		_reject_action(result.get("message", "Discard failed."))
 		return
@@ -3059,7 +3168,10 @@ func _on_discard_pressed() -> void:
 		_refresh_actions()
 	else:
 		var drawn: Array[CardData] = _cards_from_result(result)
-		_show_banner(tr("BANNER_DRAW") % [drawn.size(), deal.discard_count, DealState.DISCARDS_PER_PHASE])
+		if result.get("action", "") == "nhan_tran_batch_discard":
+			_show_banner(tr("BANNER_DRINK_NHAN_TRAN_BATCH"))
+		else:
+			_show_banner(tr("BANNER_DRAW") % [drawn.size(), deal.discard_count, DealState.DISCARDS_PER_PHASE])
 		interaction_locked = false
 		_refresh_actions()
 	if tutorial_active and completed_tutorial_step == TUTORIAL_DISCARD:
@@ -3148,43 +3260,34 @@ func _show_scoring(context: ScoringContext) -> void:
 		score_title.text = tr("SCORE_MELD_SUCCESS") % [kind, context.phase]
 		score_line_a.text = "%s   →   %d" % [context.value_equation(), context.card_value_sum]
 		score_line_b.text = tr("SCORE_POINTS_EQUATION") % [context.base_score, context.local_mult, context.theoretical_score]
-		score_payout.text = "%d × ₫1.000   →   %s" % [context.final_points, VndWallet.format_vnd(VndWallet.points_to_vnd(context.final_points), true)]
+		score_payout.text = "%d × %s   →   %s" % [context.final_points, VndWallet.format_vnd(deal.vnd_per_point), VndWallet.format_vnd(_points_to_vnd(context.final_points), true)]
 	else:
 		score_title.text = tr("SCORE_EXTEND_SUCCESS") % [kind, context.phase]
 		score_line_a.text = tr("SCORE_OLD_NEW") % [context.old_meld_score, context.theoretical_score]
 		score_line_b.text = tr("SCORE_DELTA") % [context.theoretical_score, context.old_meld_score, context.final_points]
-		score_payout.text = tr("SCORE_INCREASE") % VndWallet.format_vnd(VndWallet.points_to_vnd(context.final_points), true)
+		score_payout.text = tr("SCORE_INCREASE") % VndWallet.format_vnd(_points_to_vnd(context.final_points), true)
 	await _play_score_panel(deal.wallet.balance_vnd, context.final_points >= 0)
 
 
 func _show_phase_resolution(resolution: Dictionary) -> void:
 	var is_mom: bool = resolution["mom"]
 	var phase_number: int = resolution["phase"]
-	var resolved_mom: int = int(resolution.get("mom_strikes_resolved", 0))
-	var mom_penalty_percent: int = int(resolution.get("mom_penalty_percent", 0))
-	var mom_penalty_vnd: int = int(resolution.get("mom_penalty_vnd", 0))
 	score_title.text = tr("SCORE_PHASE_RESULT") % phase_number
 	if is_mom:
 		score_line_a.text = tr("SCORE_MOM")
 		score_line_a.add_theme_color_override("font_color", PresentationTheme.RED)
+		score_line_b.text = tr("SCORE_MOM_DEADWOOD") % [
+			resolution["deadwood_value_sum"],
+			resolution["deadwood_multiplier"],
+			resolution["deadwood_points"],
+		]
 	else:
 		score_line_a.text = tr("SCORE_SAFE") % resolution["new_phom_count"]
 		score_line_a.add_theme_color_override("font_color", PresentationTheme.TEA)
-	if phase_number == 2 and resolved_mom > 0:
-		score_line_b.text = tr("SCORE_MOM_PENALTY") % [
-			resolved_mom,
-			mom_penalty_percent,
-			VndWallet.format_vnd(mom_penalty_vnd),
-		]
-	elif phase_number == 2 and deal.mom_strikes_banked > 0:
-		score_line_b.text = tr("SCORE_MOM_PROTECTED")
-	elif is_mom:
-		score_line_b.text = tr("SCORE_MOM_BANK") % deal.mom_strikes_banked
-	else:
 		score_line_b.text = tr("SCORE_GROSS") % [resolution["gross_after_u"], tr("SCORE_U_BONUS") if resolution["u"] else ""]
 	var deadwood: int = resolution["deadwood_points"]
 	score_payout.text = tr("SCORE_NET") % [resolution["net"], resolution["gross_after_u"], deadwood]
-	await _play_score_panel(deal.wallet.balance_vnd, not is_mom and mom_penalty_vnd == 0)
+	await _play_score_panel(deal.wallet.balance_vnd, not is_mom)
 	score_line_a.add_theme_color_override("font_color", PresentationTheme.INK)
 
 
@@ -3279,10 +3382,8 @@ func _show_deal_over(resolution: Dictionary) -> void:
 	modal_title.text = VndWallet.format_vnd(deal.wallet.balance_vnd)
 	modal_body.text = tr("MODAL_DEAL_BODY") % deal.melds.size()
 	modal_detail.text = tr("MODAL_DEAL_DETAIL") % [
-		deal.mom_strikes_banked,
-		deal.mom_strikes_resolved,
-		deal.mom_penalty_percent,
-		VndWallet.format_vnd(deal.mom_penalty_vnd),
+		resolution["deadwood_value_sum"],
+		resolution["deadwood_multiplier"],
 		resolution["deadwood_points"],
 	]
 	modal_primary.text = tr("EVENT_CONTINUE") if modal_mode == "campaign_deal_over" else tr("MODAL_NEW_DEAL")

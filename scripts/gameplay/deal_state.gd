@@ -6,16 +6,12 @@ signal new_phom_scored(context: ScoringContext)
 signal extension_scored(context: ScoringContext)
 signal phase_about_to_settle(context: Dictionary)
 signal deadwood_calculated(context: Dictionary)
-signal mom_strike_banked(context: Dictionary)
 signal deal_about_to_resolve(context: Dictionary)
-signal mom_about_to_resolve(context: Dictionary)
 signal u_triggered(context: Dictionary)
 
 const RESTING_HAND_SIZE := 9
 const ACTIVE_HAND_TARGET := 10
 const DISCARDS_PER_PHASE := 4
-const MOM_ONE_STRIKE_PENALTY_PERCENT := 10
-const MOM_TWO_STRIKE_PENALTY_PERCENT := 25
 
 const TUTORIAL_HAND_SPECS := [
 	["4", "Hearts"], ["5", "Hearts"], ["6", "Hearts"],
@@ -34,6 +30,11 @@ const STATE_DEAL_OVER := "deal_over"
 var deck := DeckManager.new()
 var scoring := ScoringPipeline.new()
 var wallet := VndWallet.new()
+var vnd_per_point: int:
+	get:
+		return wallet.vnd_per_point
+	set(value):
+		wallet.vnd_per_point = value
 var hand: Array[CardData] = []
 var melds: Array[MeldState] = []
 var discard_history: Array[DiscardRecord] = []
@@ -46,11 +47,6 @@ var phase_earnings_points: int = 0
 var phase_new_meld_count: int = 0
 var state: String = STATE_ACTIVE
 var last_phase_resolution: Dictionary = {}
-var mom_strikes_banked: int = 0
-var mom_strikes_resolved: int = 0
-var mom_penalty_percent: int = 0
-var mom_penalty_vnd: int = 0
-var wallet_before_mom_penalty_vnd: int = 0
 var current_drink_id: String = DrinkCatalog.TRA_DA
 var tra_da_used_this_turn: bool = false
 var nhan_tran_used_this_turn: bool = false
@@ -73,11 +69,6 @@ func start_deal(shuffle_seed: int = -1, reset_wallet: bool = false) -> Dictionar
 	settlements.clear()
 	current_phase = 1
 	discard_count = 0
-	mom_strikes_banked = 0
-	mom_strikes_resolved = 0
-	mom_penalty_percent = 0
-	mom_penalty_vnd = 0
-	wallet_before_mom_penalty_vnd = wallet.balance_vnd
 	state = STATE_ACTIVE
 	last_phase_resolution.clear()
 	_next_meld_id = 1
@@ -104,11 +95,6 @@ func start_tutorial_deal() -> Dictionary:
 	settlements.clear()
 	current_phase = 1
 	discard_count = 0
-	mom_strikes_banked = 0
-	mom_strikes_resolved = 0
-	mom_penalty_percent = 0
-	mom_penalty_vnd = 0
-	wallet_before_mom_penalty_vnd = wallet.balance_vnd
 	state = STATE_ACTIVE
 	last_phase_resolution.clear()
 	_next_meld_id = 1
@@ -195,6 +181,32 @@ func use_nhan_tran(card: CardData) -> Dictionary:
 		"drawn": [] as Array[CardData],
 	}
 	state_changed.emit(result)
+	return result
+
+
+func can_discard_with_nhan_tran(selected_cards: Array[CardData]) -> bool:
+	if current_drink_id != DrinkCatalog.NHAN_TRAN or not current_drink_has_charge():
+		return false
+	if selected_cards.size() != 2:
+		return false
+	var extra_card := selected_cards[0]
+	var mandatory_card := selected_cards[1]
+	if extra_card == null or mandatory_card == null or extra_card.unique_id == mandatory_card.unique_id:
+		return false
+	return hand.has(extra_card) and hand.has(mandatory_card)
+
+
+func discard_with_nhan_tran(selected_cards: Array[CardData]) -> Dictionary:
+	if not can_discard_with_nhan_tran(selected_cards):
+		return _failure("Select two loose hand cards for the combined drink discard.")
+	var extra_result := use_nhan_tran(selected_cards[0])
+	if not extra_result.get("ok", false):
+		return extra_result
+	var result := discard_card(selected_cards[1])
+	if not result.get("ok", false):
+		return result
+	result["action"] = "nhan_tran_batch_discard"
+	result["extra_card"] = extra_result["card"]
 	return result
 
 
@@ -544,7 +556,17 @@ func _finish_phase() -> Dictionary:
 	var gross_adjustment := gross_after_u - phase_metrics.raw_gross
 	if gross_adjustment != 0:
 		wallet.apply_points(gross_adjustment, "phase_gross_resolution")
-	var deadwood_context := {"phase": current_phase, "cards": hand, "deadwood": deadwood_points()}
+	var is_mom := phase_metrics.new_phom_count == 0
+	var deadwood_value_sum := deadwood_points()
+	var deadwood_multiplier := hand.size() if is_mom else 1
+	var deadwood_context := {
+		"phase": current_phase,
+		"cards": hand,
+		"value_sum": deadwood_value_sum,
+		"multiplier": deadwood_multiplier,
+		"deadwood": deadwood_value_sum * deadwood_multiplier,
+		"mom": is_mom,
+	}
 	deadwood_calculated.emit(deadwood_context)
 	var deadwood: int = maxi(int(deadwood_context.get("deadwood", 0)), 0)
 	if deadwood > 0:
@@ -553,63 +575,30 @@ func _finish_phase() -> Dictionary:
 	settlement.phase = current_phase
 	settlement.raw_gross = raw_gross
 	settlement.gross_after_u = gross_after_u
+	settlement.deadwood_value_sum = maxi(int(deadwood_context.get("value_sum", deadwood_value_sum)), 0)
+	settlement.deadwood_multiplier = maxi(int(deadwood_context.get("multiplier", deadwood_multiplier)), 0)
 	settlement.deadwood = deadwood
 	settlement.net = gross_after_u - deadwood
 	settlement.new_phom_count = phase_metrics.new_phom_count
 	settlement.extension_count = phase_metrics.extension_count
-	settlement.mom = phase_metrics.new_phom_count == 0
+	settlement.mom = is_mom
 	settlement.u = phase_metrics.u
 	settlement.u_khan_count = phase_metrics.u_khan_count
 	settlement.remaining_hand.append_array(hand)
 	settlements.append(settlement)
 	phase_earnings_points = settlement.net
-	if settlement.mom:
-		mom_strikes_banked += 1
-		mom_strike_banked.emit({"phase": current_phase, "banked": mom_strikes_banked, "settlement": settlement})
 	if current_phase == 1:
 		state = STATE_PHASE_CHOICE
 	else:
 		_resolve_deal()
 		state = STATE_DEAL_OVER
 	last_phase_resolution = settlement.to_dictionary()
-	if current_phase == 2:
-		last_phase_resolution.merge({
-			"mom_strikes_banked": mom_strikes_banked,
-			"mom_strikes_resolved": mom_strikes_resolved,
-			"mom_penalty_percent": mom_penalty_percent,
-			"mom_penalty_vnd": mom_penalty_vnd,
-			"wallet_before_mom_penalty_vnd": wallet_before_mom_penalty_vnd,
-			"wallet_after_mom_penalty_vnd": wallet.balance_vnd,
-		})
 	return last_phase_resolution
 
 
 func _resolve_deal() -> void:
-	var deal_context := {"settlements": settlements, "mom_strikes_banked": mom_strikes_banked}
+	var deal_context := {"settlements": settlements}
 	deal_about_to_resolve.emit(deal_context)
-	var raw_mom := maxi(int(deal_context.get("mom_strikes_banked", mom_strikes_banked)), 0)
-	var mom_context := {
-		"raw_mom": raw_mom,
-		"protection": 0,
-		"resolved_mom": raw_mom,
-		"drink_id": current_drink_id,
-	}
-	mom_about_to_resolve.emit(mom_context)
-	mom_strikes_resolved = maxi(int(mom_context.get("resolved_mom", raw_mom)), 0)
-	mom_penalty_percent = mom_penalty_percent_for_strikes(mom_strikes_resolved)
-	wallet_before_mom_penalty_vnd = wallet.balance_vnd
-	var penalty_base_vnd := maxi(wallet_before_mom_penalty_vnd, 0)
-	mom_penalty_vnd = penalty_base_vnd * mom_penalty_percent / 100
-	if mom_penalty_vnd > 0:
-		wallet.apply_vnd(-mom_penalty_vnd, "mom_penalty")
-
-
-static func mom_penalty_percent_for_strikes(strikes: int) -> int:
-	if strikes <= 0:
-		return 0
-	if strikes == 1:
-		return MOM_ONE_STRIKE_PENALTY_PERCENT
-	return MOM_TWO_STRIKE_PENALTY_PERCENT
 
 
 func _validate_loose_selection(selected_cards: Array[CardData]) -> String:

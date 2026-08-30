@@ -79,10 +79,10 @@ func _run() -> void:
 	var has_u_rule := false
 	var has_u_khan_rule := false
 	for special_label in special_labels:
-		has_mom_rule = has_mom_rule or (special_label.text.contains("0 Phỏm MỚI") and special_label.text.contains("Ví −10%") and special_label.text.contains("Ví −25%"))
+		has_mom_rule = has_mom_rule or (special_label.text.contains("0 Phỏm MỚI") and special_label.text.contains("Tổng × Số lá") and special_label.text.contains("mỗi Giai đoạn"))
 		has_u_rule = has_u_rule or (special_label.text.contains("dùng đúng 9") and special_label.text.contains("Gross ×2"))
 		has_u_khan_rule = has_u_khan_rule or (special_label.text.contains("cách nhau 1–2 số") and special_label.text.contains("×10"))
-	_check(special_page.visible and has_mom_rule and has_u_rule and has_u_khan_rule, "Special Outcomes explains Móm wallet penalties, Ù, and the ×10 Ù Khan authority")
+	_check(special_page.visible and has_mom_rule and has_u_rule and has_u_khan_rule, "Special Outcomes explains multiplied Móm deadwood, Ù, and the ×10 Ù Khan authority")
 	scene.how_to_play_back_button.pressed.emit()
 	_check(menu_home.visible and not how_panel.visible, "How to Play Back returns to the main actions")
 	scene.options_button.pressed.emit()
@@ -105,7 +105,7 @@ func _run() -> void:
 	_check(scene.how_to_play_button.text == "HOW TO PLAY" and scene.tutorial_button.text == "TUTORIAL" and scene.options_button.text == "OPTIONS", "English selection refreshes main-menu navigation")
 	_check((scene.how_tab_buttons[&"cards"] as Button).text == "CARDS & MELDS" and (scene.how_tab_buttons[&"phases"] as Button).text == "PHASES & TURNS" and (scene.how_tab_buttons[&"scoring"] as Button).text == "SCORING", "English selection refreshes all How to Play tabs")
 	_check((scene.how_scoring_topic_buttons[&"basic"] as Button).text == "BASIC SCORING" and (scene.how_scoring_topic_buttons[&"special"] as Button).text == "SPECIAL OUTCOMES", "English selection refreshes both Scoring topics")
-	_check(scene.music_settings_label.text == "MUSIC" and scene.sound_settings_label.text == "SOUND" and scene.hint_button.text == "HINT  [G]", "English selection refreshes Options and gameplay controls")
+	_check(scene.music_settings_label.text == "MUSIC" and scene.sound_settings_label.text == "SOUND" and scene.hint_button.text == "HINT  [G]" and (scene.header_caption_labels["VndPerPointStat"] as Label).text == "VND / POINT", "English selection refreshes Options, gameplay controls, and the VND-per-point caption")
 	_check(how_intro != null and how_intro.text == "Pick cards. Meld or Extend. Then discard 1.", "English selection refreshes the visual tutorial copy while it is hidden")
 	scene.language_selector.item_selected.emit(0)
 	await process_frame
@@ -179,11 +179,37 @@ func _run() -> void:
 	_check(scene.get_node_or_null("GameLayer/Header/HeaderRow/DiscardHistoryHUD") != null, "phase-grouped discard history is relocated into the top-left HUD")
 	_check(scene.discard_history_row != null and scene.discard_history_row.get_child_count() == 1, "discard history HUD begins with its empty state")
 	_check(scene.get_node_or_null("GameLayer/Header/HeaderRow/IdentityPanel") == null, "game title and description panel is removed from gameplay")
-	_check(scene.get_node_or_null("GameLayer/Header/HeaderRow/IncomeStat") != null, "Income remains in the top stat row")
+	var income_panel := scene.get_node_or_null("GameLayer/Header/HeaderRow/IncomeStat") as PanelContainer
+	_check(income_panel != null, "Income remains in the top stat row")
+	var vnd_per_point_panel := scene.get_node_or_null("GameLayer/Header/HeaderRow/VndPerPointStat") as PanelContainer
+	_check(vnd_per_point_panel != null and income_panel != null and vnd_per_point_panel.get_index() == income_panel.get_index() - 1, "VND-per-point HUD panel sits immediately to the left of Income")
+	_check(scene.vnd_per_point_value != null, "VND-per-point HUD exposes its value label")
+	_check(vnd_per_point_panel != null and scene.vnd_per_point_value != null and vnd_per_point_panel.is_ancestor_of(scene.vnd_per_point_value), "VND-per-point value label belongs to its HUD panel")
+	_check(scene.vnd_per_point_value != null and scene.vnd_per_point_value.text == VndWallet.format_vnd(scene.deal.vnd_per_point), "VND-per-point HUD matches the economy authority")
 	_check(scene.get_node_or_null("GameLayer/Header/HeaderRow/WalletStat") != null, "Wallet remains in the top stat row")
 	_check(scene.get_node_or_null("GameLayer/Header/HeaderRow/CampaignStat") != null and scene.campaign_value.text.contains("THỨ HAI"), "campaign day and requirement remain visible during the Deal")
 	_check(scene.get_node_or_null("GameLayer/Header/HeaderRow/PhaseStat") == null and scene.get_node_or_null("GameLayer/Header/HeaderRow/TurnStat") == null, "Phase and Turn stat cards are removed")
 	_check(scene.get_node_or_null("GameLayer/UtilityRail/DrinkArea/DrinkSlot") == scene.drink_button, "Drink slot is a clickable effect button")
+	_check(scene.get_node_or_null("GameLayer/TableSurface/DrinkProps/ActiveDrink") == scene.drink_table_button, "active Drink has a clickable in-world table prop")
+	_check(scene.get_node_or_null("GameLayer/TableSurface/DrinkProps/EmptyDrinkProp") == scene.empty_drink_prop, "the morning empty-glass prop exists for the noon handoff")
+	_check(scene.drink_table_texture != null and scene.drink_table_texture.texture != null and scene.drink_table_texture.texture.resource_path == "res://assets/drinks/tra_da_full.png", "unused starter Drink shows its full sprite")
+	_check(scene.empty_drink_prop != null and scene.empty_drink_prop.texture != null and scene.empty_drink_prop.texture.resource_path == "res://assets/drinks/glass_empty.png", "noon handoff uses the shared empty-glass sprite")
+	_check(not scene.empty_drink_prop.visible, "morning starts with one active Drink and no phantom empty glass")
+	_check(scene.drink_table_button.position == MatchUI.DRINK_TABLE_MORNING_POSITION, "morning Drink occupies the bottom-left table position")
+	_check(scene.drink_table_button.size == MatchUI.DRINK_TABLE_PROP_SIZE and scene.drink_table_button.size.y > MatchUI.CARD_SIZE.y, "Drink props use a readable near-card-height table footprint")
+	_check(scene.drink_table_button.position.x >= 60.0, "morning Drink is inset from the painted table edge")
+	scene.campaign.current_phase = CampaignManager.CampaignPhase.NOON_DEAL
+	scene._sync_drink_table_visual()
+	_check(scene.drink_table_texture.texture.resource_path == "res://assets/drinks/tra_da_half.png", "the noon Deal shows the carried-over Drink half-empty")
+	scene.campaign.current_phase = CampaignManager.CampaignPhase.MORNING_DEAL
+	scene._sync_drink_table_visual()
+	scene.drink_manager.afternoon_drink_id = DrinkCatalog.SAM_DUA
+	scene._sync_drink_table_visual()
+	_check(scene.empty_drink_prop.visible, "selecting the noon Drink turns the remembered morning Drink into an empty glass")
+	_check(scene.empty_drink_prop.position == MatchUI.DRINK_TABLE_EMPTY_POSITION and scene.drink_table_button.position == MatchUI.DRINK_TABLE_NOON_POSITION, "noon empty and active glasses sit side-by-side in the bottom-left corner")
+	_check(scene.empty_drink_prop.size == scene.drink_table_button.size, "empty and active glasses preserve the same physical scale")
+	scene.drink_manager.afternoon_drink_id = DrinkCatalog.NONE
+	scene._sync_drink_table_visual()
 	_check(scene.drink_name_label != null and scene.drink_name_label.text == "TRÀ ĐÁ", "free Trà đá is the visible starter Drink")
 	_check(not scene.drink_button.disabled, "active Drink remains clickable after Deal setup")
 	_check(scene.drink_charge_outline != null and scene.drink_charge_outline.visible and scene.drink_charge_outline.cue_mode() == CardActionOutlineScript.CUE_DRINK and scene.drink_charge_outline.is_processing(), "unused Drink charge has an animated blue gradient around the right-side Drink box")
@@ -303,6 +329,27 @@ func _run() -> void:
 	scene.deal.deck.discard_pile.clear()
 	scene._sync_piles()
 	scene.selected_card_ids.clear()
+	scene.deal.set_current_drink(DrinkCatalog.NHAN_TRAN)
+	scene._sync_all()
+	var nhan_extra: CardData = scene.deal.hand[1]
+	var nhan_mandatory: CardData = scene.deal.hand[2]
+	var nhan_draw_before := scene.deal.deck.draw_pile.size()
+	scene._on_card_pressed(nhan_extra)
+	scene._on_card_pressed(nhan_mandatory)
+	_check(not scene.discard_button.disabled, "Nhan Tran enables DISCARD with two selected loose cards")
+	await scene._on_discard_pressed()
+	_check(scene.deal.discard_count == 1, "the combined Nhan Tran action still counts one mandatory turn discard")
+	_check(scene.deal.hand.size() == DealState.ACTIVE_HAND_TARGET, "the combined discard refills the hand back to ten")
+	_check(scene.deal.deck.draw_pile.size() == nhan_draw_before - 2, "the combined action draws two cards once after both discards")
+	_check(scene.deal.deck.discard_pile.size() >= 2 and scene.deal.deck.discard_pile[-2] == nhan_extra and scene.deal.deck.discard_pile[-1] == nhan_mandatory, "the selected pair reaches the discard pile in extra-then-mandatory order")
+	scene.deal.set_current_drink(DrinkCatalog.TRA_DA)
+	scene._sync_all()
+	scene.deal.deck.discard_pile.clear()
+	scene._sync_piles()
+	scene.deal.discard_history.clear()
+	scene.deal.discard_count = 0
+	scene.deal.state = DealState.STATE_ACTIVE
+	scene.selected_card_ids.clear()
 	var stable_meld := MeldState.new(77, MeldRules.TYPE_RUN, [
 		CardData.new("smoke_3_spades", "3", 3, "Spades", 3),
 		CardData.new("smoke_4_spades", "4", 4, "Spades", 4),
@@ -343,6 +390,7 @@ func _run() -> void:
 	_check(stable_meld.cards.size() == 3 and scene.deal.hand.has(removable_endpoint), "clicking the armed Nước vối target returns it to the loose hand")
 	_check(scene.deal.nuoc_voi_used_phases.has(scene.deal.current_phase), "Nước vối becomes spent for the current Phase")
 	_check(not scene.drink_charge_outline.visible and not scene.drink_charge_outline.is_processing(), "Nước vối blue charge outline disappears immediately after use")
+	_check(scene.drink_table_texture.texture.resource_path == "res://assets/drinks/nuoc_voi_half.png", "spent Nuoc voi changes its table prop from full to half-full")
 	scene.deal.set_current_drink(DrinkCatalog.TRA_DA)
 	scene.deal.melds.clear()
 	scene.selected_card_ids.clear()

@@ -4,6 +4,8 @@ extends RefCounted
 var phase: int = 1
 var raw_gross: int = 0
 var gross_after_u: int = 0
+var deadwood_value_sum: int = 0
+var deadwood_multiplier: int = 1
 var deadwood: int = 0
 var net: int = 0
 var new_phom_count: int = 0
@@ -19,6 +21,8 @@ func to_dictionary() -> Dictionary:
 		"phase": phase,
 		"raw_gross": raw_gross,
 		"gross_after_u": gross_after_u,
+		"deadwood_value_sum": deadwood_value_sum,
+		"deadwood_multiplier": deadwood_multiplier,
 		"deadwood": deadwood,
 		"deadwood_points": deadwood,
 		"net": net,

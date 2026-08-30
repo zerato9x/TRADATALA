@@ -67,7 +67,7 @@ func _run() -> void:
 	_check(scene.tutorial_step == MatchUI.TUTORIAL_FINAL_DISCARD and not scene.discard_button.disabled, "selecting KS enables the second discard")
 	await scene._on_discard_pressed()
 	_check(scene.tutorial_step == MatchUI.TUTORIAL_MOM and scene.tutorial_exit_button.text == "TIẾP", "core loop advances into the guided Móm lesson")
-	_check(scene.tutorial_outcome_visible and scene.score_overlay.visible and scene.score_line_a.text.contains("+1 STRIKE"), "Móm lesson displays its real phase result")
+	_check(scene.tutorial_outcome_visible and scene.score_overlay.visible and scene.score_line_a.text.contains("MÓM") and scene.score_line_b.text.contains("×"), "Móm lesson displays its multiplied deadwood equation")
 	_check(scene.tutorial_body_label.text.contains("Phỏm MỚI") and scene.tutorial_body_label.text.contains("Ghép"), "Móm lesson explains that only a new Meld prevents it")
 	_check(scene.tutorial_spotlight.targets.size() == 1 and scene.tutorial_spotlight.targets[0] == scene.score_panel, "special outcome lesson spotlights its result panel")
 
