@@ -40,6 +40,10 @@ func _run() -> void:
 	var how_panel := scene.get_node_or_null("MainMenu/MenuCenter/MenuContent/HowToPlayPanel") as PanelContainer
 	var options_panel := scene.get_node_or_null("MainMenu/MenuCenter/MenuContent/OptionsPanel") as PanelContainer
 	_check(menu_home != null and menu_home.visible, "main menu opens on its compact action list")
+	_check(scene.music_player_panel != null and scene.music_player_panel.visible, "the menu includes the compact album-cover music player")
+	_check(scene.music_cover != null and scene.music_cover.texture != null and scene.music_cover.texture.resource_path == "res://assets/audio/covers/main.png", "the opening player uses the supplied Main album cover")
+	_check(scene.music_track_title != null and scene.music_track_title.text == ReactiveMusicController.display_title_for_theme(&"main"), "the player reports the authoritative current track title")
+	_check(scene.music_progress != null and scene.music_time_label != null, "the player exposes playback progress and elapsed time")
 	_check(scene.play_button != null and scene.play_button.text == "VÁN MỚI", "Vietnamese New Game action exists on the main menu")
 	_check(scene.how_to_play_button != null and scene.how_to_play_button.text == "CÁCH CHƠI", "main menu exposes the localized How to Play section")
 	_check(scene.tutorial_button != null and scene.tutorial_button.text == "TẬP CHƠI", "main menu exposes a separate playable Tutorial")
@@ -116,10 +120,28 @@ func _run() -> void:
 	_check(menu_home.visible and not options_panel.visible, "Options Back returns to the main actions")
 	_check(scene.music_controller != null, "reactive music controller exists")
 	_check(scene.music_controller.full_mix_player != null and scene.music_controller.full_mix_player.stream != null, "current full mix is loaded")
+	_check(scene.music_controller.mix_players.size() == 2, "music queue owns two playback decks for preloaded boundary transitions")
+	_check(scene.music_controller.current_mix_path == "res://assets/audio/ost/main_1.wav", "the game opens on Main 1")
 	var current_mix := scene.music_controller.full_mix_player.stream as AudioStreamWAV
-	_check(current_mix != null and current_mix.loop_mode == AudioStreamWAV.LOOP_FORWARD, "current full mix loops continuously")
-	_check(current_mix != null and current_mix.loop_end > current_mix.loop_begin, "current full mix has a non-zero loop range")
+	_check(current_mix != null and current_mix.loop_mode == AudioStreamWAV.LOOP_DISABLED, "files do not self-loop because the two-deck queue owns every boundary")
 	_check(scene.music_controller.full_mix_player != null and scene.music_controller.full_mix_player.bus == &"Music", "current mix routes through the Music bus")
+	scene.music_play_pause_button.pressed.emit()
+	_check(scene.music_controller.music_paused and scene.music_play_pause_button.text == scene.tr("MUSIC_PLAYER_PLAY"), "the menu player pauses both music decks and offers Resume")
+	scene.music_play_pause_button.pressed.emit()
+	_check(not scene.music_controller.music_paused, "the menu player resumes playback")
+	_check(scene.music_track_list.item_count == 26, "the tracklist exposes all thirteen themes and both sides")
+	scene.music_shuffle_button.pressed.emit()
+	_check(scene.music_controller.shuffle_enabled and scene.music_shuffle_button.text == scene.tr("MUSIC_PLAYER_SHUFFLE_ON"), "Shuffle toggles independently from campaign state")
+	scene.music_repeat_button.pressed.emit()
+	_check(scene.music_controller.repeat_mode == ReactiveMusicController.REPEAT_ALL, "Repeat cycles from Off to All")
+	scene.music_repeat_button.pressed.emit()
+	_check(scene.music_controller.repeat_mode == ReactiveMusicController.REPEAT_ONE, "Repeat cycles from All to One")
+	scene.music_repeat_button.pressed.emit()
+	_check(scene.music_controller.repeat_mode == ReactiveMusicController.REPEAT_OFF, "Repeat cycles from One back to Off")
+	scene.music_track_list.item_selected.emit(3)
+	await create_timer(ReactiveMusicController.TRANSITION_OVERLAP_SECONDS + 0.05).timeout
+	_check(scene.music_controller.current_mix_path == "res://assets/audio/ost/mouse_2.wav", "selecting the tracklist crossfades directly to the chosen file")
+	_check(scene.music_cover.texture.resource_path == "res://assets/audio/covers/mouse.png", "track selection updates the album cover")
 	_check(AudioServer.get_bus_index(&"Music") >= 0, "Music bus exists")
 	_check(music_volume_index >= 0 and AudioServer.get_bus_effect_count(music_volume_index) > 0 and AudioServer.get_bus_effect(music_volume_index, 0) is AudioEffectSpectrumAnalyzer, "Music bus carries a spectrum analyzer")
 	scene.music_controller.beat_detector.set_process(false)
@@ -138,6 +160,7 @@ func _run() -> void:
 	scene.play_button.pressed.emit()
 	await create_timer(0.82).timeout
 	_check(scene.game_started and not menu.visible, "play hides the menu after its exit transition")
+	_check(scene.music_controller.current_mix_path == "res://assets/audio/ost/mouse_2.wav", "starting a campaign does not control or replace the selected music")
 	_check(is_equal_approx(game_layer.position.x, 0.0), "game layer slides fully into place")
 	_check(background != null and background.global_position.is_equal_approx(background_position_before), "background remains fixed while UI layers transition")
 	_check(scene.campaign.current_phase == CampaignManager.CampaignPhase.STARTER_EVENT, "New Game starts the Monday Starter Event before any Deal")
@@ -153,6 +176,7 @@ func _run() -> void:
 	scene.campaign_continue_button.pressed.emit()
 	await process_frame
 	_check(scene.campaign.current_phase == CampaignManager.CampaignPhase.MORNING_DEAL and not scene.campaign_overlay.visible, "continuing the Starter Event hands off to the existing Morning Deal")
+	_check(scene.music_controller.current_theme_id == &"mouse" and scene.music_controller.current_variant == 2, "campaign periods leave the standalone player untouched")
 	_check(scene.deal.hand.size() == DealState.ACTIVE_HAND_TARGET, "opening hand refills to 10")
 	_check(scene.hand_views.size() == DealState.ACTIVE_HAND_TARGET, "ten interactive card views are rendered")
 	_check(scene.deal.deck.draw_pile.size() == 42, "draw pile count reflects opening draw")
@@ -569,6 +593,8 @@ func _run() -> void:
 	for active_meld_view in scene.meld_views.values():
 		if active_meld_view is MeldView:
 			active_meld_view.set_process(false)
+	scene.music_controller._stop_all_mix_players()
+	await create_timer(0.2).timeout
 	scene.queue_free()
 	await process_frame
 	for autoload_name in ["GameSettings", "_mcp_game_helper"]:

@@ -82,7 +82,7 @@ The prototype now follows the two-Phase Deal contract: each Phase has four manda
 - Daily VND thresholds and Drink prices are provisional data in `campaign_config.gd` and `drink_manager.gd`; thresholds are not deducted, and the wallet carries across days.
 - Failing any end-of-day threshold ends the run. Passing Sunday's threshold wins the current early campaign without a Zodiac boss.
 
-The menu includes persistent Music/Sound controls, Vietnamese/English localization, and a looping reactive music mix with four frequency bands driving presentation pulses. Relics, advanced Drink formulas, Xăm, Zodiac bosses, special weekday mechanics, story chains, shops, multiplayer, AI opponents, sound effects, and 3D presentation remain intentionally unimplemented.
+The Escape/Menu window includes a standalone album player for all 26 OST files: the two sides of Main followed by both sides of each Zodiac theme. It provides cover art, track selection, progress, next-track preview, play/pause, Shuffle, and Repeat Off/All/One. Music is deliberately independent from campaign days and phases, with a 100 ms two-deck crossfade between files; its spectrum still drives four presentation frequency bands. Relics, advanced Drink formulas, Zodiac bosses, special weekday mechanics, story chains, shops, multiplayer, AI opponents, sound effects, and 3D presentation remain intentionally unimplemented.
 
 ## Verification
 

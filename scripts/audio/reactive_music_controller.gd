@@ -5,13 +5,55 @@ signal beat_detected(strength: float)
 signal bass_energy_changed(energy: float)
 signal band_pulse(band_index: int, strength: float)
 signal band_energy_changed(band_index: int, energy: float)
+signal mix_started(mix_path: String, theme_id: StringName, variant: int)
+signal pause_changed(paused: bool)
+signal playback_options_changed()
 
-const CURRENT_MIX_PATH := "res://assets/audio/day_1_morning.wav"
 const MUSIC_BUS := &"Music"
+const OST_ROOT := "res://assets/audio/ost"
+const TRANSITION_OVERLAP_SECONDS := 0.1
+const SILENCE_DB := -60.0
+const REPEAT_OFF := &"off"
+const REPEAT_ALL := &"all"
+const REPEAT_ONE := &"one"
+const THEME_ORDER: Array[StringName] = [
+	&"main", &"mouse", &"ox", &"tiger", &"cat", &"dragon", &"snake",
+	&"horse", &"goat", &"monkey", &"rooster", &"dog", &"pig",
+]
+const THEME_TITLES := {
+	&"main": "CAI LUONG x VONG CO FUNK",
+	&"mouse": "NAM BO x JAZZ FUNK",
+	&"ox": "TAY NGUYEN x AFRO FUNK",
+	&"tiger": "CHAM x HARD FUNK",
+	&"cat": "CA TRU x DEEP FUNK",
+	&"dragon": "TAY-NUNG-THAI x P-FUNK",
+	&"snake": "KHEN H'MONG x PSYCHEDELIC FUNK",
+	&"horse": "TAY NGUYEN x GO-GO",
+	&"goat": "CA HUE x BOOGIE",
+	&"monkey": "NAM BO x NEW ORLEANS FUNK",
+	&"rooster": "CA TRU x ELECTRO FUNK",
+	&"dog": "TAY-NUNG-THAI x SOUL FUNK",
+	&"pig": "XOAN x DISCO FUNK",
+}
 
 var full_mix_player: AudioStreamPlayer
 var beat_detector: MusicBeatDetector
 var stem_players: Dictionary = {}
+var mix_players: Array[AudioStreamPlayer] = []
+var playlist: Array[Dictionary] = []
+var active_mix_index: int = 0
+var current_track_index: int = 0
+var queued_track_index: int = -1
+var transition_in_progress: bool = false
+var transition_tween: Tween
+var music_paused: bool = false
+var shuffle_enabled: bool = false
+var repeat_mode: StringName = REPEAT_OFF
+var music_rng := RandomNumberGenerator.new()
+
+var current_theme_id: StringName = &"main"
+var current_variant: int = 1
+var current_mix_path: String = ""
 
 @export_group("Runtime Diagnostics")
 @export var audio_driver_name: String = ""
@@ -24,8 +66,13 @@ var stem_players: Dictionary = {}
 
 func _ready() -> void:
 	audio_driver_name = AudioServer.get_driver_name()
+	music_rng.randomize()
+	_build_playlist()
 	_ensure_music_bus()
-	full_mix_player = _create_stem_player(&"full_mix")
+	mix_players.append(_create_mix_player("FullMixA", 0))
+	mix_players.append(_create_mix_player("FullMixB", 1))
+	full_mix_player = mix_players[active_mix_index]
+	stem_players[&"full_mix"] = full_mix_player
 	beat_detector = MusicBeatDetector.new()
 	beat_detector.name = "BeatDetector"
 	beat_detector.bus_name = MUSIC_BUS
@@ -34,13 +81,17 @@ func _ready() -> void:
 	beat_detector.band_pulse.connect(band_pulse.emit)
 	beat_detector.band_energy_changed.connect(band_energy_changed.emit)
 	add_child(beat_detector)
-	call_deferred("_start_current_mix")
+	call_deferred("play_track", 0, false)
 
 
 func _process(_delta: float) -> void:
 	if full_mix_player != null and full_mix_player.stream != null:
 		playback_position_seconds = full_mix_player.get_playback_position()
 		stream_length_seconds = full_mix_player.stream.get_length()
+		if not transition_in_progress and full_mix_player.playing:
+			var remaining := stream_length_seconds - playback_position_seconds
+			if remaining <= TRANSITION_OVERLAP_SECONDS:
+				_begin_boundary_transition()
 	var music_bus_index := AudioServer.get_bus_index(MUSIC_BUS)
 	if music_bus_index >= 0:
 		music_bus_peak_db = AudioServer.get_bus_peak_volume_left_db(music_bus_index, 0)
@@ -48,6 +99,28 @@ func _process(_delta: float) -> void:
 	var master_bus_index := AudioServer.get_bus_index(&"Master")
 	if master_bus_index >= 0:
 		master_bus_muted = AudioServer.is_bus_mute(master_bus_index)
+
+
+func _exit_tree() -> void:
+	if beat_detector != null:
+		beat_detector.set_process(false)
+	if transition_tween != null and transition_tween.is_valid():
+		transition_tween.kill()
+	for player in mix_players:
+		player.stop()
+		player.stream = null
+	stem_players.clear()
+
+
+func _build_playlist() -> void:
+	playlist.clear()
+	for theme_id in THEME_ORDER:
+		for variant in [1, 2]:
+			playlist.append({
+				"path": mix_path_for_theme(theme_id, variant),
+				"theme_id": theme_id,
+				"variant": variant,
+			})
 
 
 func _ensure_music_bus() -> void:
@@ -68,41 +141,199 @@ func _ensure_music_bus() -> void:
 	AudioServer.add_bus_effect(bus_index, analyzer, 0)
 
 
-func _create_stem_player(stem_id: StringName) -> AudioStreamPlayer:
+func _create_mix_player(player_name: String, player_index: int) -> AudioStreamPlayer:
 	var player := AudioStreamPlayer.new()
-	player.name = String(stem_id).to_pascal_case()
+	player.name = player_name
 	player.bus = MUSIC_BUS
-	player.finished.connect(_on_stem_finished.bind(stem_id))
-	stem_players[stem_id] = player
+	player.finished.connect(_on_mix_finished.bind(player_index))
 	add_child(player)
 	return player
 
 
-func _start_current_mix() -> void:
-	var source := load(CURRENT_MIX_PATH) as AudioStream
-	if source == null:
-		push_warning("Reactive music mix is missing: %s" % CURRENT_MIX_PATH)
+static func display_title_for_theme(theme_id: StringName) -> String:
+	return String(THEME_TITLES.get(theme_id, String(theme_id).to_upper()))
+
+
+static func mix_path_for_theme(theme_id: StringName, variant: int) -> String:
+	return "%s/%s_%d.wav" % [OST_ROOT, theme_id, clampi(variant, 1, 2)]
+
+
+func track_label(track_index: int) -> String:
+	if track_index < 0 or track_index >= playlist.size():
+		return ""
+	var track := playlist[track_index]
+	return "%s - SIDE %d" % [String(track["theme_id"]).to_upper(), int(track["variant"])]
+
+
+func next_mix_request() -> Dictionary:
+	var next_index := _ensure_next_track_index()
+	return playlist[next_index].duplicate() if next_index >= 0 else {}
+
+
+func play_track(track_index: int, crossfade: bool = true) -> void:
+	if track_index < 0 or track_index >= playlist.size():
 		return
-	if source is AudioStreamWAV:
-		var looping_wav := source.duplicate() as AudioStreamWAV
-		if looping_wav.loop_end <= looping_wav.loop_begin:
-			looping_wav.loop_begin = 0
-			looping_wav.loop_end = maxi(1, int(round(looping_wav.get_length() * looping_wav.mix_rate)))
-		looping_wav.loop_mode = AudioStreamWAV.LOOP_FORWARD
-		source = looping_wav
-	full_mix_player.stream = source
-	full_mix_player.play()
+	queued_track_index = -1
+	if crossfade and full_mix_player != null and full_mix_player.playing:
+		_begin_transition_to(track_index)
+	else:
+		_play_initial_track(track_index)
+
+
+func set_shuffle_enabled(enabled: bool) -> void:
+	if shuffle_enabled == enabled:
+		return
+	shuffle_enabled = enabled
+	queued_track_index = -1
+	playback_options_changed.emit()
+
+
+func toggle_shuffle() -> void:
+	set_shuffle_enabled(not shuffle_enabled)
+
+
+func cycle_repeat_mode() -> void:
+	match repeat_mode:
+		REPEAT_OFF:
+			repeat_mode = REPEAT_ALL
+		REPEAT_ALL:
+			repeat_mode = REPEAT_ONE
+		_:
+			repeat_mode = REPEAT_OFF
+	queued_track_index = -1
+	playback_options_changed.emit()
+
+
+func set_music_paused(paused: bool) -> void:
+	if music_paused == paused:
+		return
+	music_paused = paused
+	for player in mix_players:
+		player.stream_paused = paused
+	pause_changed.emit(paused)
+
+
+func toggle_music_paused() -> void:
+	set_music_paused(not music_paused)
+
+
+func _next_track_index() -> int:
+	if playlist.is_empty():
+		return -1
+	if repeat_mode == REPEAT_ONE:
+		return current_track_index
+	if shuffle_enabled:
+		if playlist.size() == 1:
+			return 0
+		var next_index := music_rng.randi_range(0, playlist.size() - 2)
+		return next_index + 1 if next_index >= current_track_index else next_index
+	var next_index := current_track_index + 1
+	if next_index < playlist.size():
+		return next_index
+	return 0 if repeat_mode == REPEAT_ALL else -1
+
+
+func _ensure_next_track_index() -> int:
+	if queued_track_index < 0:
+		queued_track_index = _next_track_index()
+	return queued_track_index
+
+
+func _play_initial_track(track_index: int) -> void:
+	_stop_all_mix_players()
+	active_mix_index = 0
+	var player := mix_players[active_mix_index]
+	var request := playlist[track_index]
+	var source := load(String(request["path"])) as AudioStream
+	if source == null:
+		push_warning("Music track is missing: %s" % request["path"])
+		return
+	player.stream = source
+	player.volume_db = 0.0
+	player.play()
+	_apply_active_track(player, track_index)
+
+
+func _begin_boundary_transition() -> void:
+	var next_index := _ensure_next_track_index()
+	if next_index >= 0:
+		_begin_transition_to(next_index)
+
+
+func _begin_transition_to(track_index: int) -> void:
+	if transition_in_progress or track_index < 0 or track_index >= playlist.size():
+		return
+	var request := playlist[track_index]
+	var next_index := 1 - active_mix_index
+	var incoming := mix_players[next_index]
+	var source := load(String(request["path"])) as AudioStream
+	if source == null:
+		push_warning("Music track is missing: %s" % request["path"])
+		return
+	incoming.stop()
+	incoming.stream = source
+	incoming.volume_db = SILENCE_DB
+	incoming.play()
+	incoming.stream_paused = music_paused
+	transition_in_progress = true
+	var outgoing_index := active_mix_index
+	var outgoing := mix_players[outgoing_index]
+	transition_tween = create_tween().set_parallel(true)
+	transition_tween.tween_property(outgoing, "volume_db", SILENCE_DB, TRANSITION_OVERLAP_SECONDS)
+	transition_tween.tween_property(incoming, "volume_db", 0.0, TRANSITION_OVERLAP_SECONDS)
+	transition_tween.finished.connect(
+		_complete_transition.bind(outgoing_index, next_index, track_index), CONNECT_ONE_SHOT
+	)
+
+
+func _complete_transition(outgoing_index: int, next_index: int, track_index: int) -> void:
+	var outgoing := mix_players[outgoing_index]
+	outgoing.stop()
+	outgoing.stream = null
+	outgoing.volume_db = 0.0
+	active_mix_index = next_index
+	_apply_active_track(mix_players[next_index], track_index)
+	transition_in_progress = false
+	transition_tween = null
+
+
+func _on_mix_finished(player_index: int) -> void:
+	if player_index != active_mix_index or transition_in_progress:
+		return
+	var next_index := _ensure_next_track_index()
+	if next_index < 0:
+		playback_position_seconds = stream_length_seconds
+		return
+	_play_initial_track(next_index)
+
+
+func _apply_active_track(player: AudioStreamPlayer, track_index: int) -> void:
+	var request := playlist[track_index]
+	queued_track_index = -1
+	full_mix_player = player
+	stem_players[&"full_mix"] = player
+	current_track_index = track_index
+	current_theme_id = request["theme_id"]
+	current_variant = int(request["variant"])
+	current_mix_path = String(request["path"])
+	playback_position_seconds = 0.0
+	stream_length_seconds = player.stream.get_length() if player.stream != null else 0.0
+	player.stream_paused = music_paused
+	mix_started.emit(current_mix_path, current_theme_id, current_variant)
+
+
+func _stop_all_mix_players() -> void:
+	if transition_tween != null and transition_tween.is_valid():
+		transition_tween.kill()
+	transition_tween = null
+	transition_in_progress = false
+	for player in mix_players:
+		player.stop()
+		player.stream = null
+		player.volume_db = 0.0
 
 
 func set_stem_volume_db(stem_id: StringName, volume_db: float) -> void:
-	## Kept as the stable control point for the later instrument-stem mix.
 	var player := stem_players.get(stem_id) as AudioStreamPlayer
 	if player != null:
 		player.volume_db = volume_db
-
-
-func _on_stem_finished(stem_id: StringName) -> void:
-	## Non-WAV stems still loop cleanly through the same controller.
-	var player := stem_players.get(stem_id) as AudioStreamPlayer
-	if player != null and player.stream != null:
-		player.play()

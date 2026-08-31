@@ -14,6 +14,31 @@ func test_campaign_requirements_live_in_config_and_increase_each_day() -> void:
 	assert_eq(days[-1]["id"], "sunday")
 
 
+func test_music_player_uses_a_plain_twenty_six_track_playlist() -> void:
+	var controller := ReactiveMusicController.new()
+	controller._build_playlist()
+	assert_eq(controller.playlist.size(), 26)
+	assert_eq(controller.playlist[0]["path"], "res://assets/audio/ost/main_1.wav")
+	assert_eq(controller.playlist[1]["path"], "res://assets/audio/ost/main_2.wav")
+	assert_eq(controller.playlist[-1]["path"], "res://assets/audio/ost/pig_2.wav")
+	controller.current_track_index = 0
+	assert_eq(controller._next_track_index(), 1)
+	controller.set_shuffle_enabled(true)
+	var shuffled_request := controller.next_mix_request()
+	assert_ne(shuffled_request["path"], controller.playlist[controller.current_track_index]["path"])
+	assert_eq(controller.next_mix_request()["path"], shuffled_request["path"])
+	controller.set_shuffle_enabled(false)
+	controller.current_track_index = controller.playlist.size() - 1
+	assert_eq(controller._next_track_index(), -1)
+	controller.cycle_repeat_mode()
+	assert_eq(controller.repeat_mode, ReactiveMusicController.REPEAT_ALL)
+	assert_eq(controller._next_track_index(), 0)
+	controller.cycle_repeat_mode()
+	assert_eq(controller.repeat_mode, ReactiveMusicController.REPEAT_ONE)
+	assert_eq(controller._next_track_index(), controller.current_track_index)
+	controller.free()
+
+
 func test_events_support_empty_multiple_and_mandatory_interactions() -> void:
 	var manager := EventManager.new()
 	var empty := manager.build_event(EventManager.EventSlot.MORNING)

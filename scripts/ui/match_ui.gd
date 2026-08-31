@@ -93,6 +93,18 @@ var language_settings_label: Label
 var music_value_label: Label
 var sound_value_label: Label
 var language_selector: OptionButton
+var music_player_panel: PanelContainer
+var music_cover: TextureRect
+var music_track_title: Label
+var music_variant_label: Label
+var music_progress: ProgressBar
+var music_time_label: Label
+var music_up_next_label: Label
+var music_play_pause_button: Button
+var music_track_list: OptionButton
+var music_shuffle_button: Button
+var music_repeat_button: Button
+var music_track_list_syncing: bool = false
 var menu_page: StringName = &"home"
 var menu_localized_controls: Dictionary = {}
 var tutorial_active: bool = false
@@ -215,6 +227,8 @@ func _ready() -> void:
 	CampaignNpcCatalog.register_initial_npcs(event_manager)
 	drink_manager = DrinkManager.new(deal.wallet)
 	campaign = CampaignManager.new(deal.wallet, event_manager, drink_manager)
+	campaign.campaign_started.connect(_on_campaign_started)
+	campaign.day_started.connect(_on_campaign_day_started)
 	campaign.event_started.connect(_on_campaign_event_started)
 	campaign.deal_requested.connect(_on_campaign_deal_requested)
 	campaign.requirement_passed.connect(_on_campaign_requirement_passed)
@@ -225,10 +239,17 @@ func _ready() -> void:
 	_park_game_layer()
 
 
+func _process(_delta: float) -> void:
+	if menu_layer != null and menu_layer.visible and menu_page == &"home":
+		_sync_music_player_progress()
+
+
 func _exit_tree() -> void:
 	if campaign == null:
 		return
 	var connections := [
+		[&"campaign_started", Callable(self, "_on_campaign_started")],
+		[&"day_started", Callable(self, "_on_campaign_day_started")],
 		[&"event_started", Callable(self, "_on_campaign_event_started")],
 		[&"deal_requested", Callable(self, "_on_campaign_deal_requested")],
 		[&"requirement_passed", Callable(self, "_on_campaign_requirement_passed")],
@@ -304,6 +325,13 @@ func _connect_editor_interface_signals() -> void:
 	_connect_signal_once(sound_slider.value_changed, _on_sound_volume_changed)
 	_connect_signal_once(language_selector.item_selected, _on_language_selected)
 	_connect_signal_once(music_controller.band_pulse, _on_music_band_pulse)
+	_connect_signal_once(music_controller.mix_started, _on_music_mix_started)
+	_connect_signal_once(music_controller.pause_changed, _on_music_pause_changed)
+	_connect_signal_once(music_controller.playback_options_changed, _on_music_playback_options_changed)
+	_connect_signal_once(music_play_pause_button.pressed, _on_music_play_pause_pressed)
+	_connect_signal_once(music_track_list.item_selected, _on_music_track_selected)
+	_connect_signal_once(music_shuffle_button.pressed, _on_music_shuffle_pressed)
+	_connect_signal_once(music_repeat_button.pressed, _on_music_repeat_pressed)
 	_connect_signal_once(menu_button.pressed, _on_menu_pressed)
 	_connect_signal_once(drink_table_button.pressed, _on_drink_pressed)
 	_connect_signal_once((pile_archive_buttons["draw"] as Button).pressed, _on_draw_archive_pressed)
@@ -356,6 +384,7 @@ func _show_menu_page(page: StringName) -> void:
 	how_to_play_panel.visible = page == &"how_to_play"
 	options_panel.visible = page == &"options"
 	if page == &"home":
+		_sync_music_player()
 		play_button.call_deferred("grab_focus")
 	elif page == &"how_to_play":
 		_show_how_tab(&"cards")
@@ -367,6 +396,89 @@ func _show_menu_page(page: StringName) -> void:
 func _on_music_volume_changed(value: float) -> void:
 	music_value_label.text = "%d%%" % roundi(value)
 	settings.set_music_volume(value)
+
+
+func _on_music_play_pause_pressed() -> void:
+	music_controller.toggle_music_paused()
+
+
+func _on_music_mix_started(_mix_path: String, _theme_id: StringName, _variant: int) -> void:
+	_sync_music_player()
+
+
+func _on_music_pause_changed(_paused: bool) -> void:
+	_sync_music_player()
+
+
+func _on_music_playback_options_changed() -> void:
+	_sync_music_player()
+
+
+func _on_music_track_selected(track_index: int) -> void:
+	if music_track_list_syncing:
+		return
+	music_controller.play_track(track_index)
+
+
+func _on_music_shuffle_pressed() -> void:
+	music_controller.toggle_shuffle()
+
+
+func _on_music_repeat_pressed() -> void:
+	music_controller.cycle_repeat_mode()
+
+
+func _sync_music_player() -> void:
+	if music_controller == null or music_cover == null:
+		return
+	music_track_list_syncing = true
+	if music_track_list.item_count != music_controller.playlist.size():
+		music_track_list.clear()
+		for track_index in music_controller.playlist.size():
+			music_track_list.add_item(music_controller.track_label(track_index))
+	var theme_id := music_controller.current_theme_id
+	var cover_path := "res://assets/audio/covers/%s.png" % theme_id
+	music_cover.texture = load(cover_path) as Texture2D
+	music_track_title.text = ReactiveMusicController.display_title_for_theme(theme_id)
+	music_track_list.select(music_controller.current_track_index)
+	music_track_list_syncing = false
+	music_variant_label.text = "%s  ·  %s" % [
+		String(theme_id).to_upper(),
+		tr("MUSIC_PLAYER_SIDE") % music_controller.current_variant,
+	]
+	var next_request := music_controller.next_mix_request()
+	if next_request.is_empty():
+		music_up_next_label.text = tr("MUSIC_PLAYER_UP_NEXT") + ": —"
+	else:
+		music_up_next_label.text = "%s: %s · %s" % [
+			tr("MUSIC_PLAYER_UP_NEXT"),
+			String(next_request["theme_id"]).to_upper(),
+			tr("MUSIC_PLAYER_SIDE") % int(next_request["variant"]),
+		]
+	music_play_pause_button.text = tr("MUSIC_PLAYER_PLAY") if music_controller.music_paused else tr("MUSIC_PLAYER_PAUSE")
+	music_shuffle_button.text = tr("MUSIC_PLAYER_SHUFFLE_ON") if music_controller.shuffle_enabled else tr("MUSIC_PLAYER_SHUFFLE_OFF")
+	match music_controller.repeat_mode:
+		ReactiveMusicController.REPEAT_ALL:
+			music_repeat_button.text = tr("MUSIC_PLAYER_REPEAT_ALL")
+		ReactiveMusicController.REPEAT_ONE:
+			music_repeat_button.text = tr("MUSIC_PLAYER_REPEAT_ONE")
+		_:
+			music_repeat_button.text = tr("MUSIC_PLAYER_REPEAT_OFF")
+	_sync_music_player_progress()
+
+
+func _sync_music_player_progress() -> void:
+	if music_controller == null or music_progress == null:
+		return
+	var duration := music_controller.stream_length_seconds
+	var elapsed := clampf(music_controller.playback_position_seconds, 0.0, duration)
+	music_progress.value = elapsed / duration if duration > 0.0 else 0.0
+	music_time_label.text = "%s / %s" % [_format_music_time(elapsed), _format_music_time(duration)]
+
+
+func _format_music_time(seconds: float) -> String:
+	var whole_seconds := maxi(0, floori(seconds))
+	return "%d:%02d" % [whole_seconds / 60, whole_seconds % 60]
 
 
 func _on_sound_volume_changed(value: float) -> void:
@@ -397,6 +509,7 @@ func _refresh_localized_ui() -> void:
 		if is_instance_valid(control):
 			control.set("text", tr(String(menu_localized_controls[control])))
 	music_settings_label.text = tr("MENU_MUSIC")
+	_sync_music_player()
 	sound_settings_label.text = tr("MENU_SOUND")
 	language_settings_label.text = tr("MENU_LANGUAGE")
 	_refresh_language_options()
@@ -2292,7 +2405,16 @@ func _on_campaign_event_started(event: EventInstance) -> void:
 	_show_campaign_event(event)
 
 
+func _on_campaign_started() -> void:
+	_sync_music_player()
+
+
+func _on_campaign_day_started(_day: Dictionary) -> void:
+	_sync_music_player()
+
+
 func _on_campaign_deal_requested(day: Dictionary, period: String, drink_id: String) -> void:
+	_sync_music_player()
 	current_campaign_event = null
 	campaign_overlay.visible = false
 	interaction_locked = true

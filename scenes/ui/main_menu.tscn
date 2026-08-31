@@ -1284,6 +1284,143 @@ metadata/match_binding = "options_button"
 metadata/match_node_key_dictionary_binding = "menu_localized_controls"
 metadata/match_node_key_dictionary_value = "MENU_OPTIONS"
 
+[node name="MusicPlayer" type="PanelContainer" parent="MenuCenter/MenuContent/HomePanel"]
+custom_minimum_size = Vector2(500, 220)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_qih0c")
+metadata/match_binding = "music_player_panel"
+
+[node name="Margin" type="MarginContainer" parent="MenuCenter/MenuContent/HomePanel/MusicPlayer"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="Content" type="HBoxContainer" parent="MenuCenter/MenuContent/HomePanel/MusicPlayer/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="Cover" type="TextureRect" parent="MenuCenter/MenuContent/HomePanel/MusicPlayer/Margin/Content"]
+custom_minimum_size = Vector2(200, 200)
+layout_mode = 2
+texture = ExtResource("12_75tx2")
+expand_mode = 1
+stretch_mode = 5
+metadata/match_binding = "music_cover"
+
+[node name="Details" type="VBoxContainer" parent="MenuCenter/MenuContent/HomePanel/MusicPlayer/Margin/Content"]
+custom_minimum_size = Vector2(256, 200)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 5
+
+[node name="NowPlaying" type="Label" parent="MenuCenter/MenuContent/HomePanel/MusicPlayer/Margin/Content/Details"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9607843, 0.7490196, 0.25882354, 1)
+theme_override_font_sizes/font_size = 10
+text = "NOW PLAYING"
+metadata/match_node_key_dictionary_binding = "menu_localized_controls"
+metadata/match_node_key_dictionary_value = "MUSIC_PLAYER_NOW"
+
+[node name="TrackTitle" type="Label" parent="MenuCenter/MenuContent/HomePanel/MusicPlayer/Margin/Content/Details"]
+custom_minimum_size = Vector2(0, 36)
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.94509804, 0.77254903, 1)
+theme_override_font_sizes/font_size = 15
+text = "CẢI LƯƠNG × VỌNG CỔ FUNK"
+vertical_alignment = 1
+autowrap_mode = 2
+metadata/match_binding = "music_track_title"
+
+[node name="Variant" type="Label" parent="MenuCenter/MenuContent/HomePanel/MusicPlayer/Margin/Content/Details"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7254902, 0.6784314, 0.56078434, 1)
+theme_override_font_sizes/font_size = 11
+text = "MAIN  ·  SIDE 1"
+metadata/match_binding = "music_variant_label"
+
+[node name="Progress" type="ProgressBar" parent="MenuCenter/MenuContent/HomePanel/MusicPlayer/Margin/Content/Details"]
+custom_minimum_size = Vector2(0, 9)
+layout_mode = 2
+max_value = 1.0
+step = 0.001
+show_percentage = false
+metadata/match_binding = "music_progress"
+
+[node name="Time" type="Label" parent="MenuCenter/MenuContent/HomePanel/MusicPlayer/Margin/Content/Details"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7254902, 0.6784314, 0.56078434, 1)
+theme_override_font_sizes/font_size = 10
+text = "0:00 / 0:00"
+horizontal_alignment = 2
+metadata/match_binding = "music_time_label"
+
+[node name="Footer" type="HBoxContainer" parent="MenuCenter/MenuContent/HomePanel/MusicPlayer/Margin/Content/Details"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="PlayPause" type="Button" parent="MenuCenter/MenuContent/HomePanel/MusicPlayer/Margin/Content/Details/Footer"]
+custom_minimum_size = Vector2(72, 32)
+layout_mode = 2
+mouse_default_cursor_shape = 2
+theme_override_font_sizes/font_size = 11
+theme_override_styles/normal = SubResource("StyleBoxFlat_6qrug")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_h4r81")
+theme_override_styles/hover = SubResource("StyleBoxFlat_moc86")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_tnw2n")
+theme_override_styles/focus = SubResource("StyleBoxFlat_6sdb8")
+text = "PAUSE"
+metadata/match_binding = "music_play_pause_button"
+
+[node name="Shuffle" type="Button" parent="MenuCenter/MenuContent/HomePanel/MusicPlayer/Margin/Content/Details/Footer"]
+custom_minimum_size = Vector2(82, 32)
+layout_mode = 2
+mouse_default_cursor_shape = 2
+theme_override_font_sizes/font_size = 10
+theme_override_styles/normal = SubResource("StyleBoxFlat_6qrug")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_h4r81")
+theme_override_styles/hover = SubResource("StyleBoxFlat_moc86")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_tnw2n")
+theme_override_styles/focus = SubResource("StyleBoxFlat_6sdb8")
+text = "SHUFFLE: OFF"
+metadata/match_binding = "music_shuffle_button"
+
+[node name="Repeat" type="Button" parent="MenuCenter/MenuContent/HomePanel/MusicPlayer/Margin/Content/Details/Footer"]
+custom_minimum_size = Vector2(86, 32)
+layout_mode = 2
+mouse_default_cursor_shape = 2
+theme_override_font_sizes/font_size = 10
+theme_override_styles/normal = SubResource("StyleBoxFlat_6qrug")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_h4r81")
+theme_override_styles/hover = SubResource("StyleBoxFlat_moc86")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_tnw2n")
+theme_override_styles/focus = SubResource("StyleBoxFlat_6sdb8")
+text = "REPEAT: OFF"
+metadata/match_binding = "music_repeat_button"
+
+[node name="TrackList" type="OptionButton" parent="MenuCenter/MenuContent/HomePanel/MusicPlayer/Margin/Content/Details"]
+custom_minimum_size = Vector2(0, 32)
+layout_mode = 2
+mouse_default_cursor_shape = 2
+theme_override_font_sizes/font_size = 11
+theme_override_styles/normal = SubResource("StyleBoxFlat_6qrug")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_h4r81")
+theme_override_styles/hover = SubResource("StyleBoxFlat_moc86")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_tnw2n")
+theme_override_styles/focus = SubResource("StyleBoxFlat_6sdb8")
+metadata/match_binding = "music_track_list"
+
+[node name="UpNext" type="Label" parent="MenuCenter/MenuContent/HomePanel/MusicPlayer/Margin/Content/Details"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.7254902, 0.6784314, 0.56078434, 1)
+theme_override_font_sizes/font_size = 10
+text = "UP NEXT: MAIN · SIDE 2"
+vertical_alignment = 1
+text_overrun_behavior = 3
+metadata/match_binding = "music_up_next_label"
+
 [node name="HowToPlayPanel" type="PanelContainer" parent="MenuCenter/MenuContent" unique_id=1339191699]
 visible = false
 custom_minimum_size = Vector2(940, 450)
