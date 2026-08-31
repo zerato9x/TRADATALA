@@ -1,0 +1,7 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/audio/reactive_music_controller.gd" id="1_efixu"]
+
+[node name="ReactiveMusic" type="Node" unique_id=1528161153]
+script = ExtResource("1_efixu")
+metadata/match_binding = "music_controller"

@@ -54,7 +54,9 @@ Buttons remain disabled until their action is legal. The footer explains the cur
 - `scripts/economy/` — 64-bit integer VND wallet and point conversion.
 - `scripts/campaign/` — seven-day state machine, data-configured requirements, generic Event/NPC interactions, Drink purchase windows, and progression signals.
 - `scripts/gameplay/` — the authoritative two-Phase Deal state machine, read-only hand advisor, and exact meld-probability analysis.
-- `scripts/ui/` — card fan, Meld views, café-table composition, staged equations, wallet tweening, card travel, banners, and settlements.
+- `scenes/match.tscn` — editor-authored composition root: stationary café background plus instanced board, menu, and reactive-music scenes.
+- `scenes/ui/match_board.tscn` and `scenes/ui/main_menu.tscn` — static match HUD/overlay and menu ownership. Their named bindings are resolved by `MatchUI`; cards, Melds, discard history, campaign participants, archive contents, and audio players remain runtime-generated because their counts depend on game state.
+- `scripts/ui/` — match coordination and dynamic card/Meld presentation, staged equations, wallet tweening, card travel, banners, and settlements. `match_ui.gd` no longer constructs the static interface.
 - `tests/` — pure-rule suite plus a runtime scene smoke.
 
 ## Implemented rules
@@ -84,13 +86,13 @@ The menu includes persistent Music/Sound controls, Vietnamese/English localizati
 
 ## Verification
 
-Current Godot 4.7.1 source checkpoint (2026-08-29):
+Current Godot 4.7.1 source checkpoint (2026-08-31):
 
-- Core Deal and campaign suite: **47 / 47 passed**.
+- Core Deal and campaign suite: **49 / 49 passed** in both normal headless execution and the connected editor MCP runner.
 - Runtime scene smoke: **passed**.
 - Tutorial scene smoke: **passed**.
 - Headless editor import and global-class registration: **passed**.
-- The previous live-editor 1280×720 presentation baseline was not repeated for this Drink implementation; the updated clickable Drink path and both locale resources are covered by the runtime smoke.
+- Connected-editor migration proof: **passed**. The modular `match.tscn` opened and ran at 1280×720, the real Play button transitioned from menu to game, runtime cards/audio were rebuilt, and the stationary background remained outside the animated UI layers.
 - Previous v1.0.0 exported Windows startup: **passed**; v1.0.1 was not rebuilt during this source-fix pass.
 
 ```powershell

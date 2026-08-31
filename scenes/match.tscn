@@ -1,13 +1,38 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/match_ui.gd" id="1_match"]
+[ext_resource type="FontFile" path="res://assets/DFVN Pexel Grotesk.ttf" id="1_slo71"]
+[ext_resource type="Texture2D" path="res://assets/environment/sidewalk_table.png" id="3_tcije"]
+[ext_resource type="PackedScene" path="res://scenes/ui/match_board.tscn" id="4_6dstc"]
+[ext_resource type="PackedScene" path="res://scenes/ui/main_menu.tscn" id="5_et4mf"]
+[ext_resource type="PackedScene" path="res://scenes/ui/reactive_music.tscn" id="6_4bnf7"]
+[sub_resource type="Theme" id="Theme_3ygla"]
+default_font = ExtResource("1_slo71")
+default_font_size = 14
 
-[node name="Match" type="Control"]
+[node name="Match" type="Control" unique_id=143458947]
+custom_minimum_size = Vector2(960, 620)
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+theme = SubResource("Theme_3ygla")
 script = ExtResource("1_match")
 
+[node name="SidewalkTableBackground" type="TextureRect" parent="." unique_id=23909907]
+texture_filter = 1
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+texture = ExtResource("3_tcije")
+expand_mode = 1
+stretch_mode = 6
+
+[node name="GameLayer" type="Control" parent="." unique_id=1632460617 instance=ExtResource("4_6dstc")]
+
+[node name="MainMenu" type="Control" parent="." unique_id=466794877 instance=ExtResource("5_et4mf")]
+
+[node name="ReactiveMusic" type="Node" parent="." unique_id=1528161153 instance=ExtResource("6_4bnf7")]

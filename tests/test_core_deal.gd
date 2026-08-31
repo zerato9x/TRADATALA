@@ -649,8 +649,19 @@ func test_meld_probability_labels_follow_the_active_locale() -> void:
 	var hand: Array[CardData] = [_card("7", "Spades"), _card("7", "Hearts")]
 	var draw_pile: Array[CardData] = [_card("7", "Diamonds"), _card("7", "Clubs")]
 	var by_card := MeldProbabilityAdvisor.best_new_meld_chance_by_card(hand, draw_pile, 1)
-	assert_eq(by_card[hand[0].unique_id]["label"], "BỘ 7")
-	assert_eq(MeldProbabilityAdvisor.localized_label(by_card[hand[0].unique_id]), "SET 7")
+	var candidate: Dictionary = by_card[hand[0].unique_id]
+	assert_eq(candidate["label"], "BỘ 7")
+	var translated_template := String(TranslationServer.translate(candidate["label_key"]))
+	if translated_template == candidate["label_key"]:
+		# The editor process resolves its own translation catalog before the
+		# project's. Verify the imported project catalog directly in that host.
+		var english_translation := ResourceLoader.load("res://locale/ui.en.translation", "Translation") as Translation
+		assert_true(english_translation != null)
+		if english_translation != null:
+			translated_template = String(english_translation.get_message(candidate["label_key"]))
+	else:
+		assert_eq(MeldProbabilityAdvisor.localized_label(candidate), "SET 7")
+	assert_eq(translated_template % candidate["label_args"], "SET 7")
 	TranslationServer.set_locale(original_locale)
 
 

@@ -199,17 +199,14 @@ var campaign_continue_button: Button
 
 
 func _ready() -> void:
-	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	theme = PresentationTheme.create_game_theme()
-	custom_minimum_size = Vector2(960, 620)
+	_bind_editor_interface()
+	_connect_editor_interface_signals()
 	interaction_locked = true
 	settings = get_node_or_null("/root/GameSettings")
 	if settings == null:
 		settings = GAME_SETTINGS_SCRIPT.new()
 		settings.name = "GameSettings"
 		get_tree().root.add_child(settings)
-	_build_interface()
-	_build_music()
 	settings.locale_changed.connect(_on_locale_changed)
 	get_viewport().size_changed.connect(_on_viewport_size_changed)
 	var result := deal.start_deal(-1, true)
@@ -243,307 +240,94 @@ func _exit_tree() -> void:
 			campaign.disconnect(connection[0], connection[1])
 
 
-func _build_interface() -> void:
-	var background := TextureRect.new()
-	background.name = "SidewalkTableBackground"
-	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	background.texture = load("res://assets/environment/sidewalk_table.png") as Texture2D
-	background.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	background.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-	background.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(background)
-
-	game_layer = Control.new()
-	game_layer.name = "GameLayer"
-	game_layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	add_child(game_layer)
-
-	_build_header()
-	_build_table()
-	_build_hand()
-	_build_future_slots()
-	_build_action_dock()
-	_build_effect_layers()
-	_build_main_menu()
-
-
-func _build_main_menu() -> void:
-	menu_layer = Control.new()
-	menu_layer.name = "MainMenu"
-	menu_layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	menu_layer.mouse_filter = Control.MOUSE_FILTER_STOP
-	menu_layer.z_index = 500
-	add_child(menu_layer)
-
-	var shade := ColorRect.new()
-	shade.name = "MenuShade"
-	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	shade.color = Color("#090704a6")
-	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	menu_layer.add_child(shade)
-
-	var center := CenterContainer.new()
-	center.name = "MenuCenter"
-	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	menu_layer.add_child(center)
-
-	var column := VBoxContainer.new()
-	column.name = "MenuContent"
-	column.custom_minimum_size = Vector2(980, 620)
-	column.alignment = BoxContainer.ALIGNMENT_CENTER
-	column.add_theme_constant_override("separation", 12)
-	center.add_child(column)
-
-	var logo := HBoxContainer.new()
-	logo.name = "Logo"
-	logo.alignment = BoxContainer.ALIGNMENT_CENTER
-	logo.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	logo.add_theme_constant_override("separation", -2)
-	column.add_child(logo)
-	for segment_text in ["TRA", "DA", "TA", "LA"]:
-		var segment := Label.new()
-		segment.name = segment_text
-		segment.text = segment_text
-		segment.custom_minimum_size.y = 80
-		segment.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		segment.add_theme_font_size_override("font_size", 66)
-		segment.add_theme_color_override("font_color", PresentationTheme.GOLD)
-		segment.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		logo.add_child(segment)
-		logo_segments.append(segment)
-
-	menu_home_panel = VBoxContainer.new()
-	menu_home_panel.name = "HomePanel"
-	menu_home_panel.custom_minimum_size = Vector2(500, 220)
-	menu_home_panel.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	menu_home_panel.alignment = BoxContainer.ALIGNMENT_CENTER
-	menu_home_panel.add_theme_constant_override("separation", 12)
-	column.add_child(menu_home_panel)
-	play_button = Button.new()
-	play_button.name = "PlayButton"
-	_register_menu_text(play_button, "MENU_NEW_GAME")
-	play_button.custom_minimum_size = Vector2(500, 54)
-	play_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	PresentationTheme.configure_button(play_button, "gold")
-	play_button.add_theme_font_size_override("font_size", 18)
-	play_button.pressed.connect(_on_play_pressed)
-	menu_home_panel.add_child(play_button)
-
-	var learn_row := HBoxContainer.new()
-	learn_row.name = "LearnRow"
-	learn_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	learn_row.add_theme_constant_override("separation", 12)
-	menu_home_panel.add_child(learn_row)
-	how_to_play_button = _build_menu_navigation_button(learn_row, "HowToPlayButton", "MENU_HOW_TO_PLAY", 244)
-	how_to_play_button.pressed.connect(_show_menu_page.bind(&"how_to_play"))
-	tutorial_button = _build_menu_navigation_button(learn_row, "TutorialButton", "MENU_TUTORIAL", 244)
-	tutorial_button.pressed.connect(_on_tutorial_pressed)
-	options_button = _build_menu_navigation_button(menu_home_panel, "OptionsButton", "MENU_OPTIONS", 500)
-	options_button.pressed.connect(_show_menu_page.bind(&"options"))
-
-	_build_how_to_play(column)
-	_build_menu_settings(column)
-	_show_menu_page(&"home")
-	call_deferred("_refresh_logo_pivots")
+func _bind_editor_interface() -> void:
+	var nodes := find_children("*", "", true, false)
+	var array_entries: Dictionary = {}
+	var dictionary_bindings: Dictionary = {}
+	var node_key_dictionary_bindings: Dictionary = {}
+	for node in nodes:
+		if node.has_meta("match_array_binding"):
+			array_entries[String(node.get_meta("match_array_binding"))] = true
+		if node.has_meta("match_dictionary_binding"):
+			dictionary_bindings[String(node.get_meta("match_dictionary_binding"))] = true
+		if node.has_meta("match_node_key_dictionary_binding"):
+			node_key_dictionary_bindings[String(node.get_meta("match_node_key_dictionary_binding"))] = true
+	for property_name in array_entries:
+		var values: Array = get(property_name)
+		values.clear()
+	for property_name in dictionary_bindings:
+		var values: Dictionary = get(property_name)
+		values.clear()
+	for property_name in node_key_dictionary_bindings:
+		var values: Dictionary = get(property_name)
+		values.clear()
+	var sorted_array_entries: Dictionary = {}
+	for node in nodes:
+		if node.has_meta("match_binding"):
+			set(String(node.get_meta("match_binding")), node)
+		if node.has_meta("match_array_binding"):
+			var property_name := String(node.get_meta("match_array_binding"))
+			if not sorted_array_entries.has(property_name):
+				sorted_array_entries[property_name] = []
+			(sorted_array_entries[property_name] as Array).append({
+				"index": int(node.get_meta("match_array_index", 0)),
+				"node": node,
+			})
+		if node.has_meta("match_dictionary_binding"):
+			var property_name := String(node.get_meta("match_dictionary_binding"))
+			var values: Dictionary = get(property_name)
+			values[String(node.get_meta("match_dictionary_key"))] = node
+		if node.has_meta("match_node_key_dictionary_binding"):
+			var property_name := String(node.get_meta("match_node_key_dictionary_binding"))
+			var values: Dictionary = get(property_name)
+			values[node] = String(node.get_meta("match_node_key_dictionary_value"))
+	for property_name in sorted_array_entries:
+		var entries: Array = sorted_array_entries[property_name]
+		entries.sort_custom(func(left: Dictionary, right: Dictionary) -> bool: return left["index"] < right["index"])
+		var values: Array = get(property_name)
+		for entry in entries:
+			values.append(entry["node"])
 
 
-func _build_menu_navigation_button(parent: Container, node_name: String, translation_key: String, width: float = 340.0) -> Button:
-	var button := Button.new()
-	button.name = node_name
-	button.custom_minimum_size = Vector2(width, 48)
-	button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	_register_menu_text(button, translation_key)
-	PresentationTheme.configure_button(button, "neutral")
-	button.add_theme_font_size_override("font_size", 16)
-	parent.add_child(button)
-	return button
+func _connect_editor_interface_signals() -> void:
+	_connect_signal_once(play_button.pressed, _on_play_pressed)
+	_connect_signal_once(how_to_play_button.pressed, _show_menu_page.bind(&"how_to_play"))
+	_connect_signal_once(tutorial_button.pressed, _on_tutorial_pressed)
+	_connect_signal_once(options_button.pressed, _show_menu_page.bind(&"options"))
+	_connect_signal_once(how_to_play_back_button.pressed, _show_menu_page.bind(&"home"))
+	_connect_signal_once(options_back_button.pressed, _show_menu_page.bind(&"home"))
+	for tab_id in how_tab_buttons:
+		_connect_signal_once((how_tab_buttons[tab_id] as Button).pressed, _show_how_tab.bind(StringName(tab_id)))
+	for topic_id in how_scoring_topic_buttons:
+		_connect_signal_once((how_scoring_topic_buttons[topic_id] as Button).pressed, _show_how_scoring_topic.bind(StringName(topic_id)))
+	_connect_signal_once(music_slider.value_changed, _on_music_volume_changed)
+	_connect_signal_once(sound_slider.value_changed, _on_sound_volume_changed)
+	_connect_signal_once(language_selector.item_selected, _on_language_selected)
+	_connect_signal_once(music_controller.band_pulse, _on_music_band_pulse)
+	_connect_signal_once(menu_button.pressed, _on_menu_pressed)
+	_connect_signal_once(drink_table_button.pressed, _on_drink_pressed)
+	_connect_signal_once((pile_archive_buttons["draw"] as Button).pressed, _on_draw_archive_pressed)
+	_connect_signal_once((pile_archive_buttons["discard"] as Button).pressed, _on_discard_archive_pressed)
+	_connect_signal_once(drink_button.pressed, _on_drink_pressed)
+	_connect_signal_once(hint_button.pressed, _on_hint_pressed)
+	_connect_signal_once(sort_button.pressed, _on_sort_pressed)
+	_connect_signal_once(ha_button.pressed, _on_ha_pressed)
+	_connect_signal_once(extend_button.pressed, _on_extend_pressed)
+	_connect_signal_once(discard_button.pressed, _on_discard_pressed)
+	_connect_signal_once(settle_button.pressed, _on_settle_pressed)
+	_connect_signal_once(tutorial_exit_button.pressed, _on_tutorial_exit_pressed)
+	var archive_dim := discard_archive_overlay.find_child("ArchiveDim", true, false)
+	if archive_dim != null:
+		_connect_signal_once(archive_dim.gui_input, _on_discard_archive_dim_input)
+	_connect_signal_once(discard_archive_close.pressed, _hide_discard_archive)
+	_connect_signal_once(modal_primary.pressed, _on_modal_primary_pressed)
+	_connect_signal_once(modal_secondary.pressed, _on_modal_secondary_pressed)
+	_connect_signal_once(campaign_continue_button.pressed, _on_campaign_continue_pressed)
 
 
-func _build_how_to_play(parent: VBoxContainer) -> void:
-	how_to_play_panel = PanelContainer.new()
-	how_to_play_panel.name = "HowToPlayPanel"
-	how_to_play_panel.custom_minimum_size = Vector2(940, 450)
-	how_to_play_panel.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	how_to_play_panel.add_theme_stylebox_override("panel", PresentationTheme.panel_style(Color("#17120ff2"), Color("#8d5b30"), 2, 8, 6))
-	parent.add_child(how_to_play_panel)
-
-	var margin := MarginContainer.new()
-	margin.add_theme_constant_override("margin_left", 22)
-	margin.add_theme_constant_override("margin_top", 16)
-	margin.add_theme_constant_override("margin_right", 22)
-	margin.add_theme_constant_override("margin_bottom", 16)
-	how_to_play_panel.add_child(margin)
-	var column := VBoxContainer.new()
-	column.add_theme_constant_override("separation", 8)
-	margin.add_child(column)
-
-	var title := _build_menu_copy(column, "HOW_TITLE", 25, PresentationTheme.GOLD)
-	title.name = "Title"
-	var tabs := HBoxContainer.new()
-	tabs.name = "Tabs"
-	tabs.alignment = BoxContainer.ALIGNMENT_CENTER
-	tabs.add_theme_constant_override("separation", 8)
-	column.add_child(tabs)
-	var tab_group := ButtonGroup.new()
-	_build_how_tab_button(tabs, tab_group, &"cards", "HOW_TAB_CARDS")
-	_build_how_tab_button(tabs, tab_group, &"phases", "HOW_TAB_PHASES")
-	_build_how_tab_button(tabs, tab_group, &"scoring", "HOW_TAB_SCORING")
-
-	var tab_content := VBoxContainer.new()
-	tab_content.name = "TabContent"
-	tab_content.custom_minimum_size = Vector2(896, 270)
-	tab_content.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	column.add_child(tab_content)
-	_build_how_cards_tab(tab_content)
-	_build_how_phases_tab(tab_content)
-	_build_how_scoring_tab(tab_content)
-	_show_how_tab(&"cards")
-
-	how_to_play_back_button = _build_menu_back_button(column, "HowToPlayBackButton")
-	how_to_play_back_button.pressed.connect(_show_menu_page.bind(&"home"))
-
-
-func _build_how_tab_button(parent: Container, group: ButtonGroup, tab_id: StringName, translation_key: String) -> void:
-	var button := Button.new()
-	button.name = "%sTabButton" % String(tab_id).capitalize().replace(" ", "")
-	button.custom_minimum_size = Vector2(286, 38)
-	button.toggle_mode = true
-	button.button_group = group
-	_register_menu_text(button, translation_key)
-	PresentationTheme.configure_button(button, "neutral")
-	button.pressed.connect(_show_how_tab.bind(tab_id))
-	parent.add_child(button)
-	how_tab_buttons[tab_id] = button
-
-
-func _build_how_cards_tab(parent: VBoxContainer) -> void:
-	var page := VBoxContainer.new()
-	page.name = "CardsTab"
-	page.add_theme_constant_override("separation", 7)
-	parent.add_child(page)
-	how_tab_pages[&"cards"] = page
-	var intro := _build_menu_copy(page, "HOW_INTRO", 13, PresentationTheme.INK)
-	intro.name = "Intro"
-	var examples := HBoxContainer.new()
-	examples.name = "CardExamples"
-	examples.alignment = BoxContainer.ALIGNMENT_CENTER
-	examples.add_theme_constant_override("separation", 10)
-	page.add_child(examples)
-	_build_how_example(examples, "RunExample", "HOW_RUN_TITLE", "HOW_RUN_BODY", [
-		["4", 4, "Hearts"], ["5", 5, "Hearts"], ["6", 6, "Hearts"],
-	], PresentationTheme.TEA, 214, 218)
-	_build_how_example(examples, "SetExample", "HOW_SET_TITLE", "HOW_SET_BODY", [
-		["9", 9, "Spades"], ["9", 9, "Hearts"], ["9", 9, "Diamonds"],
-	], PresentationTheme.GOLD, 214, 218)
-	_build_how_example(examples, "ExtendExample", "HOW_EXTEND_TITLE", "HOW_EXTEND_BODY", [
-		["7", 7, "Clubs"], ["8", 8, "Clubs"], ["9", 9, "Clubs"], ["10", 10, "Clubs"],
-	], PresentationTheme.TEA, 214, 218)
-	_build_how_example(examples, "DiscardExample", "HOW_DISCARD_TITLE", "HOW_DISCARD_BODY", [
-		["Q", 12, "Diamonds"], ["BACK", 0, ""],
-	], PresentationTheme.RED, 214, 218)
-
-
-func _build_how_phases_tab(parent: VBoxContainer) -> void:
-	var page := VBoxContainer.new()
-	page.name = "PhasesTab"
-	page.add_theme_constant_override("separation", 7)
-	parent.add_child(page)
-	how_tab_pages[&"phases"] = page
-	var intro := _build_menu_copy(page, "HOW_PHASES_INTRO", 13, PresentationTheme.INK)
-	intro.name = "PhasesIntro"
-	var examples := HBoxContainer.new()
-	examples.name = "PhaseExamples"
-	examples.alignment = BoxContainer.ALIGNMENT_CENTER
-	examples.add_theme_constant_override("separation", 12)
-	page.add_child(examples)
-	_build_how_example(examples, "TurnExample", "HOW_TURN_TITLE", "HOW_TURN_BODY", [
-		["BACK", 0, ""], ["7", 7, "Hearts"], ["Q", 12, "Diamonds"],
-	], PresentationTheme.TEA, 286, 226)
-	_build_how_example(examples, "PhaseEndExample", "HOW_PHASE_END_TITLE", "HOW_PHASE_END_BODY", [
-		["2", 2, "Clubs"], ["5", 5, "Diamonds"], ["8", 8, "Spades"], ["Q", 12, "Hearts"],
-	], PresentationTheme.GOLD, 286, 226)
-	_build_how_example(examples, "PhaseChoiceExample", "HOW_PHASE_CHOICE_TITLE", "HOW_PHASE_CHOICE_BODY", [
-		["9", 9, "Spades"], ["9", 9, "Hearts"], ["9", 9, "Diamonds"],
-	], PresentationTheme.TEA, 286, 226)
-
-
-func _build_how_scoring_tab(parent: VBoxContainer) -> void:
-	var page := VBoxContainer.new()
-	page.name = "ScoringTab"
-	page.add_theme_constant_override("separation", 6)
-	parent.add_child(page)
-	how_tab_pages[&"scoring"] = page
-	var intro := _build_menu_copy(page, "HOW_SCORING_INTRO", 13, PresentationTheme.INK)
-	intro.name = "ScoringIntro"
-	var topics := HBoxContainer.new()
-	topics.name = "ScoringTopics"
-	topics.alignment = BoxContainer.ALIGNMENT_CENTER
-	topics.add_theme_constant_override("separation", 8)
-	page.add_child(topics)
-	var topic_group := ButtonGroup.new()
-	_build_how_scoring_topic_button(topics, topic_group, &"basic", "HOW_SCORE_TOPIC_BASIC")
-	_build_how_scoring_topic_button(topics, topic_group, &"special", "HOW_SCORE_TOPIC_SPECIAL")
-
-	var topic_content := Control.new()
-	topic_content.name = "ScoringTopicContent"
-	topic_content.custom_minimum_size = Vector2(896, 226)
-	page.add_child(topic_content)
-	_build_how_basic_scoring_page(topic_content)
-	_build_how_special_scoring_page(topic_content)
-	_show_how_scoring_topic(&"basic")
-
-
-func _build_how_scoring_topic_button(parent: Container, group: ButtonGroup, topic_id: StringName, translation_key: String) -> void:
-	var button := Button.new()
-	button.name = "%sTopicButton" % String(topic_id).capitalize()
-	button.custom_minimum_size = Vector2(216, 30)
-	button.toggle_mode = true
-	button.button_group = group
-	_register_menu_text(button, translation_key)
-	PresentationTheme.configure_button(button, "neutral")
-	button.add_theme_font_size_override("font_size", 12)
-	button.pressed.connect(_show_how_scoring_topic.bind(topic_id))
-	parent.add_child(button)
-	how_scoring_topic_buttons[topic_id] = button
-
-
-func _build_how_basic_scoring_page(parent: Control) -> void:
-	var examples := HBoxContainer.new()
-	examples.name = "BasicScoring"
-	examples.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	examples.alignment = BoxContainer.ALIGNMENT_CENTER
-	examples.add_theme_constant_override("separation", 12)
-	parent.add_child(examples)
-	how_scoring_topic_pages[&"basic"] = examples
-	_build_how_example(examples, "MeldScoreExample", "HOW_SCORE_MELD_TITLE", "HOW_SCORE_MELD_BODY", [
-		["4", 4, "Hearts"], ["5", 5, "Hearts"], ["6", 6, "Hearts"],
-	], PresentationTheme.TEA, 286, 226)
-	_build_how_example(examples, "ExtendScoreExample", "HOW_SCORE_EXTEND_TITLE", "HOW_SCORE_EXTEND_BODY", [
-		["4", 4, "Hearts"], ["5", 5, "Hearts"], ["6", 6, "Hearts"], ["7", 7, "Hearts"],
-	], PresentationTheme.GOLD, 286, 226)
-	_build_how_example(examples, "PhaseScoreExample", "HOW_SCORE_PHASE_TITLE", "HOW_SCORE_PHASE_BODY", [
-		["Q", 12, "Diamonds"], ["K", 13, "Spades"],
-	], PresentationTheme.RED, 286, 226)
-
-
-func _build_how_special_scoring_page(parent: Control) -> void:
-	var examples := HBoxContainer.new()
-	examples.name = "SpecialOutcomes"
-	examples.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	examples.alignment = BoxContainer.ALIGNMENT_CENTER
-	examples.add_theme_constant_override("separation", 12)
-	parent.add_child(examples)
-	how_scoring_topic_pages[&"special"] = examples
-	_build_how_example(examples, "MomExample", "HOW_MOM_TITLE", "HOW_MOM_BODY", [
-		["Q", 12, "Diamonds"], ["K", 13, "Spades"], ["A", 1, "Clubs"],
-	], PresentationTheme.RED, 286, 226)
-	_build_how_example(examples, "UExample", "HOW_U_TITLE", "HOW_U_BODY", [
-		["2", 2, "Spades"], ["2", 2, "Hearts"], ["2", 2, "Diamonds"], ["5", 5, "Clubs"],
-	], PresentationTheme.TEA, 286, 226)
-	_build_how_example(examples, "UKhanExample", "HOW_U_KHAN_TITLE", "HOW_U_KHAN_BODY", [
-		["2", 2, "Spades"], ["5", 5, "Hearts"], ["8", 8, "Clubs"], ["Q", 12, "Diamonds"],
-	], PresentationTheme.GOLD, 286, 226)
+func _connect_signal_once(signal_ref: Signal, callable: Callable) -> void:
+	if not signal_ref.is_connected(callable):
+		signal_ref.connect(callable)
 
 
 func _show_how_scoring_topic(topic_id: StringName) -> void:
@@ -566,149 +350,6 @@ func _show_how_tab(tab_id: StringName) -> void:
 		(how_tab_buttons[candidate] as Button).set_pressed_no_signal(candidate == tab_id)
 
 
-func _build_how_example(
-	parent: Container,
-	node_name: String,
-	title_key: String,
-	body_key: String,
-	card_specs: Array,
-	accent: Color,
-	panel_width: float = 214.0,
-	panel_height: float = 246.0
-) -> void:
-	var panel := PanelContainer.new()
-	panel.name = node_name
-	panel.custom_minimum_size = Vector2(panel_width, panel_height)
-	panel.add_theme_stylebox_override("panel", PresentationTheme.panel_style(Color("#231c17f0"), accent.darkened(0.2), 1, 5, 2))
-	parent.add_child(panel)
-	var margin := MarginContainer.new()
-	margin.add_theme_constant_override("margin_left", 8)
-	margin.add_theme_constant_override("margin_top", 10)
-	margin.add_theme_constant_override("margin_right", 8)
-	margin.add_theme_constant_override("margin_bottom", 9)
-	panel.add_child(margin)
-	var column := VBoxContainer.new()
-	column.alignment = BoxContainer.ALIGNMENT_CENTER
-	column.add_theme_constant_override("separation", 7)
-	margin.add_child(column)
-	var title := _build_menu_copy(column, title_key, 15, accent)
-	title.custom_minimum_size.y = 22
-	var cards := HBoxContainer.new()
-	cards.name = "Cards"
-	cards.custom_minimum_size.y = 112
-	cards.alignment = BoxContainer.ALIGNMENT_CENTER
-	cards.add_theme_constant_override("separation", -4 if card_specs.size() >= 4 else 2)
-	column.add_child(cards)
-	for card_spec in card_specs:
-		cards.add_child(_build_tutorial_card(card_spec))
-	var body := _build_menu_copy(column, body_key, 11, PresentationTheme.INK)
-	body.custom_minimum_size.y = 48
-	body.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-
-
-func _build_tutorial_card(card_spec: Array) -> TextureRect:
-	var card_image := TextureRect.new()
-	card_image.custom_minimum_size = Vector2(48, 86)
-	card_image.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	card_image.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	card_image.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	card_image.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	if String(card_spec[0]) == "BACK":
-		card_image.texture = load("res://cards/red_backing.png") as Texture2D
-		return card_image
-	var card := CardData.new(
-		"tutorial_%s_%s" % [String(card_spec[0]).to_lower(), String(card_spec[2]).to_lower()],
-		String(card_spec[0]), int(card_spec[1]), String(card_spec[2]), int(card_spec[1])
-	)
-	card_image.texture = load(card.texture_path()) as Texture2D
-	card_image.tooltip_text = card.short_label()
-	return card_image
-
-
-func _build_menu_copy(parent: Container, translation_key: String, font_size: int, color: Color) -> Label:
-	var label := Label.new()
-	_register_menu_text(label, translation_key)
-	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	label.add_theme_font_size_override("font_size", font_size)
-	label.add_theme_color_override("font_color", color)
-	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	parent.add_child(label)
-	return label
-
-
-func _build_menu_settings(parent: VBoxContainer) -> void:
-	options_panel = PanelContainer.new()
-	options_panel.name = "OptionsPanel"
-	options_panel.custom_minimum_size = Vector2(620, 330)
-	options_panel.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	options_panel.add_theme_stylebox_override("panel", PresentationTheme.panel_style(Color("#17120ff2"), Color("#8d5b30"), 2, 8, 6))
-	parent.add_child(options_panel)
-	var margin := MarginContainer.new()
-	margin.add_theme_constant_override("margin_left", 20)
-	margin.add_theme_constant_override("margin_top", 16)
-	margin.add_theme_constant_override("margin_right", 20)
-	margin.add_theme_constant_override("margin_bottom", 16)
-	options_panel.add_child(margin)
-	var rows := VBoxContainer.new()
-	rows.add_theme_constant_override("separation", 12)
-	margin.add_child(rows)
-	var title := _build_menu_copy(rows, "MENU_OPTIONS", 25, PresentationTheme.GOLD)
-	title.name = "Title"
-
-	var music_row := HBoxContainer.new()
-	music_row.name = "MusicRow"
-	music_row.add_theme_constant_override("separation", 12)
-	rows.add_child(music_row)
-	music_settings_label = _build_settings_label(music_row, "MENU_MUSIC")
-	music_slider = _build_volume_slider(music_row, settings.music_volume_percent)
-	music_slider.name = "MusicSlider"
-	music_value_label = _build_volume_value(music_row, settings.music_volume_percent)
-	music_slider.value_changed.connect(_on_music_volume_changed)
-
-	var sound_row := HBoxContainer.new()
-	sound_row.name = "SoundRow"
-	sound_row.add_theme_constant_override("separation", 12)
-	rows.add_child(sound_row)
-	sound_settings_label = _build_settings_label(sound_row, "MENU_SOUND")
-	sound_slider = _build_volume_slider(sound_row, settings.sound_volume_percent)
-	sound_slider.name = "SoundSlider"
-	sound_value_label = _build_volume_value(sound_row, settings.sound_volume_percent)
-	sound_slider.value_changed.connect(_on_sound_volume_changed)
-
-	var language_row := HBoxContainer.new()
-	language_row.name = "LanguageRow"
-	language_row.add_theme_constant_override("separation", 12)
-	rows.add_child(language_row)
-	language_settings_label = _build_settings_label(language_row, "MENU_LANGUAGE")
-	language_selector = OptionButton.new()
-	language_selector.name = "LanguageSelector"
-	language_selector.custom_minimum_size = Vector2(310, 42)
-	language_selector.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	PresentationTheme.configure_button(language_selector, "neutral")
-	language_row.add_child(language_selector)
-	_refresh_language_options()
-	language_selector.item_selected.connect(_on_language_selected)
-	options_back_button = _build_menu_back_button(rows, "OptionsBackButton")
-	options_back_button.pressed.connect(_show_menu_page.bind(&"home"))
-
-
-func _build_menu_back_button(parent: Container, node_name: String) -> Button:
-	var button := Button.new()
-	button.name = node_name
-	button.custom_minimum_size = Vector2(220, 42)
-	button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	_register_menu_text(button, "MENU_BACK")
-	PresentationTheme.configure_button(button, "neutral")
-	parent.add_child(button)
-	return button
-
-
-func _register_menu_text(control: Control, translation_key: String) -> void:
-	menu_localized_controls[control] = translation_key
-	control.set("text", tr(translation_key))
-
-
 func _show_menu_page(page: StringName) -> void:
 	menu_page = page
 	menu_home_panel.visible = page == &"home"
@@ -721,41 +362,6 @@ func _show_menu_page(page: StringName) -> void:
 		(how_tab_buttons[&"cards"] as Button).call_deferred("grab_focus")
 	else:
 		language_selector.call_deferred("grab_focus")
-
-
-func _build_settings_label(parent: Container, key: String) -> Label:
-	var label := Label.new()
-	label.text = tr(key)
-	label.custom_minimum_size = Vector2(122, 42)
-	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	label.add_theme_font_size_override("font_size", 13)
-	label.add_theme_color_override("font_color", PresentationTheme.INK)
-	parent.add_child(label)
-	return label
-
-
-func _build_volume_slider(parent: Container, initial_value: float) -> HSlider:
-	var slider := HSlider.new()
-	slider.min_value = 0.0
-	slider.max_value = 100.0
-	slider.step = 1.0
-	slider.custom_minimum_size = Vector2(250, 42)
-	slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	slider.set_value_no_signal(initial_value)
-	parent.add_child(slider)
-	return slider
-
-
-func _build_volume_value(parent: Container, initial_value: float) -> Label:
-	var label := Label.new()
-	label.text = "%d%%" % roundi(initial_value)
-	label.custom_minimum_size = Vector2(54, 42)
-	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	label.add_theme_font_size_override("font_size", 12)
-	label.add_theme_color_override("font_color", PresentationTheme.GOLD)
-	parent.add_child(label)
-	return label
 
 
 func _on_music_volume_changed(value: float) -> void:
@@ -828,13 +434,6 @@ func _refresh_localized_ui() -> void:
 	for suit in DeckManager.SUITS:
 		(discard_archive_suit_titles.get(suit) as Label).text = _discard_suit_title(suit)
 	_sync_all()
-
-
-func _build_music() -> void:
-	music_controller = ReactiveMusicController.new()
-	music_controller.name = "ReactiveMusic"
-	music_controller.band_pulse.connect(_on_music_band_pulse)
-	add_child(music_controller)
 
 
 func _refresh_logo_pivots() -> void:
@@ -1185,608 +784,6 @@ func _close_menu_to_game() -> void:
 	_refresh_actions()
 
 
-func _build_header() -> void:
-	var header := Control.new()
-	header.name = "Header"
-	header.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
-	header.offset_left = 16
-	header.offset_top = 14
-	header.offset_right = -16
-	header.offset_bottom = 100
-	game_layer.add_child(header)
-
-	var row := HBoxContainer.new()
-	row.name = "HeaderRow"
-	row.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	row.add_theme_constant_override("separation", 10)
-	header.add_child(row)
-
-	menu_button = _make_action_button(row, tr("HUD_MENU"), "neutral", 94)
-	menu_button.name = "MenuButton"
-	menu_button.custom_minimum_size.y = 72
-	menu_button.tooltip_text = tr("HUD_MENU_TOOLTIP")
-	menu_button.pressed.connect(_on_menu_pressed)
-
-	_build_discard_history_hud(row)
-
-	var spacer := Control.new()
-	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	row.add_child(spacer)
-
-	campaign_value = _add_header_stat(row, "HUD_CAMPAIGN", 178, false, "CampaignStat")
-	vnd_per_point_value = _add_header_stat(row, "HUD_VND_PER_POINT", 132, false, "VndPerPointStat")
-	earnings_value = _add_header_stat(row, "HUD_INCOME", 144, false, "IncomeStat")
-	wallet_value = _add_header_stat(row, "HUD_WALLET", 178, true, "WalletStat")
-
-
-func _build_discard_history_hud(parent: Container) -> void:
-	var panel := PanelContainer.new()
-	panel.name = "DiscardHistoryHUD"
-	panel.custom_minimum_size = Vector2(340, 72)
-	panel.add_theme_stylebox_override("panel", PresentationTheme.panel_style(Color("#19130ff0"), Color("#8d5b30"), 2, 2, 5))
-	parent.add_child(panel)
-	var margin := MarginContainer.new()
-	margin.add_theme_constant_override("margin_left", 8)
-	margin.add_theme_constant_override("margin_top", 5)
-	margin.add_theme_constant_override("margin_right", 8)
-	margin.add_theme_constant_override("margin_bottom", 5)
-	panel.add_child(margin)
-	var column := VBoxContainer.new()
-	column.add_theme_constant_override("separation", 2)
-	margin.add_child(column)
-	discard_history_title = Label.new()
-	discard_history_title.text = tr("HUD_DISCARD_HISTORY")
-	discard_history_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	discard_history_title.add_theme_font_size_override("font_size", 9)
-	discard_history_title.add_theme_color_override("font_color", PresentationTheme.GOLD)
-	column.add_child(discard_history_title)
-	var scroll := ScrollContainer.new()
-	scroll.name = "DiscardHistoryScroll"
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
-	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	column.add_child(scroll)
-	discard_history_row = HBoxContainer.new()
-	discard_history_row.name = "DiscardHistoryRow"
-	discard_history_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	discard_history_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	discard_history_row.add_theme_constant_override("separation", 3)
-	scroll.add_child(discard_history_row)
-
-
-func _add_header_stat(parent: Container, caption: String, minimum_width: float, emphasize: bool = false, panel_name: String = "") -> Label:
-	var panel := PanelContainer.new()
-	panel.name = panel_name
-	panel.custom_minimum_size = Vector2(minimum_width, 72)
-	panel.add_theme_stylebox_override("panel", PresentationTheme.panel_style(Color("#19130ff0"), Color("#8d5b30"), 2, 2, 4))
-	parent.add_child(panel)
-	var margin := MarginContainer.new()
-	margin.add_theme_constant_override("margin_left", 11)
-	margin.add_theme_constant_override("margin_top", 8)
-	margin.add_theme_constant_override("margin_right", 11)
-	margin.add_theme_constant_override("margin_bottom", 5)
-	panel.add_child(margin)
-	var column := VBoxContainer.new()
-	column.add_theme_constant_override("separation", -2)
-	margin.add_child(column)
-	var caption_label := Label.new()
-	caption_label.text = tr(caption)
-	caption_label.add_theme_font_size_override("font_size", 11)
-	caption_label.add_theme_color_override("font_color", PresentationTheme.MUTED)
-	column.add_child(caption_label)
-	header_caption_labels[panel_name] = caption_label
-	var value := Label.new()
-	value.add_theme_font_size_override("font_size", 19 if emphasize else 17)
-	value.add_theme_color_override("font_color", PresentationTheme.GOLD if emphasize else PresentationTheme.INK)
-	value.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	column.add_child(value)
-	return value
-
-
-func _build_table() -> void:
-	var table := Panel.new()
-	table_surface = table
-	table.name = "TableSurface"
-	table.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	table.offset_left = 72
-	table.offset_top = 108
-	table.offset_right = -72
-	table.offset_bottom = -242
-	table.add_theme_stylebox_override("panel", PresentationTheme.panel_style(Color.TRANSPARENT, Color.TRANSPARENT, 0, 0, 0))
-	game_layer.add_child(table)
-
-	_build_drink_table_props(table)
-	draw_pile_visual = _build_pile(table, true)
-	discard_pile_visual = _build_pile(table, false)
-
-	meld_scroll = ScrollContainer.new()
-	meld_scroll.name = "MeldScroll"
-	meld_scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	meld_scroll.offset_left = 250
-	meld_scroll.offset_top = 10
-	meld_scroll.offset_right = -250
-	meld_scroll.offset_bottom = -10
-	meld_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
-	meld_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	table.add_child(meld_scroll)
-	meld_row = HBoxContainer.new()
-	meld_row.name = "MeldRow"
-	meld_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	meld_row.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	meld_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	meld_row.add_theme_constant_override("separation", 12)
-	meld_scroll.add_child(meld_row)
-
-	empty_meld_label = Label.new()
-	empty_meld_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	empty_meld_label.offset_left = 260
-	empty_meld_label.offset_top = 16
-	empty_meld_label.offset_right = -260
-	empty_meld_label.offset_bottom = -10
-	empty_meld_label.text = tr("TABLE_EMPTY_MELD")
-	empty_meld_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	empty_meld_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	empty_meld_label.add_theme_font_size_override("font_size", 14)
-	empty_meld_label.add_theme_color_override("font_color", Color("#e5d5a2"))
-	empty_meld_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	table.add_child(empty_meld_label)
-
-
-func _build_drink_table_props(parent: Control) -> void:
-	var props := Control.new()
-	props.name = "DrinkProps"
-	props.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	props.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	props.z_index = 2
-	parent.add_child(props)
-
-	empty_drink_prop = TextureRect.new()
-	empty_drink_prop.name = "EmptyDrinkProp"
-	empty_drink_prop.position = DRINK_TABLE_EMPTY_POSITION
-	empty_drink_prop.size = DRINK_TABLE_PROP_SIZE
-	empty_drink_prop.texture = EMPTY_DRINK_TEXTURE
-	empty_drink_prop.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	empty_drink_prop.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	empty_drink_prop.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	empty_drink_prop.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	empty_drink_prop.modulate = Color.WHITE
-	props.add_child(empty_drink_prop)
-
-	drink_table_button = Button.new()
-	drink_table_button.name = "ActiveDrink"
-	drink_table_button.position = DRINK_TABLE_MORNING_POSITION
-	drink_table_button.size = DRINK_TABLE_PROP_SIZE
-	drink_table_button.flat = true
-	drink_table_button.focus_mode = Control.FOCUS_NONE
-	drink_table_button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	drink_table_button.pressed.connect(_on_drink_pressed)
-	props.add_child(drink_table_button)
-
-	drink_table_texture = TextureRect.new()
-	drink_table_texture.name = "Sprite"
-	drink_table_texture.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	drink_table_texture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	drink_table_texture.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	drink_table_texture.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	drink_table_texture.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	drink_table_button.add_child(drink_table_texture)
-
-
-func _build_pile(parent: Control, is_draw_pile: bool) -> Control:
-	var pile := Control.new()
-	pile.name = "DrawPile" if is_draw_pile else "DiscardPile"
-	pile.set_anchors_preset(Control.PRESET_CENTER_LEFT if is_draw_pile else Control.PRESET_CENTER_RIGHT)
-	pile.size = Vector2(112, 192)
-	pile.position = Vector2(112, -86) if is_draw_pile else Vector2(-224, -86)
-	parent.add_child(pile)
-
-	var caption := Label.new()
-	caption.position = Vector2(0, 0)
-	caption.size = Vector2(112, 21)
-	caption.text = tr("PILE_DRAW") if is_draw_pile else tr("PILE_DISCARD")
-	caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	caption.add_theme_font_size_override("font_size", 10)
-	caption.add_theme_color_override("font_color", PresentationTheme.INK)
-	caption.add_theme_stylebox_override("normal", PresentationTheme.panel_style(Color("#19130feb"), Color("#8d5b30"), 1, 2, 2))
-	caption.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	pile.add_child(caption)
-	pile_caption_labels["draw" if is_draw_pile else "discard"] = caption
-
-	for depth in range(3, 0, -1):
-		var backing := TextureRect.new()
-		backing.position = Vector2(13 + depth * 2, 26 - depth * 2)
-		backing.size = CARD_SIZE
-		backing.texture = load("res://cards/red_backing.png") as Texture2D
-		backing.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		backing.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		backing.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-		backing.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		backing.modulate = Color.WHITE if is_draw_pile else Color(1, 1, 1, 0.12)
-		pile.add_child(backing)
-		if not is_draw_pile and depth == 1:
-			discard_texture = backing
-
-	var badge := Label.new()
-	badge.position = Vector2(28, 150)
-	badge.size = Vector2(58, 28)
-	badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	badge.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	badge.add_theme_font_size_override("font_size", 12)
-	badge.add_theme_color_override("font_color", PresentationTheme.INK)
-	badge.add_theme_stylebox_override("normal", PresentationTheme.panel_style(Color("#19130ff2"), PresentationTheme.GOLD_DARK, 2, 2, 2))
-	badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	pile.add_child(badge)
-	if is_draw_pile:
-		draw_count = badge
-	else:
-		discard_count_label = badge
-	var archive_button := Button.new()
-	archive_button.name = "OpenDrawArchive" if is_draw_pile else "OpenDiscardArchive"
-	archive_button.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	archive_button.flat = true
-	archive_button.focus_mode = Control.FOCUS_NONE
-	archive_button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	archive_button.tooltip_text = tr("PILE_DRAW_TOOLTIP") if is_draw_pile else tr("PILE_DISCARD_TOOLTIP")
-	archive_button.pressed.connect(_on_draw_archive_pressed if is_draw_pile else _on_discard_archive_pressed)
-	pile.add_child(archive_button)
-	pile_archive_buttons["draw" if is_draw_pile else "discard"] = archive_button
-	return pile
-
-
-func _build_hand() -> void:
-	var hand_panel := Panel.new()
-	hand_panel.name = "LooseHand"
-	hand_panel.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
-	hand_panel.offset_left = 108
-	hand_panel.offset_top = -242
-	hand_panel.offset_right = -108
-	hand_panel.offset_bottom = -70
-	hand_panel.add_theme_stylebox_override("panel", PresentationTheme.panel_style(Color.TRANSPARENT, Color.TRANSPARENT, 0, 0, 0))
-	game_layer.add_child(hand_panel)
-
-	hand_layer = Control.new()
-	hand_layer.name = "CardFan"
-	hand_layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	hand_layer.offset_left = 10
-	hand_layer.offset_top = 6
-	hand_layer.offset_right = -10
-	hand_layer.offset_bottom = 4
-	hand_layer.clip_contents = false
-	hand_panel.add_child(hand_layer)
-
-
-func _build_future_slots() -> void:
-	var rail := Control.new()
-	rail.name = "UtilityRail"
-	rail.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	rail.position = Vector2(-150, 158)
-	rail.size = Vector2(134, 348)
-	game_layer.add_child(rail)
-
-	var drink_panel := Panel.new()
-	drink_panel.name = "DrinkArea"
-	drink_panel.position = Vector2.ZERO
-	drink_panel.size = Vector2(134, 106)
-	drink_panel.add_theme_stylebox_override("panel", PresentationTheme.panel_style(Color("#17120fe8"), Color("#8d5b30"), 2, 2, 4))
-	rail.add_child(drink_panel)
-	drink_title_label = Label.new()
-	drink_title_label.position = Vector2(9, 7)
-	drink_title_label.size = Vector2(116, 18)
-	drink_title_label.text = tr("HUD_DRINK")
-	drink_title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	drink_title_label.add_theme_font_size_override("font_size", 12)
-	drink_title_label.add_theme_color_override("font_color", PresentationTheme.GOLD)
-	drink_panel.add_child(drink_title_label)
-	drink_button = Button.new()
-	drink_button.name = "DrinkSlot"
-	drink_button.position = Vector2(34, 30)
-	drink_button.size = Vector2(66, 64)
-	drink_button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	drink_button.add_theme_stylebox_override("normal", PresentationTheme.panel_style(Color("#0b0907c0"), Color("#6b5138"), 1, 2, 2))
-	drink_button.add_theme_stylebox_override("hover", PresentationTheme.panel_style(Color("#17221ee8"), PresentationTheme.TEA, 2, 2, 2))
-	drink_button.add_theme_stylebox_override("pressed", PresentationTheme.panel_style(Color("#0b1714f0"), PresentationTheme.GOLD, 2, 2, 2))
-	drink_button.pressed.connect(_on_drink_pressed)
-	drink_panel.add_child(drink_button)
-	drink_charge_outline = CARD_ACTION_OUTLINE_SCRIPT.new()
-	drink_charge_outline.name = "DrinkChargeOutline"
-	drink_charge_outline.position = Vector2(-7, -7)
-	drink_charge_outline.size = drink_button.size + Vector2(14, 14)
-	drink_charge_outline.visible = false
-	drink_button.add_child(drink_charge_outline)
-	drink_name_label = Label.new()
-	drink_name_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	drink_name_label.text = tr(DrinkCatalog.display_name(deal.current_drink_id)).to_upper()
-	drink_name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	drink_name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	drink_name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	drink_name_label.add_theme_font_size_override("font_size", 11)
-	drink_name_label.add_theme_color_override("font_color", PresentationTheme.TEA)
-	drink_name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	drink_button.add_child(drink_name_label)
-
-	var relic_panel := Panel.new()
-	relic_panel.name = "RelicsArea"
-	relic_panel.position = Vector2(0, 116)
-	relic_panel.size = Vector2(134, 232)
-	relic_panel.add_theme_stylebox_override("panel", PresentationTheme.panel_style(Color("#17120fe8"), Color("#8d5b30"), 2, 2, 4))
-	rail.add_child(relic_panel)
-	relic_title_label = Label.new()
-	relic_title_label.position = Vector2(9, 7)
-	relic_title_label.size = Vector2(116, 18)
-	relic_title_label.text = tr("HUD_RELICS")
-	relic_title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	relic_title_label.add_theme_font_size_override("font_size", 12)
-	relic_title_label.add_theme_color_override("font_color", PresentationTheme.GOLD)
-	relic_panel.add_child(relic_title_label)
-	var relic_scroll := ScrollContainer.new()
-	relic_scroll.name = "RelicScroll"
-	relic_scroll.position = Vector2(9, 30)
-	relic_scroll.size = Vector2(116, 192)
-	relic_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	relic_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
-	relic_panel.add_child(relic_scroll)
-	relic_grid = GridContainer.new()
-	relic_grid.name = "RelicGrid"
-	relic_grid.columns = 2
-	relic_grid.add_theme_constant_override("h_separation", 6)
-	relic_grid.add_theme_constant_override("v_separation", 6)
-	relic_scroll.add_child(relic_grid)
-	set_relic_capacity(INITIAL_RELIC_SLOT_COUNT)
-
-
-func set_relic_capacity(capacity: int) -> void:
-	if relic_grid == null:
-		return
-	for child in relic_grid.get_children():
-		relic_grid.remove_child(child)
-		child.queue_free()
-	for index in range(maxi(1, capacity)):
-		var slot := PanelContainer.new()
-		slot.name = "RelicSlot%02d" % (index + 1)
-		slot.custom_minimum_size = Vector2(52, 78)
-		slot.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		slot.add_theme_stylebox_override("panel", PresentationTheme.panel_style(Color("#0b0907c0"), Color("#6b5138"), 1, 2, 2))
-		relic_grid.add_child(slot)
-		var mark := Label.new()
-		mark.text = "%d" % (index + 1)
-		mark.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		mark.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		mark.add_theme_font_size_override("font_size", 12)
-		mark.add_theme_color_override("font_color", Color("#6b5138"))
-		mark.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		slot.add_child(mark)
-
-
-func _build_action_dock() -> void:
-	var dock := Panel.new()
-	dock.name = "ActionDock"
-	dock.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
-	dock.offset_left = 16
-	dock.offset_top = -64
-	dock.offset_right = -16
-	dock.offset_bottom = -10
-	dock.add_theme_stylebox_override("panel", PresentationTheme.panel_style(Color("#17120ff2"), Color("#8d5b30"), 2, 2, 5))
-	game_layer.add_child(dock)
-
-	var margin := MarginContainer.new()
-	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	margin.add_theme_constant_override("margin_left", 14)
-	margin.add_theme_constant_override("margin_top", 6)
-	margin.add_theme_constant_override("margin_right", 9)
-	margin.add_theme_constant_override("margin_bottom", 6)
-	dock.add_child(margin)
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 8)
-	margin.add_child(row)
-	status_label = Label.new()
-	status_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	status_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	status_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	status_label.add_theme_font_size_override("font_size", 12)
-	status_label.add_theme_color_override("font_color", PresentationTheme.MUTED)
-	row.add_child(status_label)
-
-	hint_button = _make_action_button(row, tr("ACTION_HINT"), "gold", 104)
-	hint_button.tooltip_text = tr("ACTION_HINT_TOOLTIP")
-	hint_button.pressed.connect(_on_hint_pressed)
-	sort_button = _make_action_button(row, tr("ACTION_SORT"), "neutral", 104)
-	sort_button.tooltip_text = tr("ACTION_SORT_TOOLTIP")
-	sort_button.pressed.connect(_on_sort_pressed)
-	ha_button = _make_action_button(row, tr("ACTION_MELD"), "tea", 108)
-	ha_button.tooltip_text = tr("ACTION_MELD_TOOLTIP")
-	ha_button.pressed.connect(_on_ha_pressed)
-	extend_button = _make_action_button(row, tr("ACTION_EXTEND"), "gold", 116)
-	extend_button.tooltip_text = tr("ACTION_EXTEND_TOOLTIP")
-	extend_button.pressed.connect(_on_extend_pressed)
-	discard_button = _make_action_button(row, tr("ACTION_DISCARD"), "danger", 120)
-	discard_button.tooltip_text = tr("ACTION_DISCARD_TOOLTIP")
-	discard_button.pressed.connect(_on_discard_pressed)
-	settle_button = _make_action_button(row, tr("ACTION_SETTLE"), "tea", 108)
-	settle_button.tooltip_text = tr("ACTION_SETTLE_TOOLTIP")
-	settle_button.pressed.connect(_on_settle_pressed)
-
-
-func _make_action_button(parent: Container, text_value: String, tone: String, width: float) -> Button:
-	var button := Button.new()
-	button.text = text_value
-	button.custom_minimum_size = Vector2(width, 40)
-	PresentationTheme.configure_button(button, tone)
-	parent.add_child(button)
-	return button
-
-
-func _build_effect_layers() -> void:
-	particle_layer = Control.new()
-	particle_layer.name = "MotionEffects"
-	particle_layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	particle_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	particle_layer.z_index = 100
-	game_layer.add_child(particle_layer)
-
-	_build_discard_archive()
-	_build_score_overlay()
-	_build_banner()
-	_build_modal()
-	_build_campaign_overlay()
-	tutorial_spotlight = TUTORIAL_SPOTLIGHT_SCRIPT.new()
-	tutorial_spotlight.name = "TutorialSpotlight"
-	tutorial_spotlight.z_index = 105
-	tutorial_spotlight.visible = false
-	game_layer.add_child(tutorial_spotlight)
-	_build_tutorial_coach()
-
-
-func _build_tutorial_coach() -> void:
-	tutorial_coach = PanelContainer.new()
-	tutorial_coach.name = "TutorialCoach"
-	tutorial_coach.set_anchors_preset(Control.PRESET_CENTER_TOP)
-	tutorial_coach.position = Vector2(-370, 112)
-	tutorial_coach.size = Vector2(740, 106)
-	tutorial_coach.mouse_filter = Control.MOUSE_FILTER_STOP
-	tutorial_coach.z_index = 110
-	tutorial_coach.visible = false
-	tutorial_coach.add_theme_stylebox_override("panel", PresentationTheme.panel_style(Color("#102a24f7"), PresentationTheme.TEA, 2, 10, 7))
-	game_layer.add_child(tutorial_coach)
-
-	var margin := MarginContainer.new()
-	margin.add_theme_constant_override("margin_left", 16)
-	margin.add_theme_constant_override("margin_top", 10)
-	margin.add_theme_constant_override("margin_right", 12)
-	margin.add_theme_constant_override("margin_bottom", 10)
-	tutorial_coach.add_child(margin)
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 12)
-	margin.add_child(row)
-	tutorial_progress_label = Label.new()
-	tutorial_progress_label.custom_minimum_size = Vector2(78, 0)
-	tutorial_progress_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	tutorial_progress_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	tutorial_progress_label.add_theme_font_size_override("font_size", 12)
-	tutorial_progress_label.add_theme_color_override("font_color", PresentationTheme.GOLD)
-	row.add_child(tutorial_progress_label)
-	var copy := VBoxContainer.new()
-	copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	copy.alignment = BoxContainer.ALIGNMENT_CENTER
-	copy.add_theme_constant_override("separation", 3)
-	row.add_child(copy)
-	tutorial_title_label = Label.new()
-	tutorial_title_label.add_theme_font_size_override("font_size", 16)
-	tutorial_title_label.add_theme_color_override("font_color", PresentationTheme.INK)
-	copy.add_child(tutorial_title_label)
-	tutorial_body_label = Label.new()
-	tutorial_body_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	tutorial_body_label.add_theme_font_size_override("font_size", 12)
-	tutorial_body_label.add_theme_color_override("font_color", PresentationTheme.MUTED)
-	copy.add_child(tutorial_body_label)
-	tutorial_exit_button = Button.new()
-	tutorial_exit_button.custom_minimum_size = Vector2(128, 46)
-	PresentationTheme.configure_button(tutorial_exit_button, "neutral")
-	tutorial_exit_button.pressed.connect(_on_tutorial_exit_pressed)
-	row.add_child(tutorial_exit_button)
-
-
-func _build_discard_archive() -> void:
-	discard_archive_overlay = Control.new()
-	discard_archive_overlay.name = "DiscardArchiveOverlay"
-	discard_archive_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	discard_archive_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
-	discard_archive_overlay.z_index = 160
-	discard_archive_overlay.visible = false
-	game_layer.add_child(discard_archive_overlay)
-
-	var dim := ColorRect.new()
-	dim.name = "ArchiveDim"
-	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	dim.color = Color("#020302b8")
-	dim.mouse_filter = Control.MOUSE_FILTER_STOP
-	dim.gui_input.connect(_on_discard_archive_dim_input)
-	discard_archive_overlay.add_child(dim)
-
-	var panel := Panel.new()
-	panel.name = "ArchivePanel"
-	panel.set_anchors_preset(Control.PRESET_CENTER)
-	panel.position = Vector2(-460, -250)
-	panel.size = Vector2(920, 500)
-	panel.mouse_filter = Control.MOUSE_FILTER_STOP
-	panel.add_theme_stylebox_override("panel", PresentationTheme.panel_style(Color("#14100dfb"), PresentationTheme.GOLD, 2, 16, 10))
-	discard_archive_overlay.add_child(panel)
-
-	var margin := MarginContainer.new()
-	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	margin.add_theme_constant_override("margin_left", 24)
-	margin.add_theme_constant_override("margin_top", 20)
-	margin.add_theme_constant_override("margin_right", 24)
-	margin.add_theme_constant_override("margin_bottom", 20)
-	panel.add_child(margin)
-	var column := VBoxContainer.new()
-	column.add_theme_constant_override("separation", 14)
-	margin.add_child(column)
-
-	var header := HBoxContainer.new()
-	header.add_theme_constant_override("separation", 12)
-	column.add_child(header)
-	var title_column := VBoxContainer.new()
-	title_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	title_column.add_theme_constant_override("separation", -2)
-	header.add_child(title_column)
-	pile_archive_title = Label.new()
-	pile_archive_title.name = "ArchiveTitle"
-	pile_archive_title.text = tr("ARCHIVE_DISCARD_TITLE")
-	pile_archive_title.add_theme_font_size_override("font_size", 24)
-	pile_archive_title.add_theme_color_override("font_color", PresentationTheme.GOLD)
-	title_column.add_child(pile_archive_title)
-	discard_archive_count = Label.new()
-	discard_archive_count.name = "ArchiveCount"
-	discard_archive_count.add_theme_font_size_override("font_size", 11)
-	discard_archive_count.add_theme_color_override("font_color", PresentationTheme.MUTED)
-	title_column.add_child(discard_archive_count)
-	discard_archive_close = _make_action_button(header, tr("ARCHIVE_CLOSE"), "danger", 122)
-	discard_archive_close.name = "CloseArchive"
-	discard_archive_close.pressed.connect(_hide_discard_archive)
-
-	var suits_row := HBoxContainer.new()
-	suits_row.name = "SuitColumns"
-	suits_row.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	suits_row.add_theme_constant_override("separation", 10)
-	column.add_child(suits_row)
-	for suit in DeckManager.SUITS:
-		var suit_panel := PanelContainer.new()
-		suit_panel.name = "%sColumn" % suit
-		suit_panel.custom_minimum_size = Vector2(210, 0)
-		suit_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		suit_panel.add_theme_stylebox_override("panel", PresentationTheme.panel_style(Color("#211a15ed"), _discard_suit_color(suit), 1, 8, 5))
-		suits_row.add_child(suit_panel)
-		var suit_margin := MarginContainer.new()
-		suit_margin.add_theme_constant_override("margin_left", 10)
-		suit_margin.add_theme_constant_override("margin_top", 10)
-		suit_margin.add_theme_constant_override("margin_right", 10)
-		suit_margin.add_theme_constant_override("margin_bottom", 10)
-		suit_panel.add_child(suit_margin)
-		var suit_column := VBoxContainer.new()
-		suit_column.add_theme_constant_override("separation", 8)
-		suit_margin.add_child(suit_column)
-		var suit_title := Label.new()
-		suit_title.text = _discard_suit_title(suit)
-		suit_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		suit_title.add_theme_font_size_override("font_size", 14)
-		suit_title.add_theme_color_override("font_color", _discard_suit_color(suit))
-		suit_column.add_child(suit_title)
-		discard_archive_suit_titles[suit] = suit_title
-		var scroll := ScrollContainer.new()
-		scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-		scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
-		suit_column.add_child(scroll)
-		var grid := GridContainer.new()
-		grid.name = "%sCards" % suit
-		grid.columns = 3
-		grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		grid.add_theme_constant_override("h_separation", 4)
-		grid.add_theme_constant_override("v_separation", 5)
-		scroll.add_child(grid)
-		discard_archive_suit_grids[suit] = grid
-
-
 func _on_draw_archive_pressed() -> void:
 	_toggle_pile_archive("draw")
 
@@ -1893,185 +890,13 @@ func _discard_suit_color(suit: String) -> Color:
 	return PresentationTheme.RED if suit in ["Hearts", "Diamonds"] else PresentationTheme.INK
 
 
-func _build_score_overlay() -> void:
-	score_overlay = Control.new()
-	score_overlay.name = "ScoreFeedback"
-	score_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	score_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	score_overlay.z_index = 120
-	score_overlay.visible = false
-	game_layer.add_child(score_overlay)
-
-	score_panel = Panel.new()
-	score_panel.set_anchors_preset(Control.PRESET_CENTER)
-	score_panel.position = Vector2(-270, -112)
-	score_panel.size = Vector2(540, 224)
-	score_panel.pivot_offset = score_panel.size * 0.5
-	score_panel.add_theme_stylebox_override("panel", PresentationTheme.panel_style(Color("#0b1d19f7"), PresentationTheme.GOLD, 2, 18, 12))
-	score_overlay.add_child(score_panel)
-
-	var accent := ColorRect.new()
-	accent.position = Vector2(18, 16)
-	accent.size = Vector2(4, 192)
-	accent.color = PresentationTheme.GOLD
-	accent.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	score_panel.add_child(accent)
-	score_title = _score_label(score_panel, Vector2(38, 18), Vector2(482, 31), 13, PresentationTheme.GOLD)
-	score_line_a = _score_label(score_panel, Vector2(38, 57), Vector2(482, 41), 20, PresentationTheme.INK)
-	score_line_b = _score_label(score_panel, Vector2(38, 100), Vector2(482, 41), 20, PresentationTheme.INK)
-	score_payout = _score_label(score_panel, Vector2(38, 151), Vector2(482, 52), 28, PresentationTheme.TEA)
-
-
-func _score_label(parent: Control, at: Vector2, label_size: Vector2, font_size: int, color: Color) -> Label:
-	var label := Label.new()
-	label.position = at
-	label.size = label_size
-	label.add_theme_font_size_override("font_size", font_size)
-	label.add_theme_color_override("font_color", color)
-	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	parent.add_child(label)
-	return label
-
-
-func _build_banner() -> void:
-	banner_panel = PanelContainer.new()
-	banner_panel.name = "TurnBanner"
-	banner_panel.set_anchors_preset(Control.PRESET_CENTER_TOP)
-	banner_panel.position = Vector2(-250, 103)
-	banner_panel.size = Vector2(500, 38)
-	banner_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	banner_panel.z_index = 140
-	banner_panel.modulate = Color(1, 1, 1, 0)
-	banner_panel.add_theme_stylebox_override("panel", PresentationTheme.panel_style(Color("#132d27f4"), PresentationTheme.GOLD_DARK, 1, 16, 6))
-	game_layer.add_child(banner_panel)
-	banner_label = Label.new()
-	banner_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	banner_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	banner_label.add_theme_font_size_override("font_size", 11)
-	banner_label.add_theme_color_override("font_color", PresentationTheme.INK)
-	banner_panel.add_child(banner_label)
-
-
-func _build_modal() -> void:
-	modal_overlay = Control.new()
-	modal_overlay.name = "DecisionOverlay"
-	modal_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	modal_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
-	modal_overlay.z_index = 200
-	modal_overlay.visible = false
-	game_layer.add_child(modal_overlay)
-	var dim := ColorRect.new()
-	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	dim.color = Color("#020907c7")
-	dim.mouse_filter = Control.MOUSE_FILTER_STOP
-	modal_overlay.add_child(dim)
-	var panel := Panel.new()
-	panel.set_anchors_preset(Control.PRESET_CENTER)
-	panel.position = Vector2(-310, -205)
-	panel.size = Vector2(620, 410)
-	panel.add_theme_stylebox_override("panel", PresentationTheme.panel_style(Color("#102a24ff"), PresentationTheme.GOLD, 2, 20, 16))
-	modal_overlay.add_child(panel)
-	var column := VBoxContainer.new()
-	column.position = Vector2(38, 30)
-	column.size = Vector2(544, 350)
-	column.add_theme_constant_override("separation", 10)
-	panel.add_child(column)
-	modal_kicker = Label.new()
-	modal_kicker.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	modal_kicker.add_theme_font_size_override("font_size", 11)
-	modal_kicker.add_theme_color_override("font_color", PresentationTheme.GOLD)
-	column.add_child(modal_kicker)
-	modal_title = Label.new()
-	modal_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	modal_title.add_theme_font_size_override("font_size", 31)
-	modal_title.add_theme_color_override("font_color", PresentationTheme.INK)
-	column.add_child(modal_title)
-	modal_body = Label.new()
-	modal_body.custom_minimum_size = Vector2(0, 82)
-	modal_body.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	modal_body.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	modal_body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	modal_body.add_theme_font_size_override("font_size", 15)
-	modal_body.add_theme_color_override("font_color", PresentationTheme.MUTED)
-	column.add_child(modal_body)
-	modal_detail = Label.new()
-	modal_detail.custom_minimum_size = Vector2(0, 60)
-	modal_detail.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	modal_detail.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	modal_detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	modal_detail.add_theme_font_size_override("font_size", 12)
-	modal_detail.add_theme_color_override("font_color", PresentationTheme.TEA)
-	column.add_child(modal_detail)
-	var buttons := HBoxContainer.new()
-	buttons.alignment = BoxContainer.ALIGNMENT_CENTER
-	buttons.add_theme_constant_override("separation", 14)
-	column.add_child(buttons)
-	modal_primary = _make_action_button(buttons, "GIỮ", "tea", 206)
-	modal_primary.custom_minimum_size.y = 52
-	modal_primary.pressed.connect(_on_modal_primary_pressed)
-	modal_secondary = _make_action_button(buttons, "ĐỔI", "danger", 206)
-	modal_secondary.custom_minimum_size.y = 52
-	modal_secondary.pressed.connect(_on_modal_secondary_pressed)
-
-
-func _build_campaign_overlay() -> void:
-	campaign_overlay = Control.new()
-	campaign_overlay.name = "CampaignEventOverlay"
-	campaign_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	campaign_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
-	campaign_overlay.z_index = 190
-	campaign_overlay.visible = false
-	game_layer.add_child(campaign_overlay)
-	var dim := ColorRect.new()
-	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	dim.color = Color("#090704d9")
-	dim.mouse_filter = Control.MOUSE_FILTER_STOP
-	campaign_overlay.add_child(dim)
-	var panel := Panel.new()
-	panel.set_anchors_preset(Control.PRESET_CENTER)
-	panel.position = Vector2(-410, -270)
-	panel.size = Vector2(820, 540)
-	panel.add_theme_stylebox_override("panel", PresentationTheme.panel_style(Color("#17120ffc"), PresentationTheme.GOLD, 2, 18, 12))
-	campaign_overlay.add_child(panel)
-	var column := VBoxContainer.new()
-	column.position = Vector2(34, 26)
-	column.size = Vector2(752, 488)
-	column.add_theme_constant_override("separation", 10)
-	panel.add_child(column)
-	campaign_event_kicker = Label.new()
-	campaign_event_kicker.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	campaign_event_kicker.add_theme_font_size_override("font_size", 12)
-	campaign_event_kicker.add_theme_color_override("font_color", PresentationTheme.GOLD)
-	column.add_child(campaign_event_kicker)
-	campaign_event_title = Label.new()
-	campaign_event_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	campaign_event_title.add_theme_font_size_override("font_size", 30)
-	campaign_event_title.add_theme_color_override("font_color", PresentationTheme.INK)
-	column.add_child(campaign_event_title)
-	campaign_event_wallet = Label.new()
-	campaign_event_wallet.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	campaign_event_wallet.add_theme_font_size_override("font_size", 13)
-	campaign_event_wallet.add_theme_color_override("font_color", PresentationTheme.TEA)
-	column.add_child(campaign_event_wallet)
-	var divider := HSeparator.new()
-	divider.add_theme_constant_override("separation", 8)
-	column.add_child(divider)
-	var scroll := ScrollContainer.new()
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	column.add_child(scroll)
-	campaign_participants = VBoxContainer.new()
-	campaign_participants.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	campaign_participants.add_theme_constant_override("separation", 10)
-	scroll.add_child(campaign_participants)
-	campaign_continue_button = Button.new()
-	campaign_continue_button.name = "CampaignContinueButton"
-	campaign_continue_button.custom_minimum_size = Vector2(280, 48)
-	campaign_continue_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	PresentationTheme.configure_button(campaign_continue_button, "tea")
-	campaign_continue_button.pressed.connect(_on_campaign_continue_pressed)
-	column.add_child(campaign_continue_button)
+func _make_action_button(parent: Container, text_value: String, tone: String, width: float) -> Button:
+	var button := Button.new()
+	button.text = text_value
+	button.custom_minimum_size = Vector2(width, 40)
+	PresentationTheme.configure_button(button, tone)
+	parent.add_child(button)
+	return button
 
 
 func _show_campaign_event(event: EventInstance) -> void:

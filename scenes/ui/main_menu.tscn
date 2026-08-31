@@ -1,0 +1,2724 @@
+[gd_scene format=3]
+
+[ext_resource type="Texture2D" path="res://cards/four_of_hearts.png" id="1_e0hcc"]
+[ext_resource type="Texture2D" path="res://cards/five_of_hearts.png" id="2_qch7b"]
+[ext_resource type="Texture2D" path="res://cards/six_of_hearts.png" id="3_4ovp2"]
+[ext_resource type="Texture2D" path="res://cards/nine_of_spades.png" id="4_1mexh"]
+[ext_resource type="Texture2D" path="res://cards/nine_of_hearts.png" id="5_6ud2m"]
+[ext_resource type="Texture2D" path="res://cards/nine_of_diamonds.png" id="6_qqxfm"]
+[ext_resource type="Texture2D" path="res://cards/seven_of_clubs.png" id="7_ktljq"]
+[ext_resource type="Texture2D" path="res://cards/eight_of_clubs.png" id="8_rbask"]
+[ext_resource type="Texture2D" path="res://cards/nine_of_clubs.png" id="9_e6a60"]
+[ext_resource type="Texture2D" path="res://cards/ten_of_clubs.png" id="10_5et21"]
+[ext_resource type="Texture2D" path="res://cards/queen_of_diamonds.png" id="11_ei00g"]
+[ext_resource type="Texture2D" path="res://cards/red_backing.png" id="12_75tx2"]
+[ext_resource type="Texture2D" path="res://cards/seven_of_hearts.png" id="13_j4d8q"]
+[ext_resource type="Texture2D" path="res://cards/two_of_clubs.png" id="14_qpknu"]
+[ext_resource type="Texture2D" path="res://cards/five_of_diamonds.png" id="15_wabu5"]
+[ext_resource type="Texture2D" path="res://cards/eight_of_spades.png" id="16_3e805"]
+[ext_resource type="Texture2D" path="res://cards/queen_of_hearts.png" id="17_dwgav"]
+[ext_resource type="Texture2D" path="res://cards/king_of_spades.png" id="18_bvtfn"]
+[ext_resource type="Texture2D" path="res://cards/ace_of_clubs.png" id="19_r6ok0"]
+[ext_resource type="Texture2D" path="res://cards/two_of_spades.png" id="20_oq1mw"]
+[ext_resource type="Texture2D" path="res://cards/two_of_hearts.png" id="21_cc4y2"]
+[ext_resource type="Texture2D" path="res://cards/two_of_diamonds.png" id="22_iglv2"]
+[ext_resource type="Texture2D" path="res://cards/five_of_clubs.png" id="23_c68a3"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_it7fd"]
+bg_color = Color(0.6039216, 0.39215687, 0.12156863, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.9607843, 0.7490196, 0.25882354, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+shadow_color = Color(0.019607844, 0.011764706, 0.007843138, 0.7411765)
+shadow_size = 3
+shadow_offset = Vector2(0, 3)
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_1ladk"]
+bg_color = Color(0.4952157, 0.32156864, 0.09968627, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.9607843, 0.7490196, 0.25882354, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_eq3fr"]
+bg_color = Color(0.7490196, 0.5176471, 0.15686275, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.9666667, 0.7866667, 0.37, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+shadow_color = Color(0.019607844, 0.011764706, 0.007843138, 0.7411765)
+shadow_size = 4
+shadow_offset = Vector2(0, 3)
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_4cpri"]
+bg_color = Color(0.14901961, 0.13725491, 0.12156863, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.31764707, 0.28235295, 0.23137255, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_7tj3k"]
+bg_color = Color(1, 1, 1, 0)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.9607843, 0.7490196, 0.25882354, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_254h7"]
+bg_color = Color(0.14901961, 0.21960784, 0.3254902, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.43137255, 0.56078434, 0.70980394, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+shadow_color = Color(0.019607844, 0.011764706, 0.007843138, 0.7411765)
+shadow_size = 3
+shadow_offset = Vector2(0, 3)
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_q7y40"]
+bg_color = Color(0.122196086, 0.18007843, 0.26690197, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.43137255, 0.56078434, 0.70980394, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_wmtib"]
+bg_color = Color(0.20392157, 0.32156864, 0.47843137, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.51666665, 0.62666667, 0.75333333, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+shadow_color = Color(0.019607844, 0.011764706, 0.007843138, 0.7411765)
+shadow_size = 4
+shadow_offset = Vector2(0, 3)
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ge7m8"]
+bg_color = Color(0.14901961, 0.13725491, 0.12156863, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.31764707, 0.28235295, 0.23137255, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_431op"]
+bg_color = Color(1, 1, 1, 0)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.9607843, 0.7490196, 0.25882354, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_w6jue"]
+bg_color = Color(0.14901961, 0.21960784, 0.3254902, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.43137255, 0.56078434, 0.70980394, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+shadow_color = Color(0.019607844, 0.011764706, 0.007843138, 0.7411765)
+shadow_size = 3
+shadow_offset = Vector2(0, 3)
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_fejna"]
+bg_color = Color(0.122196086, 0.18007843, 0.26690197, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.43137255, 0.56078434, 0.70980394, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_cnkih"]
+bg_color = Color(0.20392157, 0.32156864, 0.47843137, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.51666665, 0.62666667, 0.75333333, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+shadow_color = Color(0.019607844, 0.011764706, 0.007843138, 0.7411765)
+shadow_size = 4
+shadow_offset = Vector2(0, 3)
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_85t4p"]
+bg_color = Color(0.14901961, 0.13725491, 0.12156863, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.31764707, 0.28235295, 0.23137255, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_88kau"]
+bg_color = Color(1, 1, 1, 0)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.9607843, 0.7490196, 0.25882354, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_6qrug"]
+bg_color = Color(0.14901961, 0.21960784, 0.3254902, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.43137255, 0.56078434, 0.70980394, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+shadow_color = Color(0.019607844, 0.011764706, 0.007843138, 0.7411765)
+shadow_size = 3
+shadow_offset = Vector2(0, 3)
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_h4r81"]
+bg_color = Color(0.122196086, 0.18007843, 0.26690197, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.43137255, 0.56078434, 0.70980394, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_moc86"]
+bg_color = Color(0.20392157, 0.32156864, 0.47843137, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.51666665, 0.62666667, 0.75333333, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+shadow_color = Color(0.019607844, 0.011764706, 0.007843138, 0.7411765)
+shadow_size = 4
+shadow_offset = Vector2(0, 3)
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_tnw2n"]
+bg_color = Color(0.14901961, 0.13725491, 0.12156863, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.31764707, 0.28235295, 0.23137255, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_6sdb8"]
+bg_color = Color(1, 1, 1, 0)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.9607843, 0.7490196, 0.25882354, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_28e1x"]
+bg_color = Color(0.09019608, 0.07058824, 0.05882353, 0.9490196)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.5529412, 0.35686275, 0.1882353, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+shadow_color = Color(0.019607844, 0.011764706, 0.007843138, 0.7411765)
+shadow_size = 6
+shadow_offset = Vector2(0, 3)
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_xnewo"]
+bg_color = Color(0.14901961, 0.21960784, 0.3254902, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.43137255, 0.56078434, 0.70980394, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+shadow_color = Color(0.019607844, 0.011764706, 0.007843138, 0.7411765)
+shadow_size = 3
+shadow_offset = Vector2(0, 3)
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_5w755"]
+bg_color = Color(0.122196086, 0.18007843, 0.26690197, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.43137255, 0.56078434, 0.70980394, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_msi8x"]
+bg_color = Color(0.20392157, 0.32156864, 0.47843137, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.51666665, 0.62666667, 0.75333333, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+shadow_color = Color(0.019607844, 0.011764706, 0.007843138, 0.7411765)
+shadow_size = 4
+shadow_offset = Vector2(0, 3)
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_2kmyq"]
+bg_color = Color(0.14901961, 0.13725491, 0.12156863, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.31764707, 0.28235295, 0.23137255, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_22ql3"]
+bg_color = Color(1, 1, 1, 0)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.9607843, 0.7490196, 0.25882354, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+anti_aliasing = false
+
+[sub_resource type="ButtonGroup" id="ButtonGroup_01voq"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_788ar"]
+bg_color = Color(0.14901961, 0.21960784, 0.3254902, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.43137255, 0.56078434, 0.70980394, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+shadow_color = Color(0.019607844, 0.011764706, 0.007843138, 0.7411765)
+shadow_size = 3
+shadow_offset = Vector2(0, 3)
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_m7jfd"]
+bg_color = Color(0.122196086, 0.18007843, 0.26690197, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.43137255, 0.56078434, 0.70980394, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ne5hb"]
+bg_color = Color(0.20392157, 0.32156864, 0.47843137, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.51666665, 0.62666667, 0.75333333, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+shadow_color = Color(0.019607844, 0.011764706, 0.007843138, 0.7411765)
+shadow_size = 4
+shadow_offset = Vector2(0, 3)
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_3xui6"]
+bg_color = Color(0.14901961, 0.13725491, 0.12156863, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.31764707, 0.28235295, 0.23137255, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_76aaa"]
+bg_color = Color(1, 1, 1, 0)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.9607843, 0.7490196, 0.25882354, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_4bhu4"]
+bg_color = Color(0.14901961, 0.21960784, 0.3254902, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.43137255, 0.56078434, 0.70980394, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+shadow_color = Color(0.019607844, 0.011764706, 0.007843138, 0.7411765)
+shadow_size = 3
+shadow_offset = Vector2(0, 3)
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_vbey3"]
+bg_color = Color(0.122196086, 0.18007843, 0.26690197, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.43137255, 0.56078434, 0.70980394, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_fkh4c"]
+bg_color = Color(0.20392157, 0.32156864, 0.47843137, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.51666665, 0.62666667, 0.75333333, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+shadow_color = Color(0.019607844, 0.011764706, 0.007843138, 0.7411765)
+shadow_size = 4
+shadow_offset = Vector2(0, 3)
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_gncmd"]
+bg_color = Color(0.14901961, 0.13725491, 0.12156863, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.31764707, 0.28235295, 0.23137255, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_eeiuq"]
+bg_color = Color(1, 1, 1, 0)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.9607843, 0.7490196, 0.25882354, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_uuqod"]
+bg_color = Color(0.13725491, 0.10980392, 0.09019608, 0.9411765)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.37960786, 0.627451, 0.2101961, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+shadow_color = Color(0.019607844, 0.011764706, 0.007843138, 0.7411765)
+shadow_size = 2
+shadow_offset = Vector2(0, 3)
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_vkj5m"]
+bg_color = Color(0.13725491, 0.10980392, 0.09019608, 0.9411765)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.76862746, 0.5992157, 0.20705883, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+shadow_color = Color(0.019607844, 0.011764706, 0.007843138, 0.7411765)
+shadow_size = 2
+shadow_offset = Vector2(0, 3)
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_uproa"]
+bg_color = Color(0.13725491, 0.10980392, 0.09019608, 0.9411765)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.37960786, 0.627451, 0.2101961, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+shadow_color = Color(0.019607844, 0.011764706, 0.007843138, 0.7411765)
+shadow_size = 2
+shadow_offset = Vector2(0, 3)
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_th7ph"]
+bg_color = Color(0.13725491, 0.10980392, 0.09019608, 0.9411765)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.67764705, 0.2854902, 0.2447059, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+shadow_color = Color(0.019607844, 0.011764706, 0.007843138, 0.7411765)
+shadow_size = 2
+shadow_offset = Vector2(0, 3)
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_6w377"]
+bg_color = Color(0.13725491, 0.10980392, 0.09019608, 0.9411765)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.37960786, 0.627451, 0.2101961, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+shadow_color = Color(0.019607844, 0.011764706, 0.007843138, 0.7411765)
+shadow_size = 2
+shadow_offset = Vector2(0, 3)
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ysvif"]
+bg_color = Color(0.13725491, 0.10980392, 0.09019608, 0.9411765)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.76862746, 0.5992157, 0.20705883, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+shadow_color = Color(0.019607844, 0.011764706, 0.007843138, 0.7411765)
+shadow_size = 2
+shadow_offset = Vector2(0, 3)
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_pfekf"]
+bg_color = Color(0.13725491, 0.10980392, 0.09019608, 0.9411765)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.37960786, 0.627451, 0.2101961, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+shadow_color = Color(0.019607844, 0.011764706, 0.007843138, 0.7411765)
+shadow_size = 2
+shadow_offset = Vector2(0, 3)
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bu7yo"]
+bg_color = Color(0.14901961, 0.21960784, 0.3254902, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.43137255, 0.56078434, 0.70980394, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+shadow_color = Color(0.019607844, 0.011764706, 0.007843138, 0.7411765)
+shadow_size = 3
+shadow_offset = Vector2(0, 3)
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_mo6uq"]
+bg_color = Color(0.122196086, 0.18007843, 0.26690197, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.43137255, 0.56078434, 0.70980394, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_r426v"]
+bg_color = Color(0.20392157, 0.32156864, 0.47843137, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.51666665, 0.62666667, 0.75333333, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+shadow_color = Color(0.019607844, 0.011764706, 0.007843138, 0.7411765)
+shadow_size = 4
+shadow_offset = Vector2(0, 3)
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_c07q1"]
+bg_color = Color(0.14901961, 0.13725491, 0.12156863, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.31764707, 0.28235295, 0.23137255, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_yuf1t"]
+bg_color = Color(1, 1, 1, 0)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.9607843, 0.7490196, 0.25882354, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+anti_aliasing = false
+
+[sub_resource type="ButtonGroup" id="ButtonGroup_hr2v7"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_myfs2"]
+bg_color = Color(0.14901961, 0.21960784, 0.3254902, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.43137255, 0.56078434, 0.70980394, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+shadow_color = Color(0.019607844, 0.011764706, 0.007843138, 0.7411765)
+shadow_size = 3
+shadow_offset = Vector2(0, 3)
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_rtq62"]
+bg_color = Color(0.122196086, 0.18007843, 0.26690197, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.43137255, 0.56078434, 0.70980394, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_wxofe"]
+bg_color = Color(0.20392157, 0.32156864, 0.47843137, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.51666665, 0.62666667, 0.75333333, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+shadow_color = Color(0.019607844, 0.011764706, 0.007843138, 0.7411765)
+shadow_size = 4
+shadow_offset = Vector2(0, 3)
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_mman8"]
+bg_color = Color(0.14901961, 0.13725491, 0.12156863, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.31764707, 0.28235295, 0.23137255, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ewc86"]
+bg_color = Color(1, 1, 1, 0)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.9607843, 0.7490196, 0.25882354, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_q6nvs"]
+bg_color = Color(0.13725491, 0.10980392, 0.09019608, 0.9411765)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.37960786, 0.627451, 0.2101961, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+shadow_color = Color(0.019607844, 0.011764706, 0.007843138, 0.7411765)
+shadow_size = 2
+shadow_offset = Vector2(0, 3)
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_unrnr"]
+bg_color = Color(0.13725491, 0.10980392, 0.09019608, 0.9411765)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.76862746, 0.5992157, 0.20705883, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+shadow_color = Color(0.019607844, 0.011764706, 0.007843138, 0.7411765)
+shadow_size = 2
+shadow_offset = Vector2(0, 3)
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ke8lh"]
+bg_color = Color(0.13725491, 0.10980392, 0.09019608, 0.9411765)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.67764705, 0.2854902, 0.2447059, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+shadow_color = Color(0.019607844, 0.011764706, 0.007843138, 0.7411765)
+shadow_size = 2
+shadow_offset = Vector2(0, 3)
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_lsh74"]
+bg_color = Color(0.13725491, 0.10980392, 0.09019608, 0.9411765)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.67764705, 0.2854902, 0.2447059, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+shadow_color = Color(0.019607844, 0.011764706, 0.007843138, 0.7411765)
+shadow_size = 2
+shadow_offset = Vector2(0, 3)
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_kshgm"]
+bg_color = Color(0.13725491, 0.10980392, 0.09019608, 0.9411765)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.37960786, 0.627451, 0.2101961, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+shadow_color = Color(0.019607844, 0.011764706, 0.007843138, 0.7411765)
+shadow_size = 2
+shadow_offset = Vector2(0, 3)
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_lj5kf"]
+bg_color = Color(0.13725491, 0.10980392, 0.09019608, 0.9411765)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.76862746, 0.5992157, 0.20705883, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+shadow_color = Color(0.019607844, 0.011764706, 0.007843138, 0.7411765)
+shadow_size = 2
+shadow_offset = Vector2(0, 3)
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_s7eql"]
+bg_color = Color(0.14901961, 0.21960784, 0.3254902, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.43137255, 0.56078434, 0.70980394, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+shadow_color = Color(0.019607844, 0.011764706, 0.007843138, 0.7411765)
+shadow_size = 3
+shadow_offset = Vector2(0, 3)
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_oodu4"]
+bg_color = Color(0.122196086, 0.18007843, 0.26690197, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.43137255, 0.56078434, 0.70980394, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_fk40q"]
+bg_color = Color(0.20392157, 0.32156864, 0.47843137, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.51666665, 0.62666667, 0.75333333, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+shadow_color = Color(0.019607844, 0.011764706, 0.007843138, 0.7411765)
+shadow_size = 4
+shadow_offset = Vector2(0, 3)
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_1g8bo"]
+bg_color = Color(0.14901961, 0.13725491, 0.12156863, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.31764707, 0.28235295, 0.23137255, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_8dud5"]
+bg_color = Color(1, 1, 1, 0)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.9607843, 0.7490196, 0.25882354, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_qih0c"]
+bg_color = Color(0.09019608, 0.07058824, 0.05882353, 0.9490196)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.5529412, 0.35686275, 0.1882353, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+shadow_color = Color(0.019607844, 0.011764706, 0.007843138, 0.7411765)
+shadow_size = 6
+shadow_offset = Vector2(0, 3)
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_4of5x"]
+bg_color = Color(0.14901961, 0.21960784, 0.3254902, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.43137255, 0.56078434, 0.70980394, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+shadow_color = Color(0.019607844, 0.011764706, 0.007843138, 0.7411765)
+shadow_size = 3
+shadow_offset = Vector2(0, 3)
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_n4fs3"]
+bg_color = Color(0.122196086, 0.18007843, 0.26690197, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.43137255, 0.56078434, 0.70980394, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_wpvtg"]
+bg_color = Color(0.20392157, 0.32156864, 0.47843137, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.51666665, 0.62666667, 0.75333333, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+shadow_color = Color(0.019607844, 0.011764706, 0.007843138, 0.7411765)
+shadow_size = 4
+shadow_offset = Vector2(0, 3)
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_l0v20"]
+bg_color = Color(0.14901961, 0.13725491, 0.12156863, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.31764707, 0.28235295, 0.23137255, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_u4l0p"]
+bg_color = Color(1, 1, 1, 0)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.9607843, 0.7490196, 0.25882354, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_7csye"]
+bg_color = Color(0.14901961, 0.21960784, 0.3254902, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.43137255, 0.56078434, 0.70980394, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+shadow_color = Color(0.019607844, 0.011764706, 0.007843138, 0.7411765)
+shadow_size = 3
+shadow_offset = Vector2(0, 3)
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_81a83"]
+bg_color = Color(0.122196086, 0.18007843, 0.26690197, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.43137255, 0.56078434, 0.70980394, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_sx6xw"]
+bg_color = Color(0.20392157, 0.32156864, 0.47843137, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.51666665, 0.62666667, 0.75333333, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+shadow_color = Color(0.019607844, 0.011764706, 0.007843138, 0.7411765)
+shadow_size = 4
+shadow_offset = Vector2(0, 3)
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_wl0li"]
+bg_color = Color(0.14901961, 0.13725491, 0.12156863, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.31764707, 0.28235295, 0.23137255, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_mct4f"]
+bg_color = Color(1, 1, 1, 0)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.9607843, 0.7490196, 0.25882354, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+anti_aliasing = false
+
+[node name="MainMenu" type="Control" unique_id=466794877]
+z_index = 500
+anchors_preset = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+metadata/match_binding = "menu_layer"
+
+[node name="MenuShade" type="ColorRect" parent="." unique_id=1997573123]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+color = Color(0.03529412, 0.02745098, 0.015686275, 0.6509804)
+
+[node name="MenuCenter" type="CenterContainer" parent="." unique_id=2031206021]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="MenuContent" type="VBoxContainer" parent="MenuCenter" unique_id=227306308]
+custom_minimum_size = Vector2(980, 620)
+layout_mode = 2
+theme_override_constants/separation = 12
+alignment = 1
+
+[node name="Logo" type="HBoxContainer" parent="MenuCenter/MenuContent" unique_id=1306551822]
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_constants/separation = -2
+alignment = 1
+
+[node name="TRA" type="Label" parent="MenuCenter/MenuContent/Logo" unique_id=473302815]
+custom_minimum_size = Vector2(0, 80)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9607843, 0.7490196, 0.25882354, 1)
+theme_override_font_sizes/font_size = 66
+text = "TRA"
+vertical_alignment = 1
+metadata/match_array_binding = "logo_segments"
+metadata/match_array_index = 0
+
+[node name="DA" type="Label" parent="MenuCenter/MenuContent/Logo" unique_id=1144288364]
+custom_minimum_size = Vector2(0, 80)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9607843, 0.7490196, 0.25882354, 1)
+theme_override_font_sizes/font_size = 66
+text = "DA"
+vertical_alignment = 1
+metadata/match_array_binding = "logo_segments"
+metadata/match_array_index = 1
+
+[node name="TA" type="Label" parent="MenuCenter/MenuContent/Logo" unique_id=1582828351]
+custom_minimum_size = Vector2(0, 80)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9607843, 0.7490196, 0.25882354, 1)
+theme_override_font_sizes/font_size = 66
+text = "TA"
+vertical_alignment = 1
+metadata/match_array_binding = "logo_segments"
+metadata/match_array_index = 2
+
+[node name="LA" type="Label" parent="MenuCenter/MenuContent/Logo" unique_id=714672603]
+custom_minimum_size = Vector2(0, 80)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9607843, 0.7490196, 0.25882354, 1)
+theme_override_font_sizes/font_size = 66
+text = "LA"
+vertical_alignment = 1
+metadata/match_array_binding = "logo_segments"
+metadata/match_array_index = 3
+
+[node name="HomePanel" type="VBoxContainer" parent="MenuCenter/MenuContent" unique_id=827719721]
+custom_minimum_size = Vector2(500, 220)
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_constants/separation = 12
+alignment = 1
+metadata/match_binding = "menu_home_panel"
+
+[node name="PlayButton" type="Button" parent="MenuCenter/MenuContent/HomePanel" unique_id=923652554]
+custom_minimum_size = Vector2(500, 54)
+layout_mode = 2
+size_flags_horizontal = 4
+mouse_default_cursor_shape = 2
+theme_override_colors/font_color = Color(1, 0.94509804, 0.77254903, 1)
+theme_override_colors/font_pressed_color = Color(1, 1, 1, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_colors/font_disabled_color = Color(0.46666667, 0.43137255, 0.3647059, 1)
+theme_override_font_sizes/font_size = 18
+theme_override_styles/normal = SubResource("StyleBoxFlat_it7fd")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_1ladk")
+theme_override_styles/hover = SubResource("StyleBoxFlat_eq3fr")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_4cpri")
+theme_override_styles/focus = SubResource("StyleBoxFlat_7tj3k")
+text = "VÁN MỚI"
+metadata/match_binding = "play_button"
+metadata/match_node_key_dictionary_binding = "menu_localized_controls"
+metadata/match_node_key_dictionary_value = "MENU_NEW_GAME"
+
+[node name="LearnRow" type="HBoxContainer" parent="MenuCenter/MenuContent/HomePanel" unique_id=1611113115]
+layout_mode = 2
+theme_override_constants/separation = 12
+alignment = 1
+
+[node name="HowToPlayButton" type="Button" parent="MenuCenter/MenuContent/HomePanel/LearnRow" unique_id=98412349]
+custom_minimum_size = Vector2(244, 48)
+layout_mode = 2
+size_flags_horizontal = 4
+mouse_default_cursor_shape = 2
+theme_override_colors/font_color = Color(0.972549, 0.92941177, 0.8117647, 1)
+theme_override_colors/font_pressed_color = Color(1, 1, 1, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_colors/font_disabled_color = Color(0.46666667, 0.43137255, 0.3647059, 1)
+theme_override_font_sizes/font_size = 16
+theme_override_styles/normal = SubResource("StyleBoxFlat_254h7")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_q7y40")
+theme_override_styles/hover = SubResource("StyleBoxFlat_wmtib")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_ge7m8")
+theme_override_styles/focus = SubResource("StyleBoxFlat_431op")
+text = "CÁCH CHƠI"
+metadata/match_binding = "how_to_play_button"
+metadata/match_node_key_dictionary_binding = "menu_localized_controls"
+metadata/match_node_key_dictionary_value = "MENU_HOW_TO_PLAY"
+
+[node name="TutorialButton" type="Button" parent="MenuCenter/MenuContent/HomePanel/LearnRow" unique_id=439211255]
+custom_minimum_size = Vector2(244, 48)
+layout_mode = 2
+size_flags_horizontal = 4
+mouse_default_cursor_shape = 2
+theme_override_colors/font_color = Color(0.972549, 0.92941177, 0.8117647, 1)
+theme_override_colors/font_pressed_color = Color(1, 1, 1, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_colors/font_disabled_color = Color(0.46666667, 0.43137255, 0.3647059, 1)
+theme_override_font_sizes/font_size = 16
+theme_override_styles/normal = SubResource("StyleBoxFlat_w6jue")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_fejna")
+theme_override_styles/hover = SubResource("StyleBoxFlat_cnkih")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_85t4p")
+theme_override_styles/focus = SubResource("StyleBoxFlat_88kau")
+text = "TẬP CHƠI"
+metadata/match_binding = "tutorial_button"
+metadata/match_node_key_dictionary_binding = "menu_localized_controls"
+metadata/match_node_key_dictionary_value = "MENU_TUTORIAL"
+
+[node name="OptionsButton" type="Button" parent="MenuCenter/MenuContent/HomePanel" unique_id=853592220]
+custom_minimum_size = Vector2(500, 48)
+layout_mode = 2
+size_flags_horizontal = 4
+mouse_default_cursor_shape = 2
+theme_override_colors/font_color = Color(0.972549, 0.92941177, 0.8117647, 1)
+theme_override_colors/font_pressed_color = Color(1, 1, 1, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_colors/font_disabled_color = Color(0.46666667, 0.43137255, 0.3647059, 1)
+theme_override_font_sizes/font_size = 16
+theme_override_styles/normal = SubResource("StyleBoxFlat_6qrug")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_h4r81")
+theme_override_styles/hover = SubResource("StyleBoxFlat_moc86")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_tnw2n")
+theme_override_styles/focus = SubResource("StyleBoxFlat_6sdb8")
+text = "TÙY CHỌN"
+metadata/match_binding = "options_button"
+metadata/match_node_key_dictionary_binding = "menu_localized_controls"
+metadata/match_node_key_dictionary_value = "MENU_OPTIONS"
+
+[node name="HowToPlayPanel" type="PanelContainer" parent="MenuCenter/MenuContent" unique_id=1339191699]
+visible = false
+custom_minimum_size = Vector2(940, 450)
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_styles/panel = SubResource("StyleBoxFlat_28e1x")
+metadata/match_binding = "how_to_play_panel"
+
+[node name="MarginContainer" type="MarginContainer" parent="MenuCenter/MenuContent/HowToPlayPanel" unique_id=274577659]
+layout_mode = 2
+theme_override_constants/margin_left = 22
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 22
+theme_override_constants/margin_bottom = 16
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer" unique_id=1279969977]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Title" type="Label" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer" unique_id=414788992]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9607843, 0.7490196, 0.25882354, 1)
+theme_override_font_sizes/font_size = 25
+text = "CÁCH CHƠI"
+horizontal_alignment = 1
+autowrap_mode = 3
+metadata/match_node_key_dictionary_binding = "menu_localized_controls"
+metadata/match_node_key_dictionary_value = "HOW_TITLE"
+
+[node name="Tabs" type="HBoxContainer" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer" unique_id=1757216237]
+layout_mode = 2
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="CardsTabButton" type="Button" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/Tabs" unique_id=650895413]
+custom_minimum_size = Vector2(286, 38)
+layout_mode = 2
+mouse_default_cursor_shape = 2
+theme_override_colors/font_color = Color(0.972549, 0.92941177, 0.8117647, 1)
+theme_override_colors/font_pressed_color = Color(1, 1, 1, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_colors/font_disabled_color = Color(0.46666667, 0.43137255, 0.3647059, 1)
+theme_override_font_sizes/font_size = 13
+theme_override_styles/normal = SubResource("StyleBoxFlat_xnewo")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_5w755")
+theme_override_styles/hover = SubResource("StyleBoxFlat_msi8x")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_2kmyq")
+theme_override_styles/focus = SubResource("StyleBoxFlat_22ql3")
+toggle_mode = true
+button_pressed = true
+button_group = SubResource("ButtonGroup_01voq")
+text = "BÀI & PHỎM"
+metadata/match_node_key_dictionary_binding = "menu_localized_controls"
+metadata/match_node_key_dictionary_value = "HOW_TAB_CARDS"
+metadata/match_dictionary_binding = "how_tab_buttons"
+metadata/match_dictionary_key = "cards"
+
+[node name="PhasesTabButton" type="Button" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/Tabs" unique_id=1616937748]
+custom_minimum_size = Vector2(286, 38)
+layout_mode = 2
+mouse_default_cursor_shape = 2
+theme_override_colors/font_color = Color(0.972549, 0.92941177, 0.8117647, 1)
+theme_override_colors/font_pressed_color = Color(1, 1, 1, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_colors/font_disabled_color = Color(0.46666667, 0.43137255, 0.3647059, 1)
+theme_override_font_sizes/font_size = 13
+theme_override_styles/normal = SubResource("StyleBoxFlat_788ar")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_m7jfd")
+theme_override_styles/hover = SubResource("StyleBoxFlat_ne5hb")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_3xui6")
+theme_override_styles/focus = SubResource("StyleBoxFlat_76aaa")
+toggle_mode = true
+button_group = SubResource("ButtonGroup_01voq")
+text = "GIAI ĐOẠN & LƯỢT"
+metadata/match_node_key_dictionary_binding = "menu_localized_controls"
+metadata/match_node_key_dictionary_value = "HOW_TAB_PHASES"
+metadata/match_dictionary_binding = "how_tab_buttons"
+metadata/match_dictionary_key = "phases"
+
+[node name="ScoringTabButton" type="Button" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/Tabs" unique_id=2116335792]
+custom_minimum_size = Vector2(286, 38)
+layout_mode = 2
+mouse_default_cursor_shape = 2
+theme_override_colors/font_color = Color(0.972549, 0.92941177, 0.8117647, 1)
+theme_override_colors/font_pressed_color = Color(1, 1, 1, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_colors/font_disabled_color = Color(0.46666667, 0.43137255, 0.3647059, 1)
+theme_override_font_sizes/font_size = 13
+theme_override_styles/normal = SubResource("StyleBoxFlat_4bhu4")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_vbey3")
+theme_override_styles/hover = SubResource("StyleBoxFlat_fkh4c")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_gncmd")
+theme_override_styles/focus = SubResource("StyleBoxFlat_eeiuq")
+toggle_mode = true
+button_group = SubResource("ButtonGroup_01voq")
+text = "TÍNH ĐIỂM"
+metadata/match_node_key_dictionary_binding = "menu_localized_controls"
+metadata/match_node_key_dictionary_value = "HOW_TAB_SCORING"
+metadata/match_dictionary_binding = "how_tab_buttons"
+metadata/match_dictionary_key = "scoring"
+
+[node name="TabContent" type="VBoxContainer" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer" unique_id=1931797482]
+custom_minimum_size = Vector2(896, 270)
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="CardsTab" type="VBoxContainer" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent" unique_id=1307166275]
+layout_mode = 2
+theme_override_constants/separation = 7
+metadata/match_dictionary_binding = "how_tab_pages"
+metadata/match_dictionary_key = "cards"
+
+[node name="Intro" type="Label" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/CardsTab" unique_id=1701164275]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.972549, 0.92941177, 0.8117647, 1)
+theme_override_font_sizes/font_size = 13
+text = "Chọn bài. Hạ Phỏm hoặc Ghép. Rồi bỏ 1 lá."
+horizontal_alignment = 1
+autowrap_mode = 3
+metadata/match_node_key_dictionary_binding = "menu_localized_controls"
+metadata/match_node_key_dictionary_value = "HOW_INTRO"
+
+[node name="CardExamples" type="HBoxContainer" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/CardsTab" unique_id=657593886]
+layout_mode = 2
+theme_override_constants/separation = 10
+alignment = 1
+
+[node name="RunExample" type="PanelContainer" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/CardsTab/CardExamples" unique_id=831065458]
+custom_minimum_size = Vector2(214, 218)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_uuqod")
+
+[node name="MarginContainer" type="MarginContainer" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/CardsTab/CardExamples/RunExample" unique_id=1325241405]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 9
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/CardsTab/CardExamples/RunExample/MarginContainer" unique_id=1052689999]
+layout_mode = 2
+theme_override_constants/separation = 7
+alignment = 1
+
+[node name="HowRunTitle" type="Label" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/CardsTab/CardExamples/RunExample/MarginContainer/VBoxContainer" unique_id=2471265]
+custom_minimum_size = Vector2(0, 22)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.4745098, 0.78431374, 0.2627451, 1)
+theme_override_font_sizes/font_size = 15
+text = "SẢNH"
+horizontal_alignment = 1
+autowrap_mode = 3
+metadata/match_node_key_dictionary_binding = "menu_localized_controls"
+metadata/match_node_key_dictionary_value = "HOW_RUN_TITLE"
+
+[node name="Cards" type="HBoxContainer" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/CardsTab/CardExamples/RunExample/MarginContainer/VBoxContainer" unique_id=1637086141]
+custom_minimum_size = Vector2(0, 112)
+layout_mode = 2
+theme_override_constants/separation = 2
+alignment = 1
+
+[node name="TextureRect" type="TextureRect" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/CardsTab/CardExamples/RunExample/MarginContainer/VBoxContainer/Cards" unique_id=727293502]
+texture_filter = 1
+custom_minimum_size = Vector2(48, 86)
+layout_mode = 2
+tooltip_text = "4♥"
+mouse_filter = 2
+texture = ExtResource("1_e0hcc")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="TextureRect2" type="TextureRect" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/CardsTab/CardExamples/RunExample/MarginContainer/VBoxContainer/Cards" unique_id=1689628204]
+texture_filter = 1
+custom_minimum_size = Vector2(48, 86)
+layout_mode = 2
+tooltip_text = "5♥"
+mouse_filter = 2
+texture = ExtResource("2_qch7b")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="TextureRect3" type="TextureRect" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/CardsTab/CardExamples/RunExample/MarginContainer/VBoxContainer/Cards" unique_id=236867463]
+texture_filter = 1
+custom_minimum_size = Vector2(48, 86)
+layout_mode = 2
+tooltip_text = "6♥"
+mouse_filter = 2
+texture = ExtResource("3_4ovp2")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="HowRunBody" type="Label" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/CardsTab/CardExamples/RunExample/MarginContainer/VBoxContainer" unique_id=1487659131]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.972549, 0.92941177, 0.8117647, 1)
+theme_override_font_sizes/font_size = 11
+text = "3+ lá liền số.
+Cùng chất."
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3
+metadata/match_node_key_dictionary_binding = "menu_localized_controls"
+metadata/match_node_key_dictionary_value = "HOW_RUN_BODY"
+
+[node name="SetExample" type="PanelContainer" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/CardsTab/CardExamples" unique_id=496311607]
+custom_minimum_size = Vector2(214, 218)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_vkj5m")
+
+[node name="MarginContainer" type="MarginContainer" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/CardsTab/CardExamples/SetExample" unique_id=2108503684]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 9
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/CardsTab/CardExamples/SetExample/MarginContainer" unique_id=69149208]
+layout_mode = 2
+theme_override_constants/separation = 7
+alignment = 1
+
+[node name="HowSetTitle" type="Label" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/CardsTab/CardExamples/SetExample/MarginContainer/VBoxContainer" unique_id=693007269]
+custom_minimum_size = Vector2(0, 22)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9607843, 0.7490196, 0.25882354, 1)
+theme_override_font_sizes/font_size = 15
+text = "BỘ"
+horizontal_alignment = 1
+autowrap_mode = 3
+metadata/match_node_key_dictionary_binding = "menu_localized_controls"
+metadata/match_node_key_dictionary_value = "HOW_SET_TITLE"
+
+[node name="Cards" type="HBoxContainer" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/CardsTab/CardExamples/SetExample/MarginContainer/VBoxContainer" unique_id=2107560095]
+custom_minimum_size = Vector2(0, 112)
+layout_mode = 2
+theme_override_constants/separation = 2
+alignment = 1
+
+[node name="TextureRect" type="TextureRect" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/CardsTab/CardExamples/SetExample/MarginContainer/VBoxContainer/Cards" unique_id=1666290794]
+texture_filter = 1
+custom_minimum_size = Vector2(48, 86)
+layout_mode = 2
+tooltip_text = "9♠"
+mouse_filter = 2
+texture = ExtResource("4_1mexh")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="TextureRect2" type="TextureRect" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/CardsTab/CardExamples/SetExample/MarginContainer/VBoxContainer/Cards" unique_id=1006213827]
+texture_filter = 1
+custom_minimum_size = Vector2(48, 86)
+layout_mode = 2
+tooltip_text = "9♥"
+mouse_filter = 2
+texture = ExtResource("5_6ud2m")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="TextureRect3" type="TextureRect" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/CardsTab/CardExamples/SetExample/MarginContainer/VBoxContainer/Cards" unique_id=981073593]
+texture_filter = 1
+custom_minimum_size = Vector2(48, 86)
+layout_mode = 2
+tooltip_text = "9♦"
+mouse_filter = 2
+texture = ExtResource("6_qqxfm")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="HowSetBody" type="Label" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/CardsTab/CardExamples/SetExample/MarginContainer/VBoxContainer" unique_id=866548195]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.972549, 0.92941177, 0.8117647, 1)
+theme_override_font_sizes/font_size = 11
+text = "3–4 lá cùng số."
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3
+metadata/match_node_key_dictionary_binding = "menu_localized_controls"
+metadata/match_node_key_dictionary_value = "HOW_SET_BODY"
+
+[node name="ExtendExample" type="PanelContainer" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/CardsTab/CardExamples" unique_id=524979950]
+custom_minimum_size = Vector2(214, 218)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_uproa")
+
+[node name="MarginContainer" type="MarginContainer" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/CardsTab/CardExamples/ExtendExample" unique_id=2096819672]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 9
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/CardsTab/CardExamples/ExtendExample/MarginContainer" unique_id=379996185]
+layout_mode = 2
+theme_override_constants/separation = 7
+alignment = 1
+
+[node name="HowExtendTitle" type="Label" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/CardsTab/CardExamples/ExtendExample/MarginContainer/VBoxContainer" unique_id=1614576470]
+custom_minimum_size = Vector2(0, 22)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.4745098, 0.78431374, 0.2627451, 1)
+theme_override_font_sizes/font_size = 15
+text = "GHÉP"
+horizontal_alignment = 1
+autowrap_mode = 3
+metadata/match_node_key_dictionary_binding = "menu_localized_controls"
+metadata/match_node_key_dictionary_value = "HOW_EXTEND_TITLE"
+
+[node name="Cards" type="HBoxContainer" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/CardsTab/CardExamples/ExtendExample/MarginContainer/VBoxContainer" unique_id=991073773]
+custom_minimum_size = Vector2(0, 112)
+layout_mode = 2
+theme_override_constants/separation = -4
+alignment = 1
+
+[node name="TextureRect" type="TextureRect" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/CardsTab/CardExamples/ExtendExample/MarginContainer/VBoxContainer/Cards" unique_id=387493955]
+texture_filter = 1
+custom_minimum_size = Vector2(48, 86)
+layout_mode = 2
+tooltip_text = "7♣"
+mouse_filter = 2
+texture = ExtResource("7_ktljq")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="TextureRect2" type="TextureRect" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/CardsTab/CardExamples/ExtendExample/MarginContainer/VBoxContainer/Cards" unique_id=922496515]
+texture_filter = 1
+custom_minimum_size = Vector2(48, 86)
+layout_mode = 2
+tooltip_text = "8♣"
+mouse_filter = 2
+texture = ExtResource("8_rbask")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="TextureRect3" type="TextureRect" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/CardsTab/CardExamples/ExtendExample/MarginContainer/VBoxContainer/Cards" unique_id=1738515392]
+texture_filter = 1
+custom_minimum_size = Vector2(48, 86)
+layout_mode = 2
+tooltip_text = "9♣"
+mouse_filter = 2
+texture = ExtResource("9_e6a60")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="TextureRect4" type="TextureRect" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/CardsTab/CardExamples/ExtendExample/MarginContainer/VBoxContainer/Cards" unique_id=2140720874]
+texture_filter = 1
+custom_minimum_size = Vector2(48, 86)
+layout_mode = 2
+tooltip_text = "10♣"
+mouse_filter = 2
+texture = ExtResource("10_5et21")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="HowExtendBody" type="Label" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/CardsTab/CardExamples/ExtendExample/MarginContainer/VBoxContainer" unique_id=1187215137]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.972549, 0.92941177, 0.8117647, 1)
+theme_override_font_sizes/font_size = 11
+text = "Thêm lá hợp lệ
+vào Phỏm đã hạ."
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3
+metadata/match_node_key_dictionary_binding = "menu_localized_controls"
+metadata/match_node_key_dictionary_value = "HOW_EXTEND_BODY"
+
+[node name="DiscardExample" type="PanelContainer" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/CardsTab/CardExamples" unique_id=268139560]
+custom_minimum_size = Vector2(214, 218)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_th7ph")
+
+[node name="MarginContainer" type="MarginContainer" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/CardsTab/CardExamples/DiscardExample" unique_id=256113428]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 9
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/CardsTab/CardExamples/DiscardExample/MarginContainer" unique_id=48702111]
+layout_mode = 2
+theme_override_constants/separation = 7
+alignment = 1
+
+[node name="HowDiscardTitle" type="Label" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/CardsTab/CardExamples/DiscardExample/MarginContainer/VBoxContainer" unique_id=94373641]
+custom_minimum_size = Vector2(0, 22)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.84705883, 0.35686275, 0.30588236, 1)
+theme_override_font_sizes/font_size = 15
+text = "BỎ BÀI"
+horizontal_alignment = 1
+autowrap_mode = 3
+metadata/match_node_key_dictionary_binding = "menu_localized_controls"
+metadata/match_node_key_dictionary_value = "HOW_DISCARD_TITLE"
+
+[node name="Cards" type="HBoxContainer" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/CardsTab/CardExamples/DiscardExample/MarginContainer/VBoxContainer" unique_id=1502747623]
+custom_minimum_size = Vector2(0, 112)
+layout_mode = 2
+theme_override_constants/separation = 2
+alignment = 1
+
+[node name="TextureRect" type="TextureRect" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/CardsTab/CardExamples/DiscardExample/MarginContainer/VBoxContainer/Cards" unique_id=1177024568]
+texture_filter = 1
+custom_minimum_size = Vector2(48, 86)
+layout_mode = 2
+tooltip_text = "Q♦"
+mouse_filter = 2
+texture = ExtResource("11_ei00g")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="TextureRect2" type="TextureRect" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/CardsTab/CardExamples/DiscardExample/MarginContainer/VBoxContainer/Cards" unique_id=1403999234]
+texture_filter = 1
+custom_minimum_size = Vector2(48, 86)
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("12_75tx2")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="HowDiscardBody" type="Label" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/CardsTab/CardExamples/DiscardExample/MarginContainer/VBoxContainer" unique_id=1728938608]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.972549, 0.92941177, 0.8117647, 1)
+theme_override_font_sizes/font_size = 11
+text = "Kết thúc lượt:
+bỏ 1 lá bài rời."
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3
+metadata/match_node_key_dictionary_binding = "menu_localized_controls"
+metadata/match_node_key_dictionary_value = "HOW_DISCARD_BODY"
+
+[node name="PhasesTab" type="VBoxContainer" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent" unique_id=1469721584]
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 7
+metadata/match_dictionary_binding = "how_tab_pages"
+metadata/match_dictionary_key = "phases"
+
+[node name="PhasesIntro" type="Label" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/PhasesTab" unique_id=13968117]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.972549, 0.92941177, 0.8117647, 1)
+theme_override_font_sizes/font_size = 13
+text = "Một ván có 2 Giai đoạn. Mỗi Giai đoạn kết thúc sau 4 lần bỏ bài."
+horizontal_alignment = 1
+autowrap_mode = 3
+metadata/match_node_key_dictionary_binding = "menu_localized_controls"
+metadata/match_node_key_dictionary_value = "HOW_PHASES_INTRO"
+
+[node name="PhaseExamples" type="HBoxContainer" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/PhasesTab" unique_id=846834369]
+layout_mode = 2
+theme_override_constants/separation = 12
+alignment = 1
+
+[node name="TurnExample" type="PanelContainer" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/PhasesTab/PhaseExamples" unique_id=1644375216]
+custom_minimum_size = Vector2(286, 226)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_6w377")
+
+[node name="MarginContainer" type="MarginContainer" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/PhasesTab/PhaseExamples/TurnExample" unique_id=424262061]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 9
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/PhasesTab/PhaseExamples/TurnExample/MarginContainer" unique_id=154319677]
+layout_mode = 2
+theme_override_constants/separation = 7
+alignment = 1
+
+[node name="HowTurnTitle" type="Label" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/PhasesTab/PhaseExamples/TurnExample/MarginContainer/VBoxContainer" unique_id=2146547005]
+custom_minimum_size = Vector2(0, 22)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.4745098, 0.78431374, 0.2627451, 1)
+theme_override_font_sizes/font_size = 15
+text = "MỘT LƯỢT"
+horizontal_alignment = 1
+autowrap_mode = 3
+metadata/match_node_key_dictionary_binding = "menu_localized_controls"
+metadata/match_node_key_dictionary_value = "HOW_TURN_TITLE"
+
+[node name="Cards" type="HBoxContainer" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/PhasesTab/PhaseExamples/TurnExample/MarginContainer/VBoxContainer" unique_id=1267885531]
+custom_minimum_size = Vector2(0, 112)
+layout_mode = 2
+theme_override_constants/separation = 2
+alignment = 1
+
+[node name="TextureRect" type="TextureRect" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/PhasesTab/PhaseExamples/TurnExample/MarginContainer/VBoxContainer/Cards" unique_id=36738597]
+texture_filter = 1
+custom_minimum_size = Vector2(48, 86)
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("12_75tx2")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="TextureRect2" type="TextureRect" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/PhasesTab/PhaseExamples/TurnExample/MarginContainer/VBoxContainer/Cards" unique_id=105905172]
+texture_filter = 1
+custom_minimum_size = Vector2(48, 86)
+layout_mode = 2
+tooltip_text = "7♥"
+mouse_filter = 2
+texture = ExtResource("13_j4d8q")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="TextureRect3" type="TextureRect" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/PhasesTab/PhaseExamples/TurnExample/MarginContainer/VBoxContainer/Cards" unique_id=918707620]
+texture_filter = 1
+custom_minimum_size = Vector2(48, 86)
+layout_mode = 2
+tooltip_text = "Q♦"
+mouse_filter = 2
+texture = ExtResource("11_ei00g")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="HowTurnBody" type="Label" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/PhasesTab/PhaseExamples/TurnExample/MarginContainer/VBoxContainer" unique_id=1670796472]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.972549, 0.92941177, 0.8117647, 1)
+theme_override_font_sizes/font_size = 11
+text = "1. Rút đủ 10 lá
+2. Hạ/Ghép nếu muốn
+3. Bỏ đúng 1 lá"
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3
+metadata/match_node_key_dictionary_binding = "menu_localized_controls"
+metadata/match_node_key_dictionary_value = "HOW_TURN_BODY"
+
+[node name="PhaseEndExample" type="PanelContainer" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/PhasesTab/PhaseExamples" unique_id=1286733784]
+custom_minimum_size = Vector2(286, 226)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_ysvif")
+
+[node name="MarginContainer" type="MarginContainer" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/PhasesTab/PhaseExamples/PhaseEndExample" unique_id=462423235]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 9
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/PhasesTab/PhaseExamples/PhaseEndExample/MarginContainer" unique_id=2084191354]
+layout_mode = 2
+theme_override_constants/separation = 7
+alignment = 1
+
+[node name="HowPhaseEndTitle" type="Label" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/PhasesTab/PhaseExamples/PhaseEndExample/MarginContainer/VBoxContainer" unique_id=857856272]
+custom_minimum_size = Vector2(0, 22)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9607843, 0.7490196, 0.25882354, 1)
+theme_override_font_sizes/font_size = 15
+text = "KẾT THÚC GIAI ĐOẠN"
+horizontal_alignment = 1
+autowrap_mode = 3
+metadata/match_node_key_dictionary_binding = "menu_localized_controls"
+metadata/match_node_key_dictionary_value = "HOW_PHASE_END_TITLE"
+
+[node name="Cards" type="HBoxContainer" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/PhasesTab/PhaseExamples/PhaseEndExample/MarginContainer/VBoxContainer" unique_id=1494751218]
+custom_minimum_size = Vector2(0, 112)
+layout_mode = 2
+theme_override_constants/separation = -4
+alignment = 1
+
+[node name="TextureRect" type="TextureRect" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/PhasesTab/PhaseExamples/PhaseEndExample/MarginContainer/VBoxContainer/Cards" unique_id=1033474072]
+texture_filter = 1
+custom_minimum_size = Vector2(48, 86)
+layout_mode = 2
+tooltip_text = "2♣"
+mouse_filter = 2
+texture = ExtResource("14_qpknu")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="TextureRect2" type="TextureRect" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/PhasesTab/PhaseExamples/PhaseEndExample/MarginContainer/VBoxContainer/Cards" unique_id=726109541]
+texture_filter = 1
+custom_minimum_size = Vector2(48, 86)
+layout_mode = 2
+tooltip_text = "5♦"
+mouse_filter = 2
+texture = ExtResource("15_wabu5")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="TextureRect3" type="TextureRect" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/PhasesTab/PhaseExamples/PhaseEndExample/MarginContainer/VBoxContainer/Cards" unique_id=726382406]
+texture_filter = 1
+custom_minimum_size = Vector2(48, 86)
+layout_mode = 2
+tooltip_text = "8♠"
+mouse_filter = 2
+texture = ExtResource("16_3e805")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="TextureRect4" type="TextureRect" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/PhasesTab/PhaseExamples/PhaseEndExample/MarginContainer/VBoxContainer/Cards" unique_id=1518049637]
+texture_filter = 1
+custom_minimum_size = Vector2(48, 86)
+layout_mode = 2
+tooltip_text = "Q♥"
+mouse_filter = 2
+texture = ExtResource("17_dwgav")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="HowPhaseEndBody" type="Label" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/PhasesTab/PhaseExamples/PhaseEndExample/MarginContainer/VBoxContainer" unique_id=231817707]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.972549, 0.92941177, 0.8117647, 1)
+theme_override_font_sizes/font_size = 11
+text = "Lần bỏ thứ 4 mở Last Call.
+Hạ/Ghép lần cuối, rồi nhấn CHỐT."
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3
+metadata/match_node_key_dictionary_binding = "menu_localized_controls"
+metadata/match_node_key_dictionary_value = "HOW_PHASE_END_BODY"
+
+[node name="PhaseChoiceExample" type="PanelContainer" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/PhasesTab/PhaseExamples" unique_id=1085709868]
+custom_minimum_size = Vector2(286, 226)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_pfekf")
+
+[node name="MarginContainer" type="MarginContainer" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/PhasesTab/PhaseExamples/PhaseChoiceExample" unique_id=1175289388]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 9
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/PhasesTab/PhaseExamples/PhaseChoiceExample/MarginContainer" unique_id=1333724710]
+layout_mode = 2
+theme_override_constants/separation = 7
+alignment = 1
+
+[node name="HowPhaseChoiceTitle" type="Label" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/PhasesTab/PhaseExamples/PhaseChoiceExample/MarginContainer/VBoxContainer" unique_id=2023538105]
+custom_minimum_size = Vector2(0, 22)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.4745098, 0.78431374, 0.2627451, 1)
+theme_override_font_sizes/font_size = 15
+text = "GIỮ HAY ĐỔI"
+horizontal_alignment = 1
+autowrap_mode = 3
+metadata/match_node_key_dictionary_binding = "menu_localized_controls"
+metadata/match_node_key_dictionary_value = "HOW_PHASE_CHOICE_TITLE"
+
+[node name="Cards" type="HBoxContainer" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/PhasesTab/PhaseExamples/PhaseChoiceExample/MarginContainer/VBoxContainer" unique_id=1464248334]
+custom_minimum_size = Vector2(0, 112)
+layout_mode = 2
+theme_override_constants/separation = 2
+alignment = 1
+
+[node name="TextureRect" type="TextureRect" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/PhasesTab/PhaseExamples/PhaseChoiceExample/MarginContainer/VBoxContainer/Cards" unique_id=1277994667]
+texture_filter = 1
+custom_minimum_size = Vector2(48, 86)
+layout_mode = 2
+tooltip_text = "9♠"
+mouse_filter = 2
+texture = ExtResource("4_1mexh")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="TextureRect2" type="TextureRect" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/PhasesTab/PhaseExamples/PhaseChoiceExample/MarginContainer/VBoxContainer/Cards" unique_id=1491230258]
+texture_filter = 1
+custom_minimum_size = Vector2(48, 86)
+layout_mode = 2
+tooltip_text = "9♥"
+mouse_filter = 2
+texture = ExtResource("5_6ud2m")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="TextureRect3" type="TextureRect" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/PhasesTab/PhaseExamples/PhaseChoiceExample/MarginContainer/VBoxContainer/Cards" unique_id=204945135]
+texture_filter = 1
+custom_minimum_size = Vector2(48, 86)
+layout_mode = 2
+tooltip_text = "9♦"
+mouse_filter = 2
+texture = ExtResource("6_qqxfm")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="HowPhaseChoiceBody" type="Label" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/PhasesTab/PhaseExamples/PhaseChoiceExample/MarginContainer/VBoxContainer" unique_id=1668993229]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.972549, 0.92941177, 0.8117647, 1)
+theme_override_font_sizes/font_size = 11
+text = "Phỏm trên bàn được giữ lại.
+Giai đoạn 2 cần ít nhất 1 Phỏm MỚI."
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3
+metadata/match_node_key_dictionary_binding = "menu_localized_controls"
+metadata/match_node_key_dictionary_value = "HOW_PHASE_CHOICE_BODY"
+
+[node name="ScoringTab" type="VBoxContainer" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent" unique_id=1588273904]
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 6
+metadata/match_dictionary_binding = "how_tab_pages"
+metadata/match_dictionary_key = "scoring"
+
+[node name="ScoringIntro" type="Label" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/ScoringTab" unique_id=1898521451]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.972549, 0.92941177, 0.8117647, 1)
+theme_override_font_sizes/font_size = 13
+text = "Hạ và Ghép trả điểm ngay. Khi Chốt, bài rời bị trừ khỏi tổng Giai đoạn."
+horizontal_alignment = 1
+autowrap_mode = 3
+metadata/match_node_key_dictionary_binding = "menu_localized_controls"
+metadata/match_node_key_dictionary_value = "HOW_SCORING_INTRO"
+
+[node name="ScoringTopics" type="HBoxContainer" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/ScoringTab" unique_id=1704556632]
+layout_mode = 2
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="BasicTopicButton" type="Button" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/ScoringTab/ScoringTopics" unique_id=557400677]
+custom_minimum_size = Vector2(216, 30)
+layout_mode = 2
+mouse_default_cursor_shape = 2
+theme_override_colors/font_color = Color(0.972549, 0.92941177, 0.8117647, 1)
+theme_override_colors/font_pressed_color = Color(1, 1, 1, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_colors/font_disabled_color = Color(0.46666667, 0.43137255, 0.3647059, 1)
+theme_override_font_sizes/font_size = 12
+theme_override_styles/normal = SubResource("StyleBoxFlat_bu7yo")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_mo6uq")
+theme_override_styles/hover = SubResource("StyleBoxFlat_r426v")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_c07q1")
+theme_override_styles/focus = SubResource("StyleBoxFlat_yuf1t")
+toggle_mode = true
+button_pressed = true
+button_group = SubResource("ButtonGroup_hr2v7")
+text = "ĐIỂM CƠ BẢN"
+metadata/match_node_key_dictionary_binding = "menu_localized_controls"
+metadata/match_node_key_dictionary_value = "HOW_SCORE_TOPIC_BASIC"
+metadata/match_dictionary_binding = "how_scoring_topic_buttons"
+metadata/match_dictionary_key = "basic"
+
+[node name="SpecialTopicButton" type="Button" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/ScoringTab/ScoringTopics" unique_id=805926033]
+custom_minimum_size = Vector2(216, 30)
+layout_mode = 2
+mouse_default_cursor_shape = 2
+theme_override_colors/font_color = Color(0.972549, 0.92941177, 0.8117647, 1)
+theme_override_colors/font_pressed_color = Color(1, 1, 1, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_colors/font_disabled_color = Color(0.46666667, 0.43137255, 0.3647059, 1)
+theme_override_font_sizes/font_size = 12
+theme_override_styles/normal = SubResource("StyleBoxFlat_myfs2")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_rtq62")
+theme_override_styles/hover = SubResource("StyleBoxFlat_wxofe")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_mman8")
+theme_override_styles/focus = SubResource("StyleBoxFlat_ewc86")
+toggle_mode = true
+button_group = SubResource("ButtonGroup_hr2v7")
+text = "MÓM • Ù • Ù KHAN"
+metadata/match_node_key_dictionary_binding = "menu_localized_controls"
+metadata/match_node_key_dictionary_value = "HOW_SCORE_TOPIC_SPECIAL"
+metadata/match_dictionary_binding = "how_scoring_topic_buttons"
+metadata/match_dictionary_key = "special"
+
+[node name="ScoringTopicContent" type="Control" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/ScoringTab" unique_id=1850320533]
+custom_minimum_size = Vector2(896, 226)
+layout_mode = 2
+
+[node name="BasicScoring" type="HBoxContainer" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/ScoringTab/ScoringTopicContent" unique_id=1062680593]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_constants/separation = 12
+alignment = 1
+metadata/match_dictionary_binding = "how_scoring_topic_pages"
+metadata/match_dictionary_key = "basic"
+
+[node name="MeldScoreExample" type="PanelContainer" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/ScoringTab/ScoringTopicContent/BasicScoring" unique_id=689896546]
+custom_minimum_size = Vector2(286, 226)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_q6nvs")
+
+[node name="MarginContainer" type="MarginContainer" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/ScoringTab/ScoringTopicContent/BasicScoring/MeldScoreExample" unique_id=183494541]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 9
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/ScoringTab/ScoringTopicContent/BasicScoring/MeldScoreExample/MarginContainer" unique_id=1148362967]
+layout_mode = 2
+theme_override_constants/separation = 7
+alignment = 1
+
+[node name="HowScoreMeldTitle" type="Label" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/ScoringTab/ScoringTopicContent/BasicScoring/MeldScoreExample/MarginContainer/VBoxContainer" unique_id=828213389]
+custom_minimum_size = Vector2(0, 22)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.4745098, 0.78431374, 0.2627451, 1)
+theme_override_font_sizes/font_size = 15
+text = "ĐIỂM HẠ PHỎM"
+horizontal_alignment = 1
+autowrap_mode = 3
+metadata/match_node_key_dictionary_binding = "menu_localized_controls"
+metadata/match_node_key_dictionary_value = "HOW_SCORE_MELD_TITLE"
+
+[node name="Cards" type="HBoxContainer" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/ScoringTab/ScoringTopicContent/BasicScoring/MeldScoreExample/MarginContainer/VBoxContainer" unique_id=246011632]
+custom_minimum_size = Vector2(0, 112)
+layout_mode = 2
+theme_override_constants/separation = 2
+alignment = 1
+
+[node name="TextureRect" type="TextureRect" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/ScoringTab/ScoringTopicContent/BasicScoring/MeldScoreExample/MarginContainer/VBoxContainer/Cards" unique_id=1672082102]
+texture_filter = 1
+custom_minimum_size = Vector2(48, 86)
+layout_mode = 2
+tooltip_text = "4♥"
+mouse_filter = 2
+texture = ExtResource("1_e0hcc")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="TextureRect2" type="TextureRect" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/ScoringTab/ScoringTopicContent/BasicScoring/MeldScoreExample/MarginContainer/VBoxContainer/Cards" unique_id=1488790527]
+texture_filter = 1
+custom_minimum_size = Vector2(48, 86)
+layout_mode = 2
+tooltip_text = "5♥"
+mouse_filter = 2
+texture = ExtResource("2_qch7b")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="TextureRect3" type="TextureRect" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/ScoringTab/ScoringTopicContent/BasicScoring/MeldScoreExample/MarginContainer/VBoxContainer/Cards" unique_id=2002481640]
+texture_filter = 1
+custom_minimum_size = Vector2(48, 86)
+layout_mode = 2
+tooltip_text = "6♥"
+mouse_filter = 2
+texture = ExtResource("3_4ovp2")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="HowScoreMeldBody" type="Label" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/ScoringTab/ScoringTopicContent/BasicScoring/MeldScoreExample/MarginContainer/VBoxContainer" unique_id=2097741786]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.972549, 0.92941177, 0.8117647, 1)
+theme_override_font_sizes/font_size = 11
+text = "Tổng lá × số lá
+(4+5+6) × 3 = 45
+45 điểm = ₫45.000"
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3
+metadata/match_node_key_dictionary_binding = "menu_localized_controls"
+metadata/match_node_key_dictionary_value = "HOW_SCORE_MELD_BODY"
+
+[node name="ExtendScoreExample" type="PanelContainer" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/ScoringTab/ScoringTopicContent/BasicScoring" unique_id=1136991155]
+custom_minimum_size = Vector2(286, 226)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_unrnr")
+
+[node name="MarginContainer" type="MarginContainer" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/ScoringTab/ScoringTopicContent/BasicScoring/ExtendScoreExample" unique_id=1684625360]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 9
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/ScoringTab/ScoringTopicContent/BasicScoring/ExtendScoreExample/MarginContainer" unique_id=229750639]
+layout_mode = 2
+theme_override_constants/separation = 7
+alignment = 1
+
+[node name="HowScoreExtendTitle" type="Label" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/ScoringTab/ScoringTopicContent/BasicScoring/ExtendScoreExample/MarginContainer/VBoxContainer" unique_id=1045144022]
+custom_minimum_size = Vector2(0, 22)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9607843, 0.7490196, 0.25882354, 1)
+theme_override_font_sizes/font_size = 15
+text = "ĐIỂM GHÉP"
+horizontal_alignment = 1
+autowrap_mode = 3
+metadata/match_node_key_dictionary_binding = "menu_localized_controls"
+metadata/match_node_key_dictionary_value = "HOW_SCORE_EXTEND_TITLE"
+
+[node name="Cards" type="HBoxContainer" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/ScoringTab/ScoringTopicContent/BasicScoring/ExtendScoreExample/MarginContainer/VBoxContainer" unique_id=523682529]
+custom_minimum_size = Vector2(0, 112)
+layout_mode = 2
+theme_override_constants/separation = -4
+alignment = 1
+
+[node name="TextureRect" type="TextureRect" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/ScoringTab/ScoringTopicContent/BasicScoring/ExtendScoreExample/MarginContainer/VBoxContainer/Cards" unique_id=1582753119]
+texture_filter = 1
+custom_minimum_size = Vector2(48, 86)
+layout_mode = 2
+tooltip_text = "4♥"
+mouse_filter = 2
+texture = ExtResource("1_e0hcc")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="TextureRect2" type="TextureRect" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/ScoringTab/ScoringTopicContent/BasicScoring/ExtendScoreExample/MarginContainer/VBoxContainer/Cards" unique_id=1516827775]
+texture_filter = 1
+custom_minimum_size = Vector2(48, 86)
+layout_mode = 2
+tooltip_text = "5♥"
+mouse_filter = 2
+texture = ExtResource("2_qch7b")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="TextureRect3" type="TextureRect" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/ScoringTab/ScoringTopicContent/BasicScoring/ExtendScoreExample/MarginContainer/VBoxContainer/Cards" unique_id=672846729]
+texture_filter = 1
+custom_minimum_size = Vector2(48, 86)
+layout_mode = 2
+tooltip_text = "6♥"
+mouse_filter = 2
+texture = ExtResource("3_4ovp2")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="TextureRect4" type="TextureRect" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/ScoringTab/ScoringTopicContent/BasicScoring/ExtendScoreExample/MarginContainer/VBoxContainer/Cards" unique_id=1738126656]
+texture_filter = 1
+custom_minimum_size = Vector2(48, 86)
+layout_mode = 2
+tooltip_text = "7♥"
+mouse_filter = 2
+texture = ExtResource("13_j4d8q")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="HowScoreExtendBody" type="Label" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/ScoringTab/ScoringTopicContent/BasicScoring/ExtendScoreExample/MarginContainer/VBoxContainer" unique_id=1526459972]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.972549, 0.92941177, 0.8117647, 1)
+theme_override_font_sizes/font_size = 11
+text = "Điểm mới 88 − cũ 45
+= +43 điểm
+= +₫43.000"
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3
+metadata/match_node_key_dictionary_binding = "menu_localized_controls"
+metadata/match_node_key_dictionary_value = "HOW_SCORE_EXTEND_BODY"
+
+[node name="PhaseScoreExample" type="PanelContainer" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/ScoringTab/ScoringTopicContent/BasicScoring" unique_id=874686583]
+custom_minimum_size = Vector2(286, 226)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_ke8lh")
+
+[node name="MarginContainer" type="MarginContainer" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/ScoringTab/ScoringTopicContent/BasicScoring/PhaseScoreExample" unique_id=1390486241]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 9
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/ScoringTab/ScoringTopicContent/BasicScoring/PhaseScoreExample/MarginContainer" unique_id=1613160916]
+layout_mode = 2
+theme_override_constants/separation = 7
+alignment = 1
+
+[node name="HowScorePhaseTitle" type="Label" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/ScoringTab/ScoringTopicContent/BasicScoring/PhaseScoreExample/MarginContainer/VBoxContainer" unique_id=1186033969]
+custom_minimum_size = Vector2(0, 22)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.84705883, 0.35686275, 0.30588236, 1)
+theme_override_font_sizes/font_size = 15
+text = "ĐIỂM GIAI ĐOẠN"
+horizontal_alignment = 1
+autowrap_mode = 3
+metadata/match_node_key_dictionary_binding = "menu_localized_controls"
+metadata/match_node_key_dictionary_value = "HOW_SCORE_PHASE_TITLE"
+
+[node name="Cards" type="HBoxContainer" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/ScoringTab/ScoringTopicContent/BasicScoring/PhaseScoreExample/MarginContainer/VBoxContainer" unique_id=1639916408]
+custom_minimum_size = Vector2(0, 112)
+layout_mode = 2
+theme_override_constants/separation = 2
+alignment = 1
+
+[node name="TextureRect" type="TextureRect" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/ScoringTab/ScoringTopicContent/BasicScoring/PhaseScoreExample/MarginContainer/VBoxContainer/Cards" unique_id=423276934]
+texture_filter = 1
+custom_minimum_size = Vector2(48, 86)
+layout_mode = 2
+tooltip_text = "Q♦"
+mouse_filter = 2
+texture = ExtResource("11_ei00g")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="TextureRect2" type="TextureRect" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/ScoringTab/ScoringTopicContent/BasicScoring/PhaseScoreExample/MarginContainer/VBoxContainer/Cards" unique_id=1398912521]
+texture_filter = 1
+custom_minimum_size = Vector2(48, 86)
+layout_mode = 2
+tooltip_text = "K♠"
+mouse_filter = 2
+texture = ExtResource("18_bvtfn")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="HowScorePhaseBody" type="Label" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/ScoringTab/ScoringTopicContent/BasicScoring/PhaseScoreExample/MarginContainer/VBoxContainer" unique_id=1477044210]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.972549, 0.92941177, 0.8117647, 1)
+theme_override_font_sizes/font_size = 11
+text = "Gross − bài rời = Net
+Q = 12, K = 13
+Ít bài rời hơn = tốt hơn"
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3
+metadata/match_node_key_dictionary_binding = "menu_localized_controls"
+metadata/match_node_key_dictionary_value = "HOW_SCORE_PHASE_BODY"
+
+[node name="SpecialOutcomes" type="HBoxContainer" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/ScoringTab/ScoringTopicContent" unique_id=757322310]
+visible = false
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_constants/separation = 12
+alignment = 1
+metadata/match_dictionary_binding = "how_scoring_topic_pages"
+metadata/match_dictionary_key = "special"
+
+[node name="MomExample" type="PanelContainer" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/ScoringTab/ScoringTopicContent/SpecialOutcomes" unique_id=109656338]
+custom_minimum_size = Vector2(286, 226)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_lsh74")
+
+[node name="MarginContainer" type="MarginContainer" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/ScoringTab/ScoringTopicContent/SpecialOutcomes/MomExample" unique_id=1049253310]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 9
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/ScoringTab/ScoringTopicContent/SpecialOutcomes/MomExample/MarginContainer" unique_id=1121707350]
+layout_mode = 2
+theme_override_constants/separation = 7
+alignment = 1
+
+[node name="HowMomTitle" type="Label" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/ScoringTab/ScoringTopicContent/SpecialOutcomes/MomExample/MarginContainer/VBoxContainer" unique_id=164870750]
+custom_minimum_size = Vector2(0, 22)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.84705883, 0.35686275, 0.30588236, 1)
+theme_override_font_sizes/font_size = 15
+text = "MÓM"
+horizontal_alignment = 1
+autowrap_mode = 3
+metadata/match_node_key_dictionary_binding = "menu_localized_controls"
+metadata/match_node_key_dictionary_value = "HOW_MOM_TITLE"
+
+[node name="Cards" type="HBoxContainer" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/ScoringTab/ScoringTopicContent/SpecialOutcomes/MomExample/MarginContainer/VBoxContainer" unique_id=808646416]
+custom_minimum_size = Vector2(0, 112)
+layout_mode = 2
+theme_override_constants/separation = 2
+alignment = 1
+
+[node name="TextureRect" type="TextureRect" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/ScoringTab/ScoringTopicContent/SpecialOutcomes/MomExample/MarginContainer/VBoxContainer/Cards" unique_id=1338010040]
+texture_filter = 1
+custom_minimum_size = Vector2(48, 86)
+layout_mode = 2
+tooltip_text = "Q♦"
+mouse_filter = 2
+texture = ExtResource("11_ei00g")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="TextureRect2" type="TextureRect" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/ScoringTab/ScoringTopicContent/SpecialOutcomes/MomExample/MarginContainer/VBoxContainer/Cards" unique_id=1289135496]
+texture_filter = 1
+custom_minimum_size = Vector2(48, 86)
+layout_mode = 2
+tooltip_text = "K♠"
+mouse_filter = 2
+texture = ExtResource("18_bvtfn")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="TextureRect3" type="TextureRect" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/ScoringTab/ScoringTopicContent/SpecialOutcomes/MomExample/MarginContainer/VBoxContainer/Cards" unique_id=202688603]
+texture_filter = 1
+custom_minimum_size = Vector2(48, 86)
+layout_mode = 2
+tooltip_text = "A♣"
+mouse_filter = 2
+texture = ExtResource("19_r6ok0")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="HowMomBody" type="Label" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/ScoringTab/ScoringTopicContent/SpecialOutcomes/MomExample/MarginContainer/VBoxContainer" unique_id=1925202691]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.972549, 0.92941177, 0.8117647, 1)
+theme_override_font_sizes/font_size = 11
+text = "0 Phỏm MỚI = Móm
+Bài rời = Tổng × Số lá
+Trừ ngay mỗi Giai đoạn"
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3
+metadata/match_node_key_dictionary_binding = "menu_localized_controls"
+metadata/match_node_key_dictionary_value = "HOW_MOM_BODY"
+
+[node name="UExample" type="PanelContainer" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/ScoringTab/ScoringTopicContent/SpecialOutcomes" unique_id=143864076]
+custom_minimum_size = Vector2(286, 226)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_kshgm")
+
+[node name="MarginContainer" type="MarginContainer" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/ScoringTab/ScoringTopicContent/SpecialOutcomes/UExample" unique_id=1812072637]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 9
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/ScoringTab/ScoringTopicContent/SpecialOutcomes/UExample/MarginContainer" unique_id=1528707917]
+layout_mode = 2
+theme_override_constants/separation = 7
+alignment = 1
+
+[node name="HowUTitle" type="Label" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/ScoringTab/ScoringTopicContent/SpecialOutcomes/UExample/MarginContainer/VBoxContainer" unique_id=1814435026]
+custom_minimum_size = Vector2(0, 22)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.4745098, 0.78431374, 0.2627451, 1)
+theme_override_font_sizes/font_size = 15
+text = "Ù"
+horizontal_alignment = 1
+autowrap_mode = 3
+metadata/match_node_key_dictionary_binding = "menu_localized_controls"
+metadata/match_node_key_dictionary_value = "HOW_U_TITLE"
+
+[node name="Cards" type="HBoxContainer" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/ScoringTab/ScoringTopicContent/SpecialOutcomes/UExample/MarginContainer/VBoxContainer" unique_id=2067964952]
+custom_minimum_size = Vector2(0, 112)
+layout_mode = 2
+theme_override_constants/separation = -4
+alignment = 1
+
+[node name="TextureRect" type="TextureRect" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/ScoringTab/ScoringTopicContent/SpecialOutcomes/UExample/MarginContainer/VBoxContainer/Cards" unique_id=1301683321]
+texture_filter = 1
+custom_minimum_size = Vector2(48, 86)
+layout_mode = 2
+tooltip_text = "2♠"
+mouse_filter = 2
+texture = ExtResource("20_oq1mw")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="TextureRect2" type="TextureRect" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/ScoringTab/ScoringTopicContent/SpecialOutcomes/UExample/MarginContainer/VBoxContainer/Cards" unique_id=970805718]
+texture_filter = 1
+custom_minimum_size = Vector2(48, 86)
+layout_mode = 2
+tooltip_text = "2♥"
+mouse_filter = 2
+texture = ExtResource("21_cc4y2")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="TextureRect3" type="TextureRect" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/ScoringTab/ScoringTopicContent/SpecialOutcomes/UExample/MarginContainer/VBoxContainer/Cards" unique_id=114896196]
+texture_filter = 1
+custom_minimum_size = Vector2(48, 86)
+layout_mode = 2
+tooltip_text = "2♦"
+mouse_filter = 2
+texture = ExtResource("22_iglv2")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="TextureRect4" type="TextureRect" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/ScoringTab/ScoringTopicContent/SpecialOutcomes/UExample/MarginContainer/VBoxContainer/Cards" unique_id=1750050936]
+texture_filter = 1
+custom_minimum_size = Vector2(48, 86)
+layout_mode = 2
+tooltip_text = "5♣"
+mouse_filter = 2
+texture = ExtResource("23_c68a3")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="HowUBody" type="Label" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/ScoringTab/ScoringTopicContent/SpecialOutcomes/UExample/MarginContainer/VBoxContainer" unique_id=1528788495]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.972549, 0.92941177, 0.8117647, 1)
+theme_override_font_sizes/font_size = 11
+text = "Từ 10 lá: dùng đúng 9
+Bỏ lá cuối → Gross ×2
+Bài rời vẫn bị trừ"
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3
+metadata/match_node_key_dictionary_binding = "menu_localized_controls"
+metadata/match_node_key_dictionary_value = "HOW_U_BODY"
+
+[node name="UKhanExample" type="PanelContainer" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/ScoringTab/ScoringTopicContent/SpecialOutcomes" unique_id=1740005345]
+custom_minimum_size = Vector2(286, 226)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_lj5kf")
+
+[node name="MarginContainer" type="MarginContainer" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/ScoringTab/ScoringTopicContent/SpecialOutcomes/UKhanExample" unique_id=98258635]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 9
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/ScoringTab/ScoringTopicContent/SpecialOutcomes/UKhanExample/MarginContainer" unique_id=663875785]
+layout_mode = 2
+theme_override_constants/separation = 7
+alignment = 1
+
+[node name="HowUKhanTitle" type="Label" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/ScoringTab/ScoringTopicContent/SpecialOutcomes/UKhanExample/MarginContainer/VBoxContainer" unique_id=325684516]
+custom_minimum_size = Vector2(0, 22)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9607843, 0.7490196, 0.25882354, 1)
+theme_override_font_sizes/font_size = 15
+text = "Ù KHAN"
+horizontal_alignment = 1
+autowrap_mode = 3
+metadata/match_node_key_dictionary_binding = "menu_localized_controls"
+metadata/match_node_key_dictionary_value = "HOW_U_KHAN_TITLE"
+
+[node name="Cards" type="HBoxContainer" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/ScoringTab/ScoringTopicContent/SpecialOutcomes/UKhanExample/MarginContainer/VBoxContainer" unique_id=1925156636]
+custom_minimum_size = Vector2(0, 112)
+layout_mode = 2
+theme_override_constants/separation = -4
+alignment = 1
+
+[node name="TextureRect" type="TextureRect" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/ScoringTab/ScoringTopicContent/SpecialOutcomes/UKhanExample/MarginContainer/VBoxContainer/Cards" unique_id=1786829165]
+texture_filter = 1
+custom_minimum_size = Vector2(48, 86)
+layout_mode = 2
+tooltip_text = "2♠"
+mouse_filter = 2
+texture = ExtResource("20_oq1mw")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="TextureRect2" type="TextureRect" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/ScoringTab/ScoringTopicContent/SpecialOutcomes/UKhanExample/MarginContainer/VBoxContainer/Cards" unique_id=396573991]
+texture_filter = 1
+custom_minimum_size = Vector2(48, 86)
+layout_mode = 2
+tooltip_text = "5♥"
+mouse_filter = 2
+texture = ExtResource("2_qch7b")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="TextureRect3" type="TextureRect" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/ScoringTab/ScoringTopicContent/SpecialOutcomes/UKhanExample/MarginContainer/VBoxContainer/Cards" unique_id=682228211]
+texture_filter = 1
+custom_minimum_size = Vector2(48, 86)
+layout_mode = 2
+tooltip_text = "8♣"
+mouse_filter = 2
+texture = ExtResource("8_rbask")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="TextureRect4" type="TextureRect" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/ScoringTab/ScoringTopicContent/SpecialOutcomes/UKhanExample/MarginContainer/VBoxContainer/Cards" unique_id=552110857]
+texture_filter = 1
+custom_minimum_size = Vector2(48, 86)
+layout_mode = 2
+tooltip_text = "Q♦"
+mouse_filter = 2
+texture = ExtResource("11_ei00g")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="HowUKhanBody" type="Label" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer/TabContent/ScoringTab/ScoringTopicContent/SpecialOutcomes/UKhanExample/MarginContainer/VBoxContainer" unique_id=956591593]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.972549, 0.92941177, 0.8117647, 1)
+theme_override_font_sizes/font_size = 11
+text = "Không đôi; không cùng chất
+cách nhau 1–2 số.
+Tổng tay ×10; đổi cả tay."
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3
+metadata/match_node_key_dictionary_binding = "menu_localized_controls"
+metadata/match_node_key_dictionary_value = "HOW_U_KHAN_BODY"
+
+[node name="HowToPlayBackButton" type="Button" parent="MenuCenter/MenuContent/HowToPlayPanel/MarginContainer/VBoxContainer" unique_id=1736339531]
+custom_minimum_size = Vector2(220, 42)
+layout_mode = 2
+size_flags_horizontal = 4
+mouse_default_cursor_shape = 2
+theme_override_colors/font_color = Color(0.972549, 0.92941177, 0.8117647, 1)
+theme_override_colors/font_pressed_color = Color(1, 1, 1, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_colors/font_disabled_color = Color(0.46666667, 0.43137255, 0.3647059, 1)
+theme_override_font_sizes/font_size = 13
+theme_override_styles/normal = SubResource("StyleBoxFlat_s7eql")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_oodu4")
+theme_override_styles/hover = SubResource("StyleBoxFlat_fk40q")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_1g8bo")
+theme_override_styles/focus = SubResource("StyleBoxFlat_8dud5")
+text = "QUAY LẠI"
+metadata/match_binding = "how_to_play_back_button"
+metadata/match_node_key_dictionary_binding = "menu_localized_controls"
+metadata/match_node_key_dictionary_value = "MENU_BACK"
+
+[node name="OptionsPanel" type="PanelContainer" parent="MenuCenter/MenuContent" unique_id=1069923768]
+visible = false
+custom_minimum_size = Vector2(620, 330)
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_styles/panel = SubResource("StyleBoxFlat_qih0c")
+metadata/match_binding = "options_panel"
+
+[node name="MarginContainer" type="MarginContainer" parent="MenuCenter/MenuContent/OptionsPanel" unique_id=1869712460]
+layout_mode = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 16
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MenuCenter/MenuContent/OptionsPanel/MarginContainer" unique_id=2083308473]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Title" type="Label" parent="MenuCenter/MenuContent/OptionsPanel/MarginContainer/VBoxContainer" unique_id=1112732869]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9607843, 0.7490196, 0.25882354, 1)
+theme_override_font_sizes/font_size = 25
+text = "TÙY CHỌN"
+horizontal_alignment = 1
+autowrap_mode = 3
+metadata/match_node_key_dictionary_binding = "menu_localized_controls"
+metadata/match_node_key_dictionary_value = "MENU_OPTIONS"
+
+[node name="MusicRow" type="HBoxContainer" parent="MenuCenter/MenuContent/OptionsPanel/MarginContainer/VBoxContainer" unique_id=1738771622]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="MusicSettingsLabel" type="Label" parent="MenuCenter/MenuContent/OptionsPanel/MarginContainer/VBoxContainer/MusicRow" unique_id=2037791222]
+custom_minimum_size = Vector2(122, 42)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.972549, 0.92941177, 0.8117647, 1)
+theme_override_font_sizes/font_size = 13
+text = "NHẠC"
+vertical_alignment = 1
+metadata/match_binding = "music_settings_label"
+
+[node name="MusicSlider" type="HSlider" parent="MenuCenter/MenuContent/OptionsPanel/MarginContainer/VBoxContainer/MusicRow" unique_id=1648695133]
+custom_minimum_size = Vector2(250, 42)
+layout_mode = 2
+size_flags_horizontal = 3
+value = 100.0
+metadata/match_binding = "music_slider"
+
+[node name="MusicValueLabel" type="Label" parent="MenuCenter/MenuContent/OptionsPanel/MarginContainer/VBoxContainer/MusicRow" unique_id=554743117]
+custom_minimum_size = Vector2(54, 42)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9607843, 0.7490196, 0.25882354, 1)
+theme_override_font_sizes/font_size = 12
+text = "100%"
+horizontal_alignment = 2
+vertical_alignment = 1
+metadata/match_binding = "music_value_label"
+
+[node name="SoundRow" type="HBoxContainer" parent="MenuCenter/MenuContent/OptionsPanel/MarginContainer/VBoxContainer" unique_id=674475522]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="SoundSettingsLabel" type="Label" parent="MenuCenter/MenuContent/OptionsPanel/MarginContainer/VBoxContainer/SoundRow" unique_id=1996039455]
+custom_minimum_size = Vector2(122, 42)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.972549, 0.92941177, 0.8117647, 1)
+theme_override_font_sizes/font_size = 13
+text = "ÂM THANH"
+vertical_alignment = 1
+metadata/match_binding = "sound_settings_label"
+
+[node name="SoundSlider" type="HSlider" parent="MenuCenter/MenuContent/OptionsPanel/MarginContainer/VBoxContainer/SoundRow" unique_id=1282326237]
+custom_minimum_size = Vector2(250, 42)
+layout_mode = 2
+size_flags_horizontal = 3
+value = 100.0
+metadata/match_binding = "sound_slider"
+
+[node name="SoundValueLabel" type="Label" parent="MenuCenter/MenuContent/OptionsPanel/MarginContainer/VBoxContainer/SoundRow" unique_id=990410397]
+custom_minimum_size = Vector2(54, 42)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9607843, 0.7490196, 0.25882354, 1)
+theme_override_font_sizes/font_size = 12
+text = "100%"
+horizontal_alignment = 2
+vertical_alignment = 1
+metadata/match_binding = "sound_value_label"
+
+[node name="LanguageRow" type="HBoxContainer" parent="MenuCenter/MenuContent/OptionsPanel/MarginContainer/VBoxContainer" unique_id=1315827942]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="LanguageSettingsLabel" type="Label" parent="MenuCenter/MenuContent/OptionsPanel/MarginContainer/VBoxContainer/LanguageRow" unique_id=1248289129]
+custom_minimum_size = Vector2(122, 42)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.972549, 0.92941177, 0.8117647, 1)
+theme_override_font_sizes/font_size = 13
+text = "NGÔN NGỮ"
+vertical_alignment = 1
+metadata/match_binding = "language_settings_label"
+
+[node name="LanguageSelector" type="OptionButton" parent="MenuCenter/MenuContent/OptionsPanel/MarginContainer/VBoxContainer/LanguageRow" unique_id=789083389]
+custom_minimum_size = Vector2(310, 42)
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_default_cursor_shape = 2
+theme_override_colors/font_color = Color(0.972549, 0.92941177, 0.8117647, 1)
+theme_override_colors/font_pressed_color = Color(1, 1, 1, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_colors/font_disabled_color = Color(0.46666667, 0.43137255, 0.3647059, 1)
+theme_override_font_sizes/font_size = 13
+theme_override_styles/normal = SubResource("StyleBoxFlat_4of5x")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_n4fs3")
+theme_override_styles/hover = SubResource("StyleBoxFlat_wpvtg")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_l0v20")
+theme_override_styles/focus = SubResource("StyleBoxFlat_u4l0p")
+selected = 0
+item_count = 2
+popup/item_0/text = "TIẾNG VIỆT"
+popup/item_0/id = 0
+popup/item_1/text = "TIẾNG ANH"
+popup/item_1/id = 1
+metadata/match_binding = "language_selector"
+
+[node name="OptionsBackButton" type="Button" parent="MenuCenter/MenuContent/OptionsPanel/MarginContainer/VBoxContainer" unique_id=1012538906]
+custom_minimum_size = Vector2(220, 42)
+layout_mode = 2
+size_flags_horizontal = 4
+mouse_default_cursor_shape = 2
+theme_override_colors/font_color = Color(0.972549, 0.92941177, 0.8117647, 1)
+theme_override_colors/font_pressed_color = Color(1, 1, 1, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_colors/font_disabled_color = Color(0.46666667, 0.43137255, 0.3647059, 1)
+theme_override_font_sizes/font_size = 13
+theme_override_styles/normal = SubResource("StyleBoxFlat_7csye")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_81a83")
+theme_override_styles/hover = SubResource("StyleBoxFlat_sx6xw")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_wl0li")
+theme_override_styles/focus = SubResource("StyleBoxFlat_mct4f")
+text = "QUAY LẠI"
+metadata/match_binding = "options_back_button"
+metadata/match_node_key_dictionary_binding = "menu_localized_controls"
+metadata/match_node_key_dictionary_value = "MENU_BACK"
