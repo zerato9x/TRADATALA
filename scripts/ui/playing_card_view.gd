@@ -15,7 +15,6 @@ var base_rotation: float = 0.0
 var _hovered := false
 var _stack_order: int = 0
 var _shadow: Panel
-var _drink_outline: Control
 var _action_outline: Control
 var _beat_visual: Control
 var _texture: TextureRect
@@ -27,7 +26,8 @@ var _interaction_enabled: bool = true
 var _chance_tooltip: String = ""
 var _can_meld: bool = false
 var _can_extend: bool = false
-var _drink_preserved: bool = false
+var _can_drink: bool = false
+var _drink_emphasized: bool = false
 var _press_active: bool = false
 var _dragging: bool = false
 var _press_position := Vector2.ZERO
@@ -74,15 +74,23 @@ func set_meld_chance(probability: float, is_ready: bool, target_label: String, n
 	_refresh_tooltip()
 
 
-func set_action_cues(can_meld: bool, can_extend: bool) -> void:
+func set_action_cues(can_meld: bool, can_extend: bool, can_drink: bool = false, drink_emphasized: bool = false) -> void:
 	_can_meld = can_meld
 	_can_extend = can_extend
+	_can_drink = can_drink
+	_drink_emphasized = drink_emphasized
 	_refresh_action_outline()
 
 
 func set_drink_preserved(value: bool) -> void:
-	_drink_preserved = value
-	_refresh_drink_outline()
+	_can_drink = value
+	_drink_emphasized = value
+	_refresh_action_outline()
+
+
+func pulse_action_eligibility(strength: float = 0.6) -> void:
+	if _action_outline != null and _can_drink:
+		_action_outline.play_target_pulse(strength)
 
 
 func play_beat_pulse(strength: float) -> void:
@@ -174,17 +182,10 @@ func _build_visuals() -> void:
 	_shadow.add_theme_stylebox_override("panel", PresentationTheme.panel_style(Color("#050302a8"), Color.TRANSPARENT, 0, 2, 4))
 	_beat_visual.add_child(_shadow)
 
-	_drink_outline = CardActionOutlineScript.new()
-	_drink_outline.name = "DrinkOutline"
-	_drink_outline.position = Vector2(-10, -10)
-	_drink_outline.size = CARD_SIZE + Vector2(20, 20)
-	_drink_outline.visible = false
-	_beat_visual.add_child(_drink_outline)
-
 	_action_outline = CardActionOutlineScript.new()
 	_action_outline.name = "ActionOutline"
-	_action_outline.position = Vector2(-6, -6)
-	_action_outline.size = CARD_SIZE + Vector2(12, 12)
+	_action_outline.position = Vector2(-8, -8)
+	_action_outline.size = CARD_SIZE + Vector2(16, 16)
 	_action_outline.visible = false
 	_beat_visual.add_child(_action_outline)
 
@@ -279,12 +280,12 @@ func _refresh_probability_visibility() -> void:
 
 func _refresh_action_outline() -> void:
 	if _action_outline != null:
-		_action_outline.set_cues(_can_meld and _interaction_enabled, _can_extend and _interaction_enabled)
-
-
-func _refresh_drink_outline() -> void:
-	if _drink_outline != null:
-		_drink_outline.set_drink_cue(_drink_preserved)
+		_action_outline.set_cues(
+			_can_meld and _interaction_enabled,
+			_can_extend and _interaction_enabled,
+			_can_drink,
+			_drink_emphasized
+		)
 
 
 func _refresh_z_index() -> void:

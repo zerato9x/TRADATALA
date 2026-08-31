@@ -200,11 +200,12 @@ func _run() -> void:
 	_check(not has_game_identity_copy, "game name and description copy are absent from the gameplay HUD")
 	_check(scene.get_node_or_null("GameLayer/ActionDock") != null, "action dock exists")
 	_check(scene.get_node_or_null("GameLayer/Header/HeaderRow/MenuButton") == scene.menu_button, "top-left HUD exposes the Menu button")
+	_check(scene.menu_button.size.x <= 72.0 and scene.menu_button.size.y <= 54.0, "Menu remains clickable without dominating the compact header")
 	_check(scene.get_node_or_null("GameLayer/Header/HeaderRow/DiscardHistoryHUD") != null, "phase-grouped discard history is relocated into the top-left HUD")
 	_check(scene.discard_history_row != null and scene.discard_history_row.get_child_count() == 1, "discard history HUD begins with its empty state")
 	_check(scene.get_node_or_null("GameLayer/Header/HeaderRow/IdentityPanel") == null, "game title and description panel is removed from gameplay")
 	var income_panel := scene.get_node_or_null("GameLayer/Header/HeaderRow/IncomeStat") as PanelContainer
-	_check(income_panel != null, "Income remains in the top stat row")
+	_check(income_panel != null and income_panel.size.y <= 54.0, "Income remains in the compact top status strip")
 	var vnd_per_point_panel := scene.get_node_or_null("GameLayer/Header/HeaderRow/VndPerPointStat") as PanelContainer
 	_check(vnd_per_point_panel != null and income_panel != null and vnd_per_point_panel.get_index() == income_panel.get_index() - 1, "VND-per-point HUD panel sits immediately to the left of Income")
 	_check(scene.vnd_per_point_value != null, "VND-per-point HUD exposes its value label")
@@ -214,6 +215,12 @@ func _run() -> void:
 	_check(scene.get_node_or_null("GameLayer/Header/HeaderRow/CampaignStat") != null and scene.campaign_value.text.contains("THỨ HAI"), "campaign day and requirement remain visible during the Deal")
 	_check(scene.get_node_or_null("GameLayer/Header/HeaderRow/PhaseStat") == null and scene.get_node_or_null("GameLayer/Header/HeaderRow/TurnStat") == null, "Phase and Turn stat cards are removed")
 	_check(scene.get_node_or_null("GameLayer/UtilityRail/DrinkArea/DrinkSlot") == scene.drink_button, "Drink slot is a clickable effect button")
+	var drink_area := scene.get_node_or_null("GameLayer/UtilityRail/DrinkArea") as Control
+	var relic_area := scene.get_node_or_null("GameLayer/UtilityRail/RelicsArea") as Control
+	var loose_hand := scene.get_node_or_null("GameLayer/LooseHand") as Control
+	_check(drink_area != null and relic_area != null and drink_area.get_global_rect().position.y > relic_area.get_global_rect().end.y, "Drink leaves the passive Relic rail and sits in the lower action region")
+	_check(drink_area != null and loose_hand != null and loose_hand.get_global_rect().end.x <= drink_area.get_global_rect().position.x, "lower-right Drink panel preserves the hand interaction surface")
+	_check(scene.get_node_or_null("GameLayer/ActionDock/MarginContainer/HBoxContainer/ContextDivider") != null and scene.get_node_or_null("GameLayer/ActionDock/MarginContainer/HBoxContainer/ActionDivider") != null, "bottom dock visibly separates context, utility, and core actions")
 	_check(scene.get_node_or_null("GameLayer/TableSurface/DrinkProps/ActiveDrink") == scene.drink_table_button, "active Drink has a clickable in-world table prop")
 	_check(scene.get_node_or_null("GameLayer/TableSurface/DrinkProps/EmptyDrinkProp") == scene.empty_drink_prop, "the morning empty-glass prop exists for the noon handoff")
 	_check(scene.drink_table_texture != null and scene.drink_table_texture.texture != null and scene.drink_table_texture.texture.resource_path == "res://assets/drinks/tra_da_full.png", "unused starter Drink shows its full sprite")
@@ -302,11 +309,20 @@ func _run() -> void:
 	_check(action_outline != null and action_outline.visible and action_outline.cue_mode() == CardActionOutlineScript.CUE_EXTEND, "extendable cards animate with the yellow cue")
 	first_view.set_action_cues(false, false)
 	_check(action_outline != null and not action_outline.visible and not action_outline.is_processing(), "non-actionable cards do not carry an outline")
-	var drink_outline := first_view.get_node_or_null("BeatVisual/DrinkOutline")
 	first_view.set_drink_preserved(true)
-	_check(drink_outline != null and drink_outline.visible and drink_outline.cue_mode() == CardActionOutlineScript.CUE_DRINK and drink_outline.is_processing(), "Drink-marked cards carry a separate animated blue gradient outline")
+	_check(action_outline != null and action_outline.visible and action_outline.cue_mode() == CardActionOutlineScript.CUE_DRINK and action_outline.is_processing(), "Drink-marked cards use the reusable animated blue action outline")
+	first_view.set_action_cues(true, true, true, true)
+	_check(action_outline.cue_mode() == CardActionOutlineScript.CUE_ALL, "green, orange, and blue eligibility coexist in one animated multicolor outline")
+	first_view.set_action_cues(true, false, true)
+	_check(action_outline.cue_mode() == (CardActionOutlineScript.CUE_MELD | CardActionOutlineScript.CUE_DRINK), "green and blue eligibility coexist without covering the card face")
+	action_outline.scale = Vector2.ONE
+	action_outline.play_target_pulse(1.0)
+	await create_timer(0.05).timeout
+	_check(action_outline.scale.x > 1.01, "the reusable eligibility visual exposes a subtle target pulse hook")
 	first_view.set_drink_preserved(false)
-	_check(drink_outline != null and not drink_outline.visible and not drink_outline.is_processing(), "clearing a Drink mark removes only the blue outline")
+	_check(action_outline.cue_mode() == CardActionOutlineScript.CUE_MELD, "clearing a Drink cue preserves the card's green action state")
+	first_view.set_action_cues(false, false)
+	_check(not action_outline.visible and not action_outline.is_processing(), "clearing the final action cue hides the reusable outline")
 	var input_test_view := PlayingCardView.new()
 	root.add_child(input_test_view)
 	input_test_view.set_card(CardData.new("drag_input_8_clubs", "8", 8, "Clubs", 8))
@@ -431,20 +447,23 @@ func _run() -> void:
 	_check(scene.drink_charge_outline.visible, "unused Sâm dứa charge shows the blue Drink-box outline")
 	var pre_arm_card: CardData = scene.deal.hand[0]
 	scene._on_card_pressed(pre_arm_card)
-	var pre_arm_outline := (scene.hand_views.get(pre_arm_card.unique_id) as PlayingCardView).get_node_or_null("BeatVisual/DrinkOutline") as Control
-	_check(not pre_arm_outline.visible and scene.pending_drink_card_ids.is_empty(), "ordinary card clicks do not become Drink targets before Sâm dứa is armed")
+	var pre_arm_outline := (scene.hand_views.get(pre_arm_card.unique_id) as PlayingCardView).get_node_or_null("BeatVisual/ActionOutline") as Control
+	_check((pre_arm_outline.cue_mode() & CardActionOutlineScript.CUE_DRINK) == 0 and scene.pending_drink_card_ids.is_empty(), "ordinary card clicks do not become Drink targets before Sâm dứa is armed")
 	scene.selected_card_ids.clear()
 	scene._sync_all()
 	scene.drink_button.pressed.emit()
 	await process_frame
 	_check(scene.drink_targeting_active, "clicking Sâm dứa first arms its multi-card targeting mode")
+	for eligible_card in scene.deal.hand:
+		var eligible_outline := (scene.hand_views.get(eligible_card.unique_id) as PlayingCardView).get_node_or_null("BeatVisual/ActionOutline") as Control
+		_check((eligible_outline.cue_mode() & CardActionOutlineScript.CUE_DRINK) != 0, "arming a Drink exposes every currently eligible loose-card target")
 	scene._on_card_pressed(scene.deal.hand[0])
 	scene._on_card_pressed(scene.deal.hand[1])
 	_check(scene.pending_drink_card_ids.size() == 2 and scene.deal.sam_dua_preserved_cards.is_empty(), "the first two post-arm card clicks remain a pending Sâm dứa selection")
 	for pending_card in scene._pending_drink_cards():
 		var pending_view := scene.hand_views.get(pending_card.unique_id) as PlayingCardView
-		var pending_outline := pending_view.get_node_or_null("BeatVisual/DrinkOutline") as Control
-		_check(pending_outline.visible and pending_outline.cue_mode() == CardActionOutlineScript.CUE_DRINK, "each pending Sâm dứa card immediately receives the blue gradient")
+		var pending_outline := pending_view.get_node_or_null("BeatVisual/ActionOutline") as Control
+		_check(pending_outline.visible and (pending_outline.cue_mode() & CardActionOutlineScript.CUE_DRINK) != 0, "each pending Sâm dứa card immediately receives the blue gradient")
 	scene.drink_button.pressed.emit()
 	await process_frame
 	_check(scene.deal.sam_dua_preserved_cards.size() == 2, "clicking Sâm dứa during Phase 1 LAST CALL marks up to two selected loose cards for DUMP")
@@ -452,14 +471,22 @@ func _run() -> void:
 	_check(not scene.drink_charge_outline.visible, "Sâm dứa blue charge outline disappears after its preservation effect is spent")
 	for preserved_card in scene.deal.sam_dua_preserved_cards:
 		var preserved_view := scene.hand_views.get(preserved_card.unique_id) as PlayingCardView
-		var preserved_outline: Control = preserved_view.get_node_or_null("BeatVisual/DrinkOutline") if preserved_view != null else null
-		_check(preserved_outline != null and preserved_outline.visible and preserved_outline.cue_mode() == CardActionOutlineScript.CUE_DRINK, "each Sâm dứa preservation card keeps the blue stay outline")
+		var preserved_outline: Control = preserved_view.get_node_or_null("BeatVisual/ActionOutline") if preserved_view != null else null
+		_check(preserved_outline != null and preserved_outline.visible and (preserved_outline.cue_mode() & CardActionOutlineScript.CUE_DRINK) != 0, "each Sâm dứa preservation card keeps the blue stay outline")
 	scene.deal.set_current_drink(DrinkCatalog.TRA_DA)
 	scene.deal.sam_dua_preserved_cards.clear()
 	scene.selected_card_ids.clear()
 	scene._sync_card_action_outlines()
 	_check(scene.discard_history_row.get_child_count() == 5, "top-left discard history shows its phase marker and all four discards")
 	_check((scene.discard_history_row.get_child(0) as Label).text == "P1", "top-left discard history labels the owning phase")
+	_check(scene.discard_history_target_outlines.size() == 4, "each mandatory discard remains an independently addressable action target")
+	for discard_target in scene.discard_history_row.get_children().slice(1, 5):
+		_check(discard_target.has_meta("action_target_card_id") and discard_target.get_node_or_null("ActionOutline") != null and discard_target.mouse_filter == Control.MOUSE_FILTER_STOP, "mandatory discard target preserves hover, outline, and future selection hooks")
+	var first_discard_target_key: String = scene.discard_history_target_outlines.keys()[0]
+	scene.set_discard_history_drink_eligibility({first_discard_target_key: true}, true)
+	var first_discard_outline := scene.discard_history_target_outlines[first_discard_target_key] as Control
+	_check(first_discard_outline.cue_mode() == CardActionOutlineScript.CUE_DRINK, "mandatory discards accept the same blue eligibility state as loose and Meld cards")
+	scene.set_discard_history_drink_eligibility({})
 	scene.deal.discard_history.append(DiscardRecord.new(CardData.new("smoke_p2_discard", "A", 1, "Hearts", 1), 2, 1))
 	scene._sync_discard_history()
 	_check(scene.discard_history_row.get_child_count() == 7 and (scene.discard_history_row.get_child(5) as Label).text == "P2", "top-left discard history separates Phase 2 and restarts its turn order")

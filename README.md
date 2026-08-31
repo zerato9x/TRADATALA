@@ -4,7 +4,7 @@ A Godot 4.7.1 early-campaign prototype built above the existing solo-derived Ph�
 
 The official presentation uses the generated Vietnamese sidewalk-table plate at `res://assets/environment/sidewalk_table.png`, with `DFVN Pexel Grotesk` as the global game font. Cards and HUD elements remain live Godot controls layered over the environment.
 
-The project opens on a dedicated title menu over the fixed sidewalk-table background. Choosing **VÁN MỚI** starts Monday's Starter Event, where Cô Trà Đá supplies the Drink used by the Morning and Noon Deals. The same table then carries the player through four Deals and four Event slots per day for seven days. The match layout shows the active Drink, current day/goal, and an expandable Relics grid initialized with four presentation-only slots.
+The project opens on a dedicated title menu over the fixed sidewalk-table background. Choosing **VÁN MỚI** starts Monday's Starter Event, where Cô Trà Đá supplies the Drink used by the Morning and Noon Deals. The same table then carries the player through four Deals and four Event slots per day for seven days. The match layout uses a compact top status strip, a lower-right active Drink beside the hand, and a separate quiet Relics rail initialized with four presentation-only slots.
 
 ## Run
 
@@ -35,7 +35,7 @@ Distribute `TRADATALA-v1.0.1.exe` together with `TRADATALA-v1.0.1.pck`. The PCK 
 - `S`: cycle rank/suit hand sorting.
 - `G`: select the highest-scoring legal new Meld; if none exists, select the best legal table extension.
 - Hover a loose card to reveal its top-right meld badge: `✓` means it already belongs to a ready Phỏm; otherwise the badge shows that card's best exact completion percentage. The badge hides again when the pointer leaves.
-- Ready action cards carry an animated outline: flowing green for a legal new Phỏm, yellow for a legal table extension, and a blended green/yellow sweep when both actions are available. A separate blue gradient surrounds the right-side Drink box while its charge is available and disappears when spent; cards committed to Sâm dứa preservation keep the matching blue outline until the Phase transition resolves.
+- Ready action cards carry one reusable animated outline: flowing green for a legal new Phỏm, orange for a legal table extension, and blue for an active Drink target. Any combination can coexist in the same multicolor sweep without covering the card face. The Drink box keeps its own blue charge outline until spent, while Sâm dứa preservation keeps blue on marked cards until the Phase transition resolves.
 - Click the `BỎ • XEM` pile to open every discarded card grouped into Bích, Cơ, Rô, and Tép columns.
 - Hover the active Drink for its complete effect and timing. Click the charged Drink first to arm it, then click the required loose or table card; blue gradients identify Drink targets.
 - For Sâm dứa, click the Drink during Phase 1 LAST CALL, select up to two blue-outlined loose cards, then click the Drink again to confirm before CHỐT; those marked cards survive only if the following choice is DUMP.
@@ -55,7 +55,7 @@ Buttons remain disabled until their action is legal. The footer explains the cur
 - `scripts/campaign/` — seven-day state machine, data-configured requirements, generic Event/NPC interactions, Drink purchase windows, and progression signals.
 - `scripts/gameplay/` — the authoritative two-Phase Deal state machine, read-only hand advisor, and exact meld-probability analysis.
 - `scenes/match.tscn` — editor-authored composition root: stationary café background plus instanced board, menu, and reactive-music scenes.
-- `scenes/ui/match_board.tscn` and `scenes/ui/main_menu.tscn` — static match HUD/overlay and menu ownership. Their named bindings are resolved by `MatchUI`; cards, Melds, discard history, campaign participants, archive contents, and audio players remain runtime-generated because their counts depend on game state.
+- `scenes/ui/match_board.tscn` and `scenes/ui/main_menu.tscn` — static match HUD/overlay and menu ownership. The board keeps status at the top, passive Relics on the right, the interactive Drink and hand near the bottom, and context/utility/core actions in stable dock groups. Named bindings are resolved by `MatchUI`; cards, Melds, discard history, campaign participants, archive contents, and audio players remain runtime-generated because their counts depend on game state.
 - `scripts/ui/` — match coordination and dynamic card/Meld presentation, staged equations, wallet tweening, card travel, banners, and settlements. `match_ui.gd` no longer constructs the static interface.
 - `tests/` — pure-rule suite plus a runtime scene smoke.
 
@@ -88,11 +88,11 @@ The Escape/Menu window includes a standalone album player for all 26 OST files: 
 
 Current Godot 4.7.1 source checkpoint (2026-08-31):
 
-- Core Deal and campaign suite: **49 / 49 passed** in both normal headless execution and the connected editor MCP runner.
-- Runtime scene smoke: **passed**.
+- Core Deal and campaign suite: **50 / 50 passed** in both normal headless execution and the connected editor MCP runner.
+- Runtime scene smoke: **passed** at 1280×720 and 1920×1080, including compact-HUD bounds, Drink/hand separation, mandatory-discard target hooks, and green/orange/blue cue coexistence.
 - Tutorial scene smoke: **passed**.
 - Headless editor import and global-class registration: **passed**.
-- Connected-editor migration proof: **passed**. The modular `match.tscn` opened and ran at 1280×720, the real Play button transitioned from menu to game, runtime cards/audio were rebuilt, and the stationary background remained outside the animated UI layers.
+- Connected-editor live proof: **passed** at 1489×720. The real Play button transitioned from menu to game, the anchored HUD remained in bounds, and hovering a charged Trà đá after a discard exposed blue loose-card eligibility while existing green cues remained active.
 - Previous v1.0.0 exported Windows startup: **passed**; v1.0.1 was not rebuilt during this source-fix pass.
 
 ```powershell

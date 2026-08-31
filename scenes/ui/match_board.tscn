@@ -1341,19 +1341,19 @@ metadata/match_binding = "game_layer"
 [node name="Header" type="Control" parent="." unique_id=342315097]
 anchors_preset = 0
 anchor_right = 1.0
-offset_left = 16.0
-offset_top = 14.0
-offset_right = -16.0
-offset_bottom = 100.0
+offset_left = 12.0
+offset_top = 10.0
+offset_right = -12.0
+offset_bottom = 64.0
 
 [node name="HeaderRow" type="HBoxContainer" parent="Header" unique_id=1020467476]
 layout_mode = 0
 anchor_right = 1.0
 anchor_bottom = 1.0
-theme_override_constants/separation = 10
+theme_override_constants/separation = 8
 
 [node name="MenuButton" type="Button" parent="Header/HeaderRow" unique_id=115967581]
-custom_minimum_size = Vector2(94, 72)
+custom_minimum_size = Vector2(68, 48)
 layout_mode = 2
 tooltip_text = "Mở menu."
 mouse_default_cursor_shape = 2
@@ -1361,7 +1361,7 @@ theme_override_colors/font_color = Color(0.972549, 0.92941177, 0.8117647, 1)
 theme_override_colors/font_pressed_color = Color(1, 1, 1, 1)
 theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
 theme_override_colors/font_disabled_color = Color(0.46666667, 0.43137255, 0.3647059, 1)
-theme_override_font_sizes/font_size = 13
+theme_override_font_sizes/font_size = 11
 theme_override_styles/normal = SubResource("StyleBoxFlat_6wpde")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_xudsa")
 theme_override_styles/hover = SubResource("StyleBoxFlat_imtgx")
@@ -1371,25 +1371,25 @@ text = "MENU"
 metadata/match_binding = "menu_button"
 
 [node name="DiscardHistoryHUD" type="PanelContainer" parent="Header/HeaderRow" unique_id=1553317299]
-custom_minimum_size = Vector2(340, 72)
+custom_minimum_size = Vector2(320, 48)
 layout_mode = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_848nl")
 
 [node name="MarginContainer" type="MarginContainer" parent="Header/HeaderRow/DiscardHistoryHUD" unique_id=763140166]
 layout_mode = 2
-theme_override_constants/margin_left = 8
-theme_override_constants/margin_top = 5
-theme_override_constants/margin_right = 8
-theme_override_constants/margin_bottom = 5
+theme_override_constants/margin_left = 6
+theme_override_constants/margin_top = 3
+theme_override_constants/margin_right = 6
+theme_override_constants/margin_bottom = 3
 
 [node name="VBoxContainer" type="VBoxContainer" parent="Header/HeaderRow/DiscardHistoryHUD/MarginContainer" unique_id=2093777902]
 layout_mode = 2
-theme_override_constants/separation = 2
+theme_override_constants/separation = 1
 
 [node name="DiscardHistoryTitle" type="Label" parent="Header/HeaderRow/DiscardHistoryHUD/MarginContainer/VBoxContainer" unique_id=297747614]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.9607843, 0.7490196, 0.25882354, 1)
-theme_override_font_sizes/font_size = 9
+theme_override_font_sizes/font_size = 8
 text = "LÁ ĐÃ BỎ  •  GIAI ĐOẠN + THỨ TỰ"
 horizontal_alignment = 1
 metadata/match_binding = "discard_history_title"
@@ -1411,16 +1411,16 @@ layout_mode = 2
 size_flags_horizontal = 3
 
 [node name="CampaignStat" type="PanelContainer" parent="Header/HeaderRow" unique_id=1816228983]
-custom_minimum_size = Vector2(178, 72)
+custom_minimum_size = Vector2(170, 48)
 layout_mode = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_mrvr3")
 
 [node name="MarginContainer" type="MarginContainer" parent="Header/HeaderRow/CampaignStat" unique_id=128671040]
 layout_mode = 2
-theme_override_constants/margin_left = 11
-theme_override_constants/margin_top = 8
-theme_override_constants/margin_right = 11
-theme_override_constants/margin_bottom = 5
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 3
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 2
 
 [node name="VBoxContainer" type="VBoxContainer" parent="Header/HeaderRow/CampaignStat/MarginContainer" unique_id=1347717355]
 layout_mode = 2
@@ -1429,7 +1429,7 @@ theme_override_constants/separation = -2
 [node name="CampaignStatHeaderCaptionLabels" type="Label" parent="Header/HeaderRow/CampaignStat/MarginContainer/VBoxContainer" unique_id=596549354]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.7764706, 0.72156864, 0.5882353, 1)
-theme_override_font_sizes/font_size = 11
+theme_override_font_sizes/font_size = 9
 text = "NGÀY • MỤC TIÊU"
 metadata/match_dictionary_binding = "header_caption_labels"
 metadata/match_dictionary_key = "CampaignStat"
@@ -1437,22 +1437,22 @@ metadata/match_dictionary_key = "CampaignStat"
 [node name="CampaignValue" type="Label" parent="Header/HeaderRow/CampaignStat/MarginContainer/VBoxContainer" unique_id=1859088511]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.972549, 0.92941177, 0.8117647, 1)
-theme_override_font_sizes/font_size = 17
+theme_override_font_sizes/font_size = 14
 text = "—"
 text_overrun_behavior = 3
 metadata/match_binding = "campaign_value"
 
 [node name="VndPerPointStat" type="PanelContainer" parent="Header/HeaderRow" unique_id=1681136388]
-custom_minimum_size = Vector2(132, 72)
+custom_minimum_size = Vector2(120, 48)
 layout_mode = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_j0v6k")
 
 [node name="MarginContainer" type="MarginContainer" parent="Header/HeaderRow/VndPerPointStat" unique_id=2075479529]
 layout_mode = 2
-theme_override_constants/margin_left = 11
-theme_override_constants/margin_top = 8
-theme_override_constants/margin_right = 11
-theme_override_constants/margin_bottom = 5
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 3
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 2
 
 [node name="VBoxContainer" type="VBoxContainer" parent="Header/HeaderRow/VndPerPointStat/MarginContainer" unique_id=291203]
 layout_mode = 2
@@ -1461,7 +1461,7 @@ theme_override_constants/separation = -2
 [node name="VndPerPointStatHeaderCaptionLabels" type="Label" parent="Header/HeaderRow/VndPerPointStat/MarginContainer/VBoxContainer" unique_id=257596113]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.7764706, 0.72156864, 0.5882353, 1)
-theme_override_font_sizes/font_size = 11
+theme_override_font_sizes/font_size = 9
 text = "VND / ĐIỂM"
 metadata/match_dictionary_binding = "header_caption_labels"
 metadata/match_dictionary_key = "VndPerPointStat"
@@ -1469,22 +1469,22 @@ metadata/match_dictionary_key = "VndPerPointStat"
 [node name="VndPerPointValue" type="Label" parent="Header/HeaderRow/VndPerPointStat/MarginContainer/VBoxContainer" unique_id=2084970500]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.972549, 0.92941177, 0.8117647, 1)
-theme_override_font_sizes/font_size = 17
+theme_override_font_sizes/font_size = 14
 text = "₫1.000"
 text_overrun_behavior = 3
 metadata/match_binding = "vnd_per_point_value"
 
 [node name="IncomeStat" type="PanelContainer" parent="Header/HeaderRow" unique_id=640288273]
-custom_minimum_size = Vector2(144, 72)
+custom_minimum_size = Vector2(132, 48)
 layout_mode = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_55tia")
 
 [node name="MarginContainer" type="MarginContainer" parent="Header/HeaderRow/IncomeStat" unique_id=531545767]
 layout_mode = 2
-theme_override_constants/margin_left = 11
-theme_override_constants/margin_top = 8
-theme_override_constants/margin_right = 11
-theme_override_constants/margin_bottom = 5
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 3
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 2
 
 [node name="VBoxContainer" type="VBoxContainer" parent="Header/HeaderRow/IncomeStat/MarginContainer" unique_id=1953014762]
 layout_mode = 2
@@ -1493,7 +1493,7 @@ theme_override_constants/separation = -2
 [node name="IncomeStatHeaderCaptionLabels" type="Label" parent="Header/HeaderRow/IncomeStat/MarginContainer/VBoxContainer" unique_id=1001579723]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.7764706, 0.72156864, 0.5882353, 1)
-theme_override_font_sizes/font_size = 11
+theme_override_font_sizes/font_size = 9
 text = "THU NHẬP"
 metadata/match_dictionary_binding = "header_caption_labels"
 metadata/match_dictionary_key = "IncomeStat"
@@ -1501,22 +1501,22 @@ metadata/match_dictionary_key = "IncomeStat"
 [node name="EarningsValue" type="Label" parent="Header/HeaderRow/IncomeStat/MarginContainer/VBoxContainer" unique_id=1495502610]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.972549, 0.92941177, 0.8117647, 1)
-theme_override_font_sizes/font_size = 17
+theme_override_font_sizes/font_size = 14
 text = "₫0"
 text_overrun_behavior = 3
 metadata/match_binding = "earnings_value"
 
 [node name="WalletStat" type="PanelContainer" parent="Header/HeaderRow" unique_id=311644999]
-custom_minimum_size = Vector2(178, 72)
+custom_minimum_size = Vector2(164, 48)
 layout_mode = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_5tp15")
 
 [node name="MarginContainer" type="MarginContainer" parent="Header/HeaderRow/WalletStat" unique_id=1911297435]
 layout_mode = 2
-theme_override_constants/margin_left = 11
-theme_override_constants/margin_top = 8
-theme_override_constants/margin_right = 11
-theme_override_constants/margin_bottom = 5
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 3
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 2
 
 [node name="VBoxContainer" type="VBoxContainer" parent="Header/HeaderRow/WalletStat/MarginContainer" unique_id=756232883]
 layout_mode = 2
@@ -1525,7 +1525,7 @@ theme_override_constants/separation = -2
 [node name="WalletStatHeaderCaptionLabels" type="Label" parent="Header/HeaderRow/WalletStat/MarginContainer/VBoxContainer" unique_id=552788666]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.7764706, 0.72156864, 0.5882353, 1)
-theme_override_font_sizes/font_size = 11
+theme_override_font_sizes/font_size = 9
 text = "VÍ CỦA BẠN"
 metadata/match_dictionary_binding = "header_caption_labels"
 metadata/match_dictionary_key = "WalletStat"
@@ -1533,7 +1533,7 @@ metadata/match_dictionary_key = "WalletStat"
 [node name="WalletValue" type="Label" parent="Header/HeaderRow/WalletStat/MarginContainer/VBoxContainer" unique_id=1386309027]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.9607843, 0.7490196, 0.25882354, 1)
-theme_override_font_sizes/font_size = 19
+theme_override_font_sizes/font_size = 15
 text = "₫0"
 text_overrun_behavior = 3
 metadata/match_binding = "wallet_value"
@@ -1542,10 +1542,10 @@ metadata/match_binding = "wallet_value"
 layout_mode = 0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 72.0
-offset_top = 108.0
-offset_right = -72.0
-offset_bottom = -242.0
+offset_left = 64.0
+offset_top = 76.0
+offset_right = -64.0
+offset_bottom = -238.0
 theme_override_styles/panel = SubResource("StyleBoxFlat_f6akd")
 metadata/match_binding = "table_surface"
 
@@ -1810,9 +1810,9 @@ anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
 offset_left = 108.0
-offset_top = -242.0
-offset_right = -108.0
-offset_bottom = -70.0
+offset_top = -238.0
+offset_right = -252.0
+offset_bottom = -68.0
 theme_override_styles/panel = SubResource("StyleBoxFlat_anjw8")
 
 [node name="CardFan" type="Control" parent="LooseHand" unique_id=601376570]
@@ -1827,24 +1827,28 @@ metadata/match_binding = "hand_layer"
 
 [node name="UtilityRail" type="Control" parent="." unique_id=494451965]
 anchors_preset = 0
-anchor_left = 1.0
+anchor_bottom = 1.0
 anchor_right = 1.0
-offset_left = -150.0
-offset_top = 158.0
-offset_right = -16.0
-offset_bottom = 506.0
+mouse_filter = 2
 
 [node name="DrinkArea" type="Panel" parent="UtilityRail" unique_id=1995672945]
 layout_mode = 0
-offset_right = 134.0
-offset_bottom = 106.0
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -244.0
+offset_top = -238.0
+offset_right = -108.0
+offset_bottom = -124.0
+mouse_filter = 1
 theme_override_styles/panel = SubResource("StyleBoxFlat_lrbf3")
 
 [node name="DrinkTitleLabel" type="Label" parent="UtilityRail/DrinkArea" unique_id=1993699575]
 layout_mode = 0
 offset_left = 9.0
 offset_top = 7.0
-offset_right = 125.0
+offset_right = 127.0
 offset_bottom = 30.0
 theme_override_colors/font_color = Color(0.9607843, 0.7490196, 0.25882354, 1)
 theme_override_font_sizes/font_size = 12
@@ -1854,10 +1858,10 @@ metadata/match_binding = "drink_title_label"
 
 [node name="DrinkSlot" type="Button" parent="UtilityRail/DrinkArea" unique_id=110759056]
 layout_mode = 0
-offset_left = 34.0
+offset_left = 32.0
 offset_top = 30.0
-offset_right = 100.0
-offset_bottom = 94.0
+offset_right = 104.0
+offset_bottom = 102.0
 tooltip_text = "Đồ uống hiện tại: Trà đá
 
 Mỗi lượt một lần: nhấn Đồ uống trước, rồi chọn 1 lá bài rời để đổi nó với lá bỏ mới nhất. Số lá trên tay không đổi."
@@ -1872,8 +1876,8 @@ metadata/match_binding = "drink_button"
 anchors_preset = 0
 offset_left = -7.0
 offset_top = -7.0
-offset_right = 73.0
-offset_bottom = 71.0
+offset_right = 79.0
+offset_bottom = 79.0
 mouse_filter = 2
 script = ExtResource("4_e8ygk")
 metadata/match_binding = "drink_charge_outline"
@@ -1892,9 +1896,13 @@ metadata/match_binding = "drink_name_label"
 
 [node name="RelicsArea" type="Panel" parent="UtilityRail" unique_id=880219923]
 layout_mode = 0
-offset_top = 116.0
-offset_right = 134.0
-offset_bottom = 348.0
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -150.0
+offset_top = 84.0
+offset_right = -16.0
+offset_bottom = 316.0
+mouse_filter = 1
 theme_override_styles/panel = SubResource("StyleBoxFlat_meu1j")
 
 [node name="RelicTitleLabel" type="Label" parent="UtilityRail/RelicsArea" unique_id=474758493]
@@ -1986,9 +1994,9 @@ anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
 offset_left = 16.0
-offset_top = -64.0
+offset_top = -66.0
 offset_right = -16.0
-offset_bottom = -10.0
+offset_bottom = -8.0
 theme_override_styles/panel = SubResource("StyleBoxFlat_a6gvw")
 
 [node name="MarginContainer" type="MarginContainer" parent="ActionDock" unique_id=1270190248]
@@ -2002,9 +2010,10 @@ theme_override_constants/margin_bottom = 6
 
 [node name="HBoxContainer" type="HBoxContainer" parent="ActionDock/MarginContainer" unique_id=981390939]
 layout_mode = 2
-theme_override_constants/separation = 8
+theme_override_constants/separation = 7
 
 [node name="StatusLabel" type="Label" parent="ActionDock/MarginContainer/HBoxContainer" unique_id=1990404641]
+custom_minimum_size = Vector2(300, 40)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.7764706, 0.72156864, 0.5882353, 1)
@@ -2014,8 +2023,12 @@ vertical_alignment = 1
 text_overrun_behavior = 3
 metadata/match_binding = "status_label"
 
+[node name="ContextDivider" type="VSeparator" parent="ActionDock/MarginContainer/HBoxContainer"]
+custom_minimum_size = Vector2(6, 40)
+layout_mode = 2
+
 [node name="HintButton" type="Button" parent="ActionDock/MarginContainer/HBoxContainer" unique_id=1744444674]
-custom_minimum_size = Vector2(104, 40)
+custom_minimum_size = Vector2(92, 38)
 layout_mode = 2
 tooltip_text = "Chọn Phỏm mới có điểm cao nhất, hoặc một nước Ghép hợp lệ."
 mouse_default_cursor_shape = 2
@@ -2023,7 +2036,7 @@ theme_override_colors/font_color = Color(1, 0.94509804, 0.77254903, 1)
 theme_override_colors/font_pressed_color = Color(1, 1, 1, 1)
 theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
 theme_override_colors/font_disabled_color = Color(0.46666667, 0.43137255, 0.3647059, 1)
-theme_override_font_sizes/font_size = 13
+theme_override_font_sizes/font_size = 11
 theme_override_styles/normal = SubResource("StyleBoxFlat_kp615")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_0hws2")
 theme_override_styles/hover = SubResource("StyleBoxFlat_3nabo")
@@ -2034,7 +2047,7 @@ text = "GỢI Ý  [G]"
 metadata/match_binding = "hint_button"
 
 [node name="SortButton" type="Button" parent="ActionDock/MarginContainer/HBoxContainer" unique_id=1927453993]
-custom_minimum_size = Vector2(104, 40)
+custom_minimum_size = Vector2(92, 38)
 layout_mode = 2
 tooltip_text = "Đổi cách xếp bài giữa số và chất."
 mouse_default_cursor_shape = 2
@@ -2042,7 +2055,7 @@ theme_override_colors/font_color = Color(0.972549, 0.92941177, 0.8117647, 1)
 theme_override_colors/font_pressed_color = Color(1, 1, 1, 1)
 theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
 theme_override_colors/font_disabled_color = Color(0.46666667, 0.43137255, 0.3647059, 1)
-theme_override_font_sizes/font_size = 13
+theme_override_font_sizes/font_size = 11
 theme_override_styles/normal = SubResource("StyleBoxFlat_yjo73")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_ka5j7")
 theme_override_styles/hover = SubResource("StyleBoxFlat_l4od8")
@@ -2052,8 +2065,12 @@ disabled = true
 text = "SẮP BÀI  [S]"
 metadata/match_binding = "sort_button"
 
+[node name="ActionDivider" type="VSeparator" parent="ActionDock/MarginContainer/HBoxContainer"]
+custom_minimum_size = Vector2(6, 40)
+layout_mode = 2
+
 [node name="HaButton" type="Button" parent="ActionDock/MarginContainer/HBoxContainer" unique_id=750337745]
-custom_minimum_size = Vector2(108, 40)
+custom_minimum_size = Vector2(96, 40)
 layout_mode = 2
 tooltip_text = "Hạ các lá đã chọn thành Bộ hoặc Sảnh mới."
 mouse_default_cursor_shape = 2
@@ -2072,7 +2089,7 @@ text = "HẠ  [H]"
 metadata/match_binding = "ha_button"
 
 [node name="ExtendButton" type="Button" parent="ActionDock/MarginContainer/HBoxContainer" unique_id=459341321]
-custom_minimum_size = Vector2(116, 40)
+custom_minimum_size = Vector2(106, 40)
 layout_mode = 2
 tooltip_text = "Ghép các lá đã chọn vào Phỏm đang nhắm tới."
 mouse_default_cursor_shape = 2
@@ -2091,7 +2108,7 @@ text = "GHÉP  [E]"
 metadata/match_binding = "extend_button"
 
 [node name="DiscardButton" type="Button" parent="ActionDock/MarginContainer/HBoxContainer" unique_id=107679148]
-custom_minimum_size = Vector2(120, 40)
+custom_minimum_size = Vector2(112, 40)
 layout_mode = 2
 tooltip_text = "Bỏ đúng một lá bài rời để kết thúc lượt."
 mouse_default_cursor_shape = 2
@@ -2110,7 +2127,7 @@ text = "BỎ BÀI  [D]"
 metadata/match_binding = "discard_button"
 
 [node name="SettleButton" type="Button" parent="ActionDock/MarginContainer/HBoxContainer" unique_id=1722456998]
-custom_minimum_size = Vector2(108, 40)
+custom_minimum_size = Vector2(96, 40)
 layout_mode = 2
 tooltip_text = "Kết thúc cửa Hạ cuối và tính điểm Giai đoạn."
 mouse_default_cursor_shape = 2

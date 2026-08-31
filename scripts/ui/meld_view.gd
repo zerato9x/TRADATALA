@@ -14,6 +14,7 @@ var _hint: Label
 var _card_views: Dictionary = {}
 var _card_drink_outlines: Dictionary = {}
 var _card_beat_tweens: Dictionary = {}
+var _drink_eligible_card_ids: Dictionary = {}
 
 
 func _ready() -> void:
@@ -29,6 +30,7 @@ func set_meld(
 	meld: MeldState,
 	is_selected: bool,
 	extension_is_legal: bool,
+	drink_highlight_enabled: bool = false,
 	drink_selection_enabled: bool = false,
 	drink_removable_card_ids: Dictionary = {},
 	selected_drink_card_id: String = "",
@@ -44,7 +46,7 @@ func set_meld(
 	var border := PresentationTheme.TEA if extension_is_legal else (PresentationTheme.GOLD if is_selected else Color("#8d5b30"))
 	var background := Color("#2d251eee") if is_selected else Color("#19130fe8")
 	add_theme_stylebox_override("panel", PresentationTheme.panel_style(background, border, 2 if is_selected or extension_is_legal else 1, 2, 4))
-	_sync_cards(meld.cards, drink_selection_enabled, drink_removable_card_ids, selected_drink_card_id)
+	_sync_cards(meld.cards, drink_highlight_enabled, drink_selection_enabled, drink_removable_card_ids, selected_drink_card_id)
 	tooltip_text = tr("MELD_TOOLTIP") % (tr("MELD_RUN") if meld.meld_type == MeldRules.TYPE_RUN else tr("MELD_SET"))
 
 
@@ -68,12 +70,21 @@ func play_card_beat_pulse(card_id: String, strength: float) -> void:
 	tween.tween_property(texture, "scale", Vector2.ONE, 0.19).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 
 
+func pulse_drink_targets(strength: float = 0.6) -> void:
+	for card_id in _drink_eligible_card_ids:
+		var outline: Control = _card_drink_outlines.get(card_id)
+		if outline != null:
+			outline.play_target_pulse(strength)
+
+
 func _sync_cards(
 	cards: Array[CardData],
+	drink_highlight_enabled: bool,
 	drink_selection_enabled: bool,
 	drink_removable_card_ids: Dictionary,
 	selected_drink_card_id: String
 ) -> void:
+	_drink_eligible_card_ids.clear()
 	var active_card_ids := {}
 	for card in cards:
 		active_card_ids[card.unique_id] = true
@@ -103,13 +114,13 @@ func _sync_cards(
 			texture.gui_input.connect(_on_card_gui_input.bind(card))
 			_cards_row.add_child(texture)
 			_card_views[card.unique_id] = texture
-			var drink_outline := CARD_ACTION_OUTLINE_SCRIPT.new()
-			drink_outline.name = "DrinkOutline"
-			drink_outline.position = Vector2(-6, -6)
-			drink_outline.size = Vector2(61, 80)
-			drink_outline.visible = false
-			texture.add_child(drink_outline)
-			_card_drink_outlines[card.unique_id] = drink_outline
+			var new_action_outline := CARD_ACTION_OUTLINE_SCRIPT.new()
+			new_action_outline.name = "ActionOutline"
+			new_action_outline.position = Vector2(-6, -6)
+			new_action_outline.size = Vector2(61, 80)
+			new_action_outline.visible = false
+			texture.add_child(new_action_outline)
+			_card_drink_outlines[card.unique_id] = new_action_outline
 		var texture_path := card.texture_path()
 		if texture.texture == null or texture.texture.resource_path != texture_path:
 			texture.texture = load(texture_path) as Texture2D
@@ -120,7 +131,10 @@ func _sync_cards(
 		texture.modulate = Color("#fff1b8") if card.unique_id == selected_drink_card_id else Color.WHITE
 		var drink_outline: Control = _card_drink_outlines.get(card.unique_id)
 		if drink_outline != null:
-			drink_outline.set_drink_cue(card.unique_id == selected_drink_card_id)
+			var eligible := drink_highlight_enabled and drink_removable_card_ids.has(card.unique_id)
+			if eligible:
+				_drink_eligible_card_ids[card.unique_id] = true
+			drink_outline.set_cues(false, false, eligible or card.unique_id == selected_drink_card_id, drink_selection_enabled or card.unique_id == selected_drink_card_id)
 		if drink_selection_enabled:
 			texture.tooltip_text = tr("DRINK_NUOC_VOI_CARD_VALID") if drink_removable_card_ids.has(card.unique_id) else tr("DRINK_NUOC_VOI_CARD_INVALID")
 		else:

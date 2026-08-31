@@ -137,6 +137,7 @@ var drink_table_button: Button
 var drink_table_texture: TextureRect
 var empty_drink_prop: TextureRect
 var drink_targeting_active: bool = false
+var drink_hover_active: bool = false
 var pending_drink_card_ids: Dictionary = {}
 var selected_drink_meld_id: int = -1
 var selected_drink_meld_card_id: String = ""
@@ -160,6 +161,7 @@ var empty_meld_label: Label
 var meld_views: Dictionary = {}
 var discard_history_row: HBoxContainer
 var discard_history_title: Label
+var discard_history_target_outlines: Dictionary = {}
 var draw_pile_visual: Control
 var discard_pile_visual: Control
 var ha_button: Button
@@ -334,9 +336,13 @@ func _connect_editor_interface_signals() -> void:
 	_connect_signal_once(music_repeat_button.pressed, _on_music_repeat_pressed)
 	_connect_signal_once(menu_button.pressed, _on_menu_pressed)
 	_connect_signal_once(drink_table_button.pressed, _on_drink_pressed)
+	_connect_signal_once(drink_table_button.mouse_entered, _on_drink_hover_started)
+	_connect_signal_once(drink_table_button.mouse_exited, _on_drink_hover_ended)
 	_connect_signal_once((pile_archive_buttons["draw"] as Button).pressed, _on_draw_archive_pressed)
 	_connect_signal_once((pile_archive_buttons["discard"] as Button).pressed, _on_discard_archive_pressed)
 	_connect_signal_once(drink_button.pressed, _on_drink_pressed)
+	_connect_signal_once(drink_button.mouse_entered, _on_drink_hover_started)
+	_connect_signal_once(drink_button.mouse_exited, _on_drink_hover_ended)
 	_connect_signal_once(hint_button.pressed, _on_hint_pressed)
 	_connect_signal_once(sort_button.pressed, _on_sort_pressed)
 	_connect_signal_once(ha_button.pressed, _on_ha_pressed)
@@ -572,6 +578,8 @@ func _on_music_band_pulse(band_index: int, strength: float) -> void:
 		var meld_view := assignment.get("view") as MeldView
 		if meld_view != null:
 			meld_view.play_card_beat_pulse(String(assignment.get("card_id", "")), strength)
+	if drink_hover_active or drink_targeting_active:
+		_pulse_drink_eligible_targets(strength)
 
 
 func _pulse_logo_band(band_index: int, strength: float) -> void:
@@ -1227,12 +1235,57 @@ func _sync_card_action_outlines() -> Dictionary:
 		elif tutorial_step in [TUTORIAL_SELECT_EXTEND, TUTORIAL_SELECT_MELD, TUTORIAL_EXTEND]:
 			extension_card_ids[TUTORIAL_EXTENSION_ID] = true
 		actionable = {"meld": meld_card_ids, "extend": extension_card_ids}
+	var drink_eligible_card_ids := _drink_hand_eligible_card_ids()
 	for card in deal.hand:
 		var view: PlayingCardView = hand_views.get(card.unique_id)
 		if view != null:
-			view.set_action_cues(meld_card_ids.has(card.unique_id), extension_card_ids.has(card.unique_id))
-			view.set_drink_preserved(deal.sam_dua_preserved_cards.has(card) or pending_drink_card_ids.has(card.unique_id))
+			var drink_marked := deal.sam_dua_preserved_cards.has(card) or pending_drink_card_ids.has(card.unique_id)
+			var drink_eligible := drink_eligible_card_ids.has(card.unique_id)
+			view.set_action_cues(
+				meld_card_ids.has(card.unique_id),
+				extension_card_ids.has(card.unique_id),
+				drink_marked or drink_eligible,
+				drink_marked or (drink_targeting_active and drink_eligible)
+			)
 	return actionable
+
+
+func _drink_hand_eligible_card_ids() -> Dictionary:
+	var eligible := {}
+	if not _drink_preview_active():
+		return eligible
+	var hand_is_eligible := false
+	match deal.current_drink_id:
+		DrinkCatalog.TRA_DA:
+			hand_is_eligible = deal.state == DealState.STATE_ACTIVE and not deal.tra_da_used_this_turn and not deal.deck.discard_pile.is_empty()
+		DrinkCatalog.NHAN_TRAN:
+			hand_is_eligible = deal.state == DealState.STATE_ACTIVE and deal.discard_count < DealState.DISCARDS_PER_PHASE and not deal.nhan_tran_used_this_turn and deal.hand.size() > 1
+		DrinkCatalog.SAM_DUA:
+			hand_is_eligible = deal.current_phase == 1 and deal.state == DealState.STATE_FINAL_COMMIT_WINDOW and not deal.sam_dua_used
+	if hand_is_eligible:
+		for card in deal.hand:
+			eligible[card.unique_id] = true
+	return eligible
+
+
+func _drink_preview_active() -> bool:
+	return (drink_hover_active or drink_targeting_active) and deal.current_drink_has_charge() and not tutorial_active and not interaction_locked
+
+
+func _pulse_drink_eligible_targets(strength: float = 0.6) -> void:
+	var hand_ids := _drink_hand_eligible_card_ids()
+	for card_id in hand_ids:
+		var view := hand_views.get(card_id) as PlayingCardView
+		if view != null:
+			view.pulse_action_eligibility(strength)
+	for meld_view_value in meld_views.values():
+		var meld_view := meld_view_value as MeldView
+		if meld_view != null:
+			meld_view.pulse_drink_targets(strength)
+	for outline_value in discard_history_target_outlines.values():
+		var outline := outline_value as Control
+		if outline != null and (outline.cue_mode() & CardActionOutline.CUE_DRINK) != 0:
+			outline.play_target_pulse(strength)
 
 
 func _sync_music_reactive_cards() -> void:
@@ -1330,9 +1383,10 @@ func _sync_melds() -> void:
 		elif view.get_index() != index:
 			meld_row.move_child(view, index)
 		var legal := deal.can_extend_meld(meld.meld_id, selected_cards)
-		var drink_selection_enabled := drink_targeting_active and deal.current_drink_id == DrinkCatalog.NUOC_VOI and deal.state in [DealState.STATE_ACTIVE, DealState.STATE_FINAL_COMMIT_WINDOW] and not deal.nuoc_voi_used_phases.has(deal.current_phase)
+		var drink_highlight_enabled := _drink_preview_active() and deal.current_drink_id == DrinkCatalog.NUOC_VOI and deal.state in [DealState.STATE_ACTIVE, DealState.STATE_FINAL_COMMIT_WINDOW] and not deal.nuoc_voi_used_phases.has(deal.current_phase)
+		var drink_selection_enabled := drink_targeting_active and drink_highlight_enabled
 		var removable_card_ids := {}
-		if drink_selection_enabled:
+		if drink_highlight_enabled:
 			for table_card in meld.cards:
 				if deal.can_use_nuoc_voi(meld.meld_id, table_card):
 					removable_card_ids[table_card.unique_id] = true
@@ -1340,6 +1394,7 @@ func _sync_melds() -> void:
 			meld,
 			meld.meld_id == selected_meld_id,
 			legal,
+			drink_highlight_enabled,
 			drink_selection_enabled,
 			removable_card_ids,
 			selected_drink_meld_card_id if selected_drink_meld_id == meld.meld_id else "",
@@ -1367,6 +1422,7 @@ func _sync_piles() -> void:
 
 
 func _sync_discard_history() -> void:
+	discard_history_target_outlines.clear()
 	for child in discard_history_row.get_children():
 		discard_history_row.remove_child(child)
 		child.queue_free()
@@ -1396,7 +1452,10 @@ func _sync_discard_history() -> void:
 func _build_discard_thumbnail(record: DiscardRecord) -> Control:
 	var holder := Control.new()
 	holder.custom_minimum_size = Vector2(27, 38)
+	holder.mouse_filter = Control.MOUSE_FILTER_STOP
 	holder.tooltip_text = tr("HUD_DISCARD_TOOLTIP") % [record.phase, record.discard_number, record.card.short_label()]
+	holder.set_meta("action_target_kind", "mandatory_discard")
+	holder.set_meta("action_target_card_id", record.card.unique_id)
 	var texture := TextureRect.new()
 	texture.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	texture.texture = load(record.card.texture_path()) as Texture2D
@@ -1405,6 +1464,13 @@ func _build_discard_thumbnail(record: DiscardRecord) -> Control:
 	texture.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	texture.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	holder.add_child(texture)
+	var outline := CARD_ACTION_OUTLINE_SCRIPT.new()
+	outline.name = "ActionOutline"
+	outline.position = Vector2(-4, -4)
+	outline.size = Vector2(35, 46)
+	outline.visible = false
+	holder.add_child(outline)
+	discard_history_target_outlines[_discard_history_target_key(record)] = outline
 	var badge := Label.new()
 	badge.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
 	badge.position = Vector2(-14, -13)
@@ -1418,6 +1484,17 @@ func _build_discard_thumbnail(record: DiscardRecord) -> Control:
 	badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	holder.add_child(badge)
 	return holder
+
+
+func set_discard_history_drink_eligibility(target_keys: Dictionary, emphasized: bool = false) -> void:
+	for target_key in discard_history_target_outlines:
+		var outline := discard_history_target_outlines[target_key] as Control
+		if outline != null:
+			outline.set_cues(false, false, target_keys.has(target_key), emphasized)
+
+
+func _discard_history_target_key(record: DiscardRecord) -> String:
+	return "%d:%d:%s" % [record.phase, record.discard_number, record.card.unique_id]
 
 
 func _points_to_vnd(points: int) -> int:
@@ -1877,6 +1954,19 @@ func _on_meld_card_pressed(meld_id: int, card: CardData) -> void:
 	_sync_melds()
 	_refresh_actions()
 	_resolve_nuoc_voi_target(meld_id, card)
+
+
+func _on_drink_hover_started() -> void:
+	drink_hover_active = true
+	_sync_card_action_outlines()
+	_sync_melds()
+	_pulse_drink_eligible_targets(0.7)
+
+
+func _on_drink_hover_ended() -> void:
+	drink_hover_active = false
+	_sync_card_action_outlines()
+	_sync_melds()
 
 
 func _on_drink_pressed() -> void:
