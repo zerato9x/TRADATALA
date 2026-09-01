@@ -1,0 +1,35 @@
+{
+  "schema": "tradatala.ost_cues.v1",
+  "source_loop_catalog": "res://assets/audio/ost/ost_loops.json",
+  "policy": "manual_listening_is_authority",
+  "tracks": {
+    "dog_1": {
+      "decisions": {
+        "dog_1_bars_001_002": {
+          "status": "approved",
+          "cue_name": "Opening Hook",
+          "notes": "Automated transport fixture only.",
+          "updated_at_utc": "2026-09-01T00:00:00Z"
+        },
+        "dog_1_bars_002_003": {
+          "status": "rejected",
+          "cue_name": "Rejected Overlap",
+          "notes": "Exercises review filtering.",
+          "updated_at_utc": "2026-09-01T00:00:00Z"
+        },
+        "dog_1_bars_006_007": {
+          "status": "approved",
+          "cue_name": "Second Pocket",
+          "notes": "Automated transport fixture only.",
+          "updated_at_utc": "2026-09-01T00:00:00Z"
+        },
+        "dog_1_bars_028_029": {
+          "status": "approved",
+          "cue_name": "Late Hook",
+          "notes": "Automated transport fixture only.",
+          "updated_at_utc": "2026-09-01T00:00:00Z"
+        }
+      }
+    }
+  }
+}

@@ -1,54 +1,84 @@
-# TRADATALA OST loop audition
+# TRADATALA MusicDirector DJ tester
 
-The active analysis scope is the original 26-track soundtrack. No V2 material
-is included in this catalog or tester.
-
-## Policy
-
-- BeatNet downbeats provide the timing grid.
-- Every complete 2, 4, 8, 12, 16, 24, and 32-bar window is retained.
-- Machine scores order listening work; they do not approve or reject loops.
-- Tracks have no required section count.
-- Candidates receive no Event, Deal, transition, or time-of-day label.
-- A source interval may be useful both as a loop and as forward-moving material.
-- Every candidate begins with `manual_status: unreviewed`.
-- Whole-track fallback loops remain forbidden.
-
-## Active files
-
-- `assets/audio/ost/ost_timing.json`: measured BeatNet timing for 26 tracks.
-- `assets/audio/ost/ost_loops.json`: exhaustive candidate catalog.
-- `assets/audio/ost/ost_loops_report.md`: compact generation summary.
-- `tools/mine_ost_loops.py`: offline whole-track candidate miner.
-- `audio_system/MusicLoopPlayer.gd`: isolated audition playback.
-- `debug/MusicLoopAudition.tscn`: listening tester.
-
-## Tester
+The standalone DJ tester is the authority for cue discovery, listening review,
+and transport proof. It is deliberately not connected to gameplay yet.
 
 Open `res://debug/MusicLoopAudition.tscn` and run the scene with F6.
 
-The default list is a de-duplicated audition set balanced across phrase lengths.
-Choose **Every candidate** to inspect all overlapping bar-aligned windows.
+## The contract
 
-- **Audition Loop** starts directly at the selected boundary.
-- **Audition + 2-Bar Lead-In** provides musical context before looping.
-- **Play Source From Start** plays without an automatic loop.
-- **Release Loop** disables looping and lets the original WAV continue forward.
-- **Stop** stops playback.
+TRADATALA keeps each original WAV intact. The DJ system may:
 
-## Validation
+- audition any mined, bar-aligned candidate without approving it;
+- hold an approved cue indefinitely using exact sample boundaries;
+- release a held cue into the original authored audio;
+- catch the next reachable approved cue when the source reaches it;
+- finish the current loop pass and jump backward for a reprise;
+- hard-jump to an approved cue for an explicit DJ moment;
+- release all looping and play the original source ending.
 
-The clean rebuild produced 6,724 exhaustive candidates and 1,046 distinct
-audition candidates across 26 tracks.
+The controller duplicates the imported `AudioStreamWAV` before changing loop
+fields. It never edits the source asset and never manufactures transition audio.
+
+## Review workflow
+
+1. Pick a track.
+2. Start with **Audition shortlist**. Use **Every candidate** only when the
+   shortlist misses a useful phrase.
+3. Double-click a row or use **Audition Loop** to hear the seam repeatedly.
+4. Use **Audition + 2-Bar Lead-In** to check the entry into the cue.
+5. Give the cue a useful name and write listening notes.
+6. Approve it only after the loop, entry, and eventual release all sound valid.
+7. Switch to **Approved cue sequence** and test the DJ deck from beginning to
+   end: Hold, Release/Catch Next, Reprise, Hard Jump, Release to Ending.
+
+Machine scores are triage, not approval. Short hooks and vocal phrases are
+allowed when they survive listening. Whole-track fallback loops remain forbidden.
+
+## Transport rules
+
+- **Release → Catch Next** chooses the first approved cue whose start is
+  reachable after the current cue's end. Overlapping candidates are skipped.
+- Directly requesting an overlapping cue is rejected because the authored
+  timeline cannot reach its start after leaving the current loop. Use a hard
+  jump only when that discontinuity is intentional.
+- **Finish Loop → Reprise** disables the current loop, waits for its end, then
+  jumps to the previous approved cue.
+- A move already in progress must finish before another release/reprise request.
+- Reaching the natural WAV ending returns the director to `STOPPED`.
+
+## Files
+
+- `assets/audio/ost/ost_timing.json`: measured BeatNet timing for 26 tracks.
+- `assets/audio/ost/ost_loops.json`: 6,724 exhaustive candidates and 1,046
+  de-duplicated audition candidates.
+- `assets/audio/ost/ost_cues.json`: human review decisions; currently no cues
+  are approved in the production catalog.
+- `audio_system/MusicCueCatalog.gd`: candidate and review authority.
+- `audio_system/MusicDirector.gd`: cue audition and DJ transport authority.
+- `debug/MusicLoopAudition.tscn`: standalone tester.
+- `tools/ost_loop_catalog_smoke.gd`: catalog/schema verification.
+- `tools/music_director_smoke.gd`: deterministic tester and transport proof.
+- `tools/fixtures/music_director_test_cues.json`: test-only approved sequence;
+  it is not a claim that those boundaries passed human listening.
+
+The obsolete section-based tester and the intermediate `MusicLoopPlayer` were
+removed. There is now one standalone tester and one transport controller.
+
+## Automated proof
 
 ```text
 OST_LOOP_CATALOG_SMOKE: PASS tracks=26 exhaustive=true roles=none
-MUSIC_LOOP_PLAYER_SMOKE: PASS tracks=26 exhaustive-audition=true
+MUSIC_DIRECTOR_SMOKE: PASS audition approval hold release catch reprise jump finish
 ```
 
-These checks prove catalog coverage, sample-boundary transport, and tester
-loading. They do not prove that a loop sounds good; live listening remains the
-authority.
+These checks prove catalog coverage, review persistence, exact sample-boundary
+configuration, state transitions, source-preserving forward travel, backward
+reprise timing, and tester wiring. They cannot prove that a seam sounds good.
+That decision remains human listening work inside the tester.
 
-The earlier section-based files remain temporarily present only as rollback
-material and are not read by the new loop player or audition scene.
+## Scope boundary
+
+Do not wire gameplay actions to `MusicDirector` until the tester has a real,
+listening-approved cue sequence for the target track. The current in-game music
+path remains untouched during this tester-first pass.

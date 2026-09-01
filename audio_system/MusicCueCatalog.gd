@@ -35,6 +35,9 @@ func load_catalogs(loop_path := "", cue_path := "") -> bool:
 			return false
 		if cue_catalog.get("schema", "") != CUE_SCHEMA:
 			return _fail("Unsupported cue catalog schema: %s" % String(cue_catalog.get("schema", "<missing>")))
+		var cue_tracks = cue_catalog.get("tracks", {})
+		if not cue_tracks is Dictionary:
+			return _fail("Cue catalog tracks must be an object")
 	else:
 		cue_catalog = _empty_cue_catalog()
 	last_error = ""
@@ -95,6 +98,14 @@ func get_manual_status(track_id: String, candidate_id: String) -> StringName:
 	return StringName(get_decision(track_id, candidate_id).get("status", "unreviewed"))
 
 
+func get_review_counts(track_id: String) -> Dictionary:
+	var counts := {"approved": 0, "rejected": 0, "unreviewed": 0}
+	for candidate in get_candidates(track_id, false):
+		var status := String(get_manual_status(track_id, String(candidate.get("candidate_id", ""))))
+		counts[status] = int(counts.get(status, 0)) + 1
+	return counts
+
+
 func set_manual_decision(track_id: String, candidate_id: String, status: StringName, cue_name := "", notes := "") -> bool:
 	if not VALID_STATUSES.has(status):
 		return _fail("Invalid cue status: %s" % String(status))
@@ -144,9 +155,15 @@ func get_approved_cues(track_id: String) -> Array[Dictionary]:
 		cue["notes"] = String(decision.get("notes", ""))
 		approved.append(cue)
 	approved.sort_custom(func(left: Dictionary, right: Dictionary) -> bool:
-		var left_bar := int(left.get("bar_start", 0))
-		var right_bar := int(right.get("bar_start", 0))
-		return left_bar < right_bar if left_bar != right_bar else int(left.get("bar_count", 0)) < int(right.get("bar_count", 0))
+		var left_start := float(left.get("start_seconds", 0.0))
+		var right_start := float(right.get("start_seconds", 0.0))
+		if not is_equal_approx(left_start, right_start):
+			return left_start < right_start
+		var left_end := float(left.get("end_seconds", 0.0))
+		var right_end := float(right.get("end_seconds", 0.0))
+		if not is_equal_approx(left_end, right_end):
+			return left_end < right_end
+		return String(left.get("candidate_id", "")) < String(right.get("candidate_id", ""))
 	)
 	return approved
 

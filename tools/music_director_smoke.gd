@@ -1,12 +1,17 @@
 extends SceneTree
 
-const TEST_SCENE_PATH := "res://debug/MusicReactiveTest.tscn"
-const TRACK_ID := "tiger_2"
-const ANALYZED_TRACK_ID := "pig_3"
+const TEST_SCENE_PATH := "res://debug/MusicLoopAudition.tscn"
+const FIXTURE_PATH := "res://tools/fixtures/music_director_test_cues.json"
+const TEMP_CUE_PATH := "user://music_director_smoke_cues.json"
+const TRACK_ID := "dog_1"
+const FIRST_CUE := "dog_1_bars_001_002"
+const OVERLAPPING_CUE := "dog_1_bars_002_003"
+const SECOND_CUE := "dog_1_bars_006_007"
+const THIRD_CUE := "dog_1_bars_028_029"
 
 var _failures: Array[String] = []
 var _scene: Control
-var _director
+var _director: MusicDirector
 
 
 func _initialize() -> void:
@@ -14,133 +19,111 @@ func _initialize() -> void:
 
 
 func _run() -> void:
+	if not _copy_fixture_to_user_data():
+		_finish()
+		return
 	var packed := load(TEST_SCENE_PATH) as PackedScene
-	_check(packed != null, "reactive test scene loads")
+	_check(packed != null, "DJ tester scene loads")
 	if packed == null:
 		_finish()
 		return
 	_scene = packed.instantiate() as Control
+	_director = _scene.get_node("MusicDirector") as MusicDirector
+	_director.cue_catalog_path = TEMP_CUE_PATH
 	root.add_child(_scene)
 	await _advance(3)
-	_director = _scene.get_node("MusicDirector")
-	_check(_director.catalog_is_loaded, "MusicDirector loads ost_structure.json")
-	_check(_scene._selected_track_id == TRACK_ID, "tester defaults to tiger_2")
-	_check(_scene.track_option.item_count == 27, "tester exposes all tracks in the primary catalog")
-	_check(_director.get_track_ids().has(ANALYZED_TRACK_ID), "tester exposes the newly analyzed Pig track")
-	_check(_director.get_section_count(TRACK_ID) >= 2, "tiger_2 exposes multiple sections")
-	_check(_director.get_section_count(ANALYZED_TRACK_ID) == 8, "pig_3 exposes the complete eight-state sequence")
-	_check(_director.get_section(ANALYZED_TRACK_ID, 0).get("state_id", "") == "starter_event", "pig_3 begins with Starter Event")
-	_check(_director.get_section(ANALYZED_TRACK_ID, 7).get("state_id", "") == "evening_deal", "pig_3 ends its loop states with Evening Deal")
-	_check(_director.get_candidate_count(ANALYZED_TRACK_ID, 2) == 0, "unsafe Morning Event candidates are not exposed to runtime")
-	_check(not _director.play_track("missing_track"), "missing track fails without crashing")
-	_check(_director.last_error.contains("missing"), "missing track reports a clear error")
 
-	var source_stream := load("res://assets/audio/ost/tiger_2.wav") as AudioStreamWAV
+	_check(_director.catalogs_are_loaded, "MusicDirector loads loop and cue catalogs")
+	_check(_director.get_track_ids().size() == 26, "DJ catalog exposes all 26 original tracks")
+	_check(_director.get_approved_cues(TRACK_ID).size() == 3, "fixture exposes a chronological three-cue DJ sequence")
+	_check(_scene.track_option != null and _scene.candidate_list != null and _scene.event_log != null, "tester builds discovery, detail, and transport-event surfaces")
+	_check(_scene.selected_track_id == TRACK_ID, "tester defaults to dog_1 for repeatable audition")
+	_scene.set_option.select(2)
+	_scene._on_set_selected(2)
+	_check(_scene.candidate_list.item_count == 3, "Approved cue sequence filter shows only approved cues")
+	_check(_scene.sequence_label.text.contains("Opening Hook") and _scene.sequence_label.text.contains("Late Hook"), "tester displays the approved cue order")
+
+	var source_stream := load("res://assets/audio/ost/dog_1.wav") as AudioStreamWAV
 	var source_loop_mode := source_stream.loop_mode if source_stream != null else -1
 	var source_loop_begin := source_stream.loop_begin if source_stream != null else -1
 	var source_loop_end := source_stream.loop_end if source_stream != null else -1
 
-	_scene._on_play_from_start()
-	await _advance(3)
-	_check(_director.current_track_id == TRACK_ID and _director.audio_player.playing, "tester Play From Start starts tiger_2")
-	_check(not _director.set_candidate_rank(0, 999), "invalid candidate rank fails without crashing")
-	_check(_director.last_error.contains("does not exist"), "invalid candidate rank reports a clear error")
-	_check(_director.set_candidate_rank(0, 1), "valid candidate rank remains selectable after an error")
-	var first_candidate: Dictionary = _director.get_candidate(TRACK_ID, 0, 1)
-	var second_candidate: Dictionary = _director.get_candidate(TRACK_ID, 1, 1)
-	var first_loop: Dictionary = first_candidate.get("godot", {})
-	var second_loop: Dictionary = second_candidate.get("godot", {})
-	_check(_director.state == _director.STATE_PLAYING_TO_LOOP, "section 1 begins in PLAYING_TO_LOOP")
-	var position_before_first_seek: float = _director.current_playback_position
-	_director.audio_player.seek(float(first_loop["loop_begin_seconds"]) + 0.05)
-	await _advance(3)
-	_check(_director.state == _director.STATE_LOOPING, "section 1 enters LOOPING at the JSON loop start")
-	_check(_director.current_section_index == 0 and _director.current_candidate_rank == 1, "section 1 becomes the active phase")
-	_check(_director.current_loop_start_sample == int(first_loop["loop_begin_samples"]), "section 1 uses JSON loop_begin_samples")
-	_check(_director.current_loop_end_sample == int(first_loop["loop_end_samples"]), "section 1 uses JSON loop_end_samples")
-	_check(_director.runtime_stream.loop_mode == AudioStreamWAV.LOOP_FORWARD, "runtime copy uses a forward WAV loop")
-	_check(absf(_director.current_loop_start - float(first_loop["loop_begin_seconds"])) < 0.00001, "section 1 uses JSON loop_begin_seconds")
-	_check(absf(_director.current_loop_end - float(first_loop["loop_end_seconds"])) < 0.00001, "section 1 uses JSON loop_end_seconds")
-	_director.audio_player.seek(float(first_loop["loop_end_seconds"]) - 0.05)
-	await _advance(10)
-	_check(_director.state == _director.STATE_LOOPING and _director.current_playback_position < float(first_loop["loop_end_seconds"]) + 0.25, "section 1 actually wraps inside its selected loop")
+	var second := _director.get_candidate(TRACK_ID, SECOND_CUE)
+	_check(_director.audition_candidate(TRACK_ID, SECOND_CUE, 2), "candidate can be auditioned with musical lead-in")
+	_check(_director.state == MusicDirector.STATE_AUDITIONING_CUE and _director.pending_cue_id == SECOND_CUE, "lead-in audition reports the pending cue honestly")
+	_director.audio_player.seek(float(second.get("start_seconds", 0.0)) + 0.05)
+	_director._process(0.0)
+	_check(_director.state == MusicDirector.STATE_HOLDING_CUE and _director.current_cue_id == SECOND_CUE, "lead-in audition catches and holds the candidate")
 
-	var position_before_phase_request: float = _director.current_playback_position
-	_scene._on_next_section()
-	_scene._on_request_selected_section()
-	_check(_director.pending_section_index == 1, "tester selects section 2 as the next phase")
-	_check(_director.state == _director.STATE_RELEASING_TO_NEXT, "next phase starts RELEASE_TO_NEXT")
-	_check(_director.runtime_stream.loop_mode == AudioStreamWAV.LOOP_DISABLED, "next phase disables the current runtime loop")
-	_check(_director.pending_section_index == 1, "section 2 remains pending")
-	_check(_director.current_playback_position >= position_before_phase_request - 0.25, "phase request does not rewind the source timeline")
-	_check(position_before_phase_request >= position_before_first_seek - 0.25, "first loop request does not rewind the source timeline")
+	_check(not _director.hold_cue(TRACK_ID, OVERLAPPING_CUE), "rejected cue cannot enter the DJ deck")
+	_check(_director.last_error.contains("not manually approved"), "rejected cue failure explains the approval gate")
+	_check(_director.hold_cue(TRACK_ID, FIRST_CUE), "approved opening cue can be held indefinitely")
+	var first := _director.get_candidate(TRACK_ID, FIRST_CUE)
+	_check(_director.runtime_stream.loop_mode == AudioStreamWAV.LOOP_FORWARD, "holding a cue enables the runtime WAV loop")
+	_check(_director.runtime_stream.loop_begin == int(first.get("start_sample", -1)) and _director.runtime_stream.loop_end == int(first.get("end_sample", -1)), "hold uses catalog sample boundaries exactly")
 
-	_director.audio_player.seek(float(first_loop["loop_end_seconds"]) + 0.05)
-	await _advance(3)
-	_check(_director.state == _director.STATE_PLAYING_TO_NEXT_LOOP, "release continues toward the next loop")
-	_check(_director.current_section_index == -1, "released section is no longer marked active")
-	_check(_director.current_playback_position >= float(first_loop["loop_end_seconds"]) - 0.25, "release position remains after the old loop end")
-	_check(_director.pending_section_index == 1, "section 2 remains pending after release")
+	_check(_director.set_manual_decision(TRACK_ID, OVERLAPPING_CUE, &"approved", "Overlap Test", "Smoke-only approval"), "tester decisions save to the writable cue catalog")
+	var persisted := _read_json(TEMP_CUE_PATH)
+	_check(persisted.get("tracks", {}).get(TRACK_ID, {}).get("decisions", {}).get(OVERLAPPING_CUE, {}).get("status", "") == "approved", "approval persists to JSON")
+	_check(not _director.request_cue(OVERLAPPING_CUE), "overlapping cue is rejected as an authored forward transition")
+	_check(_director.last_error.contains("overlaps"), "overlap rejection recommends an explicit hard jump")
+	_check(_director.set_manual_decision(TRACK_ID, OVERLAPPING_CUE, &"rejected", "Rejected Overlap", "Restored fixture status"), "review status can be corrected after testing")
 
-	_director.audio_player.seek(float(second_loop["loop_begin_seconds"]) + 0.05)
-	await _advance(3)
-	_check(_director.state == _director.STATE_LOOPING, "section 2 enters LOOPING at its JSON loop start")
-	_check(_director.current_section_index == 1 and _director.current_candidate_rank == 1, "section 2 becomes the active phase")
-	_check(_director.current_loop_start_sample == int(second_loop["loop_begin_samples"]), "section 2 uses JSON loop_begin_samples")
-	_check(_director.current_loop_end_sample == int(second_loop["loop_end_samples"]), "section 2 uses JSON loop_end_samples")
-	_check(_director.runtime_stream.loop_mode == AudioStreamWAV.LOOP_FORWARD, "section 2 enables the runtime forward loop")
-	_director.audio_player.seek(float(second_loop["loop_end_seconds"]) - 0.05)
-	await _advance(10)
-	_check(_director.state == _director.STATE_LOOPING and _director.current_playback_position < float(second_loop["loop_end_seconds"]) + 0.25, "section 2 actually wraps inside its selected loop")
+	_check(_director.release_to_next_cue(), "release requests the next reachable approved cue")
+	_check(_director.state == MusicDirector.STATE_TRAVELING_FORWARD and _director.pending_cue_id == SECOND_CUE, "forward move releases into authored source audio")
+	_check(_director.runtime_stream.loop_begin == int(second.get("start_sample", -1)), "forward move arms the target loop without jumping to it")
+	_director.audio_player.seek(float(second.get("start_seconds", 0.0)) + 0.05)
+	_director._process(0.0)
+	_check(_director.state == MusicDirector.STATE_HOLDING_CUE and _director.current_cue_id == SECOND_CUE, "MusicDirector catches and holds the next cue")
 
-	_scene._on_finish_track()
-	_check(_director.state == _director.STATE_RELEASING_TO_NEXT, "Finish releases the active loop first")
-	_check(_director.runtime_stream.loop_mode == AudioStreamWAV.LOOP_DISABLED, "Finish disables the runtime loop")
-	_director.audio_player.seek(float(second_loop["loop_end_seconds"]) + 0.05)
-	await _advance(3)
-	_check(_director.state == _director.STATE_FINISHING, "Finish continues through the source")
-	_check(_director.current_section_index == -1 and _director.current_loop_start < 0.0, "final loop is released")
-	_check(_director.current_playback_position >= float(second_loop["loop_end_seconds"]) - 0.25, "Finish does not rewind before the final loop end")
+	_check(_director.release_to_next_cue(), "second release requests the late approved cue")
+	var third := _director.get_candidate(TRACK_ID, THIRD_CUE)
+	_director.audio_player.seek(float(third.get("start_seconds", 0.0)) + 0.05)
+	_director._process(0.0)
+	_check(_director.current_cue_id == THIRD_CUE and _director.state == MusicDirector.STATE_HOLDING_CUE, "late cue is caught after original authored transition audio")
 
-	_check(source_stream != null and source_stream.loop_mode == source_loop_mode, "imported source loop mode is unchanged")
-	_check(source_stream != null and source_stream.loop_begin == source_loop_begin and source_stream.loop_end == source_loop_end, "imported source loop points are unchanged")
+	_check(_director.reprise_previous_cue(), "reprise queues the previous approved cue")
+	_check(_director.state == MusicDirector.STATE_REWIND_PENDING and _director.pending_cue_id == SECOND_CUE, "reprise waits for the current loop boundary")
+	_check(_director.runtime_stream.loop_mode == AudioStreamWAV.LOOP_DISABLED, "reprise releases the current loop before rewinding")
+	_director.audio_player.seek(float(third.get("end_seconds", 0.0)) + 0.05)
+	_director._process(0.0)
+	_check(_director.state == MusicDirector.STATE_HOLDING_CUE and _director.current_cue_id == SECOND_CUE, "reprise jumps back and re-enters the earlier cue after the boundary")
 
-	var analyzed_track_index: int = _director.get_track_ids().find(ANALYZED_TRACK_ID)
-	_scene._on_track_selected(analyzed_track_index)
-	_check(_scene._selected_section_index == 0, "pig_3 defaults to its first measured section")
-	_scene._on_play_from_start()
-	await _advance(3)
-	_check(_director.current_track_id == ANALYZED_TRACK_ID and _director.audio_player.playing, "tester starts the project-local pig_3 WAV")
-	_check(absf(_director.stream_length_seconds - 202.76) < 0.01, "pig_3 project WAV length loads correctly")
-	var analyzed_candidate: Dictionary = _director.get_candidate(ANALYZED_TRACK_ID, 0, 1)
-	var analyzed_loop: Dictionary = analyzed_candidate.get("godot", {})
-	_check(_director.state == _director.STATE_PLAYING_TO_LOOP, "pig_3 begins by playing toward its measured candidate")
-	_check(_director.audio_player.stream is AudioStreamWAV, "pig_3 uses an AudioStreamWAV runtime stream")
-	_director.audio_player.seek(float(analyzed_loop["loop_begin_seconds"]) + 0.05)
-	await _advance(3)
-	_check(_director.state == _director.STATE_LOOPING, "pig_3 enters its measured section loop")
-	_check(_director.current_loop_start_sample == int(analyzed_loop["loop_begin_samples"]), "pig_3 uses the analyzed loop begin sample")
-	_check(_director.current_loop_end_sample == int(analyzed_loop["loop_end_samples"]), "pig_3 uses the analyzed loop end sample")
-	_director.audio_player.seek(float(analyzed_loop["loop_end_seconds"]) - 0.05)
-	await _advance(10)
-	_check(_director.state == _director.STATE_LOOPING and _director.current_playback_position < float(analyzed_loop["loop_end_seconds"]) + 0.25, "pig_3 actually wraps inside its measured loop")
+	_check(_director.jump_to_cue(THIRD_CUE), "explicit DJ hard jump can target any approved cue")
+	_check(_director.current_cue_id == THIRD_CUE, "hard jump lands on the selected approved cue")
+	_check(_director.release_to_end(), "final release returns to the original authored ending")
+	_check(_director.state == MusicDirector.STATE_RELEASED_TO_END and _director.runtime_stream.loop_mode == AudioStreamWAV.LOOP_DISABLED, "release-to-end clears loop transport")
 
-	_director.stop()
-	_check(_director.state == _director.STATE_STOPPED, "pig_3 stop returns MusicDirector to STOPPED")
-	await _advance(20)
+	_check(source_stream != null and source_stream.loop_mode == source_loop_mode, "imported WAV loop mode remains unchanged")
+	_check(source_stream != null and source_stream.loop_begin == source_loop_begin and source_stream.loop_end == source_loop_end, "imported WAV cue points remain unchanged")
+	_director._on_audio_finished()
+	_check(_director.state == MusicDirector.STATE_STOPPED and _director.current_track_id.is_empty(), "natural source ending returns MusicDirector to STOPPED")
+
+	await _advance(2)
 	_scene.queue_free()
 	await _advance(2)
-	source_stream = null
-	first_candidate.clear()
-	second_candidate.clear()
-	first_loop.clear()
-	second_loop.clear()
-	analyzed_candidate.clear()
-	analyzed_loop.clear()
-	_director = null
-	_scene = null
-	packed = null
 	_finish()
+
+
+func _copy_fixture_to_user_data() -> bool:
+	var source := FileAccess.open(FIXTURE_PATH, FileAccess.READ)
+	if source == null:
+		_failures.append("fixture cue catalog opens")
+		return false
+	var target := FileAccess.open(TEMP_CUE_PATH, FileAccess.WRITE)
+	if target == null:
+		_failures.append("writable cue catalog opens")
+		return false
+	target.store_string(source.get_as_text())
+	return true
+
+
+func _read_json(path: String) -> Dictionary:
+	var file := FileAccess.open(path, FileAccess.READ)
+	if file == null:
+		return {}
+	var parsed = JSON.parse_string(file.get_as_text())
+	return parsed if parsed is Dictionary else {}
 
 
 func _advance(frame_count: int) -> void:
@@ -154,8 +137,11 @@ func _check(condition: bool, label: String) -> void:
 
 
 func _finish() -> void:
+	var absolute_temp_path := ProjectSettings.globalize_path(TEMP_CUE_PATH)
+	if FileAccess.file_exists(TEMP_CUE_PATH):
+		DirAccess.remove_absolute(absolute_temp_path)
 	if _failures.is_empty():
-		print("MUSIC_DIRECTOR_SMOKE: PASS tiger_2 source-continuation and analyzed pig_3 verified")
+		print("MUSIC_DIRECTOR_SMOKE: PASS audition approval hold release catch reprise jump finish")
 		quit(0)
 		return
 	for failure in _failures:
