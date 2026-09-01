@@ -160,7 +160,8 @@ func _run() -> void:
 	scene.play_button.pressed.emit()
 	await create_timer(0.82).timeout
 	_check(scene.game_started and not menu.visible, "play hides the menu after its exit transition")
-	_check(scene.music_controller.current_mix_path == "res://assets/audio/ost/mouse_2.wav", "starting a campaign does not control or replace the selected music")
+	_check(scene.music_controller.dj_mode and scene.music_controller.current_mix_path == "res://assets/audio/ost/dog_2.wav", "starting a campaign hands playback to the newly leading DOG_2 DJ route")
+	_check(scene.music_controller.music_director.current_cue_id == "dog_2_bars_001_002" and scene.music_controller.music_director.state == MusicDirector.STATE_HOLDING_CUE, "Starter Event holds approved DOG_2 bars 1-2")
 	_check(is_equal_approx(game_layer.position.x, 0.0), "game layer slides fully into place")
 	_check(background != null and background.global_position.is_equal_approx(background_position_before), "background remains fixed while UI layers transition")
 	_check(scene.campaign.current_phase == CampaignManager.CampaignPhase.STARTER_EVENT, "New Game starts the Monday Starter Event before any Deal")
@@ -176,7 +177,7 @@ func _run() -> void:
 	scene.campaign_continue_button.pressed.emit()
 	await process_frame
 	_check(scene.campaign.current_phase == CampaignManager.CampaignPhase.MORNING_DEAL and not scene.campaign_overlay.visible, "continuing the Starter Event hands off to the existing Morning Deal")
-	_check(scene.music_controller.current_theme_id == &"mouse" and scene.music_controller.current_variant == 2, "campaign periods leave the standalone player untouched")
+	_check(scene.music_controller.music_director.pending_cue_id == "dog_2_bars_003_004" and scene.music_controller.music_director.state == MusicDirector.STATE_TRAVELING_FORWARD, "Morning Deal releases the DOG_2 starter hold through authored audio toward Phase 1 bars 3-4")
 	_check(scene.deal.hand.size() == DealState.ACTIVE_HAND_TARGET, "opening hand refills to 10")
 	_check(scene.hand_views.size() == DealState.ACTIVE_HAND_TARGET, "ten interactive card views are rendered")
 	_check(scene.deal.deck.draw_pile.size() == 42, "draw pile count reflects opening draw")
@@ -644,6 +645,7 @@ func _run() -> void:
 		if active_meld_view is MeldView:
 			active_meld_view.set_process(false)
 	scene.music_controller._stop_all_mix_players()
+	scene.music_controller.music_director.stop()
 	await create_timer(0.2).timeout
 	scene.queue_free()
 	await process_frame

@@ -1,0 +1,27 @@
+{
+  "schema": "tradatala.ost_gameplay_plans.v1",
+  "plans": {
+    "dog_1": {
+      "cue_roles": {
+        "noon_event": "dog_1_bars_001_002",
+        "afternoon_phase_1": "dog_1_bars_006_009",
+        "afternoon_phase_2": "dog_1_bars_014_021",
+        "afternoon_event": "dog_1_bars_025_026",
+        "evening_phase_1": "dog_1_bars_029_032",
+        "evening_phase_2": "dog_1_bars_035_036",
+        "evening_phase_2_cleanup": "dog_1_bars_047_050"
+      }
+    },
+    "dog_2": {
+      "cue_roles": {
+        "starter_event": "dog_2_bars_001_002",
+        "morning_deal_phase_1": "dog_2_bars_003_004",
+        "morning_deal_phase_2": "dog_2_bars_005_008",
+        "morning_event_sustain": "dog_2_bars_005_008",
+        "noon_deal_phase_1": "dog_2_bars_009_012",
+        "noon_deal_phase_2": "dog_2_bars_011_014",
+        "noon_deal_final": "dog_2_bars_016_019"
+      }
+    }
+  }
+}

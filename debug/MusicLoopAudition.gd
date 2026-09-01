@@ -83,6 +83,8 @@ func _build_ui() -> void:
 	sort_option.custom_minimum_size = Vector2(210, 34)
 	sort_option.add_item("Bars: first → last")
 	sort_option.add_item("Bars: last → first")
+	sort_option.add_item("Score: high → low")
+	sort_option.add_item("Score: low → high")
 	sort_option.item_selected.connect(_on_sort_selected)
 	selectors.add_child(sort_option)
 	sequence_label = Label.new()
@@ -245,7 +247,7 @@ func _on_sort_selected(_index: int) -> void:
 func _populate_candidates(preferred_id := "") -> void:
 	candidate_list.clear()
 	var candidates := player.get_approved_cues(selected_track_id) if set_option.selected == 2 else player.get_candidates(selected_track_id, set_option.selected == 0)
-	candidates = _sort_candidates_by_bars(candidates)
+	candidates = _sort_candidates(candidates)
 	var preferred_index := -1
 	for candidate in candidates:
 		var candidate_id := String(candidate.get("candidate_id", ""))
@@ -269,10 +271,21 @@ func _populate_candidates(preferred_id := "") -> void:
 	_refresh_controls()
 
 
-func _sort_candidates_by_bars(candidates: Array[Dictionary]) -> Array[Dictionary]:
+func _sort_candidates(candidates: Array[Dictionary]) -> Array[Dictionary]:
 	var sorted := candidates.duplicate()
-	var descending := sort_option != null and sort_option.selected == 1
+	var sort_mode := sort_option.selected if sort_option != null else 0
 	sorted.sort_custom(func(left: Dictionary, right: Dictionary) -> bool:
+		if sort_mode >= 2:
+			var left_score := float(left.get("score", 0.0))
+			var right_score := float(right.get("score", 0.0))
+			if not is_equal_approx(left_score, right_score):
+				return left_score > right_score if sort_mode == 2 else left_score < right_score
+			var score_left_start := int(left.get("bar_start", 0))
+			var score_right_start := int(right.get("bar_start", 0))
+			if score_left_start != score_right_start:
+				return score_left_start < score_right_start
+			return String(left.get("candidate_id", "")) < String(right.get("candidate_id", ""))
+		var descending := sort_mode == 1
 		var left_start := int(left.get("bar_start", 0))
 		var right_start := int(right.get("bar_start", 0))
 		if left_start != right_start:

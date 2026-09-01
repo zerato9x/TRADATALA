@@ -10,6 +10,7 @@ const GAME_SETTINGS_SCRIPT := preload("res://scripts/settings/game_settings.gd")
 const TUTORIAL_SPOTLIGHT_SCRIPT := preload("res://scripts/ui/tutorial_spotlight.gd")
 const CARD_DRAG_PAYLOAD_SCRIPT := preload("res://scripts/ui/card_drag_payload.gd")
 const CARD_ACTION_OUTLINE_SCRIPT := preload("res://scripts/ui/card_action_outline.gd")
+const GAMEPLAY_MUSIC_CONDUCTOR_SCRIPT := preload("res://scripts/audio/gameplay_music_conductor.gd")
 const EMPTY_DRINK_TEXTURE := preload("res://assets/drinks/glass_empty.png")
 const DRINK_FULL_TEXTURES := {
 	DrinkCatalog.TRA_DA: preload("res://assets/drinks/tra_da_full.png"),
@@ -62,6 +63,7 @@ var deal := DealState.new()
 var event_manager: EventManager
 var drink_manager: DrinkManager
 var campaign: CampaignManager
+var gameplay_music: RefCounted
 var current_campaign_event: EventInstance
 var selected_card_ids: Dictionary = {}
 var selected_meld_id: int = -1
@@ -347,6 +349,7 @@ func _connect_editor_interface_signals() -> void:
 	_connect_signal_once(extend_button.pressed, _on_extend_pressed)
 	_connect_signal_once(discard_button.pressed, _on_discard_pressed)
 	_connect_signal_once(settle_button.pressed, _on_settle_pressed)
+	_connect_signal_once(deal.new_phom_scored, _on_deal_new_phom_scored)
 	_connect_signal_once(tutorial_exit_button.pressed, _on_tutorial_exit_pressed)
 	var archive_dim := discard_archive_overlay.find_child("ArchiveDim", true, false)
 	if archive_dim != null:
@@ -2333,6 +2336,8 @@ func _on_settle_pressed() -> void:
 	selected_meld_id = -1
 	_sync_all(result)
 	var resolution: Dictionary = result["phase_resolution"]
+	if int(resolution.get("phase", 0)) == 2 and gameplay_music != null:
+		gameplay_music.on_deal_resolved()
 	await _show_phase_resolution(resolution)
 	if resolution["phase"] == 1:
 		_show_phase_choice(resolution)
@@ -2580,6 +2585,8 @@ func _begin_phase_two(keep_hand: bool) -> void:
 		return
 	selected_card_ids.clear()
 	selected_meld_id = -1
+	if gameplay_music != null:
+		gameplay_music.on_deal_phase_started(deal.current_phase)
 	_sync_all(result)
 	if not keep_hand and not result.get("preserved", []).is_empty():
 		_show_banner(tr("BANNER_PHASE2_SAM_DUA") % result["preserved"].size())
@@ -2603,10 +2610,19 @@ func _start_campaign() -> void:
 
 
 func _on_campaign_event_started(event: EventInstance) -> void:
+	if gameplay_music != null:
+		match event.slot:
+			EventManager.EventSlot.NOON:
+				gameplay_music.on_event_started("noon")
+			EventManager.EventSlot.AFTERNOON:
+				gameplay_music.on_event_started("afternoon")
 	_show_campaign_event(event)
 
 
 func _on_campaign_started() -> void:
+	if gameplay_music == null:
+		gameplay_music = GAMEPLAY_MUSIC_CONDUCTOR_SCRIPT.new(music_controller)
+	gameplay_music.start_campaign("dog_2")
 	_sync_music_player()
 
 
@@ -2627,6 +2643,8 @@ func _on_campaign_deal_requested(day: Dictionary, period: String, drink_id: Stri
 	if not drink_result.get("ok", false):
 		deal.set_current_drink(DrinkCatalog.TRA_DA)
 	var result := deal.start_deal(-1, false)
+	if result.get("ok", false) and gameplay_music != null:
+		gameplay_music.on_deal_started(period)
 	displayed_wallet_vnd = deal.wallet.balance_vnd
 	_sync_all(result, true)
 	interaction_locked = false
@@ -2636,6 +2654,11 @@ func _on_campaign_deal_requested(day: Dictionary, period: String, drink_id: Stri
 		tr(String(day.get("name_key", ""))),
 		tr(_campaign_period_key(period)),
 	])
+
+
+func _on_deal_new_phom_scored(_context: ScoringContext) -> void:
+	if gameplay_music != null:
+		gameplay_music.on_new_phom(deal.current_phase, deal.phase_new_meld_count)
 
 
 func _on_campaign_drink_pressed(event_slot: int, interaction_id: String, drink_id: String) -> void:

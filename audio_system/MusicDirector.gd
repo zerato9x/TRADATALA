@@ -164,11 +164,16 @@ func request_cue(cue_id: String) -> bool:
 
 	var from_cue := current_cue_id
 	var target_start := float(target.get("start_seconds", 0.0))
+	var target_end := float(target.get("end_seconds", target_start))
 	var current := cue_catalog.get_candidate(current_track_id, current_cue_id)
 	if state == STATE_HOLDING_CUE and not current.is_empty():
 		var current_start := float(current.get("start_seconds", current_playback_position))
 		var current_end := float(current.get("end_seconds", current_playback_position))
 		if target_start + POSITION_EPSILON_SECONDS >= current_end:
+			cue_requested.emit(from_cue, cue_id)
+			return _travel_forward_to_cue(target)
+		if target_start > current_start + POSITION_EPSILON_SECONDS \
+				and target_end > current_end + POSITION_EPSILON_SECONDS:
 			cue_requested.emit(from_cue, cue_id)
 			return _travel_forward_to_cue(target)
 		if target_start < current_start - POSITION_EPSILON_SECONDS:
@@ -180,7 +185,7 @@ func request_cue(cue_id: String) -> bool:
 			reprise_started.emit(from_cue, cue_id)
 			last_error = ""
 			return true
-		return _fail("Cue overlaps the current hold and cannot be reached through the authored timeline; use jump_to_cue: %s" % cue_id)
+		return _fail("Cue overlaps the current hold without extending it forward; use jump_to_cue: %s" % cue_id)
 
 	cue_requested.emit(from_cue, cue_id)
 	if target_start > current_playback_position + POSITION_EPSILON_SECONDS:

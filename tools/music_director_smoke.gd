@@ -39,6 +39,7 @@ func _run() -> void:
 	_check(_director.get_track_ids().size() == 26, "DJ catalog exposes all 26 original tracks")
 	_check(_director.get_approved_cues(TRACK_ID).size() == 5, "fixture exposes more than three approved cues")
 	_check(_scene.track_option != null and _scene.sort_option != null and _scene.candidate_list != null and _scene.event_log != null, "tester builds discovery, bar sorting, detail, and transport-event surfaces")
+	_check(_scene.sort_option.item_count == 4, "tester exposes two bar-order and two score-order modes")
 	_check(_scene.selected_track_id == TRACK_ID, "tester defaults to dog_1 for repeatable audition")
 	_scene.set_option.select(2)
 	_scene._on_set_selected(2)
@@ -47,6 +48,12 @@ func _run() -> void:
 	_scene.sort_option.select(1)
 	_scene._on_sort_selected(1)
 	_check(String(_scene.candidate_list.get_item_metadata(0)) == FIFTH_CUE and String(_scene.candidate_list.get_item_metadata(4)) == FIRST_CUE, "approved cues can reverse to last-bar through first-bar order")
+	_scene.sort_option.select(2)
+	_scene._on_sort_selected(2)
+	_check(String(_scene.candidate_list.get_item_metadata(0)) == FIRST_CUE and String(_scene.candidate_list.get_item_metadata(4)) == FOURTH_CUE, "approved cues can sort from highest to lowest machine score")
+	_scene.sort_option.select(3)
+	_scene._on_sort_selected(3)
+	_check(String(_scene.candidate_list.get_item_metadata(0)) == FOURTH_CUE and String(_scene.candidate_list.get_item_metadata(4)) == FIRST_CUE, "approved cues can sort from lowest to highest machine score")
 	_scene.sort_option.select(0)
 	_scene._on_sort_selected(0)
 	_check(_scene.sequence_label.text.contains("Approved 5") and not _scene.sequence_label.text.contains("Opening Hook"), "cue growth stays in a fixed-width count summary")
@@ -75,9 +82,15 @@ func _run() -> void:
 	_check(_director.set_manual_decision(TRACK_ID, OVERLAPPING_CUE, &"approved", "Overlap Test", "Smoke-only approval"), "tester decisions save to the writable cue catalog")
 	var persisted := _read_json(TEMP_CUE_PATH)
 	_check(persisted.get("tracks", {}).get(TRACK_ID, {}).get("decisions", {}).get(OVERLAPPING_CUE, {}).get("status", "") == "approved", "approval persists to JSON")
-	_check(not _director.request_cue(OVERLAPPING_CUE), "overlapping cue is rejected as an authored forward transition")
-	_check(_director.last_error.contains("overlaps"), "overlap rejection recommends an explicit hard jump")
+	_check(_director.request_cue(OVERLAPPING_CUE), "forward-extending overlap continues through the longer target before adopting its loop")
+	var overlap := _director.get_candidate(TRACK_ID, OVERLAPPING_CUE)
+	_check(_director.state == MusicDirector.STATE_TRAVELING_FORWARD and _director.pending_cue_id == OVERLAPPING_CUE, "forward overlap arms the extended loop without jumping backward")
+	_check(_director.runtime_stream.loop_begin == int(overlap.get("start_sample", -1)) and _director.runtime_stream.loop_end == int(overlap.get("end_sample", -1)), "forward overlap changes the future wrap window to the target boundaries")
+	_director.audio_player.seek(float(overlap.get("start_seconds", 0.0)) + 0.05)
+	_director._process(0.0)
+	_check(_director.state == MusicDirector.STATE_HOLDING_CUE and _director.current_cue_id == OVERLAPPING_CUE, "forward overlap becomes the active cue without restarting playback")
 	_check(_director.set_manual_decision(TRACK_ID, OVERLAPPING_CUE, &"rejected", "Rejected Overlap", "Restored fixture status"), "review status can be corrected after testing")
+	_check(_director.hold_cue(TRACK_ID, FIRST_CUE), "transport returns to the opening cue after the overlap test")
 
 	_check(_director.release_to_next_cue(), "release requests the next reachable approved cue")
 	_check(_director.state == MusicDirector.STATE_TRAVELING_FORWARD and _director.pending_cue_id == SECOND_CUE, "forward move releases into authored source audio")
@@ -112,6 +125,7 @@ func _run() -> void:
 	await _advance(2)
 	_scene.queue_free()
 	await _advance(2)
+	await create_timer(0.25).timeout
 	_finish()
 
 
@@ -162,7 +176,7 @@ func _finish() -> void:
 	if FileAccess.file_exists(TEMP_CUE_PATH):
 		DirAccess.remove_absolute(absolute_temp_path)
 	if _failures.is_empty():
-		print("MUSIC_DIRECTOR_SMOKE: PASS five-cue-ui bar-sort audition approval hold release catch reprise jump finish")
+		print("MUSIC_DIRECTOR_SMOKE: PASS five-cue-ui bar-and-score-sort audition approval hold release catch reprise jump finish")
 		quit(0)
 		return
 	for failure in _failures:

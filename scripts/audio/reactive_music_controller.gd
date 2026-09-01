@@ -38,6 +38,7 @@ const THEME_TITLES := {
 
 var full_mix_player: AudioStreamPlayer
 var beat_detector: MusicBeatDetector
+var music_director: MusicDirector
 var stem_players: Dictionary = {}
 var mix_players: Array[AudioStreamPlayer] = []
 var playlist: Array[Dictionary] = []
@@ -50,6 +51,7 @@ var music_paused: bool = false
 var shuffle_enabled: bool = false
 var repeat_mode: StringName = REPEAT_OFF
 var music_rng := RandomNumberGenerator.new()
+var dj_mode := false
 
 var current_theme_id: StringName = &"main"
 var current_variant: int = 1
@@ -81,11 +83,18 @@ func _ready() -> void:
 	beat_detector.band_pulse.connect(band_pulse.emit)
 	beat_detector.band_energy_changed.connect(band_energy_changed.emit)
 	add_child(beat_detector)
+	music_director = MusicDirector.new()
+	music_director.name = "MusicDirector"
+	music_director.bus_name = MUSIC_BUS
+	add_child(music_director)
 	call_deferred("play_track", 0, false)
 
 
 func _process(_delta: float) -> void:
-	if full_mix_player != null and full_mix_player.stream != null:
+	if dj_mode and music_director != null:
+		playback_position_seconds = music_director.current_playback_position
+		stream_length_seconds = music_director.stream_length_seconds
+	elif full_mix_player != null and full_mix_player.stream != null:
 		playback_position_seconds = full_mix_player.get_playback_position()
 		stream_length_seconds = full_mix_player.stream.get_length()
 		if not transition_in_progress and full_mix_player.playing:
@@ -109,6 +118,8 @@ func _exit_tree() -> void:
 	for player in mix_players:
 		player.stop()
 		player.stream = null
+	if music_director != null:
+		music_director.stop()
 	stem_players.clear()
 
 
@@ -166,6 +177,8 @@ func track_label(track_index: int) -> String:
 
 
 func next_mix_request() -> Dictionary:
+	if dj_mode:
+		return {}
 	var next_index := _ensure_next_track_index()
 	return playlist[next_index].duplicate() if next_index >= 0 else {}
 
@@ -173,6 +186,9 @@ func next_mix_request() -> Dictionary:
 func play_track(track_index: int, crossfade: bool = true) -> void:
 	if track_index < 0 or track_index >= playlist.size():
 		return
+	if dj_mode:
+		dj_mode = false
+		music_director.stop()
 	queued_track_index = -1
 	if crossfade and full_mix_player != null and full_mix_player.playing:
 		_begin_transition_to(track_index)
@@ -210,7 +226,46 @@ func set_music_paused(paused: bool) -> void:
 	music_paused = paused
 	for player in mix_players:
 		player.stream_paused = paused
+	if music_director != null and music_director.audio_player != null:
+		music_director.audio_player.stream_paused = paused
 	pause_changed.emit(paused)
+
+
+func start_dj_track(track_id: String, cue_id: String) -> bool:
+	if music_director == null or not music_director.hold_cue(track_id, cue_id):
+		return false
+	_stop_all_mix_players()
+	dj_mode = true
+	queued_track_index = -1
+	full_mix_player = music_director.audio_player
+	stem_players[&"full_mix"] = full_mix_player
+	full_mix_player.stream_paused = music_paused
+	_apply_dj_track_metadata(track_id)
+	return true
+
+
+func request_dj_cue(cue_id: String) -> bool:
+	return dj_mode and music_director != null and music_director.request_cue(cue_id)
+
+
+func release_dj_to_end() -> bool:
+	return dj_mode and music_director != null and music_director.release_to_end()
+
+
+func _apply_dj_track_metadata(track_id: String) -> void:
+	var track := music_director.get_track(track_id)
+	current_mix_path = String(track.get("project_path", ""))
+	var separator := track_id.rfind("_")
+	if separator > 0:
+		current_theme_id = StringName(track_id.left(separator))
+		current_variant = maxi(1, int(track_id.substr(separator + 1)))
+	for track_index in playlist.size():
+		if String(playlist[track_index].get("path", "")) == current_mix_path:
+			current_track_index = track_index
+			break
+	playback_position_seconds = music_director.current_playback_position
+	stream_length_seconds = music_director.stream_length_seconds
+	mix_started.emit(current_mix_path, current_theme_id, current_variant)
 
 
 func toggle_music_paused() -> void:
@@ -298,7 +353,7 @@ func _complete_transition(outgoing_index: int, next_index: int, track_index: int
 
 
 func _on_mix_finished(player_index: int) -> void:
-	if player_index != active_mix_index or transition_in_progress:
+	if dj_mode or player_index != active_mix_index or transition_in_progress:
 		return
 	var next_index := _ensure_next_track_index()
 	if next_index < 0:
