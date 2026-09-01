@@ -8,6 +8,8 @@ const FIRST_CUE := "dog_1_bars_001_002"
 const OVERLAPPING_CUE := "dog_1_bars_002_003"
 const SECOND_CUE := "dog_1_bars_006_007"
 const THIRD_CUE := "dog_1_bars_028_029"
+const FOURTH_CUE := "dog_1_bars_031_034"
+const FIFTH_CUE := "dog_1_bars_047_050"
 
 var _failures: Array[String] = []
 var _scene: Control
@@ -35,13 +37,21 @@ func _run() -> void:
 
 	_check(_director.catalogs_are_loaded, "MusicDirector loads loop and cue catalogs")
 	_check(_director.get_track_ids().size() == 26, "DJ catalog exposes all 26 original tracks")
-	_check(_director.get_approved_cues(TRACK_ID).size() == 3, "fixture exposes a chronological three-cue DJ sequence")
-	_check(_scene.track_option != null and _scene.candidate_list != null and _scene.event_log != null, "tester builds discovery, detail, and transport-event surfaces")
+	_check(_director.get_approved_cues(TRACK_ID).size() == 5, "fixture exposes more than three approved cues")
+	_check(_scene.track_option != null and _scene.sort_option != null and _scene.candidate_list != null and _scene.event_log != null, "tester builds discovery, bar sorting, detail, and transport-event surfaces")
 	_check(_scene.selected_track_id == TRACK_ID, "tester defaults to dog_1 for repeatable audition")
 	_scene.set_option.select(2)
 	_scene._on_set_selected(2)
-	_check(_scene.candidate_list.item_count == 3, "Approved cue sequence filter shows only approved cues")
-	_check(_scene.sequence_label.text.contains("Opening Hook") and _scene.sequence_label.text.contains("Late Hook"), "tester displays the approved cue order")
+	_check(_scene.candidate_list.item_count == 5, "Approved cue sequence grows without replacing review controls")
+	_check(String(_scene.candidate_list.get_item_metadata(0)) == FIRST_CUE and String(_scene.candidate_list.get_item_metadata(4)) == FIFTH_CUE, "approved cues default to first-bar through last-bar order")
+	_scene.sort_option.select(1)
+	_scene._on_sort_selected(1)
+	_check(String(_scene.candidate_list.get_item_metadata(0)) == FIFTH_CUE and String(_scene.candidate_list.get_item_metadata(4)) == FIRST_CUE, "approved cues can reverse to last-bar through first-bar order")
+	_scene.sort_option.select(0)
+	_scene._on_sort_selected(0)
+	_check(_scene.sequence_label.text.contains("Approved 5") and not _scene.sequence_label.text.contains("Opening Hook"), "cue growth stays in a fixed-width count summary")
+	_check(_scene.sequence_label.tooltip_text.contains("Opening Hook") and _scene.sequence_label.tooltip_text.contains("Final Pocket"), "full approved sequence remains available in the summary tooltip")
+	_check(_control_is_fully_visible(_scene.approve_button) and _control_is_fully_visible(_scene.reject_button) and _control_is_fully_visible(_scene.clear_review_button), "Approve Reject and Clear remain visible with more than three cues")
 
 	var source_stream := load("res://assets/audio/ost/dog_1.wav") as AudioStreamWAV
 	var source_loop_mode := source_stream.loop_mode if source_stream != null else -1
@@ -136,12 +146,23 @@ func _check(condition: bool, label: String) -> void:
 		_failures.append(label)
 
 
+func _control_is_fully_visible(control: Control) -> bool:
+	if control == null or not control.is_visible_in_tree():
+		return false
+	var viewport_rect := control.get_viewport().get_visible_rect()
+	var control_rect := control.get_global_rect()
+	return control_rect.position.x >= viewport_rect.position.x \
+		and control_rect.position.y >= viewport_rect.position.y \
+		and control_rect.end.x <= viewport_rect.end.x \
+		and control_rect.end.y <= viewport_rect.end.y
+
+
 func _finish() -> void:
 	var absolute_temp_path := ProjectSettings.globalize_path(TEMP_CUE_PATH)
 	if FileAccess.file_exists(TEMP_CUE_PATH):
 		DirAccess.remove_absolute(absolute_temp_path)
 	if _failures.is_empty():
-		print("MUSIC_DIRECTOR_SMOKE: PASS audition approval hold release catch reprise jump finish")
+		print("MUSIC_DIRECTOR_SMOKE: PASS five-cue-ui bar-sort audition approval hold release catch reprise jump finish")
 		quit(0)
 		return
 	for failure in _failures:

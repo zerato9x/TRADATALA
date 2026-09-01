@@ -3,6 +3,7 @@ extends Control
 var player: MusicDirector
 var track_option: OptionButton
 var set_option: OptionButton
+var sort_option: OptionButton
 var candidate_list: ItemList
 var detail_label: Label
 var sequence_label: Label
@@ -68,19 +69,26 @@ func _build_ui() -> void:
 	selectors.add_theme_constant_override("separation", 8)
 	root.add_child(selectors)
 	track_option = OptionButton.new()
-	track_option.custom_minimum_size = Vector2(260, 34)
+	track_option.custom_minimum_size = Vector2(220, 34)
 	track_option.item_selected.connect(_on_track_selected)
 	selectors.add_child(track_option)
 	set_option = OptionButton.new()
-	set_option.custom_minimum_size = Vector2(220, 34)
+	set_option.custom_minimum_size = Vector2(190, 34)
 	set_option.add_item("Audition shortlist")
 	set_option.add_item("Every candidate")
 	set_option.add_item("Approved cue sequence")
 	set_option.item_selected.connect(_on_set_selected)
 	selectors.add_child(set_option)
+	sort_option = OptionButton.new()
+	sort_option.custom_minimum_size = Vector2(210, 34)
+	sort_option.add_item("Bars: first → last")
+	sort_option.add_item("Bars: last → first")
+	sort_option.item_selected.connect(_on_sort_selected)
+	selectors.add_child(sort_option)
 	sequence_label = Label.new()
 	sequence_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	sequence_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	sequence_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	sequence_label.add_theme_color_override("font_color", Color("c4ccd7"))
 	selectors.add_child(sequence_label)
 
@@ -110,17 +118,23 @@ func _build_ui() -> void:
 	var review_row := HBoxContainer.new()
 	review_row.add_theme_constant_override("separation", 6)
 	root.add_child(review_row)
+	var review_label := Label.new()
+	review_label.text = "REVIEW"
+	review_label.custom_minimum_size.x = 62
+	review_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	review_label.add_theme_color_override("font_color", Color("f3c45d"))
+	review_row.add_child(review_label)
+	approve_button = _add_button(review_row, "Approve", _on_approve)
+	reject_button = _add_button(review_row, "Reject", _on_reject)
+	clear_review_button = _add_button(review_row, "Clear", _on_clear_review)
 	cue_name_edit = LineEdit.new()
 	cue_name_edit.placeholder_text = "Cue name (e.g. Hook, Pressure, Reprise)"
-	cue_name_edit.custom_minimum_size = Vector2(270, 34)
+	cue_name_edit.custom_minimum_size = Vector2(240, 34)
 	review_row.add_child(cue_name_edit)
 	cue_notes_edit = LineEdit.new()
 	cue_notes_edit.placeholder_text = "Listening notes: seam, vocal pickup, safe release..."
 	cue_notes_edit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	review_row.add_child(cue_notes_edit)
-	approve_button = _add_button(review_row, "Approve", _on_approve)
-	reject_button = _add_button(review_row, "Reject", _on_reject)
-	clear_review_button = _add_button(review_row, "Clear", _on_clear_review)
 
 	var body := HSplitContainer.new()
 	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -128,7 +142,8 @@ func _build_ui() -> void:
 	root.add_child(body)
 
 	candidate_list = ItemList.new()
-	candidate_list.custom_minimum_size = Vector2(720, 300)
+	candidate_list.custom_minimum_size = Vector2(620, 300)
+	candidate_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	candidate_list.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	candidate_list.select_mode = ItemList.SELECT_SINGLE
 	candidate_list.item_selected.connect(_on_candidate_selected)
@@ -136,6 +151,7 @@ func _build_ui() -> void:
 	body.add_child(candidate_list)
 
 	var right_column := VBoxContainer.new()
+	right_column.custom_minimum_size = Vector2(360, 0)
 	right_column.add_theme_constant_override("separation", 6)
 	body.add_child(right_column)
 	var detail_heading := Label.new()
@@ -222,9 +238,14 @@ func _on_set_selected(_index: int) -> void:
 	_populate_candidates(selected_candidate_id)
 
 
+func _on_sort_selected(_index: int) -> void:
+	_populate_candidates(selected_candidate_id)
+
+
 func _populate_candidates(preferred_id := "") -> void:
 	candidate_list.clear()
 	var candidates := player.get_approved_cues(selected_track_id) if set_option.selected == 2 else player.get_candidates(selected_track_id, set_option.selected == 0)
+	candidates = _sort_candidates_by_bars(candidates)
 	var preferred_index := -1
 	for candidate in candidates:
 		var candidate_id := String(candidate.get("candidate_id", ""))
@@ -246,6 +267,25 @@ func _populate_candidates(preferred_id := "") -> void:
 		cue_notes_edit.text = ""
 	_refresh_sequence()
 	_refresh_controls()
+
+
+func _sort_candidates_by_bars(candidates: Array[Dictionary]) -> Array[Dictionary]:
+	var sorted := candidates.duplicate()
+	var descending := sort_option != null and sort_option.selected == 1
+	sorted.sort_custom(func(left: Dictionary, right: Dictionary) -> bool:
+		var left_start := int(left.get("bar_start", 0))
+		var right_start := int(right.get("bar_start", 0))
+		if left_start != right_start:
+			return left_start > right_start if descending else left_start < right_start
+		var left_end := int(left.get("bar_end", 0))
+		var right_end := int(right.get("bar_end", 0))
+		if left_end != right_end:
+			return left_end > right_end if descending else left_end < right_end
+		var left_id := String(left.get("candidate_id", ""))
+		var right_id := String(right.get("candidate_id", ""))
+		return left_id > right_id if descending else left_id < right_id
+	)
+	return sorted
 
 
 func _on_candidate_selected(index: int) -> void:
@@ -336,8 +376,8 @@ func _refresh_sequence() -> void:
 		var cue_id := String(cue.get("candidate_id", ""))
 		names.append(_cue_label(selected_track_id, cue_id))
 	var sequence := " → ".join(names) if not names.is_empty() else "none"
-	sequence_label.text = "Approved %d | Rejected %d | Sequence: %s" % [int(counts.get("approved", 0)), int(counts.get("rejected", 0)), sequence]
-	sequence_label.tooltip_text = sequence
+	sequence_label.text = "Approved %d  •  Rejected %d  •  Unreviewed %d" % [int(counts.get("approved", 0)), int(counts.get("rejected", 0)), int(counts.get("unreviewed", 0))]
+	sequence_label.tooltip_text = "Approved sequence: %s" % sequence
 
 
 func _refresh_live_state() -> void:

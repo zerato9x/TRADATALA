@@ -25,12 +25,19 @@ fields. It never edits the source asset and never manufactures transition audio.
 1. Pick a track.
 2. Start with **Audition shortlist**. Use **Every candidate** only when the
    shortlist misses a useful phrase.
-3. Double-click a row or use **Audition Loop** to hear the seam repeatedly.
-4. Use **Audition + 2-Bar Lead-In** to check the entry into the cue.
-5. Give the cue a useful name and write listening notes.
-6. Approve it only after the loop, entry, and eventual release all sound valid.
-7. Switch to **Approved cue sequence** and test the DJ deck from beginning to
+3. Use **Bars: first → last** for chronological review or reverse it with
+   **Bars: last → first**. Both the shortlist and approved sequence obey this
+   explicit bar-range order.
+4. Double-click a row or use **Audition Loop** to hear the seam repeatedly.
+5. Use **Audition + 2-Bar Lead-In** to check the entry into the cue.
+6. Give the cue a useful name and write listening notes.
+7. Approve it only after the loop, entry, and eventual release all sound valid.
+8. Switch to **Approved cue sequence** and test the DJ deck from beginning to
    end: Hold, Release/Catch Next, Reprise, Hard Jump, Release to Ending.
+
+The top summary shows only review counts so a long approved sequence cannot
+expand the layout and hide Approve/Reject/Clear. Hover it to see the full cue
+order.
 
 Machine scores are triage, not approval. Short hooks and vocal phrases are
 allowed when they survive listening. Whole-track fallback loops remain forbidden.
@@ -69,7 +76,7 @@ removed. There is now one standalone tester and one transport controller.
 
 ```text
 OST_LOOP_CATALOG_SMOKE: PASS tracks=26 exhaustive=true roles=none
-MUSIC_DIRECTOR_SMOKE: PASS audition approval hold release catch reprise jump finish
+MUSIC_DIRECTOR_SMOKE: PASS five-cue-ui bar-sort audition approval hold release catch reprise jump finish
 ```
 
 These checks prove catalog coverage, review persistence, exact sample-boundary

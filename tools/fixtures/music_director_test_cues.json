@@ -28,6 +28,18 @@
           "cue_name": "Late Hook",
           "notes": "Automated transport fixture only.",
           "updated_at_utc": "2026-09-01T00:00:00Z"
+        },
+        "dog_1_bars_031_034": {
+          "status": "approved",
+          "cue_name": "Bridge Pocket",
+          "notes": "Exercises cue-list growth beyond three rows.",
+          "updated_at_utc": "2026-09-01T00:00:00Z"
+        },
+        "dog_1_bars_047_050": {
+          "status": "approved",
+          "cue_name": "Final Pocket",
+          "notes": "Exercises cue-list growth beyond three rows.",
+          "updated_at_utc": "2026-09-01T00:00:00Z"
         }
       }
     }
