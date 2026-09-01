@@ -1,0 +1,6 @@
+{
+  "schema": "tradatala.ost_cues.v1",
+  "source_loop_catalog": "res://assets/audio/ost/ost_loops.json",
+  "policy": "manual_listening_is_authority",
+  "tracks": {}
+}
