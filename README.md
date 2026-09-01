@@ -37,8 +37,8 @@ Distribute `TRADATALA-v1.0.1.exe` together with `TRADATALA-v1.0.1.pck`. The PCK 
 - Hover a loose card to reveal its top-right meld badge: `✓` means it already belongs to a ready Phỏm; otherwise the badge shows that card's best exact completion percentage. The badge hides again when the pointer leaves.
 - Ready action cards carry one reusable animated outline: flowing green for a legal new Phỏm, orange for a legal table extension, and blue for an active Drink target. Any combination can coexist in the same multicolor sweep without covering the card face. The Drink box keeps its own blue charge outline until spent, while Sâm dứa preservation keeps blue on marked cards until the Phase transition resolves.
 - Click the `BỎ • XEM` pile to open every discarded card grouped into Bích, Cơ, Rô, and Tép columns.
-- Hover the active Drink for its complete effect and timing. Click the charged Drink first to arm it, then click the required loose or table card; blue gradients identify Drink targets.
-- For Sâm dứa, click the Drink during Phase 1 LAST CALL, select up to two blue-outlined loose cards, then click the Drink again to confirm before CHỐT; those marked cards survive only if the following choice is DUMP.
+- Hover the active Drink for its complete effect and timing. Click the charged Drink first to arm it, then choose its eligible target objects; blue gradients identify every current Drink target.
+- For Sâm dứa, click the Drink during Phase 1 LAST CALL, select up to three blue-outlined loose cards, then click the Drink again to confirm before CHỐT; those marked cards survive only if the following choice is DUMP.
 - `K` / `X`: KEEP / DUMP at the Phase 1 settlement.
 - `Esc`: clear card and Meld selection.
 - After Phase 2, continue into the next campaign Event; the wallet persists across all 28 Deals.
@@ -71,7 +71,7 @@ The prototype now follows the two-Phase Deal contract: each Phase has four manda
 - Sets accept any number of same-rank physical cards; Runs require one suit, unique consecutive ranks, A low, and no wrap.
 - Every card sent to the discard pile remains available through the suit-grouped discard archive; mandatory discards retain Phase and discard-number provenance in the Deal record.
 - Each card's hover badge summarizes its best canonical three-card Set/Run target. Percentages are exact without-replacement odds for the next refill toward ten, using the known remaining deck; the full target and missing-card calculation stay in the tooltip so probability information does not obstruct the table.
-- Exactly one Drink is active at a time, and basic Drinks manipulate card flow only—never scoring: Trà đá swaps one selected loose card with the latest discard once per turn; Nhân trần grants one optional extra discard per turn without an immediate refill and is unavailable after mandatory discard #4; Nước vối returns one legal card from a table Meld once per Phase without removing banked score; Sâm dứa preserves up to two marked loose cards during the Phase 1 DUMP before the normal refill toward ten. Trà đá is the current free starter. Advanced Caffeine/Energy/Sugar IDs and categories exist without invented formulas.
+- Exactly one Drink is active at a time, and basic Drinks manipulate card flow only—never scoring: Trà đá swaps one selected loose card with the latest mandatory discard from the current Phase once per turn; Nhân trần swaps one selected loose card with any mandatory discard from the current Phase once per Phase; Nước vối returns one legal card from a table Meld once per Phase without removing banked score; Sâm dứa preserves up to three marked loose cards during the Phase 1 DUMP before the normal refill toward ten. Trà đá is the current free starter. Advanced Caffeine/Energy/Sugar IDs and categories exist without invented formulas.
 - Scoring and resolution expose controlled hooks for new Phỏm, Extensions, settlement, Deadwood, MÓM, Deal resolution, and Ù.
 
 ## Early campaign
@@ -86,13 +86,13 @@ The Escape/Menu window includes a standalone album player for all 26 OST files: 
 
 ## Verification
 
-Current Godot 4.7.1 source checkpoint (2026-08-31):
+Current Drink-source reconciliation checkpoint (2026-09-01):
 
-- Core Deal and campaign suite: **50 / 50 passed** in both normal headless execution and the connected editor MCP runner.
-- Runtime scene smoke: **passed** at 1280×720 and 1920×1080, including compact-HUD bounds, Drink/hand separation, mandatory-discard target hooks, and green/orange/blue cue coexistence.
-- Tutorial scene smoke: **passed**.
-- Headless editor import and global-class registration: **passed**.
-- Connected-editor live proof: **passed** at 1489×720. The real Play button transitioned from menu to game, the anchored HUD remained in bounds, and hovering a charged Trà đá after a discard exposed blue loose-card eligibility while existing green cues remained active.
+- Core Deal suite: **51 / 51 passed** in Godot 4.7.1 headless execution, including the revised Drink rules; MÓM and Ù Khan coverage remains unchanged.
+- Runtime scene smoke: **passed**, including the in-world Drink prop, hand/discard/meld target cues, three-card Sâm dứa selection, and the LAST CALL boundary.
+- Tutorial scene smoke: **passed** after the Drink changes.
+- Godot editor filesystem refresh and project relaunch: **passed**; the connected project reached live with no current parse errors after the stale editor cache was refreshed.
+- Connected-editor live visual/physical-input proof for the new target interaction: **not rerun** in this pass because the debug window could not be foregrounded reliably; scene smoke is the current target-handler/cue acceptance evidence.
 - Previous v1.0.0 exported Windows startup: **passed**; v1.0.1 was not rebuilt during this source-fix pass.
 
 ```powershell

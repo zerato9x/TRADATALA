@@ -1560,10 +1560,10 @@ mouse_filter = 2
 visible = false
 texture_filter = 1
 layout_mode = 0
-offset_left = 30.0
-offset_top = 245.0
-offset_right = 142.0
-offset_bottom = 389.0
+offset_left = 1033.0
+offset_top = 254.0
+offset_right = 1145.0
+offset_bottom = 398.0
 mouse_filter = 2
 texture = ExtResource("1_mygkg")
 expand_mode = 1
@@ -1572,10 +1572,10 @@ metadata/match_binding = "empty_drink_prop"
 
 [node name="ActiveDrink" type="Button" parent="TableSurface/DrinkProps" unique_id=1025236126]
 layout_mode = 0
-offset_left = 70.0
-offset_top = 260.0
-offset_right = 182.0
-offset_bottom = 404.0
+offset_left = 1033.0
+offset_top = 398.0
+offset_right = 1145.0
+offset_bottom = 576.0
 tooltip_text = "Đồ uống hiện tại: Trà đá
 
 Mỗi lượt một lần: nhấn Đồ uống trước, rồi chọn 1 lá bài rời để đổi nó với lá bỏ mới nhất. Số lá trên tay không đổi."
@@ -1588,13 +1588,37 @@ metadata/match_binding = "drink_table_button"
 [node name="Sprite" type="TextureRect" parent="TableSurface/DrinkProps/ActiveDrink" unique_id=1524951891]
 texture_filter = 1
 layout_mode = 0
-anchor_right = 1.0
-anchor_bottom = 1.0
+offset_right = 112.0
+offset_bottom = 144.0
 mouse_filter = 2
 texture = ExtResource("2_clyp3")
 expand_mode = 1
 stretch_mode = 5
 metadata/match_binding = "drink_table_texture"
+
+[node name="DrinkChargeOutline" type="Control" parent="TableSurface/DrinkProps/ActiveDrink" unique_id=1694875106]
+layout_mode = 0
+offset_right = 112.0
+offset_bottom = 144.0
+mouse_filter = 2
+script = ExtResource("4_e8ygk")
+metadata/match_binding = "drink_charge_outline"
+
+[node name="DrinkNameLabel" type="Label" parent="TableSurface/DrinkProps/ActiveDrink" unique_id=256368255]
+layout_mode = 0
+offset_left = 4.0
+offset_top = 150.0
+offset_right = 108.0
+offset_bottom = 176.0
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.972549, 0.929412, 0.811765, 1)
+theme_override_font_sizes/font_size = 11
+theme_override_styles/normal = SubResource("StyleBoxFlat_jqd6r")
+text = "TRA DA"
+horizontal_alignment = 1
+vertical_alignment = 1
+text_overrun_behavior = 3
+metadata/match_binding = "drink_name_label"
 
 [node name="DrawPile" type="Control" parent="TableSurface" unique_id=718384281]
 anchors_preset = 0
@@ -1830,69 +1854,6 @@ anchors_preset = 0
 anchor_bottom = 1.0
 anchor_right = 1.0
 mouse_filter = 2
-
-[node name="DrinkArea" type="Panel" parent="UtilityRail" unique_id=1995672945]
-layout_mode = 0
-anchor_left = 1.0
-anchor_top = 1.0
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = -244.0
-offset_top = -238.0
-offset_right = -108.0
-offset_bottom = -124.0
-mouse_filter = 1
-theme_override_styles/panel = SubResource("StyleBoxFlat_lrbf3")
-
-[node name="DrinkTitleLabel" type="Label" parent="UtilityRail/DrinkArea" unique_id=1993699575]
-layout_mode = 0
-offset_left = 9.0
-offset_top = 7.0
-offset_right = 127.0
-offset_bottom = 30.0
-theme_override_colors/font_color = Color(0.9607843, 0.7490196, 0.25882354, 1)
-theme_override_font_sizes/font_size = 12
-text = "ĐỒ UỐNG"
-horizontal_alignment = 1
-metadata/match_binding = "drink_title_label"
-
-[node name="DrinkSlot" type="Button" parent="UtilityRail/DrinkArea" unique_id=110759056]
-layout_mode = 0
-offset_left = 32.0
-offset_top = 30.0
-offset_right = 104.0
-offset_bottom = 102.0
-tooltip_text = "Đồ uống hiện tại: Trà đá
-
-Mỗi lượt một lần: nhấn Đồ uống trước, rồi chọn 1 lá bài rời để đổi nó với lá bỏ mới nhất. Số lá trên tay không đổi."
-mouse_default_cursor_shape = 2
-theme_override_styles/normal = SubResource("StyleBoxFlat_jqd6r")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_t5xnm")
-theme_override_styles/hover = SubResource("StyleBoxFlat_fmjv5")
-disabled = true
-metadata/match_binding = "drink_button"
-
-[node name="DrinkChargeOutline" type="Control" parent="UtilityRail/DrinkArea/DrinkSlot" unique_id=1694875106]
-anchors_preset = 0
-offset_left = -7.0
-offset_top = -7.0
-offset_right = 79.0
-offset_bottom = 79.0
-mouse_filter = 2
-script = ExtResource("4_e8ygk")
-metadata/match_binding = "drink_charge_outline"
-
-[node name="DrinkNameLabel" type="Label" parent="UtilityRail/DrinkArea/DrinkSlot" unique_id=256368255]
-layout_mode = 0
-anchor_right = 1.0
-anchor_bottom = 1.0
-theme_override_colors/font_color = Color(0.4745098, 0.78431374, 0.2627451, 1)
-theme_override_font_sizes/font_size = 11
-text = "TRÀ ĐÁ"
-horizontal_alignment = 1
-vertical_alignment = 1
-autowrap_mode = 3
-metadata/match_binding = "drink_name_label"
 
 [node name="RelicsArea" type="Panel" parent="UtilityRail" unique_id=880219923]
 layout_mode = 0

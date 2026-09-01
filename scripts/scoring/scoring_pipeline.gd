@@ -98,4 +98,3 @@ func _apply_modifiers(context: ScoringContext) -> void:
 
 func _calculate_theoretical(context: ScoringContext) -> int:
 	return maxi(context.base_score * context.local_mult + context.flat_adjustment_points, 0)
-

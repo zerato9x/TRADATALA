@@ -49,7 +49,7 @@ var state: String = STATE_ACTIVE
 var last_phase_resolution: Dictionary = {}
 var current_drink_id: String = DrinkCatalog.TRA_DA
 var tra_da_used_this_turn: bool = false
-var nhan_tran_used_this_turn: bool = false
+var nhan_tran_used_this_phase: bool = false
 var nuoc_voi_used_phases: Dictionary = {}
 var sam_dua_preserved_cards: Array[CardData] = []
 var sam_dua_used: bool = false
@@ -132,81 +132,59 @@ func set_current_drink(drink_id: String) -> Dictionary:
 	return result
 
 
-func use_tra_da(card: CardData) -> Dictionary:
-	if current_drink_id != DrinkCatalog.TRA_DA:
-		return _failure("Trà đá is not the active Drink.")
-	if state != STATE_ACTIVE:
-		return _failure("Trà đá is only available during an active turn.")
-	if tra_da_used_this_turn:
-		return _failure("Trà đá has already been used this turn.")
+func can_use_tra_da(card: CardData, record: DiscardRecord = null) -> bool:
+	if current_drink_id != DrinkCatalog.TRA_DA or state != STATE_ACTIVE or tra_da_used_this_turn:
+		return false
 	if card == null or not hand.has(card):
-		return _failure("Select one loose hand card to swap.")
-	if deck.discard_pile.is_empty():
-		return _failure("There is no latest discard to swap.")
-	var recovered: CardData = deck.discard_pile[-1]
-	deck.discard_pile[-1] = card
-	hand.erase(card)
-	hand.append(recovered)
-	if not discard_history.is_empty() and discard_history[-1].card == recovered:
-		discard_history[-1].card = card
+		return false
+	var latest := latest_mandatory_discard()
+	if latest == null or (record != null and record != latest):
+		return false
+	return _discard_pile_index(latest.card) >= 0
+
+
+func use_tra_da(card: CardData, record: DiscardRecord = null) -> Dictionary:
+	var target := latest_mandatory_discard()
+	if not can_use_tra_da(card, record):
+		return _failure("Select one loose card and the latest mandatory discard.")
+	var recovered := _swap_mandatory_discard(target, card)
 	tra_da_used_this_turn = true
 	var result := {
 		"ok": true,
 		"action": "tra_da_swap",
 		"discarded": card,
 		"recovered": recovered,
+		"discard_record": target,
 	}
 	state_changed.emit(result)
 	return result
 
 
-func use_nhan_tran(card: CardData) -> Dictionary:
-	if current_drink_id != DrinkCatalog.NHAN_TRAN:
-		return _failure("Nhân trần is not the active Drink.")
-	if state != STATE_ACTIVE or discard_count >= DISCARDS_PER_PHASE:
-		return _failure("The extra discard is unavailable after the final mandatory discard.")
-	if nhan_tran_used_this_turn:
-		return _failure("Nhân trần has already been used this turn.")
-	if card == null or not hand.has(card):
-		return _failure("Select one loose hand card for the extra discard.")
-	if hand.size() <= 1:
-		return _failure("Keep one loose card for the mandatory discard.")
-	hand.erase(card)
-	deck.discard(card)
-	nhan_tran_used_this_turn = true
+func can_use_nhan_tran(card: CardData, record: DiscardRecord) -> bool:
+	if current_drink_id != DrinkCatalog.NHAN_TRAN or not _card_actions_available() or nhan_tran_used_this_phase:
+		return false
+	if card == null or not hand.has(card) or record == null:
+		return false
+	if record.kind != DiscardRecord.KIND_MANDATORY or record.phase != current_phase:
+		return false
+	if not discard_history.has(record) or _discard_pile_index(record.card) < 0:
+		return false
+	return true
+
+
+func use_nhan_tran(card: CardData, record: DiscardRecord) -> Dictionary:
+	if not can_use_nhan_tran(card, record):
+		return _failure("Select one loose card and one mandatory discard from this Phase.")
+	var recovered := _swap_mandatory_discard(record, card)
+	nhan_tran_used_this_phase = true
 	var result := {
 		"ok": true,
-		"action": "nhan_tran_extra_discard",
-		"card": card,
-		"drawn": [] as Array[CardData],
+		"action": "nhan_tran_swap",
+		"discarded": card,
+		"recovered": recovered,
+		"discard_record": record,
 	}
 	state_changed.emit(result)
-	return result
-
-
-func can_discard_with_nhan_tran(selected_cards: Array[CardData]) -> bool:
-	if current_drink_id != DrinkCatalog.NHAN_TRAN or not current_drink_has_charge():
-		return false
-	if selected_cards.size() != 2:
-		return false
-	var extra_card := selected_cards[0]
-	var mandatory_card := selected_cards[1]
-	if extra_card == null or mandatory_card == null or extra_card.unique_id == mandatory_card.unique_id:
-		return false
-	return hand.has(extra_card) and hand.has(mandatory_card)
-
-
-func discard_with_nhan_tran(selected_cards: Array[CardData]) -> Dictionary:
-	if not can_discard_with_nhan_tran(selected_cards):
-		return _failure("Select two loose hand cards for the combined drink discard.")
-	var extra_result := use_nhan_tran(selected_cards[0])
-	if not extra_result.get("ok", false):
-		return extra_result
-	var result := discard_card(selected_cards[1])
-	if not result.get("ok", false):
-		return result
-	result["action"] = "nhan_tran_batch_discard"
-	result["extra_card"] = extra_result["card"]
 	return result
 
 
@@ -252,8 +230,8 @@ func select_sam_dua_preserves(cards: Array[CardData]) -> Dictionary:
 		return _failure("Sâm dứa is prepared during the Phase 1 to Phase 2 transition.")
 	if sam_dua_used:
 		return _failure("Sâm dứa has already been used this Deal.")
-	if cards.size() > 2:
-		return _failure("Sâm dứa can preserve at most two loose cards.")
+	if cards.size() > 3:
+		return _failure("Sâm dứa can preserve at most three loose cards.")
 	var seen_ids := {}
 	for card in cards:
 		if card == null or not hand.has(card) or seen_ids.has(card.unique_id):
@@ -274,13 +252,13 @@ func select_sam_dua_preserves(cards: Array[CardData]) -> Dictionary:
 func current_drink_has_charge() -> bool:
 	match current_drink_id:
 		DrinkCatalog.TRA_DA:
-			return not tra_da_used_this_turn and state == STATE_ACTIVE
+			return not tra_da_used_this_turn and state == STATE_ACTIVE and latest_mandatory_discard() != null
 		DrinkCatalog.NHAN_TRAN:
-			return not nhan_tran_used_this_turn and state == STATE_ACTIVE and discard_count < DISCARDS_PER_PHASE
+			return not nhan_tran_used_this_phase and _card_actions_available() and not discard_history_for_phase(current_phase).is_empty()
 		DrinkCatalog.NUOC_VOI:
 			return current_phase in [1, 2] and not nuoc_voi_used_phases.has(current_phase) and _card_actions_available()
 		DrinkCatalog.SAM_DUA:
-			return not sam_dua_used and current_phase == 1 and state != STATE_DEAL_OVER
+			return not sam_dua_used and current_phase == 1 and state in [STATE_FINAL_COMMIT_WINDOW, STATE_PHASE_CHOICE]
 	return false
 
 
@@ -322,7 +300,8 @@ func extend_meld(meld_id: int, selected_cards: Array[CardData]) -> Dictionary:
 		return _failure("Choose a table Meld to extend.")
 	if not meld.can_extend(selected_cards):
 		return _failure("Those cards do not legally extend the chosen Meld.")
-	var old_score := meld.scored_points if meld.scored_points > 0 else ScoringPipeline.meld_value(meld.cards)
+	var old_score := ScoringPipeline.meld_value(meld.cards)
+	var banked_score := meld.scored_points
 	_remove_from_hand(selected_cards)
 	if state == STATE_ACTIVE:
 		_turn_committed_card_count += selected_cards.size()
@@ -330,7 +309,7 @@ func extend_meld(meld_id: int, selected_cards: Array[CardData]) -> Dictionary:
 	additions.append_array(selected_cards)
 	meld.extend(selected_cards)
 	var context := scoring.score_extension(meld.cards, meld.meld_type, old_score, current_phase, additions)
-	meld.scored_points = maxi(old_score, context.theoretical_score)
+	meld.scored_points = maxi(banked_score, context.theoretical_score)
 	phase_metrics.extension_count += 1
 	_record_phase_points(context.final_points, "extension")
 	extension_scored.emit(context)
@@ -353,7 +332,7 @@ func discard_card(card: CardData) -> Dictionary:
 	hand.erase(card)
 	deck.discard(card)
 	discard_count += 1
-	discard_history.append(DiscardRecord.new(card, current_phase, discard_count))
+	discard_history.append(DiscardRecord.new(card, current_phase, discard_count, DiscardRecord.KIND_MANDATORY))
 	if completed_u:
 		phase_metrics.u = true
 		u_triggered.emit({"phase": current_phase, "card": card})
@@ -394,7 +373,7 @@ func choose_phase_two(keep_hand: bool) -> Dictionary:
 	if not keep_hand:
 		if current_drink_id == DrinkCatalog.SAM_DUA:
 			for card in sam_dua_preserved_cards:
-				if hand.has(card) and preserved.size() < 2:
+				if hand.has(card) and preserved.size() < 3:
 					preserved.append(card)
 		for card in hand:
 			if not preserved.has(card):
@@ -503,14 +482,33 @@ func deadwood_points() -> int:
 func discard_history_for_phase(phase: int) -> Array[DiscardRecord]:
 	var records: Array[DiscardRecord] = []
 	for record in discard_history:
-		if record.phase == phase:
+		if record.kind == DiscardRecord.KIND_MANDATORY and record.phase == phase:
 			records.append(record)
 	return records
 
 
+func latest_mandatory_discard(phase: int = -1) -> DiscardRecord:
+	var target_phase := current_phase if phase < 0 else phase
+	var records := discard_history_for_phase(target_phase)
+	return records[-1] if not records.is_empty() else null
+
+
+func drink_mandatory_discard_targets() -> Array[DiscardRecord]:
+	var targets: Array[DiscardRecord] = []
+	if not current_drink_has_charge():
+		return targets
+	match current_drink_id:
+		DrinkCatalog.TRA_DA:
+			var latest := latest_mandatory_discard()
+			if latest != null:
+				targets.append(latest)
+		DrinkCatalog.NHAN_TRAN:
+			targets.append_array(discard_history_for_phase(current_phase))
+	return targets
+
+
 func _begin_active_turn() -> Array[CardData]:
 	tra_da_used_this_turn = false
-	nhan_tran_used_this_turn = false
 	var all_drawn: Array[CardData] = []
 	all_drawn.append_array(deck.refill(hand, ACTIVE_HAND_TARGET))
 	while hand.size() == ACTIVE_HAND_TARGET and not _has_near_meld(hand):
@@ -640,13 +638,14 @@ func _reset_phase_metrics() -> void:
 	phase_metrics.reset()
 	phase_earnings_points = 0
 	phase_new_meld_count = 0
+	nhan_tran_used_this_phase = false
 	_turn_started_with_ten = false
 	_turn_committed_card_count = 0
 
 
 func _reset_drink_usage() -> void:
 	tra_da_used_this_turn = false
-	nhan_tran_used_this_turn = false
+	nhan_tran_used_this_phase = false
 	nuoc_voi_used_phases.clear()
 	sam_dua_preserved_cards.clear()
 	sam_dua_used = false
@@ -655,6 +654,23 @@ func _reset_drink_usage() -> void:
 func _remove_from_hand(cards: Array[CardData]) -> void:
 	for card in cards:
 		hand.erase(card)
+
+
+func _discard_pile_index(card: CardData) -> int:
+	for index in range(deck.discard_pile.size()):
+		if deck.discard_pile[index] == card:
+			return index
+	return -1
+
+
+func _swap_mandatory_discard(record: DiscardRecord, hand_card: CardData) -> CardData:
+	var discard_index := _discard_pile_index(record.card)
+	var recovered := record.card
+	deck.discard_pile[discard_index] = hand_card
+	hand.erase(hand_card)
+	hand.append(recovered)
+	record.card = hand_card
+	return recovered
 
 
 func _failure(message: String) -> Dictionary:

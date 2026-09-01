@@ -23,10 +23,11 @@ const DRINK_HALF_TEXTURES := {
 	DrinkCatalog.NHAN_TRAN: preload("res://assets/drinks/nhan_tran_half.png"),
 	DrinkCatalog.SAM_DUA: preload("res://assets/drinks/sam_dua_half.png"),
 }
-const DRINK_TABLE_PROP_SIZE := Vector2(112, 144)
-const DRINK_TABLE_MORNING_POSITION := Vector2(70, 260)
-const DRINK_TABLE_EMPTY_POSITION := Vector2(30, 245)
-const DRINK_TABLE_NOON_POSITION := Vector2(100, 260)
+const DRINK_TABLE_PROP_SIZE := Vector2(112, 178)
+const DRINK_TABLE_SPRITE_SIZE := Vector2(112, 144)
+const DRINK_TABLE_MORNING_POSITION := Vector2(1033, 398)
+const DRINK_TABLE_EMPTY_POSITION := Vector2(1033, 254)
+const DRINK_TABLE_NOON_POSITION := Vector2(1033, 398)
 const DROP_TARGET_NONE := &"none"
 const DROP_TARGET_HAND := &"hand"
 const DROP_TARGET_TABLE := &"table"
@@ -131,7 +132,6 @@ var reactive_meld_cards_by_band: Dictionary = {}
 var music_controller: ReactiveMusicController
 var relic_grid: GridContainer
 var drink_name_label: Label
-var drink_button: Button
 var drink_charge_outline: Control
 var drink_table_button: Button
 var drink_table_texture: TextureRect
@@ -141,6 +141,7 @@ var drink_hover_active: bool = false
 var pending_drink_card_ids: Dictionary = {}
 var selected_drink_meld_id: int = -1
 var selected_drink_meld_card_id: String = ""
+var selected_drink_discard_key: String = ""
 
 var earnings_value: Label
 var vnd_per_point_value: Label
@@ -162,6 +163,7 @@ var meld_views: Dictionary = {}
 var discard_history_row: HBoxContainer
 var discard_history_title: Label
 var discard_history_target_outlines: Dictionary = {}
+var discard_history_target_holders: Dictionary = {}
 var draw_pile_visual: Control
 var discard_pile_visual: Control
 var ha_button: Button
@@ -170,7 +172,6 @@ var discard_button: Button
 var settle_button: Button
 var hint_button: Button
 var sort_button: Button
-var drink_title_label: Label
 var relic_title_label: Label
 var particle_layer: Control
 var active_drag_payload
@@ -340,9 +341,6 @@ func _connect_editor_interface_signals() -> void:
 	_connect_signal_once(drink_table_button.mouse_exited, _on_drink_hover_ended)
 	_connect_signal_once((pile_archive_buttons["draw"] as Button).pressed, _on_draw_archive_pressed)
 	_connect_signal_once((pile_archive_buttons["discard"] as Button).pressed, _on_discard_archive_pressed)
-	_connect_signal_once(drink_button.pressed, _on_drink_pressed)
-	_connect_signal_once(drink_button.mouse_entered, _on_drink_hover_started)
-	_connect_signal_once(drink_button.mouse_exited, _on_drink_hover_ended)
 	_connect_signal_once(hint_button.pressed, _on_hint_pressed)
 	_connect_signal_once(sort_button.pressed, _on_sort_pressed)
 	_connect_signal_once(ha_button.pressed, _on_ha_pressed)
@@ -531,7 +529,6 @@ func _refresh_localized_ui() -> void:
 	(pile_caption_labels.get("discard") as Label).text = tr("PILE_DISCARD")
 	(pile_archive_buttons.get("draw") as Button).tooltip_text = tr("PILE_DRAW_TOOLTIP")
 	(pile_archive_buttons.get("discard") as Button).tooltip_text = tr("PILE_DISCARD_TOOLTIP")
-	drink_title_label.text = tr("HUD_DRINK")
 	relic_title_label.text = tr("HUD_RELICS")
 	hint_button.text = tr("ACTION_HINT")
 	hint_button.tooltip_text = tr("ACTION_HINT_TOOLTIP")
@@ -1127,16 +1124,16 @@ func _sync_all(result: Dictionary = {}, animate_all_cards: bool = false) -> void
 		animated_cards.append_array(deal.hand)
 	_sync_hand(animated_cards)
 	_sync_card_probability_badges()
+	_sync_discard_history()
 	_sync_card_action_outlines()
 	_sync_melds()
 	_sync_music_reactive_cards()
 	_sync_piles()
-	_sync_discard_history()
 	if discard_archive_overlay.visible:
 		_sync_pile_archive()
 	if drink_name_label != null:
 		drink_name_label.text = tr(DrinkCatalog.display_name(deal.current_drink_id)).to_upper()
-		drink_button.tooltip_text = _drink_tooltip()
+		drink_table_button.tooltip_text = _drink_tooltip()
 		drink_charge_outline.set_drink_cue(deal.current_drink_has_charge())
 		_sync_drink_table_visual()
 	_refresh_stats()
@@ -1148,7 +1145,7 @@ func _drink_is_spent_in_current_window() -> bool:
 		DrinkCatalog.TRA_DA:
 			return deal.tra_da_used_this_turn
 		DrinkCatalog.NHAN_TRAN:
-			return deal.nhan_tran_used_this_turn
+			return deal.nhan_tran_used_this_phase
 		DrinkCatalog.NUOC_VOI:
 			return deal.nuoc_voi_used_phases.has(deal.current_phase)
 		DrinkCatalog.SAM_DUA:
@@ -1254,16 +1251,20 @@ func _drink_hand_eligible_card_ids() -> Dictionary:
 	var eligible := {}
 	if not _drink_preview_active():
 		return eligible
-	var hand_is_eligible := false
-	match deal.current_drink_id:
-		DrinkCatalog.TRA_DA:
-			hand_is_eligible = deal.state == DealState.STATE_ACTIVE and not deal.tra_da_used_this_turn and not deal.deck.discard_pile.is_empty()
-		DrinkCatalog.NHAN_TRAN:
-			hand_is_eligible = deal.state == DealState.STATE_ACTIVE and deal.discard_count < DealState.DISCARDS_PER_PHASE and not deal.nhan_tran_used_this_turn and deal.hand.size() > 1
-		DrinkCatalog.SAM_DUA:
-			hand_is_eligible = deal.current_phase == 1 and deal.state == DealState.STATE_FINAL_COMMIT_WINDOW and not deal.sam_dua_used
-	if hand_is_eligible:
-		for card in deal.hand:
+	var discard_targets := deal.drink_mandatory_discard_targets()
+	for card in deal.hand:
+		var card_is_eligible := false
+		match deal.current_drink_id:
+			DrinkCatalog.TRA_DA:
+				card_is_eligible = deal.can_use_tra_da(card)
+			DrinkCatalog.NHAN_TRAN:
+				for record in discard_targets:
+					if deal.can_use_nhan_tran(card, record):
+						card_is_eligible = true
+						break
+			DrinkCatalog.SAM_DUA:
+				card_is_eligible = deal.current_phase == 1 and deal.state == DealState.STATE_FINAL_COMMIT_WINDOW and not deal.sam_dua_used
+		if card_is_eligible:
 			eligible[card.unique_id] = true
 	return eligible
 
@@ -1423,6 +1424,7 @@ func _sync_piles() -> void:
 
 func _sync_discard_history() -> void:
 	discard_history_target_outlines.clear()
+	discard_history_target_holders.clear()
 	for child in discard_history_row.get_children():
 		discard_history_row.remove_child(child)
 		child.queue_free()
@@ -1432,6 +1434,7 @@ func _sync_discard_history() -> void:
 		empty.add_theme_font_size_override("font_size", 10)
 		empty.add_theme_color_override("font_color", PresentationTheme.MUTED)
 		discard_history_row.add_child(empty)
+		_sync_discard_history_drink_targets()
 		return
 	for phase_number in [1, 2]:
 		var records := deal.discard_history_for_phase(phase_number)
@@ -1447,15 +1450,19 @@ func _sync_discard_history() -> void:
 		discard_history_row.add_child(phase_label)
 		for record in records:
 			discard_history_row.add_child(_build_discard_thumbnail(record))
+	_sync_discard_history_drink_targets()
 
 
 func _build_discard_thumbnail(record: DiscardRecord) -> Control:
 	var holder := Control.new()
 	holder.custom_minimum_size = Vector2(27, 38)
-	holder.mouse_filter = Control.MOUSE_FILTER_STOP
+	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	holder.mouse_default_cursor_shape = Control.CURSOR_ARROW
 	holder.tooltip_text = tr("HUD_DISCARD_TOOLTIP") % [record.phase, record.discard_number, record.card.short_label()]
+	holder.set_meta("default_tooltip", holder.tooltip_text)
 	holder.set_meta("action_target_kind", "mandatory_discard")
 	holder.set_meta("action_target_card_id", record.card.unique_id)
+	holder.gui_input.connect(_on_discard_history_gui_input.bind(record))
 	var texture := TextureRect.new()
 	texture.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	texture.texture = load(record.card.texture_path()) as Texture2D
@@ -1483,14 +1490,37 @@ func _build_discard_thumbnail(record: DiscardRecord) -> Control:
 	badge.add_theme_stylebox_override("normal", PresentationTheme.panel_style(Color("#17120ff2"), PresentationTheme.GOLD, 1, 1, 1))
 	badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	holder.add_child(badge)
+	discard_history_target_holders[_discard_history_target_key(record)] = holder
 	return holder
+
+
+func _sync_discard_history_drink_targets() -> void:
+	var target_keys := {}
+	for record in deal.drink_mandatory_discard_targets():
+		target_keys[_discard_history_target_key(record)] = true
+	set_discard_history_drink_eligibility(target_keys, drink_targeting_active)
 
 
 func set_discard_history_drink_eligibility(target_keys: Dictionary, emphasized: bool = false) -> void:
 	for target_key in discard_history_target_outlines:
 		var outline := discard_history_target_outlines[target_key] as Control
 		if outline != null:
-			outline.set_cues(false, false, target_keys.has(target_key), emphasized)
+			var eligible: bool = target_keys.has(target_key)
+			var selected: bool = selected_drink_discard_key == target_key
+			outline.set_cues(false, false, eligible or selected, emphasized and (eligible or selected))
+			var holder := discard_history_target_holders.get(target_key) as Control
+			if holder != null:
+				holder.mouse_filter = Control.MOUSE_FILTER_STOP if eligible or selected else Control.MOUSE_FILTER_IGNORE
+				holder.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND if eligible or selected else Control.CURSOR_ARROW
+				holder.tooltip_text = tr("DRINK_DISCARD_TARGET_VALID") if eligible or selected else String(holder.get_meta("default_tooltip", ""))
+
+
+func _on_discard_history_gui_input(event: InputEvent, record: DiscardRecord) -> void:
+	if not drink_targeting_active:
+		return
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+		accept_event()
+		_on_drink_discard_targeted(record)
 
 
 func _discard_history_target_key(record: DiscardRecord) -> String:
@@ -1517,17 +1547,14 @@ func _refresh_stats() -> void:
 
 func _refresh_actions() -> void:
 	var selected := _selected_cards()
-	var can_batch_nhan_tran_discard := not drink_targeting_active and deal.can_discard_with_nhan_tran(selected)
-	if drink_button != null:
-		drink_button.disabled = tutorial_active or interaction_locked or deal.current_drink_id == DrinkCatalog.NONE or (not drink_targeting_active and not deal.current_drink_has_charge())
-		if drink_table_button != null:
-			drink_table_button.disabled = drink_button.disabled
+	if drink_table_button != null:
+		drink_table_button.disabled = tutorial_active or interaction_locked or deal.current_drink_id == DrinkCatalog.NONE or (not drink_targeting_active and not deal.current_drink_has_charge())
 	var card_window := deal.state in [DealState.STATE_ACTIVE, DealState.STATE_FINAL_COMMIT_WINDOW] and not interaction_locked
 	var active_turn := deal.state == DealState.STATE_ACTIVE and not interaction_locked
 	ha_button.disabled = not card_window or not deal.can_create_meld(selected)
 	extend_button.disabled = not card_window or selected_meld_id < 0 or not deal.can_extend_meld(selected_meld_id, selected)
-	discard_button.disabled = not active_turn or (selected.size() != 1 and not can_batch_nhan_tran_discard)
-	discard_button.tooltip_text = tr("ACTION_NHAN_TRAN_DISCARD_TOOLTIP") if can_batch_nhan_tran_discard else tr("ACTION_DISCARD_TOOLTIP")
+	discard_button.disabled = not active_turn or selected.size() != 1
+	discard_button.tooltip_text = tr("ACTION_DISCARD_TOOLTIP")
 	settle_button.disabled = deal.state != DealState.STATE_FINAL_COMMIT_WINDOW or interaction_locked
 	hint_button.disabled = not card_window or deal.hand.is_empty()
 	sort_button.disabled = not card_window or deal.hand.size() < 2
@@ -1550,7 +1577,7 @@ func _refresh_actions() -> void:
 		status_label.add_theme_color_override("font_color", PresentationTheme.MUTED)
 		return
 	if drink_targeting_active:
-		status_label.text = tr("STATUS_DRINK_TARGETING_SAM_DUA") % pending_drink_card_ids.size() if deal.current_drink_id == DrinkCatalog.SAM_DUA else tr("STATUS_DRINK_TARGETING_ONE")
+		status_label.text = _drink_target_status()
 		status_label.add_theme_color_override("font_color", CardActionOutline.DRINK_HIGHLIGHT)
 		return
 	if deal.state == DealState.STATE_PHASE_CHOICE:
@@ -1585,15 +1612,30 @@ func _refresh_actions() -> void:
 			VndWallet.format_vnd(_points_to_vnd(points), true),
 		]
 		status_label.add_theme_color_override("font_color", PresentationTheme.GOLD)
-	elif can_batch_nhan_tran_discard:
-		status_label.text = tr("STATUS_NHAN_TRAN_BATCH_DISCARD")
-		status_label.add_theme_color_override("font_color", CardActionOutline.DRINK_HIGHLIGHT)
 	elif selected.size() == 1:
 		status_label.text = tr("STATUS_ONE_SELECTED")
 		status_label.add_theme_color_override("font_color", PresentationTheme.INK)
 	else:
 		status_label.text = tr("STATUS_INVALID_MELD")
 		status_label.add_theme_color_override("font_color", PresentationTheme.RED)
+
+
+func _drink_target_status() -> String:
+	match deal.current_drink_id:
+		DrinkCatalog.TRA_DA:
+			return tr("STATUS_DRINK_TARGETING_TRA_DA_HAND") if not selected_drink_discard_key.is_empty() else tr("STATUS_DRINK_TARGETING_TRA_DA")
+		DrinkCatalog.NHAN_TRAN:
+			if pending_drink_card_ids.is_empty() and selected_drink_discard_key.is_empty():
+				return tr("STATUS_DRINK_TARGETING_NHAN_TRAN")
+			if pending_drink_card_ids.is_empty():
+				return tr("STATUS_DRINK_TARGETING_NHAN_TRAN_HAND")
+			if selected_drink_discard_key.is_empty():
+				return tr("STATUS_DRINK_TARGETING_NHAN_TRAN_DISCARD")
+			return tr("STATUS_DRINK_TARGETING_NHAN_TRAN")
+		DrinkCatalog.SAM_DUA:
+			return tr("STATUS_DRINK_TARGETING_SAM_DUA") % pending_drink_card_ids.size()
+		_:
+			return tr("STATUS_DRINK_TARGETING_ONE")
 
 
 func _input(event: InputEvent) -> void:
@@ -1958,6 +2000,7 @@ func _on_meld_card_pressed(meld_id: int, card: CardData) -> void:
 
 func _on_drink_hover_started() -> void:
 	drink_hover_active = true
+	_sync_discard_history()
 	_sync_card_action_outlines()
 	_sync_melds()
 	_pulse_drink_eligible_targets(0.7)
@@ -1965,6 +2008,7 @@ func _on_drink_hover_started() -> void:
 
 func _on_drink_hover_ended() -> void:
 	drink_hover_active = false
+	_sync_discard_history()
 	_sync_card_action_outlines()
 	_sync_melds()
 
@@ -1987,12 +2031,12 @@ func _on_drink_pressed() -> void:
 		return
 	match deal.current_drink_id:
 		DrinkCatalog.TRA_DA:
-			if deal.deck.discard_pile.is_empty():
+			if deal.drink_mandatory_discard_targets().is_empty():
 				_reject_action(tr("DRINK_TRA_DA_NO_DISCARD"))
 				return
 		DrinkCatalog.NHAN_TRAN:
-			if deal.hand.size() <= 1:
-				_reject_action(tr("DRINK_NHAN_TRAN_NEEDS_DISCARD"))
+			if deal.drink_mandatory_discard_targets().is_empty():
+				_reject_action(tr("DRINK_NHAN_TRAN_NO_DISCARD"))
 				return
 		DrinkCatalog.NUOC_VOI:
 			if not _has_nuoc_voi_target():
@@ -2011,15 +2055,19 @@ func _on_drink_pressed() -> void:
 	selected_meld_id = -1
 	selected_drink_meld_id = -1
 	selected_drink_meld_card_id = ""
+	selected_drink_discard_key = ""
 	_sync_all()
-	_show_banner(tr("BANNER_DRINK_TARGET_SAM_DUA") if deal.current_drink_id == DrinkCatalog.SAM_DUA else tr("BANNER_DRINK_TARGET_ONE"))
+	var banner_key := "BANNER_DRINK_TARGET_SAM_DUA" if deal.current_drink_id == DrinkCatalog.SAM_DUA else (
+		"BANNER_DRINK_TARGET_NHAN_TRAN" if deal.current_drink_id == DrinkCatalog.NHAN_TRAN else "BANNER_DRINK_TARGET_TRA_DA"
+	)
+	_show_banner(tr(banner_key))
 
 
 func _on_drink_hand_card_targeted(card: CardData) -> void:
 	if deal.current_drink_id == DrinkCatalog.SAM_DUA:
 		if pending_drink_card_ids.has(card.unique_id):
 			pending_drink_card_ids.erase(card.unique_id)
-		elif pending_drink_card_ids.size() < 2:
+		elif pending_drink_card_ids.size() < 3:
 			pending_drink_card_ids[card.unique_id] = true
 		else:
 			var rejected_view := hand_views.get(card.unique_id) as PlayingCardView
@@ -2027,22 +2075,87 @@ func _on_drink_hand_card_targeted(card: CardData) -> void:
 				rejected_view.play_reject()
 			_show_banner(tr("BANNER_DRINK_SAM_DUA_LIMIT"))
 			return
-		_sync_card_action_outlines()
+		_sync_all()
 		_refresh_actions()
 		return
 	if deal.current_drink_id not in [DrinkCatalog.TRA_DA, DrinkCatalog.NHAN_TRAN]:
 		return
+	if card == null or not deal.hand.has(card):
+		return
 	pending_drink_card_ids.clear()
 	pending_drink_card_ids[card.unique_id] = true
-	_sync_card_action_outlines()
-	_resolve_hand_drink_target(card)
+	var record := _selected_drink_discard_record()
+	if deal.current_drink_id == DrinkCatalog.TRA_DA:
+		if record == null:
+			record = deal.latest_mandatory_discard()
+		if record == null or not deal.can_use_tra_da(card, record):
+			_reject_action(tr("DRINK_TRA_DA_NO_DISCARD"))
+			return
+		_sync_all()
+		_resolve_hand_drink_target(card, record)
+		return
+	if record == null:
+		_sync_all()
+		_show_banner(tr("STATUS_DRINK_TARGETING_NHAN_TRAN_DISCARD"))
+		return
+	if not deal.can_use_nhan_tran(card, record):
+		_reject_action(tr("DRINK_DISCARD_TARGET_INVALID"))
+		return
+	_sync_all()
+	_resolve_hand_drink_target(card, record)
 
 
-func _resolve_hand_drink_target(card: CardData) -> void:
+func _on_drink_discard_targeted(record: DiscardRecord) -> void:
+	if interaction_locked or not drink_targeting_active or record == null:
+		return
+	var target_keys := {}
+	for candidate in deal.drink_mandatory_discard_targets():
+		target_keys[_discard_history_target_key(candidate)] = true
+	var target_key := _discard_history_target_key(record)
+	if not target_keys.has(target_key):
+		_show_banner(tr("DRINK_DISCARD_TARGET_INVALID"))
+		return
+	selected_drink_discard_key = target_key
+	var pending := _pending_drink_cards()
+	if deal.current_drink_id == DrinkCatalog.TRA_DA:
+		if pending.is_empty():
+			_sync_all()
+			_show_banner(tr("STATUS_DRINK_TARGETING_TRA_DA_HAND"))
+		else:
+			_sync_all()
+			_resolve_hand_drink_target(pending[0], record)
+		return
+	if deal.current_drink_id == DrinkCatalog.NHAN_TRAN:
+		if pending.is_empty():
+			_sync_all()
+			_show_banner(tr("STATUS_DRINK_TARGETING_NHAN_TRAN_HAND"))
+		else:
+			_sync_all()
+			_resolve_hand_drink_target(pending[0], record)
+
+
+func _selected_drink_discard_record() -> DiscardRecord:
+	if selected_drink_discard_key.is_empty():
+		return null
+	for record in deal.drink_mandatory_discard_targets():
+		if _discard_history_target_key(record) == selected_drink_discard_key:
+			return record
+	return null
+
+
+func _discard_history_target_center(record: DiscardRecord) -> Vector2:
+	if record != null:
+		var holder := discard_history_target_holders.get(_discard_history_target_key(record)) as Control
+		if holder != null:
+			return holder.get_global_rect().get_center()
+	return discard_texture.get_global_rect().get_center()
+
+
+func _resolve_hand_drink_target(card: CardData, record: DiscardRecord) -> void:
 	interaction_locked = true
 	_refresh_actions()
-	await _fly_cards([card] as Array[CardData], discard_texture.get_global_rect().get_center())
-	var result: Dictionary = deal.use_tra_da(card) if deal.current_drink_id == DrinkCatalog.TRA_DA else deal.use_nhan_tran(card)
+	await _fly_cards([card] as Array[CardData], _discard_history_target_center(record))
+	var result: Dictionary = deal.use_tra_da(card, record) if deal.current_drink_id == DrinkCatalog.TRA_DA else deal.use_nhan_tran(card, record)
 	_finish_drink_use(result)
 
 
@@ -2064,6 +2177,7 @@ func _finish_drink_use(result: Dictionary) -> void:
 	selected_card_ids.clear()
 	selected_drink_meld_id = -1
 	selected_drink_meld_card_id = ""
+	selected_drink_discard_key = ""
 	interaction_locked = false
 	_sync_all(result)
 	var banner_key: String = {
@@ -2083,6 +2197,7 @@ func _cancel_drink_targeting() -> void:
 	pending_drink_card_ids.clear()
 	selected_drink_meld_id = -1
 	selected_drink_meld_card_id = ""
+	selected_drink_discard_key = ""
 	_sync_all()
 
 
@@ -2112,11 +2227,11 @@ func _drink_tooltip() -> String:
 	}.get(deal.current_drink_id, "DRINK_NO_BASIC_EFFECT")
 	var status := ""
 	if drink_targeting_active:
-		status = "\n\n%s" % (tr("STATUS_DRINK_TARGETING_SAM_DUA") % pending_drink_card_ids.size() if deal.current_drink_id == DrinkCatalog.SAM_DUA else tr("STATUS_DRINK_TARGETING_ONE"))
+		status = "\n\n%s" % _drink_target_status()
 	elif deal.current_drink_id == DrinkCatalog.TRA_DA and deal.tra_da_used_this_turn:
 		status = "\n\n%s" % tr("DRINK_USED_THIS_TURN")
-	elif deal.current_drink_id == DrinkCatalog.NHAN_TRAN and deal.nhan_tran_used_this_turn:
-		status = "\n\n%s" % tr("DRINK_USED_THIS_TURN")
+	elif deal.current_drink_id == DrinkCatalog.NHAN_TRAN and deal.nhan_tran_used_this_phase:
+		status = "\n\n%s" % tr("DRINK_USED_THIS_PHASE")
 	elif deal.current_drink_id == DrinkCatalog.NUOC_VOI and deal.nuoc_voi_used_phases.has(deal.current_phase):
 		status = "\n\n%s" % tr("DRINK_USED_THIS_PHASE")
 	elif deal.current_drink_id == DrinkCatalog.SAM_DUA and deal.sam_dua_used:
@@ -2180,11 +2295,10 @@ func _on_discard_pressed() -> void:
 	var completed_tutorial_step := tutorial_step
 	var selected := _selected_cards()
 	var card := selected[0]
-	var uses_nhan_tran_batch := not drink_targeting_active and deal.can_discard_with_nhan_tran(selected)
 	interaction_locked = true
 	_refresh_actions()
 	await _fly_cards(selected, discard_texture.get_global_rect().get_center())
-	var result: Dictionary = deal.discard_with_nhan_tran(selected) if uses_nhan_tran_batch else deal.discard_card(card)
+	var result: Dictionary = deal.discard_card(card)
 	if not result.get("ok", false):
 		_reject_action(result.get("message", "Discard failed."))
 		return
@@ -2196,10 +2310,7 @@ func _on_discard_pressed() -> void:
 		_refresh_actions()
 	else:
 		var drawn: Array[CardData] = _cards_from_result(result)
-		if result.get("action", "") == "nhan_tran_batch_discard":
-			_show_banner(tr("BANNER_DRINK_NHAN_TRAN_BATCH"))
-		else:
-			_show_banner(tr("BANNER_DRAW") % [drawn.size(), deal.discard_count, DealState.DISCARDS_PER_PHASE])
+		_show_banner(tr("BANNER_DRAW") % [drawn.size(), deal.discard_count, DealState.DISCARDS_PER_PHASE])
 		interaction_locked = false
 		_refresh_actions()
 	if tutorial_active and completed_tutorial_step == TUTORIAL_DISCARD:
