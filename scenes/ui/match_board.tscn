@@ -5,6 +5,12 @@
 [ext_resource type="Texture2D" path="res://cards/red_backing.png" id="3_8panh"]
 [ext_resource type="Script" path="res://scripts/ui/card_action_outline.gd" id="4_e8ygk"]
 [ext_resource type="Script" path="res://scripts/ui/tutorial_spotlight.gd" id="5_kxltj"]
+[ext_resource type="Texture2D" path="res://assets/environment/time.png" id="6_time"]
+[ext_resource type="Script" path="res://scripts/ui/money_presentation.gd" id="7_money"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_time_morning"]
+atlas = ExtResource("6_time")
+region = Rect2(0, 0, 48, 48)
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_6wpde"]
 bg_color = Color(0.14901961, 0.21960784, 0.3254902, 1)
@@ -1370,48 +1376,8 @@ theme_override_styles/focus = SubResource("StyleBoxFlat_ykth6")
 text = "MENU"
 metadata/match_binding = "menu_button"
 
-[node name="DiscardHistoryHUD" type="PanelContainer" parent="Header/HeaderRow" unique_id=1553317299]
-custom_minimum_size = Vector2(320, 48)
-layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_848nl")
-
-[node name="MarginContainer" type="MarginContainer" parent="Header/HeaderRow/DiscardHistoryHUD" unique_id=763140166]
-layout_mode = 2
-theme_override_constants/margin_left = 6
-theme_override_constants/margin_top = 3
-theme_override_constants/margin_right = 6
-theme_override_constants/margin_bottom = 3
-
-[node name="VBoxContainer" type="VBoxContainer" parent="Header/HeaderRow/DiscardHistoryHUD/MarginContainer" unique_id=2093777902]
-layout_mode = 2
-theme_override_constants/separation = 1
-
-[node name="DiscardHistoryTitle" type="Label" parent="Header/HeaderRow/DiscardHistoryHUD/MarginContainer/VBoxContainer" unique_id=297747614]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.9607843, 0.7490196, 0.25882354, 1)
-theme_override_font_sizes/font_size = 8
-text = "LÁ ĐÃ BỎ  •  GIAI ĐOẠN + THỨ TỰ"
-horizontal_alignment = 1
-metadata/match_binding = "discard_history_title"
-
-[node name="DiscardHistoryScroll" type="ScrollContainer" parent="Header/HeaderRow/DiscardHistoryHUD/MarginContainer/VBoxContainer" unique_id=398702851]
-layout_mode = 2
-size_flags_vertical = 3
-vertical_scroll_mode = 0
-
-[node name="DiscardHistoryRow" type="HBoxContainer" parent="Header/HeaderRow/DiscardHistoryHUD/MarginContainer/VBoxContainer/DiscardHistoryScroll" unique_id=1452698027]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_constants/separation = 3
-alignment = 1
-metadata/match_binding = "discard_history_row"
-
-[node name="Control" type="Control" parent="Header/HeaderRow" unique_id=946192927]
-layout_mode = 2
-size_flags_horizontal = 3
-
 [node name="CampaignStat" type="PanelContainer" parent="Header/HeaderRow" unique_id=1816228983]
-custom_minimum_size = Vector2(170, 48)
+custom_minimum_size = Vector2(250, 48)
 layout_mode = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_mrvr3")
 
@@ -1434,13 +1400,44 @@ text = "NGÀY • MỤC TIÊU"
 metadata/match_dictionary_binding = "header_caption_labels"
 metadata/match_dictionary_key = "CampaignStat"
 
-[node name="CampaignValue" type="Label" parent="Header/HeaderRow/CampaignStat/MarginContainer/VBoxContainer" unique_id=1859088511]
+[node name="CampaignPeriodRow" type="HBoxContainer" parent="Header/HeaderRow/CampaignStat/MarginContainer/VBoxContainer" unique_id=219116]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="CampaignPeriodIcon" type="TextureRect" parent="Header/HeaderRow/CampaignStat/MarginContainer/VBoxContainer/CampaignPeriodRow" unique_id=219117]
+custom_minimum_size = Vector2(34, 34)
+layout_mode = 2
+texture_filter = 1
+mouse_filter = 2
+texture = SubResource("AtlasTexture_time_morning")
+expand_mode = 1
+stretch_mode = 5
+metadata/match_binding = "campaign_period_icon"
+
+[node name="PeriodDetails" type="VBoxContainer" parent="Header/HeaderRow/CampaignStat/MarginContainer/VBoxContainer/CampaignPeriodRow" unique_id=219118]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = -3
+
+[node name="CampaignPeriodValue" type="Label" parent="Header/HeaderRow/CampaignStat/MarginContainer/VBoxContainer/CampaignPeriodRow/PeriodDetails" unique_id=219119]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9607843, 0.7490196, 0.25882354, 1)
+theme_override_font_sizes/font_size = 12
+text = "SÁNG"
+text_overrun_behavior = 3
+metadata/match_binding = "campaign_period_value"
+
+[node name="CampaignValue" type="Label" parent="Header/HeaderRow/CampaignStat/MarginContainer/VBoxContainer/CampaignPeriodRow/PeriodDetails" unique_id=1859088511]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.972549, 0.92941177, 0.8117647, 1)
-theme_override_font_sizes/font_size = 14
+theme_override_font_sizes/font_size = 12
 text = "—"
 text_overrun_behavior = 3
 metadata/match_binding = "campaign_value"
+
+[node name="Control" type="Control" parent="Header/HeaderRow" unique_id=946192927]
+layout_mode = 2
+size_flags_horizontal = 3
 
 [node name="VndPerPointStat" type="PanelContainer" parent="Header/HeaderRow" unique_id=1681136388]
 custom_minimum_size = Vector2(120, 48)
@@ -1507,7 +1504,7 @@ text_overrun_behavior = 3
 metadata/match_binding = "earnings_value"
 
 [node name="WalletStat" type="PanelContainer" parent="Header/HeaderRow" unique_id=311644999]
-custom_minimum_size = Vector2(164, 48)
+custom_minimum_size = Vector2(248, 48)
 layout_mode = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_5tp15")
 
@@ -1518,11 +1515,22 @@ theme_override_constants/margin_top = 3
 theme_override_constants/margin_right = 8
 theme_override_constants/margin_bottom = 2
 
-[node name="VBoxContainer" type="VBoxContainer" parent="Header/HeaderRow/WalletStat/MarginContainer" unique_id=756232883]
+[node name="WalletRow" type="HBoxContainer" parent="Header/HeaderRow/WalletStat/MarginContainer"]
 layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="WalletPile" type="Control" parent="Header/HeaderRow/WalletStat/MarginContainer/WalletRow"]
+custom_minimum_size = Vector2(96, 42)
+layout_mode = 2
+mouse_filter = 2
+metadata/match_binding = "wallet_pile_anchor"
+
+[node name="WalletCopy" type="VBoxContainer" parent="Header/HeaderRow/WalletStat/MarginContainer/WalletRow"]
+layout_mode = 2
+size_flags_horizontal = 3
 theme_override_constants/separation = -2
 
-[node name="WalletStatHeaderCaptionLabels" type="Label" parent="Header/HeaderRow/WalletStat/MarginContainer/VBoxContainer" unique_id=552788666]
+[node name="WalletStatHeaderCaptionLabels" type="Label" parent="Header/HeaderRow/WalletStat/MarginContainer/WalletRow/WalletCopy" unique_id=552788666]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.7764706, 0.72156864, 0.5882353, 1)
 theme_override_font_sizes/font_size = 9
@@ -1530,11 +1538,13 @@ text = "VÍ CỦA BẠN"
 metadata/match_dictionary_binding = "header_caption_labels"
 metadata/match_dictionary_key = "WalletStat"
 
-[node name="WalletValue" type="Label" parent="Header/HeaderRow/WalletStat/MarginContainer/VBoxContainer" unique_id=1386309027]
+[node name="WalletValue" type="Label" parent="Header/HeaderRow/WalletStat/MarginContainer/WalletRow/WalletCopy" unique_id=1386309027]
 layout_mode = 2
+size_flags_vertical = 3
 theme_override_colors/font_color = Color(0.9607843, 0.7490196, 0.25882354, 1)
 theme_override_font_sizes/font_size = 15
 text = "₫0"
+vertical_alignment = 1
 text_overrun_behavior = 3
 metadata/match_binding = "wallet_value"
 
@@ -1827,6 +1837,51 @@ Chọn từ 3 lá hợp lệ rồi nhấn HẠ."
 horizontal_alignment = 1
 vertical_alignment = 1
 metadata/match_binding = "empty_meld_label"
+
+[node name="DiscardHistoryHUD" type="PanelContainer" parent="TableSurface" unique_id=1553317299]
+custom_minimum_size = Vector2(320, 58)
+layout_mode = 0
+anchor_left = 0.5
+anchor_top = 0.0
+anchor_right = 0.5
+anchor_bottom = 0.0
+offset_left = -160.0
+offset_top = 278.0
+offset_right = 160.0
+offset_bottom = 336.0
+z_index = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_848nl")
+
+[node name="MarginContainer" type="MarginContainer" parent="TableSurface/DiscardHistoryHUD" unique_id=763140166]
+layout_mode = 2
+theme_override_constants/margin_left = 6
+theme_override_constants/margin_top = 3
+theme_override_constants/margin_right = 6
+theme_override_constants/margin_bottom = 3
+
+[node name="VBoxContainer" type="VBoxContainer" parent="TableSurface/DiscardHistoryHUD/MarginContainer" unique_id=2093777902]
+layout_mode = 2
+theme_override_constants/separation = 1
+
+[node name="DiscardHistoryTitle" type="Label" parent="TableSurface/DiscardHistoryHUD/MarginContainer/VBoxContainer" unique_id=297747614]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9607843, 0.7490196, 0.25882354, 1)
+theme_override_font_sizes/font_size = 8
+text = "LÁ ĐÃ BỎ  •  GIAI ĐOẠN + THỨ TỰ"
+horizontal_alignment = 1
+metadata/match_binding = "discard_history_title"
+
+[node name="DiscardHistoryScroll" type="ScrollContainer" parent="TableSurface/DiscardHistoryHUD/MarginContainer/VBoxContainer" unique_id=398702851]
+layout_mode = 2
+size_flags_vertical = 3
+vertical_scroll_mode = 0
+
+[node name="DiscardHistoryRow" type="HBoxContainer" parent="TableSurface/DiscardHistoryHUD/MarginContainer/VBoxContainer/DiscardHistoryScroll" unique_id=1452698027]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 3
+alignment = 1
+metadata/match_binding = "discard_history_row"
 
 [node name="LooseHand" type="Panel" parent="." unique_id=2057456834]
 layout_mode = 0
@@ -2357,85 +2412,17 @@ columns = 3
 metadata/match_dictionary_binding = "discard_archive_suit_grids"
 metadata/match_dictionary_key = "Clubs"
 
-[node name="ScoreFeedback" type="Control" parent="." unique_id=370350050]
-visible = false
+[node name="MoneyPresentation" type="Control" parent="."]
 z_index = 120
-anchors_preset = 0
+layout_mode = 1
+anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 mouse_filter = 2
-metadata/match_binding = "score_overlay"
-
-[node name="ScorePanel" type="Panel" parent="ScoreFeedback" unique_id=1389179986]
-layout_mode = 0
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -270.0
-offset_top = -112.0
-offset_right = 270.0
-offset_bottom = 112.0
-pivot_offset = Vector2(270, 112)
-theme_override_styles/panel = SubResource("StyleBoxFlat_63jlh")
-metadata/match_binding = "score_panel"
-
-[node name="ColorRect" type="ColorRect" parent="ScoreFeedback/ScorePanel" unique_id=1304253720]
-layout_mode = 0
-offset_left = 18.0
-offset_top = 16.0
-offset_right = 22.0
-offset_bottom = 208.0
-mouse_filter = 2
-color = Color(0.9607843, 0.7490196, 0.25882354, 1)
-
-[node name="ScoreTitle" type="Label" parent="ScoreFeedback/ScorePanel" unique_id=1506207720]
-layout_mode = 0
-offset_left = 38.0
-offset_top = 18.0
-offset_right = 520.0
-offset_bottom = 49.0
-theme_override_colors/font_color = Color(0.9607843, 0.7490196, 0.25882354, 1)
-theme_override_font_sizes/font_size = 13
-vertical_alignment = 1
-text_overrun_behavior = 3
-metadata/match_binding = "score_title"
-
-[node name="ScoreLineA" type="Label" parent="ScoreFeedback/ScorePanel" unique_id=1732792795]
-layout_mode = 0
-offset_left = 38.0
-offset_top = 57.0
-offset_right = 520.0
-offset_bottom = 98.0
-theme_override_colors/font_color = Color(0.972549, 0.92941177, 0.8117647, 1)
-theme_override_font_sizes/font_size = 20
-vertical_alignment = 1
-text_overrun_behavior = 3
-metadata/match_binding = "score_line_a"
-
-[node name="ScoreLineB" type="Label" parent="ScoreFeedback/ScorePanel" unique_id=2145073856]
-layout_mode = 0
-offset_left = 38.0
-offset_top = 100.0
-offset_right = 520.0
-offset_bottom = 141.0
-theme_override_colors/font_color = Color(0.972549, 0.92941177, 0.8117647, 1)
-theme_override_font_sizes/font_size = 20
-vertical_alignment = 1
-text_overrun_behavior = 3
-metadata/match_binding = "score_line_b"
-
-[node name="ScorePayout" type="Label" parent="ScoreFeedback/ScorePanel" unique_id=1317635974]
-layout_mode = 0
-offset_left = 38.0
-offset_top = 151.0
-offset_right = 520.0
-offset_bottom = 203.0
-theme_override_colors/font_color = Color(0.4745098, 0.78431374, 0.2627451, 1)
-theme_override_font_sizes/font_size = 28
-vertical_alignment = 1
-text_overrun_behavior = 3
-metadata/match_binding = "score_payout"
+script = ExtResource("7_money")
+metadata/match_binding = "money_presentation"
 
 [node name="TurnBanner" type="PanelContainer" parent="." unique_id=2074021626]
 modulate = Color(1, 1, 1, 0)

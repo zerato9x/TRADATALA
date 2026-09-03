@@ -29,6 +29,13 @@ const CARD_PLACE_STREAMS: Array[AudioStream] = [
 	preload("res://assets/audio/sfx/card_place_2.mp3"),
 	preload("res://assets/audio/sfx/card_place_3.mp3"),
 ]
+const TIME_ATLAS := preload("res://assets/environment/time.png")
+const TIME_PERIOD_REGIONS := {
+	"morning": Rect2(0, 0, 48, 48),
+	"noon": Rect2(48, 0, 48, 48),
+	"afternoon": Rect2(96, 0, 48, 48),
+	"evening": Rect2(0, 48, 48, 48),
+}
 const EMPTY_DRINK_TEXTURE := preload("res://assets/drinks/glass_empty.png")
 const DRINK_FULL_TEXTURES := {
 	DrinkCatalog.TRA_DA: preload("res://assets/drinks/tra_da_full.png"),
@@ -87,6 +94,7 @@ var selected_card_ids: Dictionary = {}
 var selected_meld_id: int = -1
 var hand_views: Dictionary = {}
 var displayed_wallet_vnd: int = 0
+var pending_u_khan_presentations: Array[Dictionary] = []
 var interaction_locked: bool = false
 var sort_mode: int = 0
 var modal_mode: String = ""
@@ -182,7 +190,11 @@ var card_sfx_play_counts := {
 var earnings_value: Label
 var vnd_per_point_value: Label
 var wallet_value: Label
+var wallet_pile_anchor: Control
 var campaign_value: Label
+var campaign_period_icon: TextureRect
+var campaign_period_value: Label
+var campaign_period_textures: Dictionary = {}
 var header_caption_labels: Dictionary = {}
 var draw_count: Label
 var discard_count_label: Label
@@ -223,8 +235,9 @@ var discard_archive_suit_grids: Dictionary = {}
 var discard_archive_suit_titles: Dictionary = {}
 var discard_archive_close: Button
 
+var money_presentation: MoneyPresentation
 var score_overlay: Control
-var score_panel: Panel
+var score_panel: Control
 var score_title: Label
 var score_line_a: Label
 var score_line_b: Label
@@ -253,6 +266,7 @@ var pending_deal_presentation_unlock: bool = false
 
 func _ready() -> void:
 	_bind_editor_interface()
+	money_presentation.configure(wallet_value, wallet_pile_anchor)
 	_setup_event_table_presentation()
 	_connect_editor_interface_signals()
 	interaction_locked = true
@@ -421,6 +435,7 @@ func _connect_editor_interface_signals() -> void:
 	_connect_signal_once(discard_button.pressed, _on_discard_pressed)
 	_connect_signal_once(settle_button.pressed, _on_settle_pressed)
 	_connect_signal_once(deal.new_phom_scored, _on_deal_new_phom_scored)
+	_connect_signal_once(deal.u_triggered, _on_deal_u_triggered)
 	_connect_signal_once(deal.first_exhaustion, _on_deal_first_exhaustion)
 	_connect_signal_once(deal.true_exhaustion, _on_deal_true_exhaustion)
 	_connect_signal_once(deal.exhaustion_discard_scored, _on_deal_exhaustion_discard_scored)
@@ -984,30 +999,32 @@ func _refresh_tutorial_outcome() -> void:
 	if not is_special:
 		if tutorial_outcome_visible:
 			tutorial_outcome_visible = false
-			score_overlay.visible = false
+			money_presentation.hide_ceremony()
 		return
 	tutorial_outcome_visible = true
-	score_overlay.visible = true
-	score_panel.scale = Vector2.ONE
-	score_panel.modulate = Color.WHITE
-	for label in [score_title, score_line_a, score_line_b, score_payout]:
-		label.modulate = Color.WHITE
 	match tutorial_step:
 		TUTORIAL_MOM:
-			score_title.text = tr("TUTORIAL_MOM_PANEL_TITLE")
-			score_line_a.text = tr("TUTORIAL_MOM_PANEL_LINE_A")
-			score_line_b.text = tr("TUTORIAL_MOM_PANEL_LINE_B")
-			score_payout.text = tr("TUTORIAL_MOM_PANEL_RESULT")
+			money_presentation.show_static(
+				tr("TUTORIAL_MOM_PANEL_TITLE"),
+				tr("TUTORIAL_MOM_PANEL_LINE_A"),
+				tr("TUTORIAL_MOM_PANEL_LINE_B"),
+				tr("TUTORIAL_MOM_PANEL_RESULT"),
+				true
+			)
 		TUTORIAL_U:
-			score_title.text = tr("TUTORIAL_U_PANEL_TITLE")
-			score_line_a.text = tr("TUTORIAL_U_PANEL_LINE_A")
-			score_line_b.text = tr("TUTORIAL_U_PANEL_LINE_B")
-			score_payout.text = tr("TUTORIAL_U_PANEL_RESULT")
+			money_presentation.show_static(
+				tr("TUTORIAL_U_PANEL_TITLE"),
+				tr("TUTORIAL_U_PANEL_LINE_A"),
+				tr("TUTORIAL_U_PANEL_LINE_B"),
+				tr("TUTORIAL_U_PANEL_RESULT")
+			)
 		TUTORIAL_U_KHAN:
-			score_title.text = tr("TUTORIAL_U_KHAN_PANEL_TITLE")
-			score_line_a.text = tr("TUTORIAL_U_KHAN_PANEL_LINE_A")
-			score_line_b.text = tr("TUTORIAL_U_KHAN_PANEL_LINE_B")
-			score_payout.text = tr("TUTORIAL_U_KHAN_PANEL_RESULT")
+			money_presentation.show_static(
+				tr("TUTORIAL_U_KHAN_PANEL_TITLE"),
+				tr("TUTORIAL_U_KHAN_PANEL_LINE_A"),
+				tr("TUTORIAL_U_KHAN_PANEL_LINE_B"),
+				tr("TUTORIAL_U_KHAN_PANEL_RESULT")
+			)
 
 
 func _set_tutorial_copy(progress: String, title_key: String, body_key: String) -> void:
@@ -1290,6 +1307,7 @@ func _on_event_table_deal_ready() -> void:
 	if not pending_deal_presentation_unlock:
 		return
 	pending_deal_presentation_unlock = false
+	await _drain_pending_u_khan_presentations()
 	interaction_locked = false
 	_set_hand_interaction_enabled(true)
 	_refresh_actions()
@@ -1781,6 +1799,7 @@ func _refresh_stats() -> void:
 	vnd_per_point_value.text = VndWallet.format_vnd(deal.vnd_per_point)
 	earnings_value.text = VndWallet.format_vnd(_points_to_vnd(deal.phase_earnings_points), true)
 	wallet_value.text = VndWallet.format_vnd(displayed_wallet_vnd)
+	money_presentation.sync_wallet(displayed_wallet_vnd)
 	if campaign_value != null:
 		if campaign == null or campaign.current_day().is_empty():
 			campaign_value.text = "—"
@@ -1789,6 +1808,61 @@ func _refresh_stats() -> void:
 				tr(String(campaign.current_day().get("name_key", ""))),
 				VndWallet.format_vnd(campaign.daily_requirement()),
 			]
+	_refresh_campaign_period()
+
+
+func _refresh_campaign_period() -> void:
+	if campaign_period_icon == null or campaign_period_value == null:
+		return
+	var period := _current_campaign_period()
+	if period.is_empty() or not TIME_PERIOD_REGIONS.has(period):
+		campaign_period_value.text = "—"
+		campaign_period_icon.texture = null
+		campaign_period_icon.visible = false
+		return
+	campaign_period_value.text = tr(_campaign_period_key(period))
+	campaign_period_icon.texture = _campaign_period_texture(period)
+	campaign_period_icon.visible = campaign_period_icon.texture != null
+	campaign_period_icon.tooltip_text = campaign_period_value.text
+	campaign_period_value.tooltip_text = campaign_period_value.text
+
+
+func _current_campaign_period() -> String:
+	if campaign == null:
+		return ""
+	var current_phase: int = campaign.current_phase
+	if CampaignManager.DEAL_PHASE_TO_PERIOD.has(current_phase):
+		return String(CampaignManager.DEAL_PHASE_TO_PERIOD[current_phase])
+	if current_phase in [
+		CampaignManager.CampaignPhase.STARTER_EVENT,
+		CampaignManager.CampaignPhase.MORNING_DEAL,
+		CampaignManager.CampaignPhase.MORNING_EVENT,
+	]:
+		return "morning"
+	if current_phase in [
+		CampaignManager.CampaignPhase.NOON_DEAL,
+		CampaignManager.CampaignPhase.NOON_EVENT,
+	]:
+		return "noon"
+	if current_phase in [
+		CampaignManager.CampaignPhase.AFTERNOON_DEAL,
+		CampaignManager.CampaignPhase.AFTERNOON_EVENT,
+	]:
+		return "afternoon"
+	return ""
+
+
+func _campaign_period_texture(period: String) -> AtlasTexture:
+	if not TIME_PERIOD_REGIONS.has(period):
+		return null
+	var cached := campaign_period_textures.get(period) as AtlasTexture
+	if cached != null:
+		return cached
+	var texture := AtlasTexture.new()
+	texture.atlas = TIME_ATLAS
+	texture.region = TIME_PERIOD_REGIONS[period]
+	campaign_period_textures[period] = texture
+	return texture
 
 
 func _refresh_actions() -> void:
@@ -2542,6 +2616,7 @@ func _on_discard_pressed() -> void:
 	_play_card_sfx(CARD_SFX_PLACE)
 	selected_card_ids.clear()
 	_sync_all(result)
+	await _drain_pending_u_khan_presentations()
 	if result.get("extra_discard_pending", false):
 		_show_banner(tr("BANNER_TRA_DA_EXTRA_DISCARD"))
 		interaction_locked = false
@@ -2638,107 +2713,53 @@ func _on_hint_pressed() -> void:
 
 
 func _show_scoring(context: ScoringContext) -> void:
-	var kind := tr("MELD_RUN") if context.meld_type == MeldRules.TYPE_RUN else tr("MELD_SET")
-	if context.action_type == "new_meld":
-		score_title.text = tr("SCORE_MELD_SUCCESS") % [kind, context.phase]
-		score_line_a.text = "%s   →   %d" % [context.value_equation(), context.card_value_sum]
-		score_line_b.text = tr("SCORE_POINTS_EQUATION") % [context.base_score, context.local_mult, context.theoretical_score]
-		score_payout.text = "%d × %s   →   %s" % [context.final_points, VndWallet.format_vnd(deal.vnd_per_point), VndWallet.format_vnd(_points_to_vnd(context.final_points), true)]
-	else:
-		score_title.text = tr("SCORE_EXTEND_SUCCESS") % [kind, context.phase]
-		score_line_a.text = tr("SCORE_OLD_NEW") % [context.old_meld_score, context.theoretical_score]
-		score_line_b.text = tr("SCORE_DELTA") % [context.theoretical_score, context.old_meld_score, context.final_points]
-		score_payout.text = tr("SCORE_INCREASE") % VndWallet.format_vnd(_points_to_vnd(context.final_points), true)
-	await _play_score_panel(deal.wallet.balance_vnd, context.final_points >= 0)
+	var target_wallet := deal.wallet.balance_vnd
+	var amount_vnd := _points_to_vnd(context.final_points)
+	var source := meld_views.get(selected_meld_id) as Control
+	var event := {
+		"direction": "gain" if amount_vnd >= 0 else "loss",
+		"amount_vnd": absi(amount_vnd),
+		"start_wallet_vnd": displayed_wallet_vnd,
+		"target_wallet_vnd": target_wallet,
+		"source_control": source if source != null else meld_scroll,
+		"destination_control": wallet_pile_anchor,
+		"intensity": 0.72 if context.action_type == "extension" else clampf(0.9 + float(context.final_points) / 180.0, 0.9, 1.45),
+		"compact": context.action_type == "extension",
+		"title": tr("EXTEND_ACTION") if context.action_type == "extension" else "%s!" % tr("MELD_ACTION"),
+		"steps": [
+			"%d → %d" % [context.old_meld_score, context.theoretical_score] if context.action_type == "extension" else context.value_equation(),
+			"%d  ×%d" % [context.card_value_sum, context.local_mult],
+		],
+		"payout": VndWallet.format_vnd(amount_vnd, true),
+		"reason": context.action_type,
+	}
+	if context.action_type == "extension":
+		event["steps"] = [event["steps"][0]]
+	await money_presentation.present_transaction(event)
+	displayed_wallet_vnd = target_wallet
+	_refresh_stats()
 
 
 func _show_phase_resolution(resolution: Dictionary) -> void:
-	var is_mom: bool = resolution["mom"]
-	var phase_number: int = resolution["phase"]
-	score_title.text = tr("SCORE_PHASE_RESULT") % phase_number
-	if is_mom:
-		score_line_a.text = tr("SCORE_MOM")
-		score_line_a.add_theme_color_override("font_color", PresentationTheme.RED)
-		score_line_b.text = tr("SCORE_MOM_DEADWOOD") % [
-			resolution["deadwood_value_sum"],
-			resolution["deadwood_multiplier"],
-			resolution["deadwood_points"],
-		]
-	else:
-		score_line_a.text = tr("SCORE_SAFE") % resolution["new_phom_count"]
-		score_line_a.add_theme_color_override("font_color", PresentationTheme.TEA)
-		score_line_b.text = tr("SCORE_GROSS") % [resolution["gross_after_u"], tr("SCORE_U_BONUS") if resolution["u"] else ""]
-	var deadwood: int = resolution["deadwood_points"]
-	score_payout.text = tr("SCORE_NET") % [resolution["net"], resolution["gross_after_u"], deadwood]
-	await _play_score_panel(deal.wallet.balance_vnd, not is_mom)
-	score_line_a.add_theme_color_override("font_color", PresentationTheme.INK)
-
-
-func _play_score_panel(target_wallet: int, positive: bool) -> void:
-	score_overlay.visible = true
-	score_panel.scale = Vector2(0.84, 0.84)
-	score_panel.modulate = Color(1, 1, 1, 0)
-	for label in [score_line_a, score_line_b, score_payout]:
-		label.modulate = Color(1, 1, 1, 0)
-	var intro := create_tween().set_parallel(true)
-	intro.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	intro.tween_property(score_panel, "scale", Vector2.ONE, 0.24)
-	intro.tween_property(score_panel, "modulate", Color.WHITE, 0.14)
-	await intro.finished
-	await _reveal_score_label(score_line_a)
-	await _reveal_score_label(score_line_b)
-	await _reveal_score_label(score_payout)
-	await _animate_wallet_to(target_wallet, 0.52)
-	_spawn_money_float(target_wallet - displayed_wallet_vnd, positive)
-	var result_hold := 1.2 if tutorial_active else 0.34
-	await get_tree().create_timer(result_hold).timeout
-	var outro := create_tween().set_parallel(true)
-	outro.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-	outro.tween_property(score_panel, "scale", Vector2(1.04, 1.04), 0.14)
-	outro.tween_property(score_panel, "modulate", Color(1, 1, 1, 0), 0.14)
-	await outro.finished
-	score_overlay.visible = false
-
-
-func _reveal_score_label(label: Label) -> void:
-	label.position.x -= 13
-	var target_x := label.position.x + 13
-	var tween := create_tween().set_parallel(true)
-	tween.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	tween.tween_property(label, "position:x", target_x, 0.16)
-	tween.tween_property(label, "modulate", Color.WHITE, 0.12)
-	await tween.finished
-	await get_tree().create_timer(0.08).timeout
-
-
-func _animate_wallet_to(target: int, duration: float) -> void:
-	if displayed_wallet_vnd == target:
-		_refresh_stats()
-		return
-	var tween := create_tween()
-	tween.set_trans(Tween.TRANS_QUART).set_ease(Tween.EASE_OUT)
-	tween.tween_method(_set_displayed_wallet, float(displayed_wallet_vnd), float(target), duration)
-	await tween.finished
-	_set_displayed_wallet(float(target))
-
-
-func _set_displayed_wallet(value: float) -> void:
-	displayed_wallet_vnd = int(round(value))
-	wallet_value.text = VndWallet.format_vnd(displayed_wallet_vnd)
-
-
-func _spawn_money_float(_delta_vnd: int, positive: bool) -> void:
-	var label := Label.new()
-	label.text = VndWallet.format_vnd(deal.wallet.balance_vnd)
-	label.position = wallet_value.global_position - particle_layer.global_position + Vector2(0, 14)
-	label.add_theme_font_size_override("font_size", 17)
-	label.add_theme_color_override("font_color", PresentationTheme.TEA if positive else PresentationTheme.RED)
-	particle_layer.add_child(label)
-	var tween := create_tween().set_parallel(true)
-	tween.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	tween.tween_property(label, "position:y", label.position.y - 42, 0.72)
-	tween.tween_property(label, "modulate", Color(1, 1, 1, 0), 0.72).set_delay(0.16)
-	tween.chain().tween_callback(label.queue_free)
+	var target_wallet := deal.wallet.balance_vnd
+	var event := {
+		"phase": int(resolution.get("phase", 1)),
+		"title": "%s!" % tr("MOM") if bool(resolution.get("mom", false)) else "P%d" % int(resolution.get("phase", 1)),
+		"mom": bool(resolution.get("mom", false)),
+		"u": bool(resolution.get("u", false)),
+		"raw_gross_vnd": _points_to_vnd(int(resolution.get("raw_gross", 0))),
+		"gross_vnd": _points_to_vnd(int(resolution.get("gross_after_u", 0))),
+		"deadwood_value_sum": int(resolution.get("deadwood_value_sum", 0)),
+		"deadwood_multiplier": int(resolution.get("deadwood_multiplier", 1)),
+		"deadwood_vnd": _points_to_vnd(int(resolution.get("deadwood_points", 0))),
+		"net_vnd": _points_to_vnd(int(resolution.get("net", 0))),
+		"start_wallet_vnd": displayed_wallet_vnd,
+		"target_wallet_vnd": target_wallet,
+		"source_control": hand_layer,
+	}
+	await money_presentation.present_phase(event)
+	displayed_wallet_vnd = target_wallet
+	_refresh_stats()
 
 
 func _show_phase_choice(resolution: Dictionary) -> void:
@@ -2844,6 +2865,7 @@ func _start_campaign() -> void:
 	selected_card_ids.clear()
 	selected_meld_id = -1
 	displayed_wallet_vnd = 0
+	pending_u_khan_presentations.clear()
 	campaign.start_campaign(true)
 	_refresh_stats()
 
@@ -2905,6 +2927,43 @@ func _on_deal_new_phom_scored(_context: ScoringContext) -> void:
 		gameplay_music.on_new_phom(deal.current_phase, deal.phase_new_meld_count)
 
 
+func _on_deal_u_triggered(context: Dictionary) -> void:
+	if not bool(context.get("u_khan", false)):
+		return
+	var queued := context.duplicate(true)
+	var amount_vnd := _points_to_vnd(int(context.get("payout", 0)))
+	queued["amount_vnd"] = amount_vnd
+	queued["target_wallet_vnd"] = deal.wallet.balance_vnd
+	queued["start_wallet_vnd"] = deal.wallet.balance_vnd - amount_vnd
+	pending_u_khan_presentations.append(queued)
+
+
+func _drain_pending_u_khan_presentations() -> void:
+	while not pending_u_khan_presentations.is_empty():
+		var context: Dictionary = pending_u_khan_presentations.pop_front()
+		var hand_sum := 0
+		for card_value in context.get("hand", []):
+			var card := card_value as CardData
+			if card != null:
+				hand_sum += card.score_value()
+		var event := {
+			"direction": "gain",
+			"amount_vnd": int(context.get("amount_vnd", 0)),
+			"start_wallet_vnd": int(context.get("start_wallet_vnd", displayed_wallet_vnd)),
+			"target_wallet_vnd": int(context.get("target_wallet_vnd", deal.wallet.balance_vnd)),
+			"source_control": hand_layer,
+			"destination_control": wallet_pile_anchor,
+			"intensity": 2.0,
+			"title": "%s!" % tr("HOW_U_KHAN_TITLE"),
+			"steps": [str(hand_sum), "×10"],
+			"payout": VndWallet.format_vnd(int(context.get("amount_vnd", 0)), true),
+			"reason": "u_khan",
+		}
+		await money_presentation.present_transaction(event)
+		displayed_wallet_vnd = int(context.get("target_wallet_vnd", deal.wallet.balance_vnd))
+		_refresh_stats()
+
+
 func _on_deal_first_exhaustion(_context: Dictionary) -> void:
 	_show_banner(tr("BANNER_FIRST_EXHAUSTION"))
 
@@ -2919,13 +2978,31 @@ func _on_deal_exhaustion_discard_scored(context: ScoringContext) -> void:
 
 
 func _on_campaign_drink_pressed(event_slot: int, interaction_id: String, drink_id: String) -> void:
+	var previous_displayed_wallet := displayed_wallet_vnd
 	var result := drink_manager.select_for_event(event_slot, drink_id)
 	if not result.get("ok", false):
 		_show_banner(tr("EVENT_NOT_ENOUGH_VND"))
 		return
 	event_manager.complete_interaction(interaction_id)
-	displayed_wallet_vnd = deal.wallet.balance_vnd
-	event_table.event_money_feedback(_event_money_text(deal.wallet.balance_vnd))
+	var target_wallet := deal.wallet.balance_vnd
+	var paid_vnd := maxi(previous_displayed_wallet - target_wallet, 0)
+	if paid_vnd > 0:
+		await money_presentation.present_transaction({
+			"direction": "loss",
+			"amount_vnd": paid_vnd,
+			"start_wallet_vnd": previous_displayed_wallet,
+			"target_wallet_vnd": target_wallet,
+			"source_control": wallet_pile_anchor,
+			"destination_control": event_table,
+			"intensity": 0.75,
+			"compact": true,
+			"title": tr(DrinkCatalog.display_name(drink_id)).to_upper(),
+			"steps": [],
+			"payout": VndWallet.format_vnd(-paid_vnd),
+			"reason": "drink_purchase",
+		})
+	displayed_wallet_vnd = target_wallet
+	event_table.event_money_feedback(_event_money_text(target_wallet))
 	if current_campaign_event != null:
 		event_table.set_continue_enabled(current_campaign_event.can_exit)
 		_on_event_table_npc_focused(event_table.focused_npc_id)

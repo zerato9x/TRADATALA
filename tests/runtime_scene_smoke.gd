@@ -241,7 +241,9 @@ func _run() -> void:
 	_check(scene.get_node_or_null("GameLayer/ActionDock") != null, "action dock exists")
 	_check(scene.get_node_or_null("GameLayer/Header/HeaderRow/MenuButton") == scene.menu_button, "top-left HUD exposes the Menu button")
 	_check(scene.menu_button.size.x <= 72.0 and scene.menu_button.size.y <= 54.0, "Menu remains clickable without dominating the compact header")
-	_check(scene.get_node_or_null("GameLayer/Header/HeaderRow/DiscardHistoryHUD") != null, "phase-grouped discard history is relocated into the top-left HUD")
+	var discard_history_hud := scene.get_node_or_null("GameLayer/TableSurface/DiscardHistoryHUD") as PanelContainer
+	_check(discard_history_hud != null and scene.get_node_or_null("GameLayer/Header/HeaderRow/DiscardHistoryHUD") == null, "phase-grouped discard history is relocated below the table Phom")
+	_check(discard_history_hud != null and is_equal_approx(discard_history_hud.get_global_rect().get_center().x, scene.table_surface.get_global_rect().get_center().x) and discard_history_hud.position.y >= 270.0, "discard history is centered below the Phom region")
 	_check(scene.discard_history_row != null and scene.discard_history_row.get_child_count() == 1, "discard history HUD begins with its empty state")
 	_check(scene.get_node_or_null("GameLayer/Header/HeaderRow/IdentityPanel") == null, "game title and description panel is removed from gameplay")
 	var income_panel := scene.get_node_or_null("GameLayer/Header/HeaderRow/IncomeStat") as PanelContainer
@@ -252,7 +254,38 @@ func _run() -> void:
 	_check(vnd_per_point_panel != null and scene.vnd_per_point_value != null and vnd_per_point_panel.is_ancestor_of(scene.vnd_per_point_value), "VND-per-point value label belongs to its HUD panel")
 	_check(scene.vnd_per_point_value != null and scene.vnd_per_point_value.text == VndWallet.format_vnd(scene.deal.vnd_per_point), "VND-per-point HUD matches the economy authority")
 	_check(scene.get_node_or_null("GameLayer/Header/HeaderRow/WalletStat") != null, "Wallet remains in the top stat row")
+	var wallet_pile := scene.get_node_or_null("GameLayer/Header/HeaderRow/WalletStat/MarginContainer/WalletRow/WalletPile") as Control
+	_check(scene.money_presentation != null and scene.money_presentation.get_parent() == scene.game_layer, "one reusable table-native money presentation layer replaces the old resolve popup")
+	_check(scene.score_overlay != null and not scene.score_overlay.visible and scene.score_panel != null, "money ceremony begins hidden while preserving tutorial targeting")
+	_check(wallet_pile == scene.wallet_pile_anchor and wallet_pile.get_child_count() == 1, "zero wallet renders an empty cash state without fake banknotes")
+	scene.money_presentation.sync_wallet(45_000)
+	var wallet_bill := wallet_pile.get_child(0) as Control
+	var wallet_bill_texture := wallet_bill.get_child(0) as TextureRect if wallet_bill != null else null
+	_check(wallet_bill_texture != null and wallet_bill_texture.size.x <= 70.0 and wallet_bill_texture.size.y <= 31.0, "wallet banknotes obey their pile bounds instead of atlas-native size")
+	scene.money_presentation.sync_wallet(-75_000)
+	_check(scene.wallet_value.text == VndWallet.format_vnd(-75_000) and wallet_pile.get_child_count() == 1 and wallet_pile.get_child(0) is Label, "negative wallet keeps its exact value and renders debt instead of impossible negative bills")
+	scene.money_presentation.sync_wallet(987_654_000)
+	_check(wallet_pile.get_child_count() <= MoneyPresentation.MAX_WALLET_OBJECTS, "very large wallet pile stays capped")
+	scene.money_presentation.sync_wallet(scene.displayed_wallet_vnd)
+	_check(MoneyPresentation.denomination_breakdown(2_500_000).size() == 1 and int(MoneyPresentation.denomination_breakdown(2_500_000)[0]["count"]) == 5, "large repeated denominations compress into one logical bill bundle")
 	_check(scene.get_node_or_null("GameLayer/Header/HeaderRow/CampaignStat") != null and scene.campaign_value.text.contains("THỨ HAI"), "campaign day and requirement remain visible during the Deal")
+	var campaign_panel := scene.get_node_or_null("GameLayer/Header/HeaderRow/CampaignStat") as PanelContainer
+	_check(campaign_panel != null and campaign_panel.get_index() == scene.menu_button.get_index() + 1, "objective panel sits immediately beside Menu")
+	_check(campaign_panel != null and campaign_panel.custom_minimum_size.x >= 240.0, "objective panel has room for day, requirement, and period")
+	_check(scene.campaign_period_value != null and scene.campaign_period_value.text == scene.tr("PERIOD_MORNING"), "campaign HUD exposes the active Morning period")
+	var morning_time_texture := scene.campaign_period_icon.texture as AtlasTexture
+	_check(morning_time_texture != null and morning_time_texture.atlas.resource_path == "res://assets/environment/time.png" and morning_time_texture.region == Rect2(0, 0, 48, 48), "Morning uses the first cell of the time atlas")
+	var original_campaign_phase := scene.campaign.current_phase
+	scene.campaign.current_phase = CampaignManager.CampaignPhase.NOON_DEAL
+	scene._refresh_stats()
+	var noon_time_texture := scene.campaign_period_icon.texture as AtlasTexture
+	_check(scene.campaign_period_value.text == scene.tr("PERIOD_NOON") and noon_time_texture != null and noon_time_texture.region == Rect2(48, 0, 48, 48), "Noon uses the second cell of the time atlas")
+	scene.campaign.current_phase = CampaignManager.CampaignPhase.AFTERNOON_DEAL
+	scene._refresh_stats()
+	var afternoon_time_texture := scene.campaign_period_icon.texture as AtlasTexture
+	_check(scene.campaign_period_value.text == scene.tr("PERIOD_AFTERNOON") and afternoon_time_texture != null and afternoon_time_texture.region == Rect2(96, 0, 48, 48), "Afternoon uses the third cell of the time atlas")
+	scene.campaign.current_phase = original_campaign_phase
+	scene._refresh_stats()
 	_check(scene.get_node_or_null("GameLayer/Header/HeaderRow/PhaseStat") == null and scene.get_node_or_null("GameLayer/Header/HeaderRow/TurnStat") == null, "Phase and Turn stat cards are removed")
 	_check(scene.get_node_or_null("GameLayer/UtilityRail/DrinkArea") == null, "the redundant right-side Drink UI is removed")
 	var relic_area := scene.get_node_or_null("GameLayer/UtilityRail/RelicsArea") as Control
@@ -563,8 +596,8 @@ func _run() -> void:
 	scene.deal.sam_dua_preserved_cards.clear()
 	scene.selected_card_ids.clear()
 	scene._sync_all()
-	_check(scene.discard_history_row.get_child_count() == 5, "top-left discard history shows its phase marker and all four discards")
-	_check((scene.discard_history_row.get_child(0) as Label).text == "P1", "top-left discard history labels the owning phase")
+	_check(scene.discard_history_row.get_child_count() == 5, "center-table discard history shows its phase marker and all four discards")
+	_check((scene.discard_history_row.get_child(0) as Label).text == "P1", "center-table discard history labels the owning phase")
 	_check(scene.discard_history_target_outlines.size() == 4, "each mandatory discard remains an independently addressable action target")
 	for discard_target in scene.discard_history_row.get_children().slice(1, 5):
 		_check(discard_target.has_meta("action_target_card_id") and discard_target.get_node_or_null("ActionOutline") != null and discard_target.mouse_filter == Control.MOUSE_FILTER_IGNORE, "mandatory discard target stays passive until its Drink is armed")
@@ -580,7 +613,7 @@ func _run() -> void:
 	scene._cancel_drink_targeting()
 	scene.deal.discard_history.append(DiscardRecord.new(CardData.new("smoke_p2_discard", "A", 1, "Hearts", 1), 2, 1))
 	scene._sync_discard_history()
-	_check(scene.discard_history_row.get_child_count() == 7 and (scene.discard_history_row.get_child(5) as Label).text == "P2", "top-left discard history separates Phase 2 and restarts its turn order")
+	_check(scene.discard_history_row.get_child_count() == 7 and (scene.discard_history_row.get_child(5) as Label).text == "P2", "center-table discard history separates Phase 2 and restarts its turn order")
 	archive_button.pressed.emit()
 	_check(scene.discard_archive_overlay.visible and scene.discard_archive_count.text.begins_with("8 LÁ"), "pile archive includes all four mandatory and four Trà đá extra discards")
 	scene.discard_archive_close.pressed.emit()
