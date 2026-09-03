@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://da8fjbd3sxv2h"
-path="res://.godot/imported/8eda250f-9196-47f3-acd9-f95f88b5fced.png-85d4b7378ccd08c7b0f2fb5e513daf10.ctex"
+uid="uid://bmm7cb28kip6s"
+path="res://.godot/imported/trada.png-375401bf4038f5e5eb47a06017c071ec.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/environment/8eda250f-9196-47f3-acd9-f95f88b5fced.png"
-dest_files=["res://.godot/imported/8eda250f-9196-47f3-acd9-f95f88b5fced.png-85d4b7378ccd08c7b0f2fb5e513daf10.ctex"]
+source_file="res://assets/environment/npcs/trada.png"
+dest_files=["res://.godot/imported/trada.png-375401bf4038f5e5eb47a06017c071ec.ctex"]
 
 [params]
 

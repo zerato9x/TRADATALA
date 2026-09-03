@@ -61,6 +61,9 @@ Buttons remain disabled until their action is legal. The footer explains the cur
 
 ## Implemented rules
 
+- Deck Exhaustion (implemented 2026-09-03) is Deal-scoped across both Phases: the first empty stock recycles the eligible spent pool at most once, while a stock empty with no permitted recycle activates permanent True Exhaustion. Locked discard archives, table Melds, loose cards, and S?m d?a-preserved cards are never recycled.
+- While True Exhaustion is active, canonical discard actions award the discarded card's current scoring value as a normal Phase Gross event. DUMP and U Khan hand replacement are spent-card removals, not discard-archive records.
+
 The prototype now follows the two-Phase Deal contract: each Phase has four mandatory discards, a player-confirmed LAST CALL window, and its own settlement. Table Phỏm persist across Phases; Phase 1 then offers KEEP or DUMP, with DUMP refilling toward ten.
 
 - Deadwood is calculated once per Phase. A safe Phase uses the simple sum of remaining loose-card values; a MÓM Phase uses `value sum × loose-card count`. Phase Net is `Gross after Ù − Deadwood`.
@@ -71,7 +74,9 @@ The prototype now follows the two-Phase Deal contract: each Phase has four manda
 - Sets accept any number of same-rank physical cards; Runs require one suit, unique consecutive ranks, A low, and no wrap.
 - Every card sent to the discard pile remains available through the suit-grouped discard archive; mandatory discards retain Phase and discard-number provenance in the Deal record.
 - Each card's hover badge summarizes its best canonical three-card Set/Run target. Percentages are exact without-replacement odds for the next refill toward ten, using the known remaining deck; the full target and missing-card calculation stay in the tooltip so probability information does not obstruct the table.
-- Exactly one Drink is active at a time, and basic Drinks manipulate card flow only—never scoring: Trà đá swaps one selected loose card with the latest mandatory discard from the current Phase once per turn; Nhân trần swaps one selected loose card with any mandatory discard from the current Phase once per Phase; Nước vối returns one legal card from a table Meld once per Phase without removing banked score; Sâm dứa preserves up to three marked loose cards during the Phase 1 DUMP before the normal refill toward ten. Trà đá is the current free starter. Advanced Caffeine/Energy/Sugar IDs and categories exist without invented formulas.
+- Exactly one Drink is active at a time, and basic Drinks manipulate card flow only—never scoring. Trà đá passively requires two discards per turn: the first is the Phase's mandatory discard, the second is separately recorded and must resolve before refill/LAST CALL. Nhân trần swaps one selected loose card with any mandatory discard from the current Phase once per Phase; Nước vối returns one legal card from a table Meld once per Phase without removing banked score; Sâm dứa preserves up to three marked loose cards during the Phase 1 DUMP before the normal refill toward ten. Trà đá is the current free starter. Advanced Caffeine/Energy/Sugar IDs and categories exist without invented formulas.
+- Every implemented basic Drink has a reactive opportunity cue on the Sound bus. The three glass-clink variants rotate without immediate repetition and fire only on the inactive-to-active edge: Trà đá after its first discard, Nhân trần when a current-Phase discard completes a hand Meld, Nước vối when a legal Meld card can be recovered, and Sâm dứa on entry to the Phase 1 preservation window.
+- Card manipulation also routes through the Sound bus: selecting a card plays the dedicated choose clip, successful Phỏm/extension/discard placement rotates three non-repeating place clips, every non-empty draw result plays the draw clip once, and an authoritative Deal reset plays the shuffle clip. Hidden boot setup stays silent.
 - Scoring and resolution expose controlled hooks for new Phỏm, Extensions, settlement, Deadwood, MÓM, Deal resolution, and Ù.
 
 ## Early campaign
@@ -82,13 +87,13 @@ The prototype now follows the two-Phase Deal contract: each Phase has four manda
 - Daily VND thresholds and Drink prices are provisional data in `campaign_config.gd` and `drink_manager.gd`; thresholds are not deducted, and the wallet carries across days.
 - Failing any end-of-day threshold ends the run. Passing Sunday's threshold wins the current early campaign without a Zodiac boss.
 
-The Escape/Menu window includes a standalone album player for all 26 OST files: the two sides of Main followed by both sides of each Zodiac theme. It provides cover art, track selection, progress, next-track preview, play/pause, Shuffle, and Repeat Off/All/One. Music is deliberately independent from campaign days and phases, with a 100 ms two-deck crossfade between files; its spectrum still drives four presentation frequency bands. Relics, advanced Drink formulas, Zodiac bosses, special weekday mechanics, story chains, shops, multiplayer, AI opponents, sound effects, and 3D presentation remain intentionally unimplemented.
+The Escape/Menu window defaults to the reactive Authored DJ system for a new campaign: the approved Mèo/CAT route plays on day one, the Chó/DOG route on day two, and the two routes alternate by day. The standalone album player for all 26 OST files remains available as an explicit Playing Tracks option, with cover art, track selection, progress, next-track preview, play/pause, Shuffle, and Repeat Off/All/One; its spectrum still drives four presentation frequency bands. Relics, advanced Drink formulas, Zodiac bosses, special weekday mechanics, story chains, shops, multiplayer, AI opponents, broader ambient/UI sound design, and 3D presentation remain intentionally unimplemented.
 
 ## Verification
 
 Current Drink-source reconciliation checkpoint (2026-09-01):
 
-- Core Deal suite: **51 / 51 passed** in Godot 4.7.1 headless execution, including the revised Drink rules; MÓM and Ù Khan coverage remains unchanged.
+- Deterministic suites: **68 / 68 passed** in Godot 4.7.1 headless execution (**60 Core Deal + 8 Campaign**), including Deck Exhaustion / True Exhaustion and the revised Drink rules; MÓM and Ù Khan coverage remains unchanged.
 - Runtime scene smoke: **passed**, including the in-world Drink prop, hand/discard/meld target cues, three-card Sâm dứa selection, and the LAST CALL boundary.
 - Tutorial scene smoke: **passed** after the Drink changes.
 - Godot editor filesystem refresh and project relaunch: **passed**; the connected project reached live with no current parse errors after the stale editor cache was refreshed.

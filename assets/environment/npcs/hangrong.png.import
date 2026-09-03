@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bq0qo72w1o5um"
-path="res://.godot/imported/49c63135-3b7d-4753-9834-be650efcade1.png-41356b33c5325da54416494d2ffad5c8.ctex"
+uid="uid://c5plbbdojhskw"
+path="res://.godot/imported/hangrong.png-2b99bdc1ee199a23f6f5a93f255fec73.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/environment/49c63135-3b7d-4753-9834-be650efcade1.png"
-dest_files=["res://.godot/imported/49c63135-3b7d-4753-9834-be650efcade1.png-41356b33c5325da54416494d2ffad5c8.ctex"]
+source_file="res://assets/environment/npcs/hangrong.png"
+dest_files=["res://.godot/imported/hangrong.png-2b99bdc1ee199a23f6f5a93f255fec73.ctex"]
 
 [params]
 

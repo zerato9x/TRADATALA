@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cc4ddipfaepj5"
-path="res://.godot/imported/012c71c6-b680-476f-8847-41032a666b96.png-0133a324b3f8524744cf4aa7c0fe8973.ctex"
+uid="uid://hklpl10pjufm"
+path="res://.godot/imported/lode.png-18ec5c9669ddee1d569311702dbaf2eb.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/environment/012c71c6-b680-476f-8847-41032a666b96.png"
-dest_files=["res://.godot/imported/012c71c6-b680-476f-8847-41032a666b96.png-0133a324b3f8524744cf4aa7c0fe8973.ctex"]
+source_file="res://assets/environment/npcs/lode.png"
+dest_files=["res://.godot/imported/lode.png-18ec5c9669ddee1d569311702dbaf2eb.ctex"]
 
 [params]
 

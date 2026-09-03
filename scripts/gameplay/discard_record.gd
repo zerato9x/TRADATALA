@@ -2,6 +2,7 @@ class_name DiscardRecord
 extends RefCounted
 
 const KIND_MANDATORY := "mandatory"
+const KIND_DRINK_EXTRA := "drink_extra"
 
 var card: CardData
 var phase: int

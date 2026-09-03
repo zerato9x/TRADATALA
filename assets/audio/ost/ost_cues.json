@@ -3,6 +3,176 @@
   "schema": "tradatala.ost_cues.v1",
   "source_loop_catalog": "res://assets/audio/ost/ost_loops.json",
   "tracks": {
+    "cat_1": {
+      "decisions": {
+        "cat_1_bars_001_002": {
+          "cue_name": "STARTER_EVENT",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-02T09:11:19"
+        },
+        "cat_1_bars_003_006": {
+          "cue_name": "",
+          "notes": "",
+          "status": "rejected",
+          "updated_at_utc": "2026-09-02T09:08:35"
+        },
+        "cat_1_bars_009_012": {
+          "cue_name": "MORNING_PHASE_1",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-02T09:21:56"
+        },
+        "cat_1_bars_017_018": {
+          "cue_name": "MORNING_PHASE_1",
+          "notes": "",
+          "status": "rejected",
+          "updated_at_utc": "2026-09-02T09:21:49"
+        },
+        "cat_1_bars_017_020": {
+          "cue_name": "",
+          "notes": "",
+          "status": "rejected",
+          "updated_at_utc": "2026-09-02T09:10:06"
+        },
+        "cat_1_bars_018_019": {
+          "cue_name": "MORNING_PHASE_2_SUSTAIN",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-02T09:22:31"
+        },
+        "cat_1_bars_026_027": {
+          "cue_name": "MORNING_PHASE_2",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-02T09:22:35"
+        },
+        "cat_1_bars_030_031": {
+          "cue_name": "MORNING_EVENT",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-02T09:22:54"
+        },
+        "cat_1_bars_035_038": {
+          "cue_name": "NOON_PHASE_1",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-02T09:23:02"
+        },
+        "cat_1_bars_041_042": {
+          "cue_name": "NOON_PHASE_2_SUSTAIN",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-02T09:23:14"
+        },
+        "cat_1_bars_050_051": {
+          "cue_name": "NOON_PHASE_2",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-02T09:23:20"
+        }
+      }
+    },
+    "cat_2": {
+      "decisions": {
+        "cat_2_bars_001_002": {
+          "cue_name": "NOON_EVENT",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-02T09:32:05"
+        },
+        "cat_2_bars_006_007": {
+          "cue_name": "AFTERNOON_PHASE_1",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-02T09:32:11"
+        },
+        "cat_2_bars_008_015": {
+          "cue_name": "",
+          "notes": "",
+          "status": "rejected",
+          "updated_at_utc": "2026-09-02T09:59:42"
+        },
+        "cat_2_bars_009_012": {
+          "cue_name": "",
+          "notes": "",
+          "status": "rejected",
+          "updated_at_utc": "2026-09-02T10:01:24"
+        },
+        "cat_2_bars_010_017": {
+          "cue_name": "",
+          "notes": "",
+          "status": "rejected",
+          "updated_at_utc": "2026-09-02T09:35:08"
+        },
+        "cat_2_bars_011_012": {
+          "cue_name": "",
+          "notes": "",
+          "status": "rejected",
+          "updated_at_utc": "2026-09-02T09:40:49"
+        },
+        "cat_2_bars_011_014": {
+          "cue_name": "",
+          "notes": "",
+          "status": "rejected",
+          "updated_at_utc": "2026-09-02T09:41:04"
+        },
+        "cat_2_bars_012_015": {
+          "cue_name": "AFTERNOON_PHASE_2",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-02T09:41:45"
+        },
+        "cat_2_bars_013_016": {
+          "cue_name": "",
+          "notes": "",
+          "status": "rejected",
+          "updated_at_utc": "2026-09-02T09:41:41"
+        },
+        "cat_2_bars_018_019": {
+          "cue_name": "AFTERNOON_EVENT",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-02T09:32:43"
+        },
+        "cat_2_bars_029_032": {
+          "cue_name": "",
+          "notes": "",
+          "status": "rejected",
+          "updated_at_utc": "2026-09-02T09:51:41"
+        },
+        "cat_2_bars_029_036": {
+          "cue_name": "",
+          "notes": "",
+          "status": "rejected",
+          "updated_at_utc": "2026-09-02T09:51:43"
+        },
+        "cat_2_bars_032_035": {
+          "cue_name": "EVENING_PHASE_1",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-02T09:52:02"
+        },
+        "cat_2_bars_036_039": {
+          "cue_name": "",
+          "notes": "",
+          "status": "rejected",
+          "updated_at_utc": "2026-09-02T09:48:20"
+        },
+        "cat_2_bars_037_040": {
+          "cue_name": "EVENING_PHASE_2_SUSTAIN",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-02T09:48:29"
+        },
+        "cat_2_bars_048_051": {
+          "cue_name": "EVENING_PHASE_2",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-02T09:44:08"
+        }
+      }
+    },
     "dog_1": {
       "decisions": {
         "dog_1_bars_001_002": {
@@ -384,6 +554,138 @@
           "notes": "",
           "status": "rejected",
           "updated_at_utc": "2026-09-01T16:40:23"
+        }
+      }
+    },
+    "mouse_1": {
+      "decisions": {
+        "mouse_1_bars_001_004": {
+          "cue_name": "STARTER_EVENT",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-02T05:10:44"
+        },
+        "mouse_1_bars_005_008": {
+          "cue_name": "MORNING_PHASE_1_SUSTAIN",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-02T05:10:55"
+        },
+        "mouse_1_bars_011_012": {
+          "cue_name": "",
+          "notes": "",
+          "status": "rejected",
+          "updated_at_utc": "2026-09-02T05:02:35"
+        },
+        "mouse_1_bars_011_014": {
+          "cue_name": "MORNING_PHASE_1",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-02T05:11:45"
+        },
+        "mouse_1_bars_018_019": {
+          "cue_name": "MORNING_PHASE_2_SUSTAIN",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-02T05:13:03"
+        },
+        "mouse_1_bars_034_035": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-02T05:15:52"
+        },
+        "mouse_1_bars_046_049": {
+          "cue_name": "NOON_PHASE_2_SUSTAIN",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-02T05:09:02"
+        },
+        "mouse_1_bars_054_061": {
+          "cue_name": "NOON_PHASE_2_CLEANUP",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-02T05:09:11"
+        },
+        "mouse_1_bars_057_060": {
+          "cue_name": "NOON_PHASE_2_CLEANUP",
+          "notes": "",
+          "status": "rejected",
+          "updated_at_utc": "2026-09-02T05:09:05"
+        }
+      }
+    },
+    "pig_1": {
+      "decisions": {
+        "pig_1_bars_001_004": {
+          "cue_name": "EVENT (4bars)",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-02T05:24:07"
+        },
+        "pig_1_bars_006_017": {
+          "cue_name": "",
+          "notes": "",
+          "status": "rejected",
+          "updated_at_utc": "2026-09-02T05:24:46"
+        },
+        "pig_1_bars_008_011": {
+          "cue_name": "",
+          "notes": "",
+          "status": "rejected",
+          "updated_at_utc": "2026-09-02T05:32:14"
+        },
+        "pig_1_bars_009_012": {
+          "cue_name": "",
+          "notes": "",
+          "status": "rejected",
+          "updated_at_utc": "2026-09-02T05:32:36"
+        },
+        "pig_1_bars_010_011": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-02T05:32:35"
+        },
+        "pig_1_bars_021_024": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-02T05:26:59"
+        },
+        "pig_1_bars_029_030": {
+          "cue_name": "",
+          "notes": "vocal",
+          "status": "approved",
+          "updated_at_utc": "2026-09-02T05:28:52"
+        }
+      }
+    },
+    "pig_2": {
+      "decisions": {
+        "pig_2_bars_001_002": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-02T05:35:09"
+        },
+        "pig_2_bars_006_007": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-02T05:36:00"
+        },
+        "pig_2_bars_011_012": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-02T05:37:10"
+        },
+        "pig_2_bars_022_023": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-02T05:40:22"
         }
       }
     }

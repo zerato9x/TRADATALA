@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://myqmhp53bjuh"
-path="res://.godot/imported/276b215a-c0c6-4ffd-a71e-e5cd0ee5ce17.png-33847f1aa192b8ca91ce53cf48411ecd.ctex"
+uid="uid://cdqo0tnqh33u8"
+path="res://.godot/imported/thayboi_overlay.png-0f4198c81d682714a0f707218be9be49.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/environment/276b215a-c0c6-4ffd-a71e-e5cd0ee5ce17.png"
-dest_files=["res://.godot/imported/276b215a-c0c6-4ffd-a71e-e5cd0ee5ce17.png-33847f1aa192b8ca91ce53cf48411ecd.ctex"]
+source_file="res://assets/environment/npcs/thayboi_overlay.png"
+dest_files=["res://.godot/imported/thayboi_overlay.png-0f4198c81d682714a0f707218be9be49.ctex"]
 
 [params]
 

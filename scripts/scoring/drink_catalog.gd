@@ -24,10 +24,10 @@ const CATEGORY_ENERGY := "energy"
 const CATEGORY_SUGAR := "sugar"
 
 const DEFINITIONS := {
-	TRA_DA: {"name": "Trà đá", "category": CATEGORY_BASIC, "implemented": true},
-	NUOC_VOI: {"name": "Nước vối", "category": CATEGORY_BASIC, "implemented": true},
-	NHAN_TRAN: {"name": "Nhân trần", "category": CATEGORY_BASIC, "implemented": true},
-	SAM_DUA: {"name": "Sâm dứa", "category": CATEGORY_BASIC, "implemented": true},
+	TRA_DA: {"name": "Trà đá", "category": CATEGORY_BASIC, "implemented": true, "cue_trigger": "extra_discard_pending"},
+	NUOC_VOI: {"name": "Nước vối", "category": CATEGORY_BASIC, "implemented": true, "cue_trigger": "removable_meld_card"},
+	NHAN_TRAN: {"name": "Nhân trần", "category": CATEGORY_BASIC, "implemented": true, "cue_trigger": "discard_completes_meld"},
+	SAM_DUA: {"name": "Sâm dứa", "category": CATEGORY_BASIC, "implemented": true, "cue_trigger": "phase_one_redraw_preserve"},
 	DEN_DA: {"name": "Đen đá", "category": CATEGORY_CAFFEINE, "implemented": false},
 	NAU_DA: {"name": "Nâu đá", "category": CATEGORY_CAFFEINE, "implemented": false},
 	BAC_XIU: {"name": "Bạc xỉu", "category": CATEGORY_CAFFEINE, "implemented": false},
@@ -56,6 +56,10 @@ static func category(drink_id: String) -> String:
 
 static func is_effect_implemented(drink_id: String) -> bool:
 	return DEFINITIONS.get(drink_id, {}).get("implemented", false)
+
+
+static func cue_trigger(drink_id: String) -> String:
+	return String(DEFINITIONS.get(drink_id, {}).get("cue_trigger", ""))
 
 
 static func basic_ids() -> Array[String]:

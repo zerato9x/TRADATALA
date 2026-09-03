@@ -4,6 +4,10 @@ extends RefCounted
 signal context_scored(context: ScoringContext)
 signal new_phom_scored(context: ScoringContext)
 signal extension_scored(context: ScoringContext)
+signal exhaustion_discard_scored(context: ScoringContext)
+
+const ACTION_TRUE_EXHAUSTION_DISCARD := "true_exhaustion_discard"
+# A discard score remains a normal Phase Gross event.
 
 var _modifiers: Array[Callable] = []
 
@@ -43,6 +47,23 @@ func score_extension(
 	var context := preview_extension(all_cards, meld_type, old_meld_score, phase, added_cards)
 	context_scored.emit(context)
 	extension_scored.emit(context)
+	return context
+
+
+func score_true_exhaustion_discard(card: CardData, phase: int) -> ScoringContext:
+	if card == null:
+		return null
+	var context := ScoringContext.new()
+	context.action_type = ACTION_TRUE_EXHAUSTION_DISCARD
+	context.cards.append(card)
+	context.phase = phase
+	context.card_value_sum = card.score_value()
+	context.base_score = context.card_value_sum
+	context.local_mult = 1
+	context.theoretical_score = context.card_value_sum
+	context.final_points = context.card_value_sum
+	context_scored.emit(context)
+	exhaustion_discard_scored.emit(context)
 	return context
 
 

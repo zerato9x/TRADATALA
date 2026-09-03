@@ -1285,7 +1285,7 @@ metadata/match_node_key_dictionary_binding = "menu_localized_controls"
 metadata/match_node_key_dictionary_value = "MENU_OPTIONS"
 
 [node name="MusicPlayer" type="PanelContainer" parent="MenuCenter/MenuContent/HomePanel"]
-custom_minimum_size = Vector2(500, 220)
+custom_minimum_size = Vector2(500, 282)
 layout_mode = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_qih0c")
 metadata/match_binding = "music_player_panel"
@@ -1310,7 +1310,7 @@ stretch_mode = 5
 metadata/match_binding = "music_cover"
 
 [node name="Details" type="VBoxContainer" parent="MenuCenter/MenuContent/HomePanel/MusicPlayer/Margin/Content"]
-custom_minimum_size = Vector2(256, 200)
+custom_minimum_size = Vector2(256, 262)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 5
@@ -1339,6 +1339,46 @@ theme_override_colors/font_color = Color(0.7254902, 0.6784314, 0.56078434, 1)
 theme_override_font_sizes/font_size = 11
 text = "MAIN  ·  SIDE 1"
 metadata/match_binding = "music_variant_label"
+
+[node name="MusicSystemRow" type="HBoxContainer" parent="MenuCenter/MenuContent/HomePanel/MusicPlayer/Margin/Content/Details"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Label" type="Label" parent="MenuCenter/MenuContent/HomePanel/MusicPlayer/Margin/Content/Details/MusicSystemRow"]
+custom_minimum_size = Vector2(92, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7254902, 0.6784314, 0.56078434, 1)
+theme_override_font_sizes/font_size = 10
+text = "MUSIC SYSTEM"
+metadata/match_node_key_dictionary_binding = "menu_localized_controls"
+metadata/match_node_key_dictionary_value = "MUSIC_PLAYER_SYSTEM"
+
+[node name="Selector" type="OptionButton" parent="MenuCenter/MenuContent/HomePanel/MusicPlayer/Margin/Content/Details/MusicSystemRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_default_cursor_shape = 2
+theme_override_font_sizes/font_size = 10
+metadata/match_binding = "music_system_selector"
+
+[node name="AuthoredSetRow" type="HBoxContainer" parent="MenuCenter/MenuContent/HomePanel/MusicPlayer/Margin/Content/Details"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Label" type="Label" parent="MenuCenter/MenuContent/HomePanel/MusicPlayer/Margin/Content/Details/AuthoredSetRow"]
+custom_minimum_size = Vector2(92, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7254902, 0.6784314, 0.56078434, 1)
+theme_override_font_sizes/font_size = 10
+text = "AUTHORED SET"
+metadata/match_node_key_dictionary_binding = "menu_localized_controls"
+metadata/match_node_key_dictionary_value = "MUSIC_PLAYER_AUTHORED_SET"
+
+[node name="Selector" type="OptionButton" parent="MenuCenter/MenuContent/HomePanel/MusicPlayer/Margin/Content/Details/AuthoredSetRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_default_cursor_shape = 2
+theme_override_font_sizes/font_size = 10
+metadata/match_binding = "authored_music_set_selector"
 
 [node name="Progress" type="ProgressBar" parent="MenuCenter/MenuContent/HomePanel/MusicPlayer/Margin/Content/Details"]
 custom_minimum_size = Vector2(0, 9)

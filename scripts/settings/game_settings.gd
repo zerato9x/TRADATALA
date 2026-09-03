@@ -7,10 +7,18 @@ const SETTINGS_PATH := "user://settings.cfg"
 const MUSIC_BUS := &"Music"
 const SOUND_BUS := &"Sound"
 const SUPPORTED_LOCALES: Array[String] = ["vi", "en"]
+const MUSIC_SYSTEM_PLAYING_TRACKS := "playing_tracks"
+const MUSIC_SYSTEM_AUTHORED_DJ := "authored_dj"
+const SUPPORTED_MUSIC_SYSTEMS: Array[String] = [MUSIC_SYSTEM_PLAYING_TRACKS, MUSIC_SYSTEM_AUTHORED_DJ]
+const SUPPORTED_AUTHORED_SETS: Array[String] = ["dog", "cat"]
+const DEFAULT_MUSIC_SYSTEM := MUSIC_SYSTEM_AUTHORED_DJ
+const DEFAULT_AUTHORED_SET := "cat"
 
 var music_volume_percent: float = 100.0
 var sound_volume_percent: float = 100.0
 var locale_code: String = "vi"
+var music_system: String = DEFAULT_MUSIC_SYSTEM
+var authored_music_set: String = DEFAULT_AUTHORED_SET
 
 
 func _ready() -> void:
@@ -32,6 +40,16 @@ func set_sound_volume(percent: float) -> void:
 	_apply_bus_volume(SOUND_BUS, sound_volume_percent)
 	_save_preferences()
 	volume_changed.emit(SOUND_BUS, sound_volume_percent)
+
+
+func set_music_system(system_id: String) -> void:
+	music_system = system_id if system_id in SUPPORTED_MUSIC_SYSTEMS else DEFAULT_MUSIC_SYSTEM
+	_save_preferences()
+
+
+func set_authored_music_set(set_id: String) -> void:
+	authored_music_set = set_id if set_id in SUPPORTED_AUTHORED_SETS else DEFAULT_AUTHORED_SET
+	_save_preferences()
 
 
 func set_locale(locale: String) -> void:
@@ -82,6 +100,10 @@ func _load_preferences() -> void:
 	sound_volume_percent = clampf(float(config.get_value("audio", "sound_percent", sound_volume_percent)), 0.0, 100.0)
 	var saved_locale := String(config.get_value("localization", "locale", locale_code)).to_lower()
 	locale_code = saved_locale if saved_locale in SUPPORTED_LOCALES else "vi"
+	var saved_music_system := String(config.get_value("music", "system", music_system))
+	music_system = saved_music_system if saved_music_system in SUPPORTED_MUSIC_SYSTEMS else DEFAULT_MUSIC_SYSTEM
+	var saved_authored_set := String(config.get_value("music", "authored_set", authored_music_set))
+	authored_music_set = saved_authored_set if saved_authored_set in SUPPORTED_AUTHORED_SETS else DEFAULT_AUTHORED_SET
 
 
 func _save_preferences() -> void:
@@ -89,6 +111,8 @@ func _save_preferences() -> void:
 	config.set_value("audio", "music_percent", music_volume_percent)
 	config.set_value("audio", "sound_percent", sound_volume_percent)
 	config.set_value("localization", "locale", locale_code)
+	config.set_value("music", "system", music_system)
+	config.set_value("music", "authored_set", authored_music_set)
 	var error := config.save(SETTINGS_PATH)
 	if error != OK:
 		push_warning("Could not save player settings: %s" % error_string(error))

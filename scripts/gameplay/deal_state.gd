@@ -8,6 +8,9 @@ signal phase_about_to_settle(context: Dictionary)
 signal deadwood_calculated(context: Dictionary)
 signal deal_about_to_resolve(context: Dictionary)
 signal u_triggered(context: Dictionary)
+signal first_exhaustion(context: Dictionary)
+signal true_exhaustion(context: Dictionary)
+signal exhaustion_discard_scored(context: ScoringContext)
 
 const RESTING_HAND_SIZE := 9
 const ACTIVE_HAND_TARGET := 10
@@ -47,22 +50,33 @@ var phase_earnings_points: int = 0
 var phase_new_meld_count: int = 0
 var state: String = STATE_ACTIVE
 var last_phase_resolution: Dictionary = {}
-var current_drink_id: String = DrinkCatalog.TRA_DA
+var current_drink_id: String = DrinkCatalog.NONE
 var tra_da_used_this_turn: bool = false
+var tra_da_extra_discard_pending: bool = false
 var nhan_tran_used_this_phase: bool = false
 var nuoc_voi_used_phases: Dictionary = {}
 var sam_dua_preserved_cards: Array[CardData] = []
 var sam_dua_used: bool = false
+var recyclable_spent_cards: Array[CardData] = []
+var recycle_used: bool = false
+var true_exhaustion_active: bool = false
 
 var _next_meld_id: int = 1
 var _turn_started_with_ten: bool = false
 var _turn_committed_card_count: int = 0
+var _expected_deal_card_ids: Dictionary = {}
+
+
+func _init() -> void:
+	deck.stock_emptied.connect(_on_draw_stock_emptied)
 
 
 func start_deal(shuffle_seed: int = -1, reset_wallet: bool = false) -> Dictionary:
 	if reset_wallet:
 		wallet.reset()
 	deck.reset(shuffle_seed)
+	_reset_exhaustion_state()
+	_capture_expected_deal_card_ids()
 	hand.clear()
 	melds.clear()
 	discard_history.clear()
@@ -80,6 +94,7 @@ func start_deal(shuffle_seed: int = -1, reset_wallet: bool = false) -> Dictionar
 	var result := {
 		"ok": true,
 		"action": "start_deal",
+		"shuffled": true,
 		"resting_cards": resting_cards,
 		"drawn": turn_drawn,
 	}
@@ -89,6 +104,8 @@ func start_deal(shuffle_seed: int = -1, reset_wallet: bool = false) -> Dictionar
 
 func start_tutorial_deal() -> Dictionary:
 	deck.reset(0)
+	_reset_exhaustion_state()
+	_capture_expected_deal_card_ids()
 	hand.clear()
 	melds.clear()
 	discard_history.clear()
@@ -112,6 +129,7 @@ func start_tutorial_deal() -> Dictionary:
 	var result := {
 		"ok": true,
 		"action": "start_tutorial_deal",
+		"shuffled": true,
 		"drawn": hand.duplicate(),
 	}
 	state_changed.emit(result)
@@ -132,32 +150,84 @@ func set_current_drink(drink_id: String) -> Dictionary:
 	return result
 
 
-func can_use_tra_da(card: CardData, record: DiscardRecord = null) -> bool:
-	if current_drink_id != DrinkCatalog.TRA_DA or state != STATE_ACTIVE or tra_da_used_this_turn:
-		return false
-	if card == null or not hand.has(card):
-		return false
-	var latest := latest_mandatory_discard()
-	if latest == null or (record != null and record != latest):
-		return false
-	return _discard_pile_index(latest.card) >= 0
-
-
-func use_tra_da(card: CardData, record: DiscardRecord = null) -> Dictionary:
-	var target := latest_mandatory_discard()
-	if not can_use_tra_da(card, record):
-		return _failure("Select one loose card and the latest mandatory discard.")
-	var recovered := _swap_mandatory_discard(target, card)
-	tra_da_used_this_turn = true
-	var result := {
-		"ok": true,
-		"action": "tra_da_swap",
-		"discarded": card,
-		"recovered": recovered,
-		"discard_record": target,
+func exhaustion_status() -> Dictionary:
+	return {
+		"stock_count": deck.draw_pile.size(),
+		"recyclable_spent_count": recyclable_spent_cards.size(),
+		"discard_archive_count": deck.discard_pile.size(),
+		"loose_hand_count": hand.size(),
+		"table_card_count": _table_card_count(),
+		"recycle_used": recycle_used,
+		"true_exhaustion_active": true_exhaustion_active,
 	}
-	state_changed.emit(result)
-	return result
+
+
+func evaluate_exhaustion() -> Dictionary:
+	if not deck.draw_pile.is_empty():
+		return {"ok": true, "action": "stock_not_empty", "exhaustion": exhaustion_status()}
+	return _resolve_empty_stock()
+
+
+func move_to_recyclable_spent(cards: Array[CardData]) -> void:
+	var existing_ids := {}
+	for existing in recyclable_spent_cards:
+		existing_ids[existing.unique_id] = true
+	for card in cards:
+		if card == null:
+			continue
+		if existing_ids.has(card.unique_id):
+			push_error("Duplicate physical card sent to recyclable spent state: %s" % card.unique_id)
+			continue
+		if physical_card_locations().has(card.unique_id):
+			push_error("Physical card must be detached before entering recyclable spent state: %s" % card.unique_id)
+			continue
+		recyclable_spent_cards.append(card)
+		existing_ids[card.unique_id] = true
+
+
+func physical_card_locations() -> Dictionary:
+	var locations: Dictionary = {}
+	_append_physical_zone(locations, "stock", deck.draw_pile)
+	_append_physical_zone(locations, "loose_hand", hand)
+	_append_physical_zone(locations, "discard_archive", deck.discard_pile)
+	_append_physical_zone(locations, "recyclable_spent", recyclable_spent_cards)
+	for meld in melds:
+		_append_physical_zone(locations, "meld_%d" % meld.meld_id, meld.cards)
+	return locations
+
+
+func physical_card_accounting() -> Dictionary:
+	var locations := physical_card_locations()
+	var duplicate_ids: Array[String] = []
+	for card_id in locations:
+		var zones: Array = locations[card_id]
+		if zones.size() > 1:
+			duplicate_ids.append(String(card_id))
+	var missing_ids: Array[String] = []
+	var unexpected_ids: Array[String] = []
+	for expected_id in _expected_deal_card_ids:
+		if not locations.has(expected_id):
+			missing_ids.append(String(expected_id))
+	for card_id in locations:
+		if not _expected_deal_card_ids.is_empty() and not _expected_deal_card_ids.has(card_id):
+			unexpected_ids.append(String(card_id))
+	var expected_known := not _expected_deal_card_ids.is_empty()
+	var valid := duplicate_ids.is_empty() and missing_ids.is_empty() and unexpected_ids.is_empty()
+	if expected_known:
+		valid = valid and locations.size() == _expected_deal_card_ids.size()
+	return {
+		"valid": valid,
+		"total_cards": _total_physical_card_count(locations),
+		"unique_ids": locations.size(),
+		"duplicate_ids": duplicate_ids,
+		"missing_ids": missing_ids,
+		"unexpected_ids": unexpected_ids,
+		"expected_count": _expected_deal_card_ids.size(),
+	}
+
+
+func physical_card_accounting_is_valid() -> bool:
+	return bool(physical_card_accounting().get("valid", false))
 
 
 func can_use_nhan_tran(card: CardData, record: DiscardRecord) -> bool:
@@ -252,7 +322,7 @@ func select_sam_dua_preserves(cards: Array[CardData]) -> Dictionary:
 func current_drink_has_charge() -> bool:
 	match current_drink_id:
 		DrinkCatalog.TRA_DA:
-			return not tra_da_used_this_turn and state == STATE_ACTIVE and latest_mandatory_discard() != null
+			return false
 		DrinkCatalog.NHAN_TRAN:
 			return not nhan_tran_used_this_phase and _card_actions_available() and not discard_history_for_phase(current_phase).is_empty()
 		DrinkCatalog.NUOC_VOI:
@@ -260,6 +330,42 @@ func current_drink_has_charge() -> bool:
 		DrinkCatalog.SAM_DUA:
 			return not sam_dua_used and current_phase == 1 and state in [STATE_FINAL_COMMIT_WINDOW, STATE_PHASE_CHOICE]
 	return false
+
+
+func drink_cue_trigger() -> Dictionary:
+	var trigger_id := DrinkCatalog.cue_trigger(current_drink_id)
+	match current_drink_id:
+		DrinkCatalog.TRA_DA:
+			return {"active": tra_da_extra_discard_pending and state == STATE_ACTIVE, "drink_id": current_drink_id, "trigger_id": trigger_id}
+		DrinkCatalog.NHAN_TRAN:
+			var records := nhan_tran_meld_opportunity_records()
+			return {"active": not records.is_empty(), "drink_id": current_drink_id, "trigger_id": trigger_id, "records": records}
+		DrinkCatalog.NUOC_VOI:
+			var targets := nuoc_voi_targets()
+			return {"active": not targets.is_empty(), "drink_id": current_drink_id, "trigger_id": trigger_id, "targets": targets}
+		DrinkCatalog.SAM_DUA:
+			var active := not sam_dua_used and current_phase == 1 and state == STATE_FINAL_COMMIT_WINDOW and not hand.is_empty()
+			return {"active": active, "drink_id": current_drink_id, "trigger_id": trigger_id}
+	return {"active": false, "drink_id": current_drink_id, "trigger_id": trigger_id}
+
+
+func nhan_tran_meld_opportunity_records() -> Array[DiscardRecord]:
+	var records: Array[DiscardRecord] = []
+	if current_drink_id != DrinkCatalog.NHAN_TRAN or nhan_tran_used_this_phase or not _card_actions_available():
+		return records
+	for record in discard_history_for_phase(current_phase):
+		if _discard_pile_index(record.card) >= 0 and _card_completes_hand_meld(record.card):
+			records.append(record)
+	return records
+
+
+func nuoc_voi_targets() -> Array[Dictionary]:
+	var targets: Array[Dictionary] = []
+	for meld in melds:
+		for card in meld.cards:
+			if can_use_nuoc_voi(meld.meld_id, card):
+				targets.append({"meld_id": meld.meld_id, "card": card})
+	return targets
 
 
 func create_meld(selected_cards: Array[CardData]) -> Dictionary:
@@ -328,11 +434,24 @@ func discard_card(card: CardData) -> Dictionary:
 		return _failure("Discarding is unavailable right now.")
 	if card == null or not hand.has(card):
 		return _failure("Choose one loose card to discard.")
-	var completed_u := _turn_started_with_ten and _turn_committed_card_count == 9 and hand.size() == 1
+	if deck.draw_pile.is_empty():
+		_resolve_empty_stock()
+	if current_drink_id == DrinkCatalog.TRA_DA and not tra_da_extra_discard_pending and hand.size() < 2:
+		return _failure("Trà đá requires two loose cards so both discards can be completed.")
+	var is_tra_da_extra := current_drink_id == DrinkCatalog.TRA_DA and tra_da_extra_discard_pending
+	var completed_u := not is_tra_da_extra and _turn_started_with_ten and _turn_committed_card_count == 9 and hand.size() == 1
 	hand.erase(card)
 	deck.discard(card)
-	discard_count += 1
-	discard_history.append(DiscardRecord.new(card, current_phase, discard_count, DiscardRecord.KIND_MANDATORY))
+	var exhaustion_score_context: ScoringContext = _score_true_exhaustion_discard(card)
+	if is_tra_da_extra:
+		tra_da_extra_discard_pending = false
+		tra_da_used_this_turn = true
+		discard_history.append(DiscardRecord.new(card, current_phase, discard_count, DiscardRecord.KIND_DRINK_EXTRA))
+	else:
+		discard_count += 1
+		discard_history.append(DiscardRecord.new(card, current_phase, discard_count, DiscardRecord.KIND_MANDATORY))
+		if current_drink_id == DrinkCatalog.TRA_DA:
+			tra_da_extra_discard_pending = true
 	if completed_u:
 		phase_metrics.u = true
 		u_triggered.emit({"phase": current_phase, "card": card})
@@ -342,8 +461,13 @@ func discard_card(card: CardData) -> Dictionary:
 		"card": card,
 		"drawn": [] as Array[CardData],
 		"u_triggered": completed_u,
+		"discard_kind": DiscardRecord.KIND_DRINK_EXTRA if is_tra_da_extra else DiscardRecord.KIND_MANDATORY,
 	}
-	if discard_count >= DISCARDS_PER_PHASE:
+	if exhaustion_score_context != null:
+		result["exhaustion_score_context"] = exhaustion_score_context
+	if tra_da_extra_discard_pending:
+		result["extra_discard_pending"] = true
+	elif discard_count >= DISCARDS_PER_PHASE:
 		state = STATE_FINAL_COMMIT_WINDOW
 		result["final_commit_window"] = true
 	else:
@@ -378,9 +502,9 @@ func choose_phase_two(keep_hand: bool) -> Dictionary:
 		for card in hand:
 			if not preserved.has(card):
 				dumped.append(card)
-		deck.discard_many(dumped)
 		hand.clear()
 		hand.append_array(preserved)
+		move_to_recyclable_spent(dumped)
 	current_phase = 2
 	discard_count = 0
 	_reset_phase_metrics()
@@ -475,6 +599,17 @@ func _cards_include_ids(cards: Array[CardData], required_ids: Dictionary) -> boo
 	return remaining.is_empty()
 
 
+func _card_completes_hand_meld(discard_card: CardData) -> bool:
+	if discard_card == null:
+		return false
+	for first_index in range(hand.size()):
+		for second_index in range(first_index + 1, hand.size()):
+			var candidate: Array[CardData] = [hand[first_index], hand[second_index], discard_card]
+			if MeldRules.classify(candidate) != MeldRules.TYPE_INVALID:
+				return true
+	return false
+
+
 func deadwood_points() -> int:
 	return ScoringPipeline.deadwood_points(hand)
 
@@ -498,19 +633,76 @@ func drink_mandatory_discard_targets() -> Array[DiscardRecord]:
 	if not current_drink_has_charge():
 		return targets
 	match current_drink_id:
-		DrinkCatalog.TRA_DA:
-			var latest := latest_mandatory_discard()
-			if latest != null:
-				targets.append(latest)
 		DrinkCatalog.NHAN_TRAN:
 			targets.append_array(discard_history_for_phase(current_phase))
 	return targets
 
 
+func _on_draw_stock_emptied() -> void:
+	_resolve_empty_stock()
+
+
+func _resolve_empty_stock() -> Dictionary:
+	if not deck.draw_pile.is_empty():
+		return {"ok": true, "action": "stock_not_empty", "exhaustion": exhaustion_status()}
+	if true_exhaustion_active:
+		return {"ok": true, "action": "true_exhaustion_already_active", "exhaustion": exhaustion_status()}
+	var before := exhaustion_status()
+	var eligible: Array[CardData] = []
+	eligible.append_array(recyclable_spent_cards)
+	if not recycle_used and not eligible.is_empty():
+		var recycled_card_ids: Array[String] = []
+		for card in eligible:
+			recycled_card_ids.append(card.unique_id)
+		recyclable_spent_cards.clear()
+		recycle_used = true
+		deck.replace_draw_pile(eligible)
+		var first_context := exhaustion_status()
+		first_context["action"] = "first_exhaustion"
+		first_context["stock_before"] = int(before["stock_count"])
+		first_context["recycled_count"] = eligible.size()
+		first_context["recycled_card_ids"] = recycled_card_ids
+		first_context["eligible_spent_count_at_trigger"] = eligible.size()
+		first_exhaustion.emit(first_context)
+		state_changed.emit({"ok": true, "action": "first_exhaustion", "exhaustion": first_context})
+		_log_exhaustion_transition(first_context)
+		return {"ok": true, "action": "first_exhaustion", "exhaustion": first_context}
+	return _activate_true_exhaustion(before)
+
+
+func _activate_true_exhaustion(before: Dictionary) -> Dictionary:
+	true_exhaustion_active = true
+	var context := exhaustion_status()
+	context["action"] = "true_exhaustion"
+	context["stock_before"] = int(before.get("stock_count", 0))
+	context["eligible_spent_count_at_trigger"] = int(before.get("recyclable_spent_count", 0))
+	true_exhaustion.emit(context)
+	state_changed.emit({"ok": true, "action": "true_exhaustion", "exhaustion": context})
+	_log_exhaustion_transition(context)
+	return {"ok": true, "action": "true_exhaustion", "exhaustion": context}
+
+
+func _log_exhaustion_transition(context: Dictionary) -> void:
+	print("[DealState] %s stock=%d spent=%d archive=%d loose=%d table=%d recycle_used=%s true_exhaustion_active=%s recycled=%d" % [
+		String(context.get("action", "")),
+		int(context.get("stock_count", 0)),
+		int(context.get("recyclable_spent_count", 0)),
+		int(context.get("discard_archive_count", 0)),
+		int(context.get("loose_hand_count", 0)),
+		int(context.get("table_card_count", 0)),
+		str(context.get("recycle_used", false)),
+		str(context.get("true_exhaustion_active", false)),
+		int(context.get("recycled_count", 0)),
+	])
+
+
 func _begin_active_turn() -> Array[CardData]:
 	tra_da_used_this_turn = false
+	tra_da_extra_discard_pending = false
 	var all_drawn: Array[CardData] = []
 	all_drawn.append_array(deck.refill(hand, ACTIVE_HAND_TARGET))
+	if deck.draw_pile.is_empty():
+		_resolve_empty_stock()
 	while hand.size() == ACTIVE_HAND_TARGET and not _has_near_meld(hand):
 		var payout := 0
 		for card in hand:
@@ -521,8 +713,8 @@ func _begin_active_turn() -> Array[CardData]:
 		var replaced: Array[CardData] = []
 		replaced.append_array(hand)
 		u_triggered.emit({"phase": current_phase, "u_khan": true, "payout": payout, "hand": replaced})
-		deck.discard_many(hand)
 		hand.clear()
+		move_to_recyclable_spent(replaced)
 		var replacement := deck.refill(hand, ACTIVE_HAND_TARGET)
 		all_drawn.append_array(replacement)
 		if replacement.size() < ACTIVE_HAND_TARGET:
@@ -618,8 +810,11 @@ func _validate_commit_selection(selected_cards: Array[CardData]) -> String:
 	var guard := _validate_loose_selection(selected_cards)
 	if not guard.is_empty():
 		return guard
-	if state != STATE_FINAL_COMMIT_WINDOW and selected_cards.size() >= hand.size():
-		return "Keep at least one loose card for the mandatory discard."
+	var required_discards := 1
+	if state == STATE_ACTIVE and current_drink_id == DrinkCatalog.TRA_DA:
+		required_discards = 1 if tra_da_extra_discard_pending else 2
+	if state != STATE_FINAL_COMMIT_WINDOW and selected_cards.size() > hand.size() - required_discards:
+		return "Keep at least two loose cards for Trà đá's discards." if required_discards == 2 else "Keep at least one loose card for the mandatory discard."
 	return ""
 
 
@@ -634,6 +829,54 @@ func _record_phase_points(points: int, reason: String) -> void:
 		wallet.apply_points(points, reason)
 
 
+func _score_true_exhaustion_discard(card: CardData) -> ScoringContext:
+	if not true_exhaustion_active or card == null:
+		return null
+	var context := scoring.score_true_exhaustion_discard(card, current_phase)
+	if context == null:
+		return null
+	_record_phase_points(context.final_points, context.action_type)
+	exhaustion_discard_scored.emit(context)
+	return context
+
+
+func _reset_exhaustion_state() -> void:
+	recyclable_spent_cards.clear()
+	recycle_used = false
+	true_exhaustion_active = false
+	_expected_deal_card_ids.clear()
+
+
+func _capture_expected_deal_card_ids() -> void:
+	_expected_deal_card_ids.clear()
+	for card in deck.draw_pile:
+		_expected_deal_card_ids[card.unique_id] = true
+
+
+func _append_physical_zone(locations: Dictionary, zone: String, cards: Array[CardData]) -> void:
+	for card in cards:
+		if card == null:
+			continue
+		var card_id := String(card.unique_id)
+		var zones: Array = locations.get(card_id, [])
+		zones.append(zone)
+		locations[card_id] = zones
+
+
+func _total_physical_card_count(locations: Dictionary) -> int:
+	var total := 0
+	for card_id in locations:
+		total += (locations[card_id] as Array).size()
+	return total
+
+
+func _table_card_count() -> int:
+	var total := 0
+	for meld in melds:
+		total += meld.cards.size()
+	return total
+
+
 func _reset_phase_metrics() -> void:
 	phase_metrics.reset()
 	phase_earnings_points = 0
@@ -645,6 +888,7 @@ func _reset_phase_metrics() -> void:
 
 func _reset_drink_usage() -> void:
 	tra_da_used_this_turn = false
+	tra_da_extra_discard_pending = false
 	nhan_tran_used_this_phase = false
 	nuoc_voi_used_phases.clear()
 	sam_dua_preserved_cards.clear()

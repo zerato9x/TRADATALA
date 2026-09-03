@@ -11,6 +11,24 @@ const TUTORIAL_SPOTLIGHT_SCRIPT := preload("res://scripts/ui/tutorial_spotlight.
 const CARD_DRAG_PAYLOAD_SCRIPT := preload("res://scripts/ui/card_drag_payload.gd")
 const CARD_ACTION_OUTLINE_SCRIPT := preload("res://scripts/ui/card_action_outline.gd")
 const GAMEPLAY_MUSIC_CONDUCTOR_SCRIPT := preload("res://scripts/audio/gameplay_music_conductor.gd")
+const EVENT_TABLE_CONTROLLER_SCRIPT := preload("res://scripts/ui/event_table_controller.gd")
+const DRINK_CUE_STREAMS: Array[AudioStream] = [
+	preload("res://assets/audio/sfx/glass_clink.mp3"),
+	preload("res://assets/audio/sfx/glass_clink_2.mp3"),
+	preload("res://assets/audio/sfx/glass_clink_3.mp3"),
+]
+const CARD_SFX_CHOOSE := &"choose"
+const CARD_SFX_PLACE := &"place"
+const CARD_SFX_DRAW := &"draw"
+const CARD_SFX_SHUFFLE := &"shuffle"
+const CARD_CHOOSE_STREAM := preload("res://assets/audio/sfx/card_choose.wav")
+const CARD_DRAW_STREAM := preload("res://assets/audio/sfx/card_draw.wav")
+const CARD_SHUFFLE_STREAM := preload("res://assets/audio/sfx/card_shuffle.wav")
+const CARD_PLACE_STREAMS: Array[AudioStream] = [
+	preload("res://assets/audio/sfx/card_place.mp3"),
+	preload("res://assets/audio/sfx/card_place_2.mp3"),
+	preload("res://assets/audio/sfx/card_place_3.mp3"),
+]
 const EMPTY_DRINK_TEXTURE := preload("res://assets/drinks/glass_empty.png")
 const DRINK_FULL_TEXTURES := {
 	DrinkCatalog.TRA_DA: preload("res://assets/drinks/tra_da_full.png"),
@@ -104,10 +122,13 @@ var music_progress: ProgressBar
 var music_time_label: Label
 var music_up_next_label: Label
 var music_play_pause_button: Button
+var music_system_selector: OptionButton
+var authored_music_set_selector: OptionButton
 var music_track_list: OptionButton
 var music_shuffle_button: Button
 var music_repeat_button: Button
 var music_track_list_syncing: bool = false
+var music_policy_syncing: bool = false
 var menu_page: StringName = &"home"
 var menu_localized_controls: Dictionary = {}
 var tutorial_active: bool = false
@@ -144,6 +165,19 @@ var pending_drink_card_ids: Dictionary = {}
 var selected_drink_meld_id: int = -1
 var selected_drink_meld_card_id: String = ""
 var selected_drink_discard_key: String = ""
+var drink_cue_player: AudioStreamPlayer
+var drink_cue_active: bool = false
+var drink_cue_signature: String = ""
+var drink_cue_stream_index: int = -1
+var drink_cue_play_count: int = 0
+var card_sfx_players: Dictionary = {}
+var card_place_stream_index: int = -1
+var card_sfx_play_counts := {
+	CARD_SFX_CHOOSE: 0,
+	CARD_SFX_PLACE: 0,
+	CARD_SFX_DRAW: 0,
+	CARD_SFX_SHUFFLE: 0,
+}
 
 var earnings_value: Label
 var vnd_per_point_value: Label
@@ -213,10 +247,13 @@ var campaign_event_title: Label
 var campaign_event_wallet: Label
 var campaign_participants: VBoxContainer
 var campaign_continue_button: Button
+var event_table: EventTableController
+var pending_deal_presentation_unlock: bool = false
 
 
 func _ready() -> void:
 	_bind_editor_interface()
+	_setup_event_table_presentation()
 	_connect_editor_interface_signals()
 	interaction_locked = true
 	settings = get_node_or_null("/root/GameSettings")
@@ -225,6 +262,9 @@ func _ready() -> void:
 		settings.name = "GameSettings"
 		get_tree().root.add_child(settings)
 	settings.locale_changed.connect(_on_locale_changed)
+	_setup_drink_cue_audio()
+	_setup_card_sfx_audio()
+	_refresh_music_policy_controls()
 	get_viewport().size_changed.connect(_on_viewport_size_changed)
 	var result := deal.start_deal(-1, true)
 	displayed_wallet_vnd = deal.wallet.balance_vnd
@@ -250,6 +290,11 @@ func _process(_delta: float) -> void:
 
 
 func _exit_tree() -> void:
+	if drink_cue_player != null:
+		drink_cue_player.stop()
+	for card_sfx_player in card_sfx_players.values():
+		if card_sfx_player is AudioStreamPlayer:
+			(card_sfx_player as AudioStreamPlayer).stop()
 	if campaign == null:
 		return
 	var connections := [
@@ -315,6 +360,30 @@ func _bind_editor_interface() -> void:
 			values.append(entry["node"])
 
 
+func _setup_event_table_presentation() -> void:
+	if campaign_overlay != null:
+		campaign_overlay.visible = false
+		campaign_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	event_table = EVENT_TABLE_CONTROLLER_SCRIPT.new()
+	event_table.name = "EventTableController"
+	game_layer.add_child(event_table)
+	event_table.configure_deal_nodes([
+		game_layer.get_node("Header") as Control,
+		game_layer.get_node("TableSurface") as Control,
+		game_layer.get_node("LooseHand") as Control,
+		game_layer.get_node("UtilityRail") as Control,
+		game_layer.get_node("ActionDock") as Control,
+	])
+	campaign_overlay = event_table
+	campaign_event_kicker = event_table.period_label
+	campaign_event_title = event_table.day_label
+	campaign_event_wallet = event_table.money_label
+	campaign_participants = event_table.participants_container
+	campaign_continue_button = event_table.continue_button
+	_connect_signal_once(event_table.npc_focused, _on_event_table_npc_focused)
+	_connect_signal_once(event_table.deal_presentation_ready, _on_event_table_deal_ready)
+
+
 func _connect_editor_interface_signals() -> void:
 	_connect_signal_once(play_button.pressed, _on_play_pressed)
 	_connect_signal_once(how_to_play_button.pressed, _show_menu_page.bind(&"how_to_play"))
@@ -334,6 +403,8 @@ func _connect_editor_interface_signals() -> void:
 	_connect_signal_once(music_controller.pause_changed, _on_music_pause_changed)
 	_connect_signal_once(music_controller.playback_options_changed, _on_music_playback_options_changed)
 	_connect_signal_once(music_play_pause_button.pressed, _on_music_play_pause_pressed)
+	_connect_signal_once(music_system_selector.item_selected, _on_music_system_selected)
+	_connect_signal_once(authored_music_set_selector.item_selected, _on_authored_music_set_selected)
 	_connect_signal_once(music_track_list.item_selected, _on_music_track_selected)
 	_connect_signal_once(music_shuffle_button.pressed, _on_music_shuffle_pressed)
 	_connect_signal_once(music_repeat_button.pressed, _on_music_repeat_pressed)
@@ -350,6 +421,9 @@ func _connect_editor_interface_signals() -> void:
 	_connect_signal_once(discard_button.pressed, _on_discard_pressed)
 	_connect_signal_once(settle_button.pressed, _on_settle_pressed)
 	_connect_signal_once(deal.new_phom_scored, _on_deal_new_phom_scored)
+	_connect_signal_once(deal.first_exhaustion, _on_deal_first_exhaustion)
+	_connect_signal_once(deal.true_exhaustion, _on_deal_true_exhaustion)
+	_connect_signal_once(deal.exhaustion_discard_scored, _on_deal_exhaustion_discard_scored)
 	_connect_signal_once(tutorial_exit_button.pressed, _on_tutorial_exit_pressed)
 	var archive_dim := discard_archive_overlay.find_child("ArchiveDim", true, false)
 	if archive_dim != null:
@@ -422,9 +496,44 @@ func _on_music_playback_options_changed() -> void:
 
 
 func _on_music_track_selected(track_index: int) -> void:
-	if music_track_list_syncing:
+	if music_track_list_syncing or settings.music_system != settings.MUSIC_SYSTEM_PLAYING_TRACKS:
 		return
+	if gameplay_music != null:
+		gameplay_music.stop_campaign()
 	music_controller.play_track(track_index)
+
+
+func _on_music_system_selected(index: int) -> void:
+	if music_policy_syncing or index < 0 or index >= settings.SUPPORTED_MUSIC_SYSTEMS.size():
+		return
+	settings.set_music_system(settings.SUPPORTED_MUSIC_SYSTEMS[index])
+	if settings.music_system == settings.MUSIC_SYSTEM_PLAYING_TRACKS and music_controller.dj_mode:
+		if gameplay_music != null:
+			gameplay_music.stop_campaign()
+		music_controller.play_track(music_controller.current_track_index, false)
+	_sync_music_player()
+
+
+func _on_authored_music_set_selected(index: int) -> void:
+	if music_policy_syncing or index < 0 or index >= settings.SUPPORTED_AUTHORED_SETS.size():
+		return
+	settings.set_authored_music_set(settings.SUPPORTED_AUTHORED_SETS[index])
+	_sync_music_player()
+
+
+func _refresh_music_policy_controls() -> void:
+	if music_system_selector == null or authored_music_set_selector == null or settings == null:
+		return
+	music_policy_syncing = true
+	music_system_selector.clear()
+	music_system_selector.add_item(tr("MUSIC_SYSTEM_PLAYING_TRACKS"))
+	music_system_selector.add_item(tr("MUSIC_SYSTEM_AUTHORED_DJ"))
+	music_system_selector.select(maxi(settings.SUPPORTED_MUSIC_SYSTEMS.find(settings.music_system), 0))
+	authored_music_set_selector.clear()
+	for set_id in settings.SUPPORTED_AUTHORED_SETS:
+		authored_music_set_selector.add_item(tr("MUSIC_AUTHORED_SET_%s" % set_id.to_upper()))
+	authored_music_set_selector.select(maxi(settings.SUPPORTED_AUTHORED_SETS.find(settings.authored_music_set), 0))
+	music_policy_syncing = false
 
 
 func _on_music_shuffle_pressed() -> void:
@@ -438,6 +547,12 @@ func _on_music_repeat_pressed() -> void:
 func _sync_music_player() -> void:
 	if music_controller == null or music_cover == null:
 		return
+	_refresh_music_policy_controls()
+	var playing_tracks: bool = settings.music_system == settings.MUSIC_SYSTEM_PLAYING_TRACKS
+	authored_music_set_selector.disabled = playing_tracks
+	music_track_list.disabled = not playing_tracks
+	music_shuffle_button.disabled = not playing_tracks
+	music_repeat_button.disabled = not playing_tracks
 	music_track_list_syncing = true
 	if music_track_list.item_count != music_controller.playlist.size():
 		music_track_list.clear()
@@ -454,8 +569,13 @@ func _sync_music_player() -> void:
 		tr("MUSIC_PLAYER_SIDE") % music_controller.current_variant,
 	]
 	var next_request := music_controller.next_mix_request()
-	if next_request.is_empty():
-		music_up_next_label.text = tr("MUSIC_PLAYER_UP_NEXT") + ": —"
+	if not playing_tracks:
+		var authored_set: String = String(settings.authored_music_set)
+		if gameplay_music != null and gameplay_music.active and not gameplay_music.active_set_id.is_empty():
+			authored_set = gameplay_music.active_set_id
+		music_up_next_label.text = "%s: %s" % [tr("MUSIC_PLAYER_AUTHORED_READY"), authored_set.to_upper()]
+	elif next_request.is_empty():
+		music_up_next_label.text = tr("MUSIC_PLAYER_UP_NEXT") + ": -"
 	else:
 		music_up_next_label.text = "%s: %s · %s" % [
 			tr("MUSIC_PLAYER_UP_NEXT"),
@@ -493,6 +613,71 @@ func _on_sound_volume_changed(value: float) -> void:
 	settings.set_sound_volume(value)
 
 
+func _setup_drink_cue_audio() -> void:
+	drink_cue_player = AudioStreamPlayer.new()
+	drink_cue_player.name = "DrinkCuePlayer"
+	drink_cue_player.bus = GameSettings.SOUND_BUS
+	add_child(drink_cue_player)
+
+
+func _setup_card_sfx_audio() -> void:
+	for kind in [CARD_SFX_CHOOSE, CARD_SFX_PLACE, CARD_SFX_DRAW, CARD_SFX_SHUFFLE]:
+		var player := AudioStreamPlayer.new()
+		player.name = "Card%sPlayer" % String(kind).capitalize()
+		player.bus = GameSettings.SOUND_BUS
+		add_child(player)
+		card_sfx_players[kind] = player
+
+
+func _play_card_sfx(kind: StringName) -> void:
+	var player := card_sfx_players.get(kind) as AudioStreamPlayer
+	if player == null:
+		return
+	match kind:
+		CARD_SFX_CHOOSE:
+			player.stream = CARD_CHOOSE_STREAM
+		CARD_SFX_DRAW:
+			player.stream = CARD_DRAW_STREAM
+		CARD_SFX_SHUFFLE:
+			player.stream = CARD_SHUFFLE_STREAM
+		CARD_SFX_PLACE:
+			card_place_stream_index = (card_place_stream_index + 1) % CARD_PLACE_STREAMS.size()
+			player.stream = CARD_PLACE_STREAMS[card_place_stream_index]
+		_:
+			return
+	player.play()
+	card_sfx_play_counts[kind] = int(card_sfx_play_counts.get(kind, 0)) + 1
+
+
+func _sync_card_action_sfx(result: Dictionary, animated_cards: Array[CardData]) -> void:
+	if not game_started and not tutorial_active:
+		return
+	if bool(result.get("shuffled", false)):
+		_play_card_sfx(CARD_SFX_SHUFFLE)
+	if not animated_cards.is_empty():
+		_play_card_sfx(CARD_SFX_DRAW)
+
+
+func _sync_drink_reactive_cue() -> void:
+	if drink_cue_player == null:
+		return
+	var cue := deal.drink_cue_trigger()
+	var active := bool(cue.get("active", false))
+	if not active:
+		drink_cue_active = false
+		drink_cue_signature = ""
+		return
+	var signature := "%s:%s" % [cue.get("drink_id", ""), cue.get("trigger_id", "")]
+	if drink_cue_active and drink_cue_signature == signature:
+		return
+	drink_cue_active = true
+	drink_cue_signature = signature
+	drink_cue_stream_index = (drink_cue_stream_index + 1) % DRINK_CUE_STREAMS.size()
+	drink_cue_player.stream = DRINK_CUE_STREAMS[drink_cue_stream_index]
+	drink_cue_player.play()
+	drink_cue_play_count += 1
+
+
 func _on_language_selected(index: int) -> void:
 	if index < 0 or index >= settings.SUPPORTED_LOCALES.size():
 		return
@@ -516,6 +701,7 @@ func _refresh_localized_ui() -> void:
 		if is_instance_valid(control):
 			control.set("text", tr(String(menu_localized_controls[control])))
 	music_settings_label.text = tr("MENU_MUSIC")
+	_refresh_music_policy_controls()
 	_sync_music_player()
 	sound_settings_label.text = tr("MENU_SOUND")
 	language_settings_label.text = tr("MENU_LANGUAGE")
@@ -689,6 +875,7 @@ func _start_tutorial_deal() -> void:
 	selected_card_ids.clear()
 	selected_meld_id = -1
 	tutorial_meld_id = -1
+	deal.set_current_drink(DrinkCatalog.NONE)
 	var result := deal.start_tutorial_deal()
 	displayed_wallet_vnd = deal.wallet.balance_vnd
 	_sync_all(result, true)
@@ -1020,36 +1207,92 @@ func _make_action_button(parent: Container, text_value: String, tone: String, wi
 	return button
 
 
+
 func _show_campaign_event(event: EventInstance) -> void:
 	current_campaign_event = event
 	interaction_locked = true
 	_set_hand_interaction_enabled(false)
 	modal_overlay.visible = false
-	campaign_overlay.visible = true
 	var day: Dictionary = event.context.get("day", campaign.current_day())
-	campaign_event_kicker.text = tr(EventManager.slot_name_key(event.slot))
-	campaign_event_title.text = tr(String(day.get("name_key", "")))
-	campaign_event_wallet.text = tr("CAMPAIGN_WALLET_REQUIREMENT") % [
-		VndWallet.format_vnd(deal.wallet.balance_vnd),
-		VndWallet.format_vnd(int(day.get("required_vnd", 0))),
-	]
-	_clear_campaign_participants()
-	if event.participants.is_empty():
-		var empty := Label.new()
-		empty.text = tr("EVENT_NO_PARTICIPANTS")
-		empty.custom_minimum_size.y = 170
-		empty.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		empty.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		empty.add_theme_font_size_override("font_size", 16)
-		empty.add_theme_color_override("font_color", PresentationTheme.MUTED)
-		campaign_participants.add_child(empty)
-	else:
-		for participant in event.participants:
-			_build_campaign_participant(participant, event)
-	campaign_continue_button.text = tr("EVENT_CONTINUE")
-	campaign_continue_button.disabled = not event.can_exit
-	campaign_continue_button.call_deferred("grab_focus")
+	event_table.enter_event(
+		event.slot,
+		tr(String(day.get("name_key", ""))),
+		tr(EventManager.slot_name_key(event.slot)),
+		_event_money_text(deal.wallet.balance_vnd)
+	)
+	event_table.set_continue_enabled(event.can_exit)
 	_refresh_stats()
+
+
+func _on_event_table_npc_focused(npc_id: String) -> void:
+	_clear_campaign_participants()
+	var participant: NPCDefinition
+	if current_campaign_event != null:
+		for candidate in current_campaign_event.participants:
+			if candidate.id == npc_id:
+				participant = candidate
+				break
+	if npc_id == EventTableController.NPC_TRA_DA and participant != null:
+		_build_campaign_participant(participant, current_campaign_event)
+	else:
+		_build_event_placeholder(npc_id)
+
+
+func _build_event_placeholder(npc_id: String) -> void:
+	var title := Label.new()
+	title.text = event_table.npc_display_name(npc_id)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_size_override("font_size", 26)
+	title.add_theme_color_override("font_color", PresentationTheme.GOLD)
+	campaign_participants.add_child(title)
+	var system_label := Label.new()
+	match npc_id:
+		EventTableController.NPC_THAY_BOI:
+			system_label.text = "THẺ XĂM / SỬA BỘ BÀI"
+		EventTableController.NPC_HANG_RONG:
+			system_label.text = "BẢO VẬT HÀNG RONG"
+		EventTableController.NPC_DANH_GIAY:
+			system_label.text = "LỘC ĐẦU NGÀY / HỘP TIỀN BO"
+		EventTableController.NPC_LOTTO:
+			system_label.text = "KẾT QUẢ VÉ SỐ" if current_campaign_event != null and current_campaign_event.slot == EventManager.EventSlot.AFTERNOON else "CHỌN VÉ SỐ 2 CHỮ SỐ"
+		_:
+			system_label.text = "NỘI DUNG SỰ KIỆN"
+	system_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	system_label.add_theme_font_size_override("font_size", 16)
+	system_label.add_theme_color_override("font_color", PresentationTheme.TEA)
+	campaign_participants.add_child(system_label)
+	var note := Label.new()
+	note.text = "Khung trình bày đã sẵn sàng. Cơ chế của nhân vật sẽ được nối vào đây mà không mở màn hình riêng."
+	note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	note.add_theme_color_override("font_color", PresentationTheme.MUTED)
+	campaign_participants.add_child(note)
+	var cards := HBoxContainer.new()
+	cards.alignment = BoxContainer.ALIGNMENT_CENTER
+	cards.add_theme_constant_override("separation", 12)
+	campaign_participants.add_child(cards)
+	for index in range(3):
+		var card := Button.new()
+		card.custom_minimum_size = Vector2(148, 110)
+		card.text = "%s\n%02d" % [system_label.text, index + 1]
+		card.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		card.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+		PresentationTheme.configure_button(card, "neutral")
+		card.pressed.connect(_on_event_placeholder_pressed.bind(system_label.text))
+		cards.add_child(card)
+
+
+func _on_event_placeholder_pressed(system_name: String) -> void:
+	_show_banner("%s · SẴN SÀNG KẾT NỐI CƠ CHẾ" % system_name)
+
+
+func _on_event_table_deal_ready() -> void:
+	if not pending_deal_presentation_unlock:
+		return
+	pending_deal_presentation_unlock = false
+	interaction_locked = false
+	_set_hand_interaction_enabled(true)
+	_refresh_actions()
 
 
 func _clear_campaign_participants() -> void:
@@ -1125,6 +1368,7 @@ func _sync_all(result: Dictionary = {}, animate_all_cards: bool = false) -> void
 	if animate_all_cards:
 		animated_cards.clear()
 		animated_cards.append_array(deal.hand)
+	_sync_card_action_sfx(result, animated_cards)
 	_sync_hand(animated_cards)
 	_sync_card_probability_badges()
 	_sync_discard_history()
@@ -1137,8 +1381,9 @@ func _sync_all(result: Dictionary = {}, animate_all_cards: bool = false) -> void
 	if drink_name_label != null:
 		drink_name_label.text = tr(DrinkCatalog.display_name(deal.current_drink_id)).to_upper()
 		drink_table_button.tooltip_text = _drink_tooltip()
-		drink_charge_outline.set_drink_cue(deal.current_drink_has_charge())
+		drink_charge_outline.set_drink_cue(deal.current_drink_has_charge() or bool(deal.drink_cue_trigger().get("active", false)))
 		_sync_drink_table_visual()
+	_sync_drink_reactive_cue()
 	_refresh_stats()
 	_refresh_actions()
 
@@ -1258,8 +1503,6 @@ func _drink_hand_eligible_card_ids() -> Dictionary:
 	for card in deal.hand:
 		var card_is_eligible := false
 		match deal.current_drink_id:
-			DrinkCatalog.TRA_DA:
-				card_is_eligible = deal.can_use_tra_da(card)
 			DrinkCatalog.NHAN_TRAN:
 				for record in discard_targets:
 					if deal.can_use_nhan_tran(card, record):
@@ -1593,6 +1836,14 @@ func _refresh_actions() -> void:
 		status_label.text = tr("STATUS_LAST_CALL")
 		status_label.add_theme_color_override("font_color", PresentationTheme.GOLD)
 		return
+	if deal.tra_da_extra_discard_pending and selected.is_empty():
+		status_label.text = tr("STATUS_TRA_DA_EXTRA_DISCARD")
+		status_label.add_theme_color_override("font_color", CardActionOutline.DRINK_HIGHLIGHT)
+		return
+	if deal.true_exhaustion_active and selected.is_empty():
+		status_label.text = tr("STATUS_TRUE_EXHAUSTION")
+		status_label.add_theme_color_override("font_color", PresentationTheme.RED)
+		return
 	if selected.is_empty():
 		status_label.text = tr("STATUS_CHOOSE")
 		status_label.add_theme_color_override("font_color", PresentationTheme.MUTED)
@@ -1625,8 +1876,6 @@ func _refresh_actions() -> void:
 
 func _drink_target_status() -> String:
 	match deal.current_drink_id:
-		DrinkCatalog.TRA_DA:
-			return tr("STATUS_DRINK_TARGETING_TRA_DA_HAND") if not selected_drink_discard_key.is_empty() else tr("STATUS_DRINK_TARGETING_TRA_DA")
 		DrinkCatalog.NHAN_TRAN:
 			if pending_drink_card_ids.is_empty() and selected_drink_discard_key.is_empty():
 				return tr("STATUS_DRINK_TARGETING_NHAN_TRAN")
@@ -1783,6 +2032,8 @@ func _apply_drag_selection(cards: Array[CardData], meld_id: int) -> void:
 	selected_card_ids.clear()
 	for card in cards:
 		selected_card_ids[card.unique_id] = true
+	if not cards.is_empty():
+		_play_card_sfx(CARD_SFX_CHOOSE)
 	selected_meld_id = meld_id
 	_layout_hand(true)
 	_sync_melds()
@@ -1928,6 +2179,7 @@ func _on_card_pressed(card: CardData) -> void:
 		selected_card_ids.erase(card.unique_id)
 	else:
 		selected_card_ids[card.unique_id] = true
+		_play_card_sfx(CARD_SFX_CHOOSE)
 	selected_drink_meld_id = -1
 	selected_drink_meld_card_id = ""
 	_layout_hand(true)
@@ -1994,6 +2246,7 @@ func _on_meld_card_pressed(meld_id: int, card: CardData) -> void:
 	if not deal.can_use_nuoc_voi(meld_id, card):
 		_show_banner(tr("DRINK_NUOC_VOI_CARD_INVALID"))
 		return
+	_play_card_sfx(CARD_SFX_CHOOSE)
 	selected_drink_meld_id = meld_id
 	selected_drink_meld_card_id = card.unique_id
 	_sync_melds()
@@ -2033,10 +2286,6 @@ func _on_drink_pressed() -> void:
 		_reject_action(tr("DRINK_NO_CHARGE"))
 		return
 	match deal.current_drink_id:
-		DrinkCatalog.TRA_DA:
-			if deal.drink_mandatory_discard_targets().is_empty():
-				_reject_action(tr("DRINK_TRA_DA_NO_DISCARD"))
-				return
 		DrinkCatalog.NHAN_TRAN:
 			if deal.drink_mandatory_discard_targets().is_empty():
 				_reject_action(tr("DRINK_NHAN_TRAN_NO_DISCARD"))
@@ -2060,9 +2309,11 @@ func _on_drink_pressed() -> void:
 	selected_drink_meld_card_id = ""
 	selected_drink_discard_key = ""
 	_sync_all()
-	var banner_key := "BANNER_DRINK_TARGET_SAM_DUA" if deal.current_drink_id == DrinkCatalog.SAM_DUA else (
-		"BANNER_DRINK_TARGET_NHAN_TRAN" if deal.current_drink_id == DrinkCatalog.NHAN_TRAN else "BANNER_DRINK_TARGET_TRA_DA"
-	)
+	var banner_key: String = {
+		DrinkCatalog.NHAN_TRAN: "BANNER_DRINK_TARGET_NHAN_TRAN",
+		DrinkCatalog.NUOC_VOI: "BANNER_DRINK_TARGET_ONE",
+		DrinkCatalog.SAM_DUA: "BANNER_DRINK_TARGET_SAM_DUA",
+	}.get(deal.current_drink_id, "BANNER_DRINK_TARGET_ONE")
 	_show_banner(tr(banner_key))
 
 
@@ -2072,6 +2323,7 @@ func _on_drink_hand_card_targeted(card: CardData) -> void:
 			pending_drink_card_ids.erase(card.unique_id)
 		elif pending_drink_card_ids.size() < 3:
 			pending_drink_card_ids[card.unique_id] = true
+			_play_card_sfx(CARD_SFX_CHOOSE)
 		else:
 			var rejected_view := hand_views.get(card.unique_id) as PlayingCardView
 			if rejected_view != null:
@@ -2081,22 +2333,14 @@ func _on_drink_hand_card_targeted(card: CardData) -> void:
 		_sync_all()
 		_refresh_actions()
 		return
-	if deal.current_drink_id not in [DrinkCatalog.TRA_DA, DrinkCatalog.NHAN_TRAN]:
+	if deal.current_drink_id != DrinkCatalog.NHAN_TRAN:
 		return
 	if card == null or not deal.hand.has(card):
 		return
+	_play_card_sfx(CARD_SFX_CHOOSE)
 	pending_drink_card_ids.clear()
 	pending_drink_card_ids[card.unique_id] = true
 	var record := _selected_drink_discard_record()
-	if deal.current_drink_id == DrinkCatalog.TRA_DA:
-		if record == null:
-			record = deal.latest_mandatory_discard()
-		if record == null or not deal.can_use_tra_da(card, record):
-			_reject_action(tr("DRINK_TRA_DA_NO_DISCARD"))
-			return
-		_sync_all()
-		_resolve_hand_drink_target(card, record)
-		return
 	if record == null:
 		_sync_all()
 		_show_banner(tr("STATUS_DRINK_TARGETING_NHAN_TRAN_DISCARD"))
@@ -2120,14 +2364,6 @@ func _on_drink_discard_targeted(record: DiscardRecord) -> void:
 		return
 	selected_drink_discard_key = target_key
 	var pending := _pending_drink_cards()
-	if deal.current_drink_id == DrinkCatalog.TRA_DA:
-		if pending.is_empty():
-			_sync_all()
-			_show_banner(tr("STATUS_DRINK_TARGETING_TRA_DA_HAND"))
-		else:
-			_sync_all()
-			_resolve_hand_drink_target(pending[0], record)
-		return
 	if deal.current_drink_id == DrinkCatalog.NHAN_TRAN:
 		if pending.is_empty():
 			_sync_all()
@@ -2158,7 +2394,7 @@ func _resolve_hand_drink_target(card: CardData, record: DiscardRecord) -> void:
 	interaction_locked = true
 	_refresh_actions()
 	await _fly_cards([card] as Array[CardData], _discard_history_target_center(record))
-	var result: Dictionary = deal.use_tra_da(card, record) if deal.current_drink_id == DrinkCatalog.TRA_DA else deal.use_nhan_tran(card, record)
+	var result: Dictionary = deal.use_nhan_tran(card, record)
 	_finish_drink_use(result)
 
 
@@ -2213,11 +2449,7 @@ func _pending_drink_cards() -> Array[CardData]:
 
 
 func _has_nuoc_voi_target() -> bool:
-	for meld in deal.melds:
-		for card in meld.cards:
-			if deal.can_use_nuoc_voi(meld.meld_id, card):
-				return true
-	return false
+	return not deal.nuoc_voi_targets().is_empty()
 
 
 func _drink_tooltip() -> String:
@@ -2231,8 +2463,8 @@ func _drink_tooltip() -> String:
 	var status := ""
 	if drink_targeting_active:
 		status = "\n\n%s" % _drink_target_status()
-	elif deal.current_drink_id == DrinkCatalog.TRA_DA and deal.tra_da_used_this_turn:
-		status = "\n\n%s" % tr("DRINK_USED_THIS_TURN")
+	elif deal.current_drink_id == DrinkCatalog.TRA_DA and deal.tra_da_extra_discard_pending:
+		status = "\n\n%s" % tr("STATUS_TRA_DA_EXTRA_DISCARD")
 	elif deal.current_drink_id == DrinkCatalog.NHAN_TRAN and deal.nhan_tran_used_this_phase:
 		status = "\n\n%s" % tr("DRINK_USED_THIS_PHASE")
 	elif deal.current_drink_id == DrinkCatalog.NUOC_VOI and deal.nuoc_voi_used_phases.has(deal.current_phase):
@@ -2253,6 +2485,7 @@ func _on_ha_pressed() -> void:
 	if not result.get("ok", false):
 		_reject_action(result.get("message", "Hạ failed."))
 		return
+	_play_card_sfx(CARD_SFX_PLACE)
 	selected_card_ids.clear()
 	selected_meld_id = result["meld_id"]
 	if tutorial_active:
@@ -2279,6 +2512,7 @@ func _on_extend_pressed() -> void:
 	if not result.get("ok", false):
 		_reject_action(result.get("message", "Extension failed."))
 		return
+	_play_card_sfx(CARD_SFX_PLACE)
 	selected_card_ids.clear()
 	_sync_all(result)
 	if tutorial_active:
@@ -2305,9 +2539,14 @@ func _on_discard_pressed() -> void:
 	if not result.get("ok", false):
 		_reject_action(result.get("message", "Discard failed."))
 		return
+	_play_card_sfx(CARD_SFX_PLACE)
 	selected_card_ids.clear()
 	_sync_all(result)
-	if result.get("final_commit_window", false):
+	if result.get("extra_discard_pending", false):
+		_show_banner(tr("BANNER_TRA_DA_EXTRA_DISCARD"))
+		interaction_locked = false
+		_refresh_actions()
+	elif result.get("final_commit_window", false):
 		_show_banner(tr("BANNER_LAST_CALL"))
 		interaction_locked = false
 		_refresh_actions()
@@ -2622,21 +2861,28 @@ func _on_campaign_event_started(event: EventInstance) -> void:
 func _on_campaign_started() -> void:
 	if gameplay_music == null:
 		gameplay_music = GAMEPLAY_MUSIC_CONDUCTOR_SCRIPT.new(music_controller)
-	gameplay_music.start_campaign("dog_2")
+	if settings.music_system != settings.MUSIC_SYSTEM_AUTHORED_DJ:
+		gameplay_music.stop_campaign()
+		if music_controller.dj_mode:
+			music_controller.play_track(music_controller.current_track_index, false)
 	_sync_music_player()
 
 
 func _on_campaign_day_started(_day: Dictionary) -> void:
+	if gameplay_music == null:
+		gameplay_music = GAMEPLAY_MUSIC_CONDUCTOR_SCRIPT.new(music_controller)
+	if settings.music_system == settings.MUSIC_SYSTEM_AUTHORED_DJ:
+		gameplay_music.start_campaign(GAMEPLAY_MUSIC_CONDUCTOR_SCRIPT.set_for_day(campaign.current_day_index))
 	_sync_music_player()
+
 
 
 func _on_campaign_deal_requested(day: Dictionary, period: String, drink_id: String) -> void:
 	_sync_music_player()
 	current_campaign_event = null
-	campaign_overlay.visible = false
 	interaction_locked = true
 	modal_overlay.visible = false
-	_set_hand_interaction_enabled(true)
+	_set_hand_interaction_enabled(false)
 	selected_card_ids.clear()
 	selected_meld_id = -1
 	var drink_result := deal.set_current_drink(drink_id)
@@ -2647,18 +2893,29 @@ func _on_campaign_deal_requested(day: Dictionary, period: String, drink_id: Stri
 		gameplay_music.on_deal_started(period)
 	displayed_wallet_vnd = deal.wallet.balance_vnd
 	_sync_all(result, true)
-	interaction_locked = false
-	_set_hand_interaction_enabled(true)
-	_refresh_actions()
+	pending_deal_presentation_unlock = true
+	event_table.enter_deal()
 	_show_banner(tr("CAMPAIGN_DEAL_BANNER") % [
 		tr(String(day.get("name_key", ""))),
 		tr(_campaign_period_key(period)),
 	])
 
-
 func _on_deal_new_phom_scored(_context: ScoringContext) -> void:
 	if gameplay_music != null:
 		gameplay_music.on_new_phom(deal.current_phase, deal.phase_new_meld_count)
+
+
+func _on_deal_first_exhaustion(_context: Dictionary) -> void:
+	_show_banner(tr("BANNER_FIRST_EXHAUSTION"))
+
+
+func _on_deal_true_exhaustion(_context: Dictionary) -> void:
+	_show_banner(tr("BANNER_TRUE_EXHAUSTION"))
+
+
+func _on_deal_exhaustion_discard_scored(context: ScoringContext) -> void:
+	_show_banner(tr("BANNER_TRUE_EXHAUSTION_DISCARD") % context.final_points)
+
 
 
 func _on_campaign_drink_pressed(event_slot: int, interaction_id: String, drink_id: String) -> void:
@@ -2668,15 +2925,18 @@ func _on_campaign_drink_pressed(event_slot: int, interaction_id: String, drink_i
 		return
 	event_manager.complete_interaction(interaction_id)
 	displayed_wallet_vnd = deal.wallet.balance_vnd
-	_refresh_stats()
+	event_table.event_money_feedback(_event_money_text(deal.wallet.balance_vnd))
 	if current_campaign_event != null:
-		_show_campaign_event(current_campaign_event)
+		event_table.set_continue_enabled(current_campaign_event.can_exit)
+		_on_event_table_npc_focused(event_table.focused_npc_id)
+	_refresh_stats()
 
 
 func _on_campaign_interaction_pressed(interaction_id: String) -> void:
 	event_manager.complete_interaction(interaction_id)
 	if current_campaign_event != null:
-		_show_campaign_event(current_campaign_event)
+		event_table.set_continue_enabled(current_campaign_event.can_exit)
+		_on_event_table_npc_focused(event_table.focused_npc_id)
 
 
 func _on_campaign_continue_pressed() -> void:
@@ -2685,10 +2945,9 @@ func _on_campaign_continue_pressed() -> void:
 		return
 	if current_campaign_event == null or not current_campaign_event.can_exit:
 		return
-	campaign_overlay.visible = false
+	campaign_continue_button.disabled = true
 	current_campaign_event = null
 	campaign.complete_current_event()
-
 
 func _on_campaign_requirement_passed(day: Dictionary) -> void:
 	_show_banner(tr("CAMPAIGN_REQUIREMENT_PASSED") % [
@@ -2705,16 +2964,17 @@ func _on_campaign_lost() -> void:
 	_show_campaign_outcome(false)
 
 
+
 func _show_campaign_outcome(won: bool) -> void:
 	current_campaign_event = null
 	interaction_locked = true
 	_set_hand_interaction_enabled(false)
 	modal_overlay.visible = false
-	campaign_overlay.visible = true
-	campaign_event_kicker.text = tr("CAMPAIGN_COMPLETE" if won else "CAMPAIGN_ENDED")
-	campaign_event_title.text = tr("CAMPAIGN_VICTORY" if won else "CAMPAIGN_FAILURE")
-	campaign_event_wallet.text = tr("CAMPAIGN_FINAL_WALLET") % VndWallet.format_vnd(deal.wallet.balance_vnd)
-	_clear_campaign_participants()
+	event_table.show_outcome(
+		tr("CAMPAIGN_COMPLETE" if won else "CAMPAIGN_ENDED"),
+		tr("CAMPAIGN_VICTORY" if won else "CAMPAIGN_FAILURE"),
+		tr("CAMPAIGN_FINAL_WALLET") % VndWallet.format_vnd(deal.wallet.balance_vnd)
+	)
 	var result_label := Label.new()
 	result_label.text = tr("CAMPAIGN_VICTORY_BODY") if won else tr("CAMPAIGN_FAILURE_BODY") % VndWallet.format_vnd(campaign.daily_requirement())
 	result_label.custom_minimum_size.y = 190
@@ -2728,6 +2988,9 @@ func _show_campaign_outcome(won: bool) -> void:
 	campaign_continue_button.disabled = false
 	campaign_continue_button.call_deferred("grab_focus")
 	_refresh_stats()
+
+func _event_money_text(amount_vnd: int) -> String:
+	return "%s VND" % VndWallet.format_vnd(amount_vnd).trim_prefix("₫")
 
 
 func _campaign_period_key(period: String) -> String:
@@ -2879,6 +3142,10 @@ func _unhandled_key_input(event: InputEvent) -> void:
 			_close_menu_to_game()
 		elif menu_page == &"home" and not menu_transitioning and event.keycode in [KEY_ENTER, KEY_KP_ENTER, KEY_SPACE]:
 			_on_play_pressed()
+		return
+	if event_table != null and event_table.visible and not event_table.focused_npc_id.is_empty():
+		if event.keycode == KEY_ESCAPE:
+			event_table.unfocus_npc()
 		return
 	if discard_archive_overlay.visible:
 		if event.keycode == KEY_ESCAPE:

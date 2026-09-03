@@ -14,6 +14,15 @@ func test_campaign_requirements_live_in_config_and_increase_each_day() -> void:
 	assert_eq(days[-1]["id"], "sunday")
 
 
+func test_music_defaults_to_reactive_dj_and_alternates_meo_and_dog_by_day() -> void:
+	assert_eq(GameSettings.DEFAULT_MUSIC_SYSTEM, GameSettings.MUSIC_SYSTEM_AUTHORED_DJ)
+	assert_eq(GameSettings.DEFAULT_AUTHORED_SET, "cat")
+	assert_eq(GameplayMusicConductor.set_for_day(0), "cat")
+	assert_eq(GameplayMusicConductor.set_for_day(1), "dog")
+	assert_eq(GameplayMusicConductor.set_for_day(2), "cat")
+	assert_eq(GameplayMusicConductor.set_for_day(7), "dog")
+
+
 func test_music_player_uses_a_plain_twenty_six_track_playlist() -> void:
 	var controller := ReactiveMusicController.new()
 	controller._build_playlist()
@@ -68,6 +77,27 @@ func test_events_support_empty_multiple_and_mandatory_interactions() -> void:
 	assert_true(manager.complete_interaction("choose_drink"))
 	assert_true(event.can_exit)
 	assert_true(manager.finish_current_event())
+
+
+func test_event_table_presentation_rosters_match_the_four_event_slots() -> void:
+	assert_eq(EventTableController.EVENT_ROSTERS[EventManager.EventSlot.STARTER], [
+		EventTableController.NPC_DANH_GIAY,
+		EventTableController.NPC_TRA_DA,
+	])
+	assert_eq(EventTableController.EVENT_ROSTERS[EventManager.EventSlot.MORNING], [
+		EventTableController.NPC_THAY_BOI,
+		EventTableController.NPC_HANG_RONG,
+		EventTableController.NPC_LOTTO,
+	])
+	assert_eq(EventTableController.EVENT_ROSTERS[EventManager.EventSlot.NOON], [
+		EventTableController.NPC_THAY_BOI,
+		EventTableController.NPC_TRA_DA,
+	])
+	assert_eq(EventTableController.EVENT_ROSTERS[EventManager.EventSlot.AFTERNOON], [
+		EventTableController.NPC_THAY_BOI,
+		EventTableController.NPC_HANG_RONG,
+		EventTableController.NPC_LOTTO,
+	])
 
 
 func test_drink_selection_uses_shared_wallet_and_two_deal_periods() -> void:

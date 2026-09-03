@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b1bj0el0s67m1"
-path="res://.godot/imported/9bdb44d5-7dbf-40da-991f-a82e60732517.png-9a6aca8735b19adc70d587a9c8174a46.ctex"
+uid="uid://glea3gf1sj3q"
+path="res://.godot/imported/danhgiay.png-70c43b480e828e9428d511bd324e5198.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/environment/9bdb44d5-7dbf-40da-991f-a82e60732517.png"
-dest_files=["res://.godot/imported/9bdb44d5-7dbf-40da-991f-a82e60732517.png-9a6aca8735b19adc70d587a9c8174a46.ctex"]
+source_file="res://assets/environment/npcs/danhgiay.png"
+dest_files=["res://.godot/imported/danhgiay.png-70c43b480e828e9428d511bd324e5198.ctex"]
 
 [params]
 

@@ -1,0 +1,16 @@
+[gd_scene format=3 uid="uid://b7ruwmwxw1u35"]
+
+[ext_resource type="Script" path="res://debug/MusicReactiveTest.gd" id="1_music_test"]
+[ext_resource type="Script" uid="uid://do8187qgvmsbb" path="res://audio_system/MusicDirector.gd" id="2_music_director"]
+
+[node name="MusicReactiveTest" type="Control" unique_id=746868513]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_music_test")
+
+[node name="MusicDirector" type="Node" parent="." unique_id=1240804158]
+script = ExtResource("2_music_director")

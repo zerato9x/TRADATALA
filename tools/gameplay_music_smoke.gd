@@ -14,6 +14,21 @@ const AFTERNOON_EVENT := "dog_1_bars_025_026"
 const BOSS_1 := "dog_1_bars_029_032"
 const BOSS_2 := "dog_1_bars_035_036"
 const BOSS_CLEANUP := "dog_1_bars_047_050"
+const CAT_STARTER := "cat_1_bars_001_002"
+const CAT_MORNING_1 := "cat_1_bars_009_012"
+const CAT_MORNING_2_SUSTAIN := "cat_1_bars_018_019"
+const CAT_MORNING_2 := "cat_1_bars_026_027"
+const CAT_MORNING_EVENT := "cat_1_bars_030_031"
+const CAT_NOON_1 := "cat_1_bars_035_038"
+const CAT_NOON_2_SUSTAIN := "cat_1_bars_041_042"
+const CAT_NOON_2 := "cat_1_bars_050_051"
+const CAT_NOON_EVENT := "cat_2_bars_001_002"
+const CAT_AFTERNOON_1 := "cat_2_bars_006_007"
+const CAT_AFTERNOON_2 := "cat_2_bars_012_015"
+const CAT_AFTERNOON_EVENT := "cat_2_bars_018_019"
+const CAT_EVENING_1 := "cat_2_bars_032_035"
+const CAT_EVENING_2_SUSTAIN := "cat_2_bars_037_040"
+const CAT_EVENING_2 := "cat_2_bars_048_051"
 const GAMEPLAY_MUSIC_CONDUCTOR_SCRIPT := preload("res://scripts/audio/gameplay_music_conductor.gd")
 
 var failures: Array[String] = []
@@ -42,9 +57,10 @@ func _initialize() -> void:
 
 func _run() -> void:
 	_test_locked_route()
+	_test_cat_route()
 	await _test_runtime_bridge()
 	if failures.is_empty():
-		print("GAMEPLAY_MUSIC_SMOKE: PASS locked-dog-1-and-dog-2-routes authoritative-phom-triggers forward-overlap optional-cleanup runtime-dj-bridge")
+		print("GAMEPLAY_MUSIC_SMOKE: PASS selectable-dog-and-cat-authored-routes authoritative-phom-triggers forward-overlap optional-cleanup runtime-dj-bridge")
 		quit(0)
 		return
 	for failure in failures:
@@ -55,7 +71,7 @@ func _run() -> void:
 func _test_locked_route() -> void:
 	var fake := FakeMusicController.new()
 	var conductor = GAMEPLAY_MUSIC_CONDUCTOR_SCRIPT.new(fake)
-	_check(conductor.start_campaign("dog_2"), "campaign starts on DOG_2 at the approved starter cue")
+	_check(conductor.start_campaign("dog"), "DOG set starts on DOG_2 at the approved starter cue")
 	_check(conductor.on_deal_started("morning"), "Morning Phase 1 requests its cue")
 	_check(conductor.on_deal_phase_started(2), "Morning Phase 2 requests its cue")
 	_check(conductor.on_deal_resolved(), "Morning resolution requests the event sustain")
@@ -99,6 +115,50 @@ func _test_locked_route() -> void:
 	]
 	_check(fake.actions == expected, "locked DOG_1 and DOG_2 gameplay sequence is exact")
 	_check(str(fake.actions).contains(NOON_1), "approved DOG_2 bars 9-12 are routed as the Noon Phase 1 hold")
+
+
+func _test_cat_route() -> void:
+	var fake := FakeMusicController.new()
+	var conductor = GAMEPLAY_MUSIC_CONDUCTOR_SCRIPT.new(fake)
+	_check(conductor.start_campaign("cat"), "CAT set starts on CAT_1 at the approved starter cue")
+	_check(conductor.on_deal_started("morning"), "CAT Morning Phase 1 requests its cue")
+	_check(conductor.on_deal_phase_started(2), "CAT Morning Phase 2 catches its sustain cue")
+	_check(conductor.on_new_phom(2, 1), "first Morning Phase 2 Phom releases CAT into its later Phase 2 cue")
+	_check(not conductor.on_new_phom(2, 2), "later Morning Phom events do not retrigger CAT")
+	_check(conductor.on_deal_resolved(), "CAT Morning resolution advances to the Morning Event cue")
+	_check(conductor.on_deal_started("noon"), "CAT Noon Phase 1 requests its cue")
+	_check(conductor.on_deal_phase_started(2), "CAT Noon Phase 2 catches its sustain cue")
+	_check(conductor.on_new_phom(2, 1), "first Noon Phase 2 Phom releases CAT into its later Phase 2 cue")
+	_check(conductor.on_deal_resolved(), "CAT Noon resolution releases the authored ending")
+	_check(conductor.on_event_started("noon"), "Noon Event switches the CAT set from CAT_1 to CAT_2")
+	_check(conductor.on_deal_started("afternoon"), "CAT Afternoon Phase 1 requests its cue")
+	_check(conductor.on_deal_phase_started(2), "CAT Afternoon Phase 2 requests its cue")
+	_check(conductor.on_deal_resolved(), "CAT Afternoon resolution preserves its cue")
+	_check(conductor.on_event_started("afternoon"), "CAT Afternoon Event requests its separate cue")
+	_check(conductor.on_deal_started("evening"), "CAT Evening Phase 1 requests its cue")
+	_check(conductor.on_deal_phase_started(2), "CAT Evening Phase 2 catches its sustain cue")
+	_check(conductor.on_new_phom(2, 1), "first Evening Phase 2 Phom releases CAT into its later Phase 2 cue")
+	_check(conductor.on_deal_resolved(), "CAT Evening resolution releases the authored ending")
+	var expected := [
+		{"action": "start", "track": "cat_1", "cue": CAT_STARTER},
+		{"action": "request", "cue": CAT_MORNING_1},
+		{"action": "request", "cue": CAT_MORNING_2_SUSTAIN},
+		{"action": "request", "cue": CAT_MORNING_2},
+		{"action": "request", "cue": CAT_MORNING_EVENT},
+		{"action": "request", "cue": CAT_NOON_1},
+		{"action": "request", "cue": CAT_NOON_2_SUSTAIN},
+		{"action": "request", "cue": CAT_NOON_2},
+		{"action": "release"},
+		{"action": "start", "track": "cat_2", "cue": CAT_NOON_EVENT},
+		{"action": "request", "cue": CAT_AFTERNOON_1},
+		{"action": "request", "cue": CAT_AFTERNOON_2},
+		{"action": "request", "cue": CAT_AFTERNOON_EVENT},
+		{"action": "request", "cue": CAT_EVENING_1},
+		{"action": "request", "cue": CAT_EVENING_2_SUSTAIN},
+		{"action": "request", "cue": CAT_EVENING_2},
+		{"action": "release"},
+	]
+	_check(fake.actions == expected, "CAT_1 opening half and CAT_2 closing half sequence is exact")
 
 
 func _test_runtime_bridge() -> void:

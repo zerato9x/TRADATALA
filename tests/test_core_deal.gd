@@ -2,6 +2,7 @@
 extends McpTestSuite
 
 const MUSIC_BEAT_DETECTOR_PATH := "res://scripts/audio/music_beat_detector.gd"
+const SCORING_PIPELINE_PATH := "res://scripts/scoring/scoring_pipeline.gd"
 const CARD_DRAG_PAYLOAD_SCRIPT := preload("res://scripts/ui/card_drag_payload.gd")
 
 
@@ -10,6 +11,7 @@ func suite_name() -> String:
 
 
 func suite_setup(_ctx: Dictionary) -> void:
+	ResourceLoader.load(SCORING_PIPELINE_PATH, "GDScript", ResourceLoader.CACHE_MODE_REPLACE)
 	ResourceLoader.load("res://scripts/gameplay/deal_state.gd", "GDScript", ResourceLoader.CACHE_MODE_REPLACE)
 	ResourceLoader.load(MUSIC_BEAT_DETECTOR_PATH, "GDScript", ResourceLoader.CACHE_MODE_REPLACE)
 
@@ -313,11 +315,204 @@ func test_u_khan_uses_the_prototype_near_meld_rule_and_replaces_hand() -> void:
 	deal.wallet.reset()
 	deal.phase_metrics.reset()
 	var expected := ScoringPipeline.deadwood_points(deal.hand) * 10
+	var replaced_ids := _ids(deal.hand)
+	var exhaustion_events: Array[Dictionary] = []
+	deal.first_exhaustion.connect(func(context: Dictionary) -> void: exhaustion_events.append(context))
 	deal._begin_active_turn()
 	assert_eq(deal.phase_metrics.u_khan_count, 1)
 	assert_eq(deal.phase_metrics.raw_gross, expected)
 	assert_eq(deal.wallet.balance_vnd, VndWallet.points_to_vnd(expected))
 	assert_eq(deal.hand.size(), 10)
+	assert_eq(exhaustion_events.size(), 1)
+	for card_id in replaced_ids:
+		assert_true(exhaustion_events[0]["recycled_card_ids"].has(card_id))
+
+
+func test_fresh_deal_initializes_exhaustion_state_and_accounts_for_52_cards() -> void:
+	var deal := _fresh_deal(301)
+	var accounting := deal.physical_card_accounting()
+	assert_true(accounting["valid"])
+	assert_eq(accounting["total_cards"], 52)
+	assert_eq(accounting["unique_ids"], 52)
+	assert_false(deal.recycle_used)
+	assert_false(deal.true_exhaustion_active)
+	assert_true(deal.recyclable_spent_cards.is_empty())
+
+
+func test_first_exhaustion_recycles_the_same_spent_physical_cards_once() -> void:
+	var deal := _controlled_deal(1, 3, 302)
+	var spent_ids := _ids(deal.recyclable_spent_cards)
+	var events: Array[Dictionary] = []
+	deal.first_exhaustion.connect(func(context: Dictionary) -> void: events.append(context))
+	var drawn := deal.deck.draw(1)
+	deal.hand.append_array(drawn)
+	assert_eq(events.size(), 1)
+	assert_eq(events[0]["action"], "first_exhaustion")
+	assert_true(deal.recycle_used)
+	assert_false(deal.true_exhaustion_active)
+	assert_true(deal.recyclable_spent_cards.is_empty())
+	assert_eq(deal.deck.draw_pile.size(), 3)
+	for card_id in spent_ids:
+		assert_true(_hand_has_id(deal.deck.draw_pile, card_id))
+	assert_true(deal.physical_card_accounting_is_valid())
+
+
+func test_direct_true_exhaustion_activates_without_an_empty_recycle() -> void:
+	var deal := _controlled_deal(1, 0, 303)
+	var events: Array[Dictionary] = []
+	deal.true_exhaustion.connect(func(context: Dictionary) -> void: events.append(context))
+	var drawn := deal.deck.draw(1)
+	deal.hand.append_array(drawn)
+	assert_eq(events.size(), 1)
+	assert_eq(events[0]["action"], "true_exhaustion")
+	assert_true(deal.true_exhaustion_active)
+	assert_false(deal.recycle_used)
+	assert_true(deal.recyclable_spent_cards.is_empty())
+	assert_true(deal.deck.draw_pile.is_empty())
+	assert_true(deal.physical_card_accounting_is_valid())
+
+
+func test_second_exhaustion_does_not_reshuffle_new_spent_cards() -> void:
+	var deal := _controlled_deal(1, 3, 304)
+	var first_draw := deal.deck.draw(1)
+	deal.hand.append_array(first_draw)
+	assert_true(deal.recycle_used)
+	while deal.deck.draw_pile.size() > 1:
+		deal.deck.discard_pile.append(deal.deck.draw_pile.pop_back())
+	var newly_spent: CardData = deal.hand.pop_back() as CardData
+	deal.move_to_recyclable_spent([newly_spent] as Array[CardData])
+	var true_events: Array[Dictionary] = []
+	deal.true_exhaustion.connect(func(context: Dictionary) -> void: true_events.append(context))
+	var second_draw := deal.deck.draw(1)
+	deal.hand.append_array(second_draw)
+	assert_eq(true_events.size(), 1)
+	assert_true(deal.true_exhaustion_active)
+	assert_true(deal.recycle_used)
+	assert_eq(deal.deck.draw_pile.size(), 0)
+	assert_eq(deal.recyclable_spent_cards.size(), 1)
+	assert_true(deal.recyclable_spent_cards.has(newly_spent))
+	assert_true(deal.physical_card_accounting_is_valid())
+
+
+func test_true_exhaustion_discard_scores_current_value_in_the_same_turn() -> void:
+	var deal := _controlled_deal(1, 0, 305)
+	var final_stock_draw := deal.deck.draw(1)
+	deal.hand.append_array(final_stock_draw)
+	assert_true(deal.true_exhaustion_active)
+	deal.discard_count = DealState.DISCARDS_PER_PHASE - 1
+	var card := deal.hand[0]
+	var expected_points := card.score_value()
+	var result := deal.discard_card(card)
+	assert_true(result["ok"])
+	assert_true(result.has("exhaustion_score_context"))
+	var context: ScoringContext = result["exhaustion_score_context"]
+	assert_eq(context.action_type, ScoringPipeline.ACTION_TRUE_EXHAUSTION_DISCARD)
+	assert_eq(context.final_points, expected_points)
+	assert_eq(context.card_value_sum, expected_points)
+	assert_eq(deal.phase_metrics.raw_gross, expected_points)
+	assert_eq(deal.wallet.balance_vnd, VndWallet.points_to_vnd(expected_points))
+
+
+func test_discard_before_true_exhaustion_has_no_exhaustion_score_event() -> void:
+	var deal := _controlled_deal(2, 0, 306)
+	deal.discard_count = DealState.DISCARDS_PER_PHASE - 1
+	var result := deal.discard_card(deal.hand[0])
+	assert_true(result["ok"])
+	assert_false(result.has("exhaustion_score_context"))
+	assert_false(deal.true_exhaustion_active)
+	assert_eq(deal.phase_metrics.raw_gross, 0)
+	assert_true(deal.deck.discard_pile.has(result["card"]))
+
+
+func test_true_exhaustion_discard_uses_a_modified_current_card_value() -> void:
+	var deal := _controlled_deal(1, 0, 307)
+	deal.hand.append_array(deal.deck.draw(1))
+	var card := deal.hand[0]
+	card.value_modifiers.append(5)
+	var expected_points := card.score_value()
+	deal.discard_count = DealState.DISCARDS_PER_PHASE - 1
+	var result := deal.discard_card(card)
+	var context: ScoringContext = result["exhaustion_score_context"]
+	assert_eq(context.final_points, expected_points)
+	assert_eq(context.final_points, card.score_value())
+	assert_ne(context.final_points, card.base_value)
+
+
+func test_locked_discard_archive_cards_are_not_recycled() -> void:
+	var deal := _controlled_deal(1, 3, 308)
+	var archive_ids := _ids(deal.deck.discard_pile)
+	deal.hand.append_array(deal.deck.draw(1))
+	assert_true(deal.recycle_used)
+	for card_id in archive_ids:
+		assert_false(_hand_has_id(deal.deck.draw_pile, card_id))
+	assert_true(deal.physical_card_accounting_is_valid())
+
+
+func test_tra_da_extra_discard_scores_but_stays_in_the_locked_archive() -> void:
+	var deal := _fresh_deal(309, DrinkCatalog.TRA_DA)
+	deal.deck.draw_pile.clear()
+	deal.evaluate_exhaustion()
+	deal.discard_count = DealState.DISCARDS_PER_PHASE - 1
+	var first := deal.discard_card(deal.hand[0])
+	var extra := deal.discard_card(deal.hand[0])
+	assert_true(first["ok"])
+	assert_true(extra["ok"])
+	assert_eq(extra["discard_kind"], DiscardRecord.KIND_DRINK_EXTRA)
+	assert_true(extra.has("exhaustion_score_context"))
+	assert_true(deal.deck.discard_pile.has(first["card"]))
+	assert_true(deal.deck.discard_pile.has(extra["card"]))
+	assert_true(deal.recyclable_spent_cards.is_empty())
+
+
+func test_dump_moves_removed_cards_to_spent_without_archiving_them() -> void:
+	var deal := _fresh_deal(310)
+	_advance_to_last_call(deal)
+	assert_true(deal.settle_phase()["ok"])
+	var dumped_hand := deal.hand.duplicate()
+	var archive_count := deal.deck.discard_pile.size()
+	var result := deal.choose_phase_two(false)
+	assert_true(result["ok"])
+	assert_eq(result["dumped"].size(), dumped_hand.size())
+	for card in result["dumped"]:
+		assert_true(deal.recyclable_spent_cards.has(card))
+		assert_false(deal.deck.discard_pile.has(card))
+	assert_eq(deal.deck.discard_pile.size(), archive_count)
+	assert_true(deal.physical_card_accounting_is_valid())
+
+
+func test_exhaustion_state_persists_across_phase_two_and_resets_on_new_deal() -> void:
+	var deal := _controlled_deal(1, 3, 311)
+	deal.hand.append_array(deal.deck.draw(1))
+	assert_true(deal.recycle_used)
+	assert_false(deal.true_exhaustion_active)
+	deal.discard_count = DealState.DISCARDS_PER_PHASE
+	deal.state = DealState.STATE_FINAL_COMMIT_WINDOW
+	assert_true(deal.settle_phase()["ok"])
+	assert_true(deal.choose_phase_two(true)["ok"])
+	assert_eq(deal.current_phase, 2)
+	assert_true(deal.recycle_used)
+	assert_false(deal.true_exhaustion_active)
+	deal.deck.draw_pile.clear()
+	deal.evaluate_exhaustion()
+	assert_true(deal.true_exhaustion_active)
+	assert_true(deal.recycle_used)
+	assert_true(deal.start_deal(312, true)["ok"])
+	assert_false(deal.recycle_used)
+	assert_false(deal.true_exhaustion_active)
+	assert_true(deal.recyclable_spent_cards.is_empty())
+	assert_true(deal.physical_card_accounting_is_valid())
+
+
+func test_true_exhaustion_persists_when_phase_one_triggers_it() -> void:
+	var deal := _controlled_deal(1, 0, 313)
+	deal.hand.append_array(deal.deck.draw(1))
+	assert_true(deal.true_exhaustion_active)
+	deal.discard_count = DealState.DISCARDS_PER_PHASE
+	deal.state = DealState.STATE_FINAL_COMMIT_WINDOW
+	assert_true(deal.settle_phase()["ok"])
+	assert_true(deal.choose_phase_two(true)["ok"])
+	assert_eq(deal.current_phase, 2)
+	assert_true(deal.true_exhaustion_active)
 
 
 func test_basic_drinks_do_not_modify_new_meld_or_extension_scoring() -> void:
@@ -335,30 +530,60 @@ func test_basic_drinks_do_not_modify_new_meld_or_extension_scoring() -> void:
 		assert_eq(extension_context.final_points, 57)
 
 
-func test_tra_da_swaps_only_the_latest_mandatory_discard_once_per_turn() -> void:
+func test_every_basic_drink_declares_a_reactive_cue_trigger() -> void:
+	var seen := {}
+	for drink_id in DrinkCatalog.basic_ids():
+		var trigger_id := DrinkCatalog.cue_trigger(drink_id)
+		assert_ne(trigger_id, "")
+		assert_false(seen.has(trigger_id))
+		seen[trigger_id] = true
+
+
+func test_tra_da_requires_one_extra_discard_before_the_turn_ends() -> void:
 	var deal := _fresh_deal(221, DrinkCatalog.TRA_DA)
 	assert_false(deal.current_drink_has_charge())
-	assert_false(deal.use_tra_da(deal.hand[0])["ok"])
+	var draw_before := deal.deck.draw_pile.size()
 	var first_discard := deal.hand[0]
-	assert_true(deal.discard_card(first_discard)["ok"])
-	var mandatory_record := deal.latest_mandatory_discard()
-	var replacement := deal.hand[0]
-	var hand_size := deal.hand.size()
-	var discard_count := deal.discard_count
-	var result := deal.use_tra_da(replacement, mandatory_record)
-	assert_true(result["ok"])
-	assert_eq(deal.hand.size(), hand_size)
-	assert_eq(deal.discard_count, discard_count)
-	assert_true(deal.hand.has(first_discard))
-	assert_false(deal.hand.has(replacement))
-	assert_eq(deal.deck.discard_pile[-1], replacement)
-	assert_eq(deal.discard_history[-1].card, replacement)
-	assert_eq(mandatory_record.card, replacement)
-	assert_false(deal.current_drink_has_charge())
-	assert_false(deal.use_tra_da(deal.hand[0])["ok"])
-	assert_true(deal.discard_card(deal.hand[0])["ok"])
-	assert_true(deal.current_drink_has_charge())
-	assert_true(deal.use_tra_da(deal.hand[0], deal.latest_mandatory_discard())["ok"])
+	var first_result := deal.discard_card(first_discard)
+	assert_true(first_result["ok"])
+	assert_true(first_result["extra_discard_pending"])
+	assert_eq(first_result["discard_kind"], DiscardRecord.KIND_MANDATORY)
+	assert_eq(deal.discard_count, 1)
+	assert_eq(deal.hand.size(), DealState.RESTING_HAND_SIZE)
+	assert_eq(deal.deck.draw_pile.size(), draw_before)
+	assert_true(deal.tra_da_extra_discard_pending)
+	assert_true(deal.drink_cue_trigger()["active"])
+	var extra_discard := deal.hand[0]
+	var extra_result := deal.discard_card(extra_discard)
+	assert_true(extra_result["ok"])
+	assert_eq(extra_result["discard_kind"], DiscardRecord.KIND_DRINK_EXTRA)
+	assert_eq(deal.discard_count, 1)
+	assert_eq(deal.discard_history.size(), 2)
+	assert_eq(deal.discard_history[0].kind, DiscardRecord.KIND_MANDATORY)
+	assert_eq(deal.discard_history[1].kind, DiscardRecord.KIND_DRINK_EXTRA)
+	assert_eq(deal.discard_history_for_phase(1).size(), 1)
+	assert_eq(deal.hand.size(), DealState.ACTIVE_HAND_TARGET)
+	assert_eq(deal.deck.draw_pile.size(), draw_before - 2)
+	assert_false(deal.tra_da_extra_discard_pending)
+	assert_false(deal.drink_cue_trigger()["active"])
+
+
+func test_tra_da_finishes_the_phase_only_after_the_fourth_extra_discard() -> void:
+	var deal := _fresh_deal(225, DrinkCatalog.TRA_DA)
+	for turn in range(DealState.DISCARDS_PER_PHASE):
+		var mandatory := deal.discard_card(deal.hand[0])
+		assert_true(mandatory.get("extra_discard_pending", false))
+		assert_eq(deal.state, DealState.STATE_ACTIVE)
+		var extra := deal.discard_card(deal.hand[0])
+		if turn < DealState.DISCARDS_PER_PHASE - 1:
+			assert_false(extra.get("final_commit_window", false))
+			assert_eq(deal.state, DealState.STATE_ACTIVE)
+		else:
+			assert_true(extra.get("final_commit_window", false))
+			assert_eq(deal.state, DealState.STATE_FINAL_COMMIT_WINDOW)
+	assert_eq(deal.discard_count, DealState.DISCARDS_PER_PHASE)
+	assert_eq(deal.discard_history.size(), DealState.DISCARDS_PER_PHASE * 2)
+	assert_eq(deal.discard_history_for_phase(1).size(), DealState.DISCARDS_PER_PHASE)
 
 
 func test_nhan_tran_swaps_one_current_phase_mandatory_discard_once_per_phase() -> void:
@@ -384,6 +609,8 @@ func test_nhan_tran_swaps_one_current_phase_mandatory_discard_once_per_phase() -
 	assert_true(deal.hand.has(first_discard))
 	assert_eq(first_record.card, loose)
 	assert_eq(second_record.card, second_discard)
+	assert_true(deal.recyclable_spent_cards.is_empty())
+	assert_true(deal.physical_card_accounting_is_valid())
 	assert_false(deal.use_nhan_tran(deal.hand[0], second_record)["ok"])
 	while deal.state == DealState.STATE_ACTIVE:
 		deal.discard_card(deal.hand[0])
@@ -392,6 +619,7 @@ func test_nhan_tran_swaps_one_current_phase_mandatory_discard_once_per_phase() -
 	assert_true(deal.settle_phase()["ok"])
 	assert_true(deal.choose_phase_two(true)["ok"])
 	assert_false(deal.current_drink_has_charge())
+	assert_true(deal.physical_card_accounting_is_valid())
 
 
 func test_nhan_tran_rejects_a_mandatory_discard_from_another_phase() -> void:
@@ -429,6 +657,31 @@ func test_nhan_tran_can_swap_in_the_final_commit_window() -> void:
 	assert_eq(target.card, loose)
 	assert_false(deal.current_drink_has_charge())
 
+
+func test_nhan_tran_cue_only_triggers_when_a_discard_completes_a_hand_meld() -> void:
+	var deal := DealState.new()
+	deal.set_current_drink(DrinkCatalog.NHAN_TRAN)
+	deal.state = DealState.STATE_ACTIVE
+	deal.hand = [
+		_card("5", "Spades", "cue"), _card("6", "Spades", "cue"),
+		_card("K", "Hearts", "cue"),
+	] as Array[CardData]
+	var irrelevant := _card("Q", "Clubs", "irrelevant")
+	var useful := _card("7", "Spades", "useful")
+	deal.deck.discard_pile.append(irrelevant)
+	deal.discard_history.append(DiscardRecord.new(irrelevant, 1, 1))
+	assert_false(deal.drink_cue_trigger()["active"])
+	deal.deck.discard_pile.append(useful)
+	var useful_record := DiscardRecord.new(useful, 1, 2)
+	deal.discard_history.append(useful_record)
+	var cue := deal.drink_cue_trigger()
+	assert_true(cue["active"])
+	assert_eq(cue["trigger_id"], "discard_completes_meld")
+	assert_true(cue["records"].has(useful_record))
+	deal.use_nhan_tran(deal.hand[-1], useful_record)
+	assert_false(deal.drink_cue_trigger()["active"])
+
+
 func test_nuoc_voi_returns_only_a_legal_meld_card_once_per_phase_without_unscoring() -> void:
 	var deal := DealState.new()
 	deal.set_current_drink(DrinkCatalog.NUOC_VOI)
@@ -444,12 +697,18 @@ func test_nuoc_voi_returns_only_a_legal_meld_card_once_per_phase_without_unscori
 	assert_false(deal.can_use_nuoc_voi(1, run_cards[1]))
 	assert_true(deal.can_use_nuoc_voi(1, run_cards[0]))
 	assert_true(deal.current_drink_has_charge())
+	var cue := deal.drink_cue_trigger()
+	assert_true(cue["active"])
+	assert_eq(cue["trigger_id"], "removable_meld_card")
+	assert_eq(cue["targets"].size(), 2)
 	var banked_score := run.scored_points
 	assert_true(deal.use_nuoc_voi(1, run_cards[-1])["ok"])
 	assert_eq(run.cards.size(), 3)
 	assert_eq(run.scored_points, banked_score)
 	assert_true(deal.hand.has(run_cards[-1]))
+	assert_true(deal.recyclable_spent_cards.is_empty())
 	assert_false(deal.current_drink_has_charge())
+	assert_false(deal.drink_cue_trigger()["active"])
 	assert_false(deal.use_nuoc_voi(1, run_cards[0])["ok"])
 	deal.current_phase = 2
 	assert_true(deal.current_drink_has_charge())
@@ -475,12 +734,16 @@ func test_nuoc_voi_returns_only_a_legal_meld_card_once_per_phase_without_unscori
 func test_sam_dua_preserves_up_to_three_selected_loose_cards_only_on_dump() -> void:
 	var deal := _fresh_deal(223, DrinkCatalog.SAM_DUA)
 	_advance_to_last_call(deal)
+	var cue := deal.drink_cue_trigger()
+	assert_true(cue["active"])
+	assert_eq(cue["trigger_id"], "phase_one_redraw_preserve")
 	assert_true(deal.settle_phase()["ok"])
 	var original_hand := deal.hand.duplicate()
 	var chosen: Array[CardData] = [deal.hand[0], deal.hand[1], deal.hand[2]]
 	assert_false(deal.select_sam_dua_preserves([deal.hand[0], deal.hand[1], deal.hand[2], deal.hand[3]] as Array[CardData])["ok"])
 	assert_true(deal.select_sam_dua_preserves(chosen)["ok"])
 	assert_false(deal.current_drink_has_charge())
+	assert_false(deal.drink_cue_trigger()["active"])
 	assert_false(deal.select_sam_dua_preserves(chosen)["ok"])
 	var result := deal.choose_phase_two(false)
 	assert_true(result["ok"])
@@ -489,8 +752,11 @@ func test_sam_dua_preserves_up_to_three_selected_loose_cards_only_on_dump() -> v
 	assert_eq(deal.hand.size(), DealState.ACTIVE_HAND_TARGET)
 	for card in chosen:
 		assert_true(deal.hand.has(card))
+		assert_false(deal.recyclable_spent_cards.has(card))
 	for card in result["dumped"]:
 		assert_false(deal.hand.has(card))
+		assert_true(deal.recyclable_spent_cards.has(card))
+	assert_true(deal.physical_card_accounting_is_valid())
 
 
 func test_sam_dua_does_not_change_mom_deadwood() -> void:
@@ -700,6 +966,33 @@ func test_vnd_per_point_converts_positive_and_negative_point_changes() -> void:
 func test_point_to_vnd_conversion_uses_integer_thousands_by_default() -> void:
 	assert_eq(VndWallet.points_to_vnd(63), 63000)
 	assert_eq(VndWallet.format_vnd(1234567890), "₫1.234.567.890")
+
+
+func _controlled_deal(stock_count: int, spent_count: int, seed: int) -> DealState:
+	var deal := _fresh_deal(seed)
+	var all_cards: Array[CardData] = []
+	all_cards.append_array(deal.hand)
+	all_cards.append_array(deal.deck.draw_pile)
+	deal.hand.clear()
+	deal.deck.draw_pile.clear()
+	deal.deck.discard_pile.clear()
+	deal.recyclable_spent_cards.clear()
+	deal.melds.clear()
+	deal.discard_history.clear()
+	deal.current_phase = 1
+	deal.discard_count = 0
+	deal.state = DealState.STATE_ACTIVE
+	deal.phase_metrics.reset()
+	deal._turn_started_with_ten = false
+	deal._turn_committed_card_count = 0
+	deal.hand.append_array(all_cards.slice(0, DealState.ACTIVE_HAND_TARGET))
+	var cursor := DealState.ACTIVE_HAND_TARGET
+	deal.deck.draw_pile.append_array(all_cards.slice(cursor, cursor + stock_count))
+	cursor += stock_count
+	deal.recyclable_spent_cards.append_array(all_cards.slice(cursor, cursor + spent_count))
+	cursor += spent_count
+	deal.deck.discard_pile.append_array(all_cards.slice(cursor))
+	return deal
 
 
 func _fresh_deal(seed: int, drink_id: String = DrinkCatalog.NONE) -> DealState:

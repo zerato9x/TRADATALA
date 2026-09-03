@@ -8,13 +8,18 @@ const PERIOD_MORNING := "morning"
 const PERIOD_NOON := "noon"
 const PERIOD_AFTERNOON := "afternoon"
 const PERIOD_EVENING := "evening"
+const DAILY_SET_SEQUENCE: Array[String] = ["cat", "dog"]
 
 var controller: Object
 var plan_path := DEFAULT_PLAN_PATH
 var active_track_id := ""
+var active_set_id := ""
+var opening_track_id := ""
+var closing_track_id := ""
 var active_period := ""
 var cue_roles: Dictionary = {}
 var active := false
+var morning_first_phom_released := false
 var noon_first_phom_released := false
 var boss_first_phom_released := false
 var last_error := ""
@@ -24,17 +29,34 @@ func _init(music_controller: Object = null) -> void:
 	controller = music_controller
 
 
-func start_campaign(track_id := "dog_2") -> bool:
+static func set_for_day(day_index: int) -> String:
+	return DAILY_SET_SEQUENCE[posmod(day_index, DAILY_SET_SEQUENCE.size())]
+
+
+func start_campaign(set_id := "cat") -> bool:
 	if controller == null:
 		return _fail("Gameplay music controller is unavailable")
+	if not _load_set(set_id):
+		return false
 	active_period = ""
 	active = true
+	morning_first_phom_released = false
 	noon_first_phom_released = false
 	boss_first_phom_released = false
-	if not _start_track_at_role(track_id, &"starter_event"):
+	if not _start_track_at_role(opening_track_id, &"starter_event"):
 		active = false
 		return false
 	return true
+
+
+func stop_campaign() -> void:
+	active = false
+	active_period = ""
+	active_track_id = ""
+	active_set_id = ""
+	opening_track_id = ""
+	closing_track_id = ""
+	cue_roles.clear()
 
 
 func on_event_started(period: String) -> bool:
@@ -43,9 +65,9 @@ func on_event_started(period: String) -> bool:
 	active_period = "%s_event" % period
 	if period == PERIOD_NOON:
 		boss_first_phom_released = false
-		return _start_track_at_role("dog_1", &"noon_event")
+		return _start_track_at_role(closing_track_id, &"noon_event")
 	if period == PERIOD_AFTERNOON:
-		return active_track_id == "dog_1" and _request_role(&"afternoon_event")
+		return active_track_id == closing_track_id and _request_role(&"afternoon_event")
 	return true
 
 
@@ -54,6 +76,7 @@ func on_deal_started(period: String) -> bool:
 		return false
 	active_period = period
 	if period == PERIOD_MORNING:
+		morning_first_phom_released = false
 		return _request_role(&"morning_deal_phase_1")
 	if period == PERIOD_NOON:
 		noon_first_phom_released = false
@@ -83,6 +106,13 @@ func on_deal_phase_started(phase: int) -> bool:
 func on_new_phom(phase: int, phase_new_phom_count: int) -> bool:
 	if not active or phase != 2 or phase_new_phom_count < 1:
 		return false
+	if active_period == PERIOD_MORNING:
+		if morning_first_phom_released or cue_for_role(&"morning_deal_phase_2_cleanup").is_empty():
+			return false
+		var morning_routed := _request_role(&"morning_deal_phase_2_cleanup")
+		if morning_routed:
+			morning_first_phom_released = true
+		return morning_routed
 	if active_period == PERIOD_NOON:
 		if noon_first_phom_released:
 			return false
@@ -147,14 +177,9 @@ func _release_authored_audio() -> bool:
 
 
 func _load_plan(track_id: String) -> bool:
-	if not FileAccess.file_exists(plan_path):
-		return _fail("Gameplay music plan is missing: %s" % plan_path)
-	var file := FileAccess.open(plan_path, FileAccess.READ)
-	if file == null:
-		return _fail("Could not open gameplay music plan: %s" % plan_path)
-	var parsed = JSON.parse_string(file.get_as_text())
-	if not parsed is Dictionary:
-		return _fail("Gameplay music plan is invalid JSON: %s" % plan_path)
+	var parsed := _load_plan_document()
+	if parsed.is_empty():
+		return false
 	var plans: Dictionary = parsed.get("plans", {})
 	var track_plan: Dictionary = plans.get(track_id, {})
 	var roles: Dictionary = track_plan.get("cue_roles", {})
@@ -163,6 +188,38 @@ func _load_plan(track_id: String) -> bool:
 	cue_roles = roles.duplicate(true)
 	last_error = ""
 	return true
+
+
+func _load_set(set_id: String) -> bool:
+	var parsed := _load_plan_document()
+	if parsed.is_empty():
+		return false
+	var sets: Dictionary = parsed.get("sets", {})
+	var set_plan: Dictionary = sets.get(set_id, {})
+	var opening := String(set_plan.get("opening_track", ""))
+	var closing := String(set_plan.get("closing_track", ""))
+	if opening.is_empty() or closing.is_empty():
+		return _fail("Gameplay music set is missing or incomplete: %s" % set_id)
+	active_set_id = set_id
+	opening_track_id = opening
+	closing_track_id = closing
+	last_error = ""
+	return true
+
+
+func _load_plan_document() -> Dictionary:
+	if not FileAccess.file_exists(plan_path):
+		_fail("Gameplay music plan is missing: %s" % plan_path)
+		return {}
+	var file := FileAccess.open(plan_path, FileAccess.READ)
+	if file == null:
+		_fail("Could not open gameplay music plan: %s" % plan_path)
+		return {}
+	var parsed = JSON.parse_string(file.get_as_text())
+	if not parsed is Dictionary:
+		_fail("Gameplay music plan is invalid JSON: %s" % plan_path)
+		return {}
+	return parsed
 
 
 func _fail(message: String) -> bool:

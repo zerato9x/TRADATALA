@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://gwmogrf6d0oh"
-path="res://.godot/imported/hangrongauntie.png-a18e6eb2e55802778f39d07132ed1ef9.ctex"
+uid="uid://drmi8kvpwg2g1"
+path="res://.godot/imported/trada_overlay.png-01659df9917f271833f19805c50e302a.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/environment/hangrongauntie.png"
-dest_files=["res://.godot/imported/hangrongauntie.png-a18e6eb2e55802778f39d07132ed1ef9.ctex"]
+source_file="res://assets/environment/npcs/trada_overlay.png"
+dest_files=["res://.godot/imported/trada_overlay.png-01659df9917f271833f19805c50e302a.ctex"]
 
 [params]
 

@@ -1,6 +1,39 @@
 {
-  "schema": "tradatala.ost_gameplay_plans.v1",
+  "schema": "tradatala.ost_gameplay_plans.v2",
+  "sets": {
+    "dog": {
+      "opening_track": "dog_2",
+      "closing_track": "dog_1"
+    },
+    "cat": {
+      "opening_track": "cat_1",
+      "closing_track": "cat_2"
+    }
+  },
   "plans": {
+    "cat_1": {
+      "cue_roles": {
+        "starter_event": "cat_1_bars_001_002",
+        "morning_deal_phase_1": "cat_1_bars_009_012",
+        "morning_deal_phase_2": "cat_1_bars_018_019",
+        "morning_deal_phase_2_cleanup": "cat_1_bars_026_027",
+        "morning_event_sustain": "cat_1_bars_030_031",
+        "noon_deal_phase_1": "cat_1_bars_035_038",
+        "noon_deal_phase_2": "cat_1_bars_041_042",
+        "noon_deal_final": "cat_1_bars_050_051"
+      }
+    },
+    "cat_2": {
+      "cue_roles": {
+        "noon_event": "cat_2_bars_001_002",
+        "afternoon_phase_1": "cat_2_bars_006_007",
+        "afternoon_phase_2": "cat_2_bars_012_015",
+        "afternoon_event": "cat_2_bars_018_019",
+        "evening_phase_1": "cat_2_bars_032_035",
+        "evening_phase_2": "cat_2_bars_037_040",
+        "evening_phase_2_cleanup": "cat_2_bars_048_051"
+      }
+    },
     "dog_1": {
       "cue_roles": {
         "noon_event": "dog_1_bars_001_002",

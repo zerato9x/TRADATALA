@@ -1,6 +1,8 @@
 class_name DeckManager
 extends RefCounted
 
+signal stock_emptied()
+
 const RANKS: Array[String] = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"]
 const SUITS: Array[String] = ["Spades", "Hearts", "Diamonds", "Clubs"]
 
@@ -37,6 +39,8 @@ func draw(count: int = 1) -> Array[CardData]:
 		if draw_pile.is_empty():
 			break
 		drawn.append(draw_pile.pop_back())
+		if draw_pile.is_empty():
+			stock_emptied.emit()
 	return drawn
 
 
@@ -52,6 +56,14 @@ func discard(card: CardData) -> void:
 
 func discard_many(cards: Array[CardData]) -> void:
 	discard_pile.append_array(cards)
+
+
+func replace_draw_pile(cards: Array[CardData], shuffle_seed: int = -1) -> void:
+	draw_pile.clear()
+	draw_pile.append_array(cards)
+	if shuffle_seed >= 0:
+		_rng.seed = shuffle_seed
+	_shuffle_draw_pile()
 
 
 func _shuffle_draw_pile() -> void:
