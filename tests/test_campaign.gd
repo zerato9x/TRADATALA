@@ -120,6 +120,31 @@ func test_drink_selection_uses_shared_wallet_and_two_deal_periods() -> void:
 	assert_eq(drinks.active_drink_id, DrinkCatalog.NONE)
 
 
+func test_drink_selection_is_once_per_event_and_does_not_double_charge() -> void:
+	var wallet := VndWallet.new()
+	wallet.reset(50_000)
+	var drinks := DrinkManager.new(wallet)
+
+	var first := drinks.select_for_event(EventManager.EventSlot.STARTER, DrinkCatalog.NUOC_VOI)
+	assert_true(first["ok"])
+	assert_eq(wallet.balance_vnd, 40_000)
+
+	var duplicate := drinks.select_for_event(EventManager.EventSlot.STARTER, DrinkCatalog.SAM_DUA)
+	assert_false(duplicate["ok"])
+	assert_eq(duplicate["reason"], "already_selected")
+	assert_eq(wallet.balance_vnd, 40_000)
+	assert_eq(drinks.morning_drink_id, DrinkCatalog.NUOC_VOI)
+
+	var second := drinks.select_for_event(EventManager.EventSlot.NOON, DrinkCatalog.SAM_DUA)
+	assert_true(second["ok"])
+	assert_eq(wallet.balance_vnd, 20_000)
+
+	var second_duplicate := drinks.select_for_event(EventManager.EventSlot.NOON, DrinkCatalog.TRA_DA)
+	assert_false(second_duplicate["ok"])
+	assert_eq(second_duplicate["reason"], "already_selected")
+	assert_eq(wallet.balance_vnd, 20_000)
+
+
 func test_campaign_completes_28_deals_and_28_event_slots_before_sunday_victory() -> void:
 	var wallet := VndWallet.new()
 	var events := EventManager.new()

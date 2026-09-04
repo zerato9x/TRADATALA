@@ -16,6 +16,21 @@ func _run() -> void:
 	if packed == null:
 		_finish()
 		return
+	var root_settings = root.get_node_or_null("GameSettings")
+	_check(root_settings != null, "GameSettings autoload exists before MatchUI startup")
+	if root_settings != null:
+		root_settings.set_locale("en")
+	var startup_probe := packed.instantiate() as MatchUI
+	root.add_child(startup_probe)
+	await process_frame
+	await process_frame
+	await process_frame
+	_check(startup_probe.play_button != null and startup_probe.play_button.text == "NEW GAME", "persisted English locale is applied during MatchUI startup")
+	_check(startup_probe.event_table != null and startup_probe.event_table.continue_button.text == "CONTINUE" and startup_probe.event_table.back_button.text == "← BACK", "persisted English locale reaches event-table controls during startup")
+	startup_probe.queue_free()
+	await process_frame
+	if root_settings != null:
+		root_settings.set_locale("vi")
 	var scene := packed.instantiate() as MatchUI
 	root.add_child(scene)
 	current_scene = scene
@@ -109,6 +124,8 @@ func _run() -> void:
 	await process_frame
 	_check(TranslationServer.get_locale() == "en" and scene.play_button.text == "NEW GAME", "English selection localizes the menu immediately")
 	_check(scene.how_to_play_button.text == "HOW TO PLAY" and scene.tutorial_button.text == "TUTORIAL" and scene.options_button.text == "OPTIONS", "English selection refreshes main-menu navigation")
+	_check(scene.event_table.continue_button.text == "CONTINUE" and scene.event_table.back_button.text == "← BACK", "English selection refreshes event-table navigation")
+	_check((scene.event_table.get_node("TraDaAuntieName") as Label).text == "ICED TEA AUNTIE", "English selection refreshes event-table NPC labels")
 	_check((scene.how_tab_buttons[&"cards"] as Button).text == "CARDS & MELDS" and (scene.how_tab_buttons[&"phases"] as Button).text == "PHASES & TURNS" and (scene.how_tab_buttons[&"scoring"] as Button).text == "SCORING", "English selection refreshes all How to Play tabs")
 	_check((scene.how_scoring_topic_buttons[&"basic"] as Button).text == "BASIC SCORING" and (scene.how_scoring_topic_buttons[&"special"] as Button).text == "SPECIAL OUTCOMES", "English selection refreshes both Scoring topics")
 	_check(scene.music_settings_label.text == "MUSIC" and scene.sound_settings_label.text == "SOUND" and scene.hint_button.text == "HINT  [G]" and (scene.header_caption_labels["VndPerPointStat"] as Label).text == "VND / POINT", "English selection refreshes Options, gameplay controls, and the VND-per-point caption")

@@ -97,7 +97,7 @@ Current Drink-source reconciliation checkpoint (2026-09-01):
 - Tutorial scene smoke: **passed** after the Drink changes.
 - Godot editor filesystem refresh and project relaunch: **passed**; the connected project reached live with no current parse errors after the stale editor cache was refreshed.
 - Connected-editor live visual/physical-input proof for the new target interaction: **not rerun** in this pass because the debug window could not be foregrounded reliably; scene smoke is the current target-handler/cue acceptance evidence.
-- Previous v1.0.0 exported Windows startup: **passed**; v1.0.1 was not rebuilt during this source-fix pass.
+- Previous v1.0.0 exported Windows startup: **passed**; v1.0.1 was rebuilt after this source-fix pass and its packaged headless startup smoke **passed**.
 
 ```powershell
 Godot_v4.7.1-stable_win64_console.exe --headless --path . --script res://tests/run_headless.gd

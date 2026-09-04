@@ -30,7 +30,8 @@ func price_for(drink_id: String) -> int:
 
 
 func can_afford(drink_id: String) -> bool:
-	return wallet.balance_vnd >= price_for(drink_id)
+	var price := price_for(drink_id)
+	return price <= 0 or wallet.balance_vnd >= price
 
 
 func select_for_event(event_slot: int, drink_id: String) -> Dictionary:
@@ -38,12 +39,21 @@ func select_for_event(event_slot: int, drink_id: String) -> Dictionary:
 		return {"ok": false, "message": "This event does not choose a Drink."}
 	if not available_drink_ids().has(drink_id):
 		return {"ok": false, "message": "Drink is not available in the early campaign."}
+	var period := "morning" if event_slot == EventManager.EventSlot.STARTER else "afternoon"
+	var selected_drink := morning_drink_id if period == "morning" else afternoon_drink_id
+	if selected_drink != DrinkCatalog.NONE:
+		return {
+			"ok": false,
+			"reason": "already_selected",
+			"message": "A Drink is already selected for this event.",
+			"drink_id": selected_drink,
+			"period": period,
+		}
 	var price := price_for(drink_id)
 	if not can_afford(drink_id):
 		return {"ok": false, "message": "Not enough VND.", "price_vnd": price}
 	if price > 0:
 		wallet.apply_vnd(-price, "drink_purchase")
-	var period := "morning" if event_slot == EventManager.EventSlot.STARTER else "afternoon"
 	if period == "morning":
 		morning_drink_id = drink_id
 	else:

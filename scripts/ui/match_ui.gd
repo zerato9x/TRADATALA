@@ -279,7 +279,7 @@ func _ready() -> void:
 	settings.locale_changed.connect(_on_locale_changed)
 	_setup_drink_cue_audio()
 	_setup_card_sfx_audio()
-	_refresh_music_policy_controls()
+	_refresh_localized_ui()
 	get_viewport().size_changed.connect(_on_viewport_size_changed)
 	var result := deal.start_deal(-1, true)
 	displayed_wallet_vnd = deal.wallet.balance_vnd
@@ -307,9 +307,13 @@ func _process(_delta: float) -> void:
 func _exit_tree() -> void:
 	if drink_cue_player != null:
 		drink_cue_player.stop()
+		drink_cue_player.stream = null
 	for card_sfx_player in card_sfx_players.values():
 		if card_sfx_player is AudioStreamPlayer:
-			(card_sfx_player as AudioStreamPlayer).stop()
+			var player := card_sfx_player as AudioStreamPlayer
+			player.stop()
+			player.stream = null
+	card_sfx_players.clear()
 	if campaign == null:
 		return
 	var connections := [
@@ -746,10 +750,14 @@ func _refresh_localized_ui() -> void:
 	settle_button.text = tr("ACTION_SETTLE")
 	settle_button.tooltip_text = tr("ACTION_SETTLE_TOOLTIP")
 	discard_archive_close.text = tr("ARCHIVE_CLOSE")
+	if event_table != null:
+		event_table.refresh_localized_ui()
 	if tutorial_active:
 		_refresh_tutorial_coach()
 	if campaign_overlay.visible and current_campaign_event != null:
 		_show_campaign_event(current_campaign_event)
+		if not event_table.focused_npc_id.is_empty():
+			_on_event_table_npc_focused(event_table.focused_npc_id)
 	for suit in DeckManager.SUITS:
 		(discard_archive_suit_titles.get(suit) as Label).text = _discard_suit_title(suit)
 	_sync_all()
@@ -910,10 +918,37 @@ func _deactivate_tutorial(restore_wallet: bool) -> void:
 	tutorial_outcome_visible = false
 	tutorial_coach.visible = false
 	tutorial_spotlight.set_targets([] as Array[Control])
-	score_overlay.visible = false
+	if money_presentation != null:
+		money_presentation.hide_ceremony()
+	else:
+		score_overlay.visible = false
+	_reset_tutorial_ui_state()
 	if restore_wallet:
 		deal.wallet.reset(tutorial_wallet_before)
 		displayed_wallet_vnd = tutorial_wallet_before
+
+
+func _reset_tutorial_ui_state() -> void:
+	selected_card_ids.clear()
+	selected_meld_id = -1
+	drink_hover_active = false
+	_cancel_drink_targeting()
+	drink_cue_active = false
+	drink_cue_signature = ""
+	if drink_cue_player != null:
+		drink_cue_player.stop()
+	if active_drag_payload != null:
+		_cancel_card_drag()
+	else:
+		_clear_card_drag_visuals()
+	modal_mode = ""
+	if modal_overlay != null:
+		modal_overlay.visible = false
+	if discard_archive_overlay != null and discard_archive_overlay.visible:
+		_hide_discard_archive()
+	pending_deal_presentation_unlock = false
+	pending_u_khan_presentations.clear()
+	pending_exhaustion_scoring.clear()
 
 
 func _on_tutorial_exit_pressed() -> void:
@@ -1262,23 +1297,15 @@ func _build_event_placeholder(npc_id: String) -> void:
 	title.add_theme_color_override("font_color", PresentationTheme.GOLD)
 	campaign_participants.add_child(title)
 	var system_label := Label.new()
-	match npc_id:
-		EventTableController.NPC_THAY_BOI:
-			system_label.text = "THẺ XĂM / SỬA BỘ BÀI"
-		EventTableController.NPC_HANG_RONG:
-			system_label.text = "BẢO VẬT HÀNG RONG"
-		EventTableController.NPC_DANH_GIAY:
-			system_label.text = "LỘC ĐẦU NGÀY / HỘP TIỀN BO"
-		EventTableController.NPC_LOTTO:
-			system_label.text = "KẾT QUẢ VÉ SỐ" if current_campaign_event != null and current_campaign_event.slot == EventManager.EventSlot.AFTERNOON else "CHỌN VÉ SỐ 2 CHỮ SỐ"
-		_:
-			system_label.text = "NỘI DUNG SỰ KIỆN"
+	var system_key := _event_placeholder_key(npc_id)
+	var system_name := tr(system_key)
+	system_label.text = system_name
 	system_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	system_label.add_theme_font_size_override("font_size", 16)
 	system_label.add_theme_color_override("font_color", PresentationTheme.TEA)
 	campaign_participants.add_child(system_label)
 	var note := Label.new()
-	note.text = "Khung trình bày đã sẵn sàng. Cơ chế của nhân vật sẽ được nối vào đây mà không mở màn hình riêng."
+	note.text = tr("EVENT_PLACEHOLDER_NOTE")
 	note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	note.add_theme_color_override("font_color", PresentationTheme.MUTED)
@@ -1294,12 +1321,26 @@ func _build_event_placeholder(npc_id: String) -> void:
 		card.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		card.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 		PresentationTheme.configure_button(card, "neutral")
-		card.pressed.connect(_on_event_placeholder_pressed.bind(system_label.text))
+		card.pressed.connect(_on_event_placeholder_pressed.bind(system_key))
 		cards.add_child(card)
 
 
-func _on_event_placeholder_pressed(system_name: String) -> void:
-	_show_banner("%s · SẴN SÀNG KẾT NỐI CƠ CHẾ" % system_name)
+func _event_placeholder_key(npc_id: String) -> String:
+	match npc_id:
+		EventTableController.NPC_THAY_BOI:
+			return "EVENT_PLACEHOLDER_THAY_BOI"
+		EventTableController.NPC_HANG_RONG:
+			return "EVENT_PLACEHOLDER_HANG_RONG"
+		EventTableController.NPC_DANH_GIAY:
+			return "EVENT_PLACEHOLDER_DANH_GIAY"
+		EventTableController.NPC_LOTTO:
+			return "EVENT_PLACEHOLDER_LOTTO_RESULT" if current_campaign_event != null and current_campaign_event.slot == EventManager.EventSlot.AFTERNOON else "EVENT_PLACEHOLDER_LOTTO_CHOICE"
+		_:
+			return "EVENT_PLACEHOLDER_GENERIC"
+
+
+func _on_event_placeholder_pressed(system_key: String) -> void:
+	_show_banner(tr("EVENT_PLACEHOLDER_READY") % tr(system_key))
 
 
 func _on_event_table_deal_ready() -> void:
@@ -1964,7 +2005,7 @@ func _drink_target_status() -> String:
 func _input(event: InputEvent) -> void:
 	if active_drag_payload == null:
 		return
-	if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
+	if event is InputEventKey and event.is_action_pressed(&"ui_cancel"):
 		get_viewport().set_input_as_handled()
 		_cancel_card_drag()
 	elif event is InputEventMouseMotion:
@@ -3005,6 +3046,8 @@ func _on_campaign_drink_pressed(event_slot: int, interaction_id: String, drink_i
 	var previous_displayed_wallet := displayed_wallet_vnd
 	var result := drink_manager.select_for_event(event_slot, drink_id)
 	if not result.get("ok", false):
+		if String(result.get("reason", "")) == "already_selected":
+			return
 		_show_banner(tr("EVENT_NOT_ENOUGH_VND"))
 		return
 	event_manager.complete_interaction(interaction_id)
@@ -3237,55 +3280,54 @@ func _unhandled_key_input(event: InputEvent) -> void:
 	if not event is InputEventKey or not event.pressed or event.echo:
 		return
 	if menu_layer.visible:
-		if event.keycode == KEY_ESCAPE and menu_page != &"home":
+		if event.is_action_pressed(&"ui_cancel") and menu_page != &"home":
 			_show_menu_page(&"home")
-		elif game_started and event.keycode == KEY_ESCAPE:
+		elif game_started and event.is_action_pressed(&"ui_cancel"):
 			_close_menu_to_game()
-		elif menu_page == &"home" and not menu_transitioning and event.keycode in [KEY_ENTER, KEY_KP_ENTER, KEY_SPACE]:
+		elif menu_page == &"home" and not menu_transitioning and event.is_action_pressed(&"ui_accept"):
 			_on_play_pressed()
 		return
 	if event_table != null and event_table.visible and not event_table.focused_npc_id.is_empty():
-		if event.keycode == KEY_ESCAPE:
+		if event.is_action_pressed(&"ui_cancel"):
 			event_table.unfocus_npc()
 		return
 	if discard_archive_overlay.visible:
-		if event.keycode == KEY_ESCAPE:
+		if event.is_action_pressed(&"ui_cancel"):
 			_hide_discard_archive()
 		return
 	if modal_overlay.visible:
-		if modal_mode == "phase_choice" and event.keycode == KEY_K:
+		if modal_mode == "phase_choice" and event.is_action_pressed(&"game_keep"):
 			_begin_phase_two(true)
-		elif modal_mode == "phase_choice" and event.keycode == KEY_X:
+		elif modal_mode == "phase_choice" and event.is_action_pressed(&"game_redraw"):
 			_begin_phase_two(false)
-		elif modal_mode == "deal_over" and event.keycode == KEY_R:
+		elif modal_mode == "deal_over" and event.is_action_pressed(&"game_new_deal"):
 			_start_new_deal()
 		return
-	if tutorial_active and event.keycode == KEY_ESCAPE:
+	if tutorial_active and event.is_action_pressed(&"ui_cancel"):
 		_rewind_tutorial_selection()
 		return
-	match event.keycode:
-		KEY_H:
-			if not ha_button.disabled:
-				_on_ha_pressed()
-		KEY_E:
-			if not extend_button.disabled:
-				_on_extend_pressed()
-		KEY_D:
-			if not discard_button.disabled:
-				_on_discard_pressed()
-		KEY_C:
-			if not settle_button.disabled:
-				_on_settle_pressed()
-		KEY_S:
-			if not sort_button.disabled:
-				_on_sort_pressed()
-		KEY_G:
-			if not hint_button.disabled:
-				_on_hint_pressed()
-		KEY_ESCAPE:
-			if drink_targeting_active:
-				_cancel_drink_targeting()
-			else:
-				selected_card_ids.clear()
-				selected_meld_id = -1
-				_sync_all()
+	if event.is_action_pressed(&"game_meld"):
+		if not ha_button.disabled:
+			_on_ha_pressed()
+	elif event.is_action_pressed(&"game_extend"):
+		if not extend_button.disabled:
+			_on_extend_pressed()
+	elif event.is_action_pressed(&"game_discard"):
+		if not discard_button.disabled:
+			_on_discard_pressed()
+	elif event.is_action_pressed(&"game_settle"):
+		if not settle_button.disabled:
+			_on_settle_pressed()
+	elif event.is_action_pressed(&"game_sort"):
+		if not sort_button.disabled:
+			_on_sort_pressed()
+	elif event.is_action_pressed(&"game_hint"):
+		if not hint_button.disabled:
+			_on_hint_pressed()
+	elif event.is_action_pressed(&"ui_cancel"):
+		if drink_targeting_active:
+			_cancel_drink_targeting()
+		else:
+			selected_card_ids.clear()
+			selected_meld_id = -1
+			_sync_all()
