@@ -361,6 +361,12 @@ func _run() -> void:
 	await process_frame
 	first_view._on_mouse_entered()
 	_check(chance_badge != null and chance_badge.visible and not chance_badge.text.is_empty(), "hover reveals the card's meld probability")
+	var probability_discard_count := scene.deal.discard_count
+	scene.deal.discard_count = DealState.DISCARDS_PER_PHASE - 1
+	scene._sync_card_probability_badges()
+	_check(chance_badge != null and chance_badge.text != "0%", "last mandatory discard keeps a future-draw probability instead of forcing 0%")
+	scene.deal.discard_count = probability_discard_count
+	scene._sync_card_probability_badges()
 	var choose_sfx_count := int(scene.card_sfx_play_counts[scene.CARD_SFX_CHOOSE])
 	scene._on_card_pressed(first_card)
 	_check(int(scene.card_sfx_play_counts[scene.CARD_SFX_CHOOSE]) == choose_sfx_count + 1 and (scene.card_sfx_players[scene.CARD_SFX_CHOOSE] as AudioStreamPlayer).stream.resource_path == "res://assets/audio/sfx/card_choose.wav", "selecting a card plays card_choose exactly once")
@@ -484,6 +490,7 @@ func _run() -> void:
 	var tra_draw_before := scene.deal.deck.draw_pile.size()
 	var tra_mandatory := scene.deal.discard_card(scene.deal.hand[0])
 	scene._sync_all(tra_mandatory)
+	_check(not scene.settle_button.disabled and scene.settle_button.text == scene.tr("ACTION_END_TURN"), "Trà đá offers End Turn instead of requiring its optional extra discard")
 	_check(tra_mandatory.get("extra_discard_pending", false), "Trà đá keeps the turn open after its mandatory discard")
 	_check(scene.deal.tra_da_extra_discard_pending and scene.deal.state == DealState.STATE_ACTIVE, "Trà đá records that one extra discard is still owed")
 	_check(scene.drink_cue_play_count == tra_cue_count + 1 and scene.drink_cue_player.playing, "the first Trà đá discard plays exactly one glass-clink cue")

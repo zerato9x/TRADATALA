@@ -95,6 +95,7 @@ var selected_meld_id: int = -1
 var hand_views: Dictionary = {}
 var displayed_wallet_vnd: int = 0
 var pending_u_khan_presentations: Array[Dictionary] = []
+var pending_exhaustion_scoring: Array[ScoringContext] = []
 var interaction_locked: bool = false
 var sort_mode: int = 0
 var modal_mode: String = ""
@@ -436,9 +437,7 @@ func _connect_editor_interface_signals() -> void:
 	_connect_signal_once(settle_button.pressed, _on_settle_pressed)
 	_connect_signal_once(deal.new_phom_scored, _on_deal_new_phom_scored)
 	_connect_signal_once(deal.u_triggered, _on_deal_u_triggered)
-	_connect_signal_once(deal.first_exhaustion, _on_deal_first_exhaustion)
-	_connect_signal_once(deal.true_exhaustion, _on_deal_true_exhaustion)
-	_connect_signal_once(deal.exhaustion_discard_scored, _on_deal_exhaustion_discard_scored)
+	_connect_signal_once(deal.exhaustion_triggered, _on_deal_exhaustion_triggered)
 	_connect_signal_once(tutorial_exit_button.pressed, _on_tutorial_exit_pressed)
 	var archive_dim := discard_archive_overlay.find_child("ArchiveDim", true, false)
 	if archive_dim != null:
@@ -1307,6 +1306,7 @@ func _on_event_table_deal_ready() -> void:
 	if not pending_deal_presentation_unlock:
 		return
 	pending_deal_presentation_unlock = false
+	await _drain_pending_exhaustion_presentations()
 	await _drain_pending_u_khan_presentations()
 	interaction_locked = false
 	_set_hand_interaction_enabled(true)
@@ -1462,11 +1462,9 @@ func _sync_hand(animated_cards: Array[CardData]) -> void:
 
 
 func _sync_card_probability_badges() -> void:
-	var draw_number := 0
-	if deal.state == DealState.STATE_ACTIVE and deal.discard_count < DealState.DISCARDS_PER_PHASE - 1:
-		var size_after_discard := maxi(deal.hand.size() - 1, 0)
-		draw_number = mini(maxi(DealState.ACTIVE_HAND_TARGET - size_after_discard, 0), deal.deck.draw_pile.size())
-	var best_by_card := MeldProbabilityAdvisor.best_new_meld_chance_by_card(deal.hand, deal.deck.draw_pile, draw_number)
+	var draw_pool := deal.probability_draw_pool()
+	var draw_number := deal.probability_draw_horizon()
+	var best_by_card := MeldProbabilityAdvisor.best_new_meld_chance_by_card(deal.hand, draw_pool, draw_number)
 	for card in deal.hand:
 		var view: PlayingCardView = hand_views.get(card.unique_id)
 		if view == null:
@@ -1875,7 +1873,10 @@ func _refresh_actions() -> void:
 	extend_button.disabled = not card_window or selected_meld_id < 0 or not deal.can_extend_meld(selected_meld_id, selected)
 	discard_button.disabled = not active_turn or selected.size() != 1
 	discard_button.tooltip_text = tr("ACTION_DISCARD_TOOLTIP")
-	settle_button.disabled = deal.state != DealState.STATE_FINAL_COMMIT_WINDOW or interaction_locked
+	var can_skip_tra_da_extra := deal.state == DealState.STATE_ACTIVE and deal.tra_da_extra_discard_pending
+	settle_button.text = tr("ACTION_END_TURN") if can_skip_tra_da_extra else tr("ACTION_SETTLE")
+	settle_button.tooltip_text = tr("ACTION_END_TURN_TOOLTIP") if can_skip_tra_da_extra else tr("ACTION_SETTLE_TOOLTIP")
+	settle_button.disabled = (deal.state != DealState.STATE_FINAL_COMMIT_WINDOW and not can_skip_tra_da_extra) or interaction_locked
 	hint_button.disabled = not card_window or deal.hand.is_empty()
 	sort_button.disabled = not card_window or deal.hand.size() < 2
 	if drink_targeting_active:
@@ -1913,10 +1914,6 @@ func _refresh_actions() -> void:
 	if deal.tra_da_extra_discard_pending and selected.is_empty():
 		status_label.text = tr("STATUS_TRA_DA_EXTRA_DISCARD")
 		status_label.add_theme_color_override("font_color", CardActionOutline.DRINK_HIGHLIGHT)
-		return
-	if deal.true_exhaustion_active and selected.is_empty():
-		status_label.text = tr("STATUS_TRUE_EXHAUSTION")
-		status_label.add_theme_color_override("font_color", PresentationTheme.RED)
 		return
 	if selected.is_empty():
 		status_label.text = tr("STATUS_CHOOSE")
@@ -2616,6 +2613,7 @@ func _on_discard_pressed() -> void:
 	_play_card_sfx(CARD_SFX_PLACE)
 	selected_card_ids.clear()
 	_sync_all(result)
+	await _drain_pending_exhaustion_presentations()
 	await _drain_pending_u_khan_presentations()
 	if result.get("extra_discard_pending", false):
 		_show_banner(tr("BANNER_TRA_DA_EXTRA_DISCARD"))
@@ -2639,6 +2637,23 @@ func _on_discard_pressed() -> void:
 
 func _on_settle_pressed() -> void:
 	if settle_button.disabled:
+		return
+	if deal.state == DealState.STATE_ACTIVE and deal.tra_da_extra_discard_pending:
+		interaction_locked = true
+		_refresh_actions()
+		var turn_result := deal.end_turn_without_tra_da_extra()
+		if not turn_result.get("ok", false):
+			_reject_action(turn_result.get("message", "Ending the turn failed."))
+			return
+		_sync_all(turn_result)
+		await _drain_pending_exhaustion_presentations()
+		if turn_result.get("final_commit_window", false):
+			_show_banner(tr("BANNER_LAST_CALL"))
+		else:
+			var turn_drawn: Array[CardData] = _cards_from_result(turn_result)
+			_show_banner(tr("BANNER_DRAW") % [turn_drawn.size(), deal.discard_count, DealState.DISCARDS_PER_PHASE])
+		interaction_locked = false
+		_refresh_actions()
 		return
 	interaction_locked = true
 	_refresh_actions()
@@ -2713,8 +2728,14 @@ func _on_hint_pressed() -> void:
 
 
 func _show_scoring(context: ScoringContext) -> void:
-	var target_wallet := deal.wallet.balance_vnd
+	var passes: Array = context.scoring_passes if not context.scoring_passes.is_empty() else [context]
+	for scoring_pass: ScoringContext in passes:
+		await _show_scoring_pass(scoring_pass)
+
+
+func _show_scoring_pass(context: ScoringContext) -> void:
 	var amount_vnd := _points_to_vnd(context.final_points)
+	var target_wallet := displayed_wallet_vnd + amount_vnd
 	var source := meld_views.get(selected_meld_id) as Control
 	var event := {
 		"direction": "gain" if amount_vnd >= 0 else "loss",
@@ -2848,6 +2869,7 @@ func _begin_phase_two(keep_hand: bool) -> void:
 	if gameplay_music != null:
 		gameplay_music.on_deal_phase_started(deal.current_phase)
 	_sync_all(result)
+	await _drain_pending_exhaustion_presentations()
 	if not keep_hand and not result.get("preserved", []).is_empty():
 		_show_banner(tr("BANNER_PHASE2_SAM_DUA") % result["preserved"].size())
 	else:
@@ -2866,6 +2888,7 @@ func _start_campaign() -> void:
 	selected_meld_id = -1
 	displayed_wallet_vnd = 0
 	pending_u_khan_presentations.clear()
+	pending_exhaustion_scoring.clear()
 	campaign.start_campaign(true)
 	_refresh_stats()
 
@@ -2964,16 +2987,17 @@ func _drain_pending_u_khan_presentations() -> void:
 		_refresh_stats()
 
 
-func _on_deal_first_exhaustion(_context: Dictionary) -> void:
-	_show_banner(tr("BANNER_FIRST_EXHAUSTION"))
+func _on_deal_exhaustion_triggered(context: Dictionary) -> void:
+	selected_meld_id = -1
+	for scoring_context: ScoringContext in context.get("scoring_contexts", []):
+		pending_exhaustion_scoring.append(scoring_context)
+	_show_banner(tr("BANNER_EXHAUSTION"))
 
 
-func _on_deal_true_exhaustion(_context: Dictionary) -> void:
-	_show_banner(tr("BANNER_TRUE_EXHAUSTION"))
-
-
-func _on_deal_exhaustion_discard_scored(context: ScoringContext) -> void:
-	_show_banner(tr("BANNER_TRUE_EXHAUSTION_DISCARD") % context.final_points)
+func _drain_pending_exhaustion_presentations() -> void:
+	while not pending_exhaustion_scoring.is_empty():
+		var context: ScoringContext = pending_exhaustion_scoring.pop_front()
+		await _show_scoring(context)
 
 
 

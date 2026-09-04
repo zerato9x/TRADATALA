@@ -61,8 +61,7 @@ Buttons remain disabled until their action is legal. The footer explains the cur
 
 ## Implemented rules
 
-- Deck Exhaustion (implemented 2026-09-03) is Deal-scoped across both Phases: the first empty stock recycles the eligible spent pool at most once, while a stock empty with no permitted recycle activates permanent True Exhaustion. Locked discard archives, table Melds, loose cards, and S?m d?a-preserved cards are never recycled.
-- While True Exhaustion is active, canonical discard actions award the discarded card's current scoring value as a normal Phase Gross event. DUMP and U Khan hand replacement are spent-card removals, not discard-archive records.
+- Exhaustion is checked only when an active draw/refill requests a card from an already-empty draw deck. The interrupted request triggers each current table Meld once, rebuilds and shuffles the draw deck from discard, spent/DUMP, and table-Meld cards, then resumes until the original request is satisfied. Drawing the final requested stock card does not trigger Exhaustion.
 
 The prototype now follows the two-Phase Deal contract: each Phase has four mandatory discards, a player-confirmed LAST CALL window, and its own settlement. Table Phỏm persist across Phases; Phase 1 then offers KEEP or DUMP, with DUMP refilling toward ten.
 
@@ -93,7 +92,7 @@ The Escape/Menu window defaults to the reactive Authored DJ system for a new cam
 
 Current Drink-source reconciliation checkpoint (2026-09-01):
 
-- Deterministic suites: **68 / 68 passed** in Godot 4.7.1 headless execution (**60 Core Deal + 8 Campaign**), including Deck Exhaustion / True Exhaustion and the revised Drink rules; MÓM and Ù Khan coverage remains unchanged.
+- Deterministic coverage includes draw-boundary timing, interrupted refill resumption, shuffled full-zone recycling, exactly-once per-Meld Exhaustion triggers, card accounting, Drinks, MÓM, and Ù Khan.
 - Runtime scene smoke: **passed**, including the in-world Drink prop, hand/discard/meld target cues, three-card Sâm dứa selection, and the LAST CALL boundary.
 - Tutorial scene smoke: **passed** after the Drink changes.
 - Godot editor filesystem refresh and project relaunch: **passed**; the connected project reached live with no current parse errors after the stale editor cache was refreshed.

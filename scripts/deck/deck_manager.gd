@@ -1,7 +1,7 @@
 class_name DeckManager
 extends RefCounted
 
-signal stock_emptied()
+signal draw_requested_while_empty(requested_count: int, drawn_count: int)
 
 const RANKS: Array[String] = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"]
 const SUITS: Array[String] = ["Spades", "Hearts", "Diamonds", "Clubs"]
@@ -35,12 +35,14 @@ func build_standard_deck() -> Array[CardData]:
 
 func draw(count: int = 1) -> Array[CardData]:
 	var drawn: Array[CardData] = []
-	for _index in range(maxi(count, 0)):
+	var requested_count := maxi(count, 0)
+	while drawn.size() < requested_count:
 		if draw_pile.is_empty():
-			break
+			draw_requested_while_empty.emit(requested_count, drawn.size())
+			if draw_pile.is_empty():
+				push_error("Exhaustion resolution did not rebuild the draw deck.")
+				break
 		drawn.append(draw_pile.pop_back())
-		if draw_pile.is_empty():
-			stock_emptied.emit()
 	return drawn
 
 

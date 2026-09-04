@@ -1,6 +1,8 @@
 class_name MeldState
 extends RefCounted
 
+signal exhaustion_triggered(context: Dictionary)
+
 var meld_id: int
 var meld_type: String
 var cards: Array[CardData] = []
@@ -22,3 +24,15 @@ func extend(additions: Array[CardData]) -> void:
 	cards.append_array(additions)
 	cards = MeldRules.sorted_for_display(cards, meld_type)
 
+
+func resolve_exhaustion(exhaustion_index: int) -> Dictionary:
+	var context := {
+		"exhaustion_index": exhaustion_index,
+		"meld_id": meld_id,
+		"meld_type": meld_type,
+		"cards": cards.duplicate(),
+		"card_count": cards.size(),
+		"scored_points": scored_points,
+	}
+	exhaustion_triggered.emit(context)
+	return context
