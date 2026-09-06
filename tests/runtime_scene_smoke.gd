@@ -274,6 +274,13 @@ func _run() -> void:
 	var wallet_pile := scene.get_node_or_null("GameLayer/Header/HeaderRow/WalletStat/MarginContainer/WalletRow/WalletPile") as Control
 	_check(scene.money_presentation != null and scene.money_presentation.get_parent() == scene.game_layer, "one reusable table-native money presentation layer replaces the old resolve popup")
 	_check(scene.score_overlay != null and not scene.score_overlay.visible and scene.score_panel != null, "money ceremony begins hidden while preserving tutorial targeting")
+	_check(scene.money_presentation.get_node_or_null("Ceremony/ResolveBackdrop") == null, "resolve feedback is floating text with no opaque backing")
+	_check(scene.money_presentation.get_node_or_null("Ceremony/HitFlash") == null, "resolve ceremony has no full-screen hit flash")
+	_check(scene.money_presentation.get_node_or_null("Ceremony/ScoreStage/StageShadow") == null, "floating resolve text has no modal panel shadow")
+	_check(scene.score_overlay.mouse_filter == Control.MOUSE_FILTER_IGNORE and scene.score_panel.size.x <= 460.0, "floating resolve feedback cannot consume table input")
+	scene.money_presentation._position_score_stage(scene.meld_scroll)
+	_check(absf(scene.score_panel.get_global_rect().get_center().x - scene.meld_scroll.get_global_rect().get_center().x) < 12.0, "resolve text anchors horizontally over its Meld source")
+	_check(is_equal_approx(MoneyPresentation.MONEY_FLIGHT_DURATION, 0.48), "all money resolutions use the shared flight duration")
 	_check(wallet_pile == scene.wallet_pile_anchor and wallet_pile.get_child_count() == 1, "zero wallet renders an empty cash state without fake banknotes")
 	scene.money_presentation.sync_wallet(45_000)
 	var wallet_bill := wallet_pile.get_child(0) as Control
@@ -740,7 +747,8 @@ func _run() -> void:
 	var table_drop_position := scene.table_surface.get_global_rect().get_center()
 	_check(scene._card_drop_target_at(table_drop_position)["kind"] == scene.DROP_TARGET_TABLE, "the open table resolves as the new-Meld drop target")
 	scene._finish_card_drag(table_drop_position)
-	_check(await _wait_for_scene_unlock(scene), "dragging selected cards to the table completes the Meld action")
+	_check(await _wait_for_interaction_unlock(scene), "dragging selected cards to the table completes the Meld action")
+	_check(not scene.interaction_locked and scene.score_overlay.visible, "Meld money continues floating while the next player interaction is already enabled")
 	_check(scene.deal.melds.size() == 1 and scene.deal.melds[0].cards.size() == 3, "the table drop commits the selected three-card Meld")
 	_check(int(scene.card_sfx_play_counts[scene.CARD_SFX_PLACE]) == place_sfx_count + 1 and (scene.card_sfx_players[scene.CARD_SFX_PLACE] as AudioStreamPlayer).stream.resource_path.begins_with("res://assets/audio/sfx/card_place"), "creating a Phỏm plays one supplied placement variant")
 	var first_place_index := scene.card_place_stream_index
@@ -793,9 +801,19 @@ func _run() -> void:
 	_finish()
 
 
-func _wait_for_scene_unlock(scene: MatchUI, max_frames: int = 480) -> bool:
-	for _frame in range(max_frames):
+func _wait_for_scene_unlock(scene: MatchUI, timeout_msec: int = 6000) -> bool:
+	var deadline := Time.get_ticks_msec() + timeout_msec
+	while Time.get_ticks_msec() < deadline:
 		if not scene.interaction_locked and not scene.score_overlay.visible:
+			return true
+		await process_frame
+	return false
+
+
+func _wait_for_interaction_unlock(scene: MatchUI, timeout_msec: int = 2000) -> bool:
+	var deadline := Time.get_ticks_msec() + timeout_msec
+	while Time.get_ticks_msec() < deadline:
+		if not scene.interaction_locked:
 			return true
 		await process_frame
 	return false

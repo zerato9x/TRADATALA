@@ -2,6 +2,7 @@ class_name PresentationTheme
 extends RefCounted
 
 const OFFICIAL_FONT_PATH := "res://assets/DFVN Pexel Grotesk.ttf"
+const UNIVERSAL_FRAME_STYLE := preload("res://assets/ui/frames/universal_frame.tres")
 
 const INK := Color("#f8edcf")
 const MUTED := Color("#c6b896")
@@ -31,6 +32,11 @@ static func create_game_theme() -> Theme:
 	game_theme.default_font = official_font()
 	game_theme.default_font_size = 14
 	return game_theme
+
+
+static func universal_frame_style() -> StyleBoxTexture:
+	# Duplicate the shared resource so callers can tune margins without changing every frame.
+	return UNIVERSAL_FRAME_STYLE.duplicate() as StyleBoxTexture
 
 
 static func panel_style(

@@ -30,6 +30,7 @@ const CAT_EVENING_1 := "cat_2_bars_032_035"
 const CAT_EVENING_2_SUSTAIN := "cat_2_bars_037_040"
 const CAT_EVENING_2 := "cat_2_bars_048_051"
 const GAMEPLAY_MUSIC_CONDUCTOR_SCRIPT := preload("res://scripts/audio/gameplay_music_conductor.gd")
+const MUSIC_ANTI_FATIGUE_SCRIPT := preload("res://scripts/audio/music_anti_fatigue.gd")
 
 var failures: Array[String] = []
 
@@ -167,10 +168,19 @@ func _test_runtime_bridge() -> void:
 	await process_frame
 	await process_frame
 	_check(controller.music_director != null and controller.music_director.catalogs_are_loaded, "reactive controller owns a loaded MusicDirector")
+	_check(controller.anti_fatigue != null, "reactive controller owns the isolated anti-fatigue layer")
+	var music_bus_index := AudioServer.get_bus_index(ReactiveMusicController.MUSIC_BUS)
+	_check(music_bus_index >= 0 and AudioServer.get_bus_effect_count(music_bus_index) >= 3, "anti-fatigue filters attach to the existing Music bus")
 	_check(controller.start_dj_track("dog_2", STARTER), "reactive controller starts DOG_2 first in DJ mode")
 	_check(controller.dj_mode, "DJ mode becomes authoritative for campaign playback")
 	_check(controller.music_director.current_cue_id == STARTER and controller.music_director.state == MusicDirector.STATE_HOLDING_CUE, "runtime bridge holds the starter cue")
+	_check(controller.anti_fatigue.current_cue_id == STARTER and controller.anti_fatigue.current_state == MUSIC_ANTI_FATIGUE_SCRIPT.STATE_FULL and controller.anti_fatigue.loop_pass_count == 0, "new authored cue starts with a fresh FULL anti-fatigue state")
 	_check(controller.full_mix_player == controller.music_director.audio_player, "beat presentation observes the DJ player on the Music bus")
+	await create_timer(1.0).timeout
+	var band_pulses := 0
+	for pulse_count in controller.beat_detector.band_pulse_counts:
+		band_pulses += pulse_count
+	_check(band_pulses > 0, "beat detector remains live after anti-fatigue bus effects attach")
 	var legacy_stopped := true
 	for player in controller.mix_players:
 		legacy_stopped = legacy_stopped and not player.playing
@@ -179,9 +189,11 @@ func _test_runtime_bridge() -> void:
 	_check(controller.music_director.audio_player.stream_paused, "music pause propagates to the DJ player")
 	controller.set_music_paused(false)
 	_check(controller.request_dj_cue(MORNING_1), "runtime bridge releases toward the next authored cue")
+	_check(controller.anti_fatigue.current_cue_id.is_empty() and controller.anti_fatigue.current_state == MUSIC_ANTI_FATIGUE_SCRIPT.STATE_FULL and controller.anti_fatigue.loop_pass_count == 0, "cue ownership change restores and clears anti-fatigue variation")
 	_check(controller.music_director.pending_cue_id == MORNING_1 and controller.music_director.state == MusicDirector.STATE_TRAVELING_FORWARD, "forward request preserves authored source audio until catch")
 	_check(controller.release_dj_to_end(), "runtime bridge can cancel a pending catch and release to the original ending")
 	_check(controller.music_director.pending_cue_id.is_empty() and controller.music_director.state == MusicDirector.STATE_RELEASED_TO_END, "release clears the pending optional checkpoint")
+	_check(controller.anti_fatigue.current_cue_id.is_empty() and controller.anti_fatigue.current_state == MUSIC_ANTI_FATIGUE_SCRIPT.STATE_FULL and controller.anti_fatigue.loop_pass_count == 0, "release clears anti-fatigue variation state")
 	_check(controller.start_dj_track("dog_2", MORNING_1), "runtime bridge can hold DOG_2 Morning Phase 1")
 	_check(controller.request_dj_cue(MORNING_2), "DOG_2 Morning Phase 2 routes to bars 5-8")
 	_check(controller.music_director.pending_cue_id == MORNING_2 and controller.music_director.state == MusicDirector.STATE_TRAVELING_FORWARD, "DOG_2 Morning Phase 2 cue is armed through authored forward audio")

@@ -25,5 +25,7 @@ func value_equation() -> String:
 	var values: Array[String] = []
 	for card in cards:
 		values.append(str(card.score_value()))
+		if action_type == "new_meld" and card.has_gieo_property(GieoQueService.PROPERTY_MAKING_PHOM_RETRIGGER):
+			values.append(str(card.score_value()))
 	return " + ".join(values)
 

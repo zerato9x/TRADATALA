@@ -229,6 +229,9 @@ func _refresh_tooltip() -> void:
 		tooltip_text = ""
 		return
 	tooltip_text = tr("CARD_POINTS") % [card.short_label(), card.score_value()]
+	var gieo_descriptions := card.gieo_property_descriptions()
+	if not gieo_descriptions.is_empty():
+		tooltip_text += "\n\nGIEO QUẺ\n" + "\n".join(gieo_descriptions)
 	if not _chance_tooltip.is_empty():
 		tooltip_text += "\n" + _chance_tooltip
 

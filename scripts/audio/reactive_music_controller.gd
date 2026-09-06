@@ -1,6 +1,8 @@
 class_name ReactiveMusicController
 extends Node
 
+const MUSIC_ANTI_FATIGUE_SCRIPT := preload("res://scripts/audio/music_anti_fatigue.gd")
+
 signal beat_detected(strength: float)
 signal bass_energy_changed(energy: float)
 signal band_pulse(band_index: int, strength: float)
@@ -39,6 +41,7 @@ const THEME_TITLES := {
 var full_mix_player: AudioStreamPlayer
 var beat_detector: MusicBeatDetector
 var music_director: MusicDirector
+var anti_fatigue: MusicAntiFatigue
 var stem_players: Dictionary = {}
 var mix_players: Array[AudioStreamPlayer] = []
 var playlist: Array[Dictionary] = []
@@ -64,6 +67,8 @@ var current_mix_path: String = ""
 @export var music_bus_peak_db: float = -200.0
 @export var music_bus_muted: bool = false
 @export var master_bus_muted: bool = false
+@export var anti_fatigue_enabled: bool = true
+@export var anti_fatigue_debug_logging: bool = false
 
 
 func _ready() -> void:
@@ -71,6 +76,12 @@ func _ready() -> void:
 	music_rng.randomize()
 	_build_playlist()
 	_ensure_music_bus()
+	anti_fatigue = MUSIC_ANTI_FATIGUE_SCRIPT.new()
+	anti_fatigue.name = "MusicAntiFatigue"
+	anti_fatigue.bus_name = MUSIC_BUS
+	anti_fatigue.enabled = anti_fatigue_enabled
+	anti_fatigue.debug_logging = anti_fatigue_debug_logging
+	add_child(anti_fatigue)
 	mix_players.append(_create_mix_player("FullMixA", 0))
 	mix_players.append(_create_mix_player("FullMixB", 1))
 	full_mix_player = mix_players[active_mix_index]
@@ -87,6 +98,13 @@ func _ready() -> void:
 	music_director.name = "MusicDirector"
 	music_director.bus_name = MUSIC_BUS
 	add_child(music_director)
+	music_director.cue_held.connect(_on_dj_cue_held)
+	music_director.cue_loop_completed.connect(_on_dj_cue_loop_completed)
+	music_director.authored_transition_started.connect(_on_dj_transition_started)
+	music_director.reprise_started.connect(_on_dj_transition_started)
+	music_director.source_released.connect(_on_dj_source_released)
+	music_director.source_finished.connect(_on_dj_source_finished)
+	music_director.state_changed.connect(_on_dj_state_changed)
 	call_deferred("play_track", 0, false)
 
 
@@ -120,6 +138,8 @@ func _exit_tree() -> void:
 		player.stream = null
 	if music_director != null:
 		music_director.stop()
+	if anti_fatigue != null:
+		anti_fatigue.reset_variation(false)
 	stem_players.clear()
 
 
@@ -186,6 +206,7 @@ func next_mix_request() -> Dictionary:
 func play_track(track_index: int, crossfade: bool = true) -> void:
 	if track_index < 0 or track_index >= playlist.size():
 		return
+	_reset_anti_fatigue(true)
 	if dj_mode:
 		dj_mode = false
 		music_director.stop()
@@ -266,6 +287,41 @@ func _apply_dj_track_metadata(track_id: String) -> void:
 	playback_position_seconds = music_director.current_playback_position
 	stream_length_seconds = music_director.stream_length_seconds
 	mix_started.emit(current_mix_path, current_theme_id, current_variant)
+
+
+func _on_dj_cue_held(_track_id: String, cue_id: String) -> void:
+	if anti_fatigue != null:
+		anti_fatigue.cue_started(cue_id)
+
+
+func _on_dj_cue_loop_completed(_track_id: String, cue_id: String) -> void:
+	if anti_fatigue != null:
+		anti_fatigue.loop_completed(cue_id)
+
+
+func _on_dj_transition_started(_from_cue_id: String, _to_cue_id: String) -> void:
+	if anti_fatigue != null:
+		anti_fatigue.prepare_for_cue_change()
+
+
+func _on_dj_source_released(_track_id: String) -> void:
+	if anti_fatigue != null:
+		anti_fatigue.reset_variation(true)
+
+
+func _on_dj_source_finished(_track_id: String) -> void:
+	if anti_fatigue != null:
+		anti_fatigue.reset_variation(false)
+
+
+func _on_dj_state_changed(next_state: StringName) -> void:
+	if next_state == MusicDirector.STATE_STOPPED and anti_fatigue != null:
+		anti_fatigue.reset_variation(false)
+
+
+func _reset_anti_fatigue(immediate: bool) -> void:
+	if anti_fatigue != null:
+		anti_fatigue.reset_variation(not immediate)
 
 
 func toggle_music_paused() -> void:

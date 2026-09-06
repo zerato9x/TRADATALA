@@ -104,6 +104,7 @@ func enter_event(event_slot: int, day_text: String, period_text: String, money_t
 	period_label.text = period_text.to_upper()
 	money_label.text = money_text
 	continue_button.text = tr("EVENT_CONTINUE")
+	continue_button.visible = true
 	if already_showing:
 		return
 	table_state = TABLE_STATE_EVENT
@@ -192,6 +193,7 @@ func unfocus_npc() -> void:
 		return
 	var previous := focused_npc_id
 	focused_npc_id = ""
+	continue_button.visible = true
 	_clear_content()
 	_set_header_focused(false)
 	var tween := create_tween().set_parallel(true)
@@ -320,11 +322,7 @@ func _build_content() -> void:
 	content_panel.size = Vector2(580, 360)
 	content_panel.visible = false
 	content_panel.mouse_filter = Control.MOUSE_FILTER_STOP
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.025, 0.075, 0.11, 0.82)
-	style.border_color = Color(0.94, 0.73, 0.25, 0.78)
-	style.set_border_width_all(2)
-	style.set_corner_radius_all(12)
+	var style := PresentationTheme.universal_frame_style()
 	style.content_margin_left = 22
 	style.content_margin_top = 18
 	style.content_margin_right = 22
