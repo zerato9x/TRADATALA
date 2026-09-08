@@ -1,6 +1,8 @@
 extends Control
 
 var player: MusicDirector
+var arranger: MusicArrangementPlayer
+var arrangement_catalog := MusicArrangementCatalog.new()
 var track_option: OptionButton
 var set_option: OptionButton
 var sort_option: OptionButton
@@ -22,12 +24,32 @@ var release_button: Button
 var approve_button: Button
 var reject_button: Button
 var clear_review_button: Button
+var arrangement_list: ItemList
+var arrangement_summary_label: Label
+var section_label_edit: LineEdit
+var section_repeat_spin: SpinBox
+var arrangement_loop_check: CheckButton
+var add_section_button: Button
+var replace_section_button: Button
+var remove_section_button: Button
+var apply_section_button: Button
+var move_section_up_button: Button
+var move_section_down_button: Button
+var arrangement_play_button: Button
+var arrangement_stop_button: Button
+var arrangement_save_button: Button
+var arrangement_reload_button: Button
 var selected_track_id := ""
 var selected_candidate_id := ""
+var arrangement_sections: Array[Dictionary] = []
+var selected_arrangement_index := -1
 
 
 func _ready() -> void:
 	player = $MusicDirector
+	arranger = $MusicArrangementPlayer
+	arrangement_catalog.load_catalog()
+	arranger.set_catalog(player.cue_catalog)
 	_build_ui()
 	_connect_director_signals()
 	_populate_tracks()
@@ -61,7 +83,7 @@ func _build_ui() -> void:
 	root.add_child(title)
 
 	var note := Label.new()
-	note.text = "FIND CUES → TEST CUES → APPROVE CUES → HOLD / RELEASE / REPRISE"
+	note.text = "FIND CUES → TEST CUES → ARRANGE SEGMENTS → APPROVE CUES → HOLD / RELEASE / REPRISE"
 	note.add_theme_color_override("font_color", Color("a8b0bd"))
 	root.add_child(note)
 
@@ -152,19 +174,73 @@ func _build_ui() -> void:
 	candidate_list.item_activated.connect(_on_candidate_activated)
 	body.add_child(candidate_list)
 
+	var right_scroll := ScrollContainer.new()
+	right_scroll.custom_minimum_size = Vector2(420, 0)
+	right_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	right_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	body.add_child(right_scroll)
 	var right_column := VBoxContainer.new()
-	right_column.custom_minimum_size = Vector2(360, 0)
+	right_column.custom_minimum_size = Vector2(420, 0)
 	right_column.add_theme_constant_override("separation", 6)
-	body.add_child(right_column)
+	right_scroll.add_child(right_column)
 	var detail_heading := Label.new()
 	detail_heading.text = "SELECTED CANDIDATE"
 	detail_heading.add_theme_color_override("font_color", Color("f3c45d"))
 	right_column.add_child(detail_heading)
 	detail_label = Label.new()
 	detail_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	detail_label.custom_minimum_size = Vector2(420, 132)
+	detail_label.custom_minimum_size = Vector2(420, 110)
 	detail_label.add_theme_color_override("font_color", Color("d7dce4"))
 	right_column.add_child(detail_label)
+	var arrangement_heading := Label.new()
+	arrangement_heading.text = "SEGMENT ARRANGEMENT"
+	arrangement_heading.add_theme_color_override("font_color", Color("f3c45d"))
+	right_column.add_child(arrangement_heading)
+	arrangement_summary_label = Label.new()
+	arrangement_summary_label.add_theme_color_override("font_color", Color("c4ccd7"))
+	right_column.add_child(arrangement_summary_label)
+	arrangement_list = ItemList.new()
+	arrangement_list.custom_minimum_size = Vector2(420, 86)
+	arrangement_list.select_mode = ItemList.SELECT_SINGLE
+	arrangement_list.item_selected.connect(_on_arrangement_selected)
+	right_column.add_child(arrangement_list)
+	var arrangement_edit_row := HBoxContainer.new()
+	arrangement_edit_row.add_theme_constant_override("separation", 6)
+	right_column.add_child(arrangement_edit_row)
+	section_label_edit = LineEdit.new()
+	section_label_edit.placeholder_text = "Section label"
+	section_label_edit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	section_label_edit.custom_minimum_size.y = 30
+	arrangement_edit_row.add_child(section_label_edit)
+	section_repeat_spin = SpinBox.new()
+	section_repeat_spin.min_value = 1
+	section_repeat_spin.max_value = 64
+	section_repeat_spin.step = 1
+	section_repeat_spin.value = 1
+	section_repeat_spin.suffix = "x"
+	section_repeat_spin.custom_minimum_size.x = 68
+	section_repeat_spin.custom_minimum_size.y = 30
+	arrangement_edit_row.add_child(section_repeat_spin)
+	apply_section_button = _add_button(arrangement_edit_row, "Apply", _on_arrangement_apply)
+	var arrangement_edit_actions := HBoxContainer.new()
+	arrangement_edit_actions.add_theme_constant_override("separation", 6)
+	right_column.add_child(arrangement_edit_actions)
+	add_section_button = _add_button(arrangement_edit_actions, "Add Selected", _on_arrangement_add)
+	replace_section_button = _add_button(arrangement_edit_actions, "Replace", _on_arrangement_replace)
+	remove_section_button = _add_button(arrangement_edit_actions, "Remove", _on_arrangement_remove)
+	move_section_up_button = _add_button(arrangement_edit_actions, "↑", _on_arrangement_move_up)
+	move_section_down_button = _add_button(arrangement_edit_actions, "↓", _on_arrangement_move_down)
+	var arrangement_transport_row := HBoxContainer.new()
+	arrangement_transport_row.add_theme_constant_override("separation", 6)
+	right_column.add_child(arrangement_transport_row)
+	arrangement_play_button = _add_button(arrangement_transport_row, "Play Arrangement", _on_arrangement_play)
+	arrangement_stop_button = _add_button(arrangement_transport_row, "Stop", _on_arrangement_stop)
+	arrangement_save_button = _add_button(arrangement_transport_row, "Save", _on_arrangement_save)
+	arrangement_reload_button = _add_button(arrangement_transport_row, "Reload", _on_arrangement_reload)
+	arrangement_loop_check = CheckButton.new()
+	arrangement_loop_check.text = "Loop"
+	arrangement_loop_check.button_pressed = true
+	arrangement_transport_row.add_child(arrangement_loop_check)
 	var event_heading := Label.new()
 	event_heading.text = "TRANSPORT EVENTS"
 	event_heading.add_theme_color_override("font_color", Color("f3c45d"))
@@ -173,8 +249,7 @@ func _build_ui() -> void:
 	event_log.bbcode_enabled = true
 	event_log.fit_content = false
 	event_log.scroll_active = true
-	event_log.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	event_log.custom_minimum_size = Vector2(420, 120)
+	event_log.custom_minimum_size = Vector2(420, 100)
 	right_column.add_child(event_log)
 
 	live_label = Label.new()
@@ -202,6 +277,13 @@ func _connect_director_signals() -> void:
 	player.state_changed.connect(func(_next_state: StringName) -> void:
 		_refresh_controls())
 	player.error_occurred.connect(_show_error)
+	arranger.arrangement_started.connect(func(track_id: String, section_count: int, duration_seconds: float) -> void:
+		_append_event("ARRANGEMENT %s: %d sections / %.2fs" % [track_id, section_count, duration_seconds]))
+	arranger.arrangement_section_changed.connect(func(section_index: int, label: String, candidate_id: String) -> void:
+		_append_event("SECTION %02d %s / %s" % [section_index + 1, label, candidate_id]))
+	arranger.arrangement_finished.connect(func(track_id: String) -> void:
+		_append_event("ARRANGEMENT FINISHED %s" % track_id))
+	arranger.error_occurred.connect(_show_error)
 
 
 func _add_button(parent: Container, label: String, callback: Callable) -> Button:
@@ -229,10 +311,12 @@ func _populate_tracks() -> void:
 func _on_track_selected(index: int) -> void:
 	if index < 0 or index >= track_option.item_count:
 		return
+	arranger.stop()
 	player.stop()
 	selected_track_id = track_option.get_item_text(index)
 	selected_candidate_id = ""
 	_populate_candidates()
+	_load_arrangement_for_track()
 	_append_event("TRACK selected: %s" % selected_track_id)
 
 
@@ -321,31 +405,38 @@ func _on_candidate_activated(index: int) -> void:
 
 func _on_audition() -> void:
 	if not selected_candidate_id.is_empty():
+		_stop_arrangement_transport()
 		player.audition_candidate(selected_track_id, selected_candidate_id)
 
 
 func _on_audition_context() -> void:
 	if not selected_candidate_id.is_empty():
+		_stop_arrangement_transport()
 		player.audition_candidate(selected_track_id, selected_candidate_id, 2)
 
 
 func _on_play_source() -> void:
+	_stop_arrangement_transport()
 	player.play_track_from_start(selected_track_id)
 
 
 func _on_hold_approved() -> void:
+	_stop_arrangement_transport()
 	player.hold_cue(selected_track_id, selected_candidate_id)
 
 
 func _on_next_cue() -> void:
+	_stop_arrangement_transport()
 	player.release_to_next_cue()
 
 
 func _on_reprise() -> void:
+	_stop_arrangement_transport()
 	player.reprise_previous_cue()
 
 
 func _on_jump_approved() -> void:
+	_stop_arrangement_transport()
 	if player.current_track_id != selected_track_id:
 		player.hold_cue(selected_track_id, selected_candidate_id)
 	else:
@@ -353,6 +444,7 @@ func _on_jump_approved() -> void:
 
 
 func _on_release() -> void:
+	_stop_arrangement_transport()
 	player.release_to_end()
 
 
@@ -378,8 +470,196 @@ func _set_review(status: StringName) -> void:
 
 
 func _on_stop() -> void:
+	_stop_arrangement_transport()
 	player.stop()
 	_append_event("STOP")
+
+
+func _load_arrangement_for_track() -> void:
+	arrangement_sections = arrangement_catalog.get_sections(selected_track_id)
+	selected_arrangement_index = -1
+	_refresh_arrangement()
+
+
+func _store_arrangement() -> void:
+	if not selected_track_id.is_empty():
+		arrangement_catalog.set_sections(selected_track_id, arrangement_sections)
+
+
+func _refresh_arrangement() -> void:
+	if arrangement_list == null:
+		return
+	arrangement_list.clear()
+	var total_bars := 0
+	var total_passes := 0
+	for index in range(arrangement_sections.size()):
+		var section: Dictionary = arrangement_sections[index]
+		var candidate_id := String(section.get("candidate_id", ""))
+		var candidate := player.get_candidate(selected_track_id, candidate_id)
+		var label := String(section.get("label", "Section %02d" % (index + 1))).strip_edges()
+		if label.is_empty():
+			label = "Section %02d" % (index + 1)
+		var repeat_count := clampi(int(section.get("repeat_count", 1)), 1, 64)
+		var bar_count := int(candidate.get("bar_count", 0))
+		total_bars += bar_count * repeat_count
+		total_passes += repeat_count
+		arrangement_list.add_item("%02d  %s | %s | %dx | %d bars" % [index + 1, label, candidate_id if not candidate_id.is_empty() else "missing", repeat_count, bar_count])
+		arrangement_list.set_item_metadata(index, index)
+	if selected_arrangement_index >= 0 and selected_arrangement_index < arrangement_sections.size():
+		arrangement_list.select(selected_arrangement_index)
+		_sync_selected_arrangement_fields()
+	else:
+		section_label_edit.text = ""
+		section_repeat_spin.value = 1
+	if arrangement_sections.is_empty():
+		arrangement_summary_label.text = "0 sections  •  select a segment and Add Selected"
+	else:
+		arrangement_summary_label.text = "%d sections  •  %d passes  •  %d bars" % [arrangement_sections.size(), total_passes, total_bars]
+	_refresh_controls()
+
+
+func _on_arrangement_selected(index: int) -> void:
+	if index < 0 or index >= arrangement_sections.size():
+		return
+	selected_arrangement_index = index
+	_sync_selected_arrangement_fields()
+	_refresh_controls()
+
+
+func _sync_selected_arrangement_fields() -> void:
+	if selected_arrangement_index < 0 or selected_arrangement_index >= arrangement_sections.size():
+		return
+	var section: Dictionary = arrangement_sections[selected_arrangement_index]
+	section_label_edit.text = String(section.get("label", ""))
+	section_repeat_spin.value = clampi(int(section.get("repeat_count", 1)), 1, 64)
+
+
+func _on_arrangement_add() -> void:
+	if selected_candidate_id.is_empty():
+		_show_error("Select a candidate segment before adding an arrangement section")
+		return
+	var default_label := String(player.cue_catalog.get_decision(selected_track_id, selected_candidate_id).get("cue_name", "")).strip_edges()
+	if default_label.is_empty():
+		default_label = "Section %02d" % (arrangement_sections.size() + 1)
+	var entry := {
+		"section_id": _next_section_id(),
+		"label": default_label,
+		"candidate_id": selected_candidate_id,
+		"repeat_count": 1,
+	}
+	var insertion_index := arrangement_sections.size()
+	if selected_arrangement_index >= 0:
+		insertion_index = selected_arrangement_index + 1
+	arrangement_sections.insert(insertion_index, entry)
+	selected_arrangement_index = insertion_index
+	_store_arrangement()
+	_refresh_arrangement()
+	_append_event("ARRANGEMENT ADD %s / %s" % [default_label, selected_candidate_id])
+
+
+func _next_section_id() -> String:
+	var used_ids: Dictionary = {}
+	for section in arrangement_sections:
+		used_ids[String(section.get("section_id", ""))] = true
+	var next_number := 1
+	while used_ids.has("section_%03d" % next_number):
+		next_number += 1
+	return "section_%03d" % next_number
+
+
+func _on_arrangement_replace() -> void:
+	if selected_candidate_id.is_empty() or selected_arrangement_index < 0 or selected_arrangement_index >= arrangement_sections.size():
+		return
+	arrangement_sections[selected_arrangement_index]["candidate_id"] = selected_candidate_id
+	_store_arrangement()
+	_refresh_arrangement()
+	arrangement_list.select(selected_arrangement_index)
+	_append_event("ARRANGEMENT REPLACE section %02d → %s" % [selected_arrangement_index + 1, selected_candidate_id])
+
+
+func _on_arrangement_remove() -> void:
+	if selected_arrangement_index < 0 or selected_arrangement_index >= arrangement_sections.size():
+		return
+	var removed: Dictionary = arrangement_sections[selected_arrangement_index]
+	arrangement_sections.remove_at(selected_arrangement_index)
+	if arrangement_sections.is_empty():
+		selected_arrangement_index = -1
+	else:
+		selected_arrangement_index = mini(selected_arrangement_index, arrangement_sections.size() - 1)
+	_store_arrangement()
+	_refresh_arrangement()
+	_append_event("ARRANGEMENT REMOVE %s" % String(removed.get("label", "section")))
+
+
+func _on_arrangement_apply() -> void:
+	if selected_arrangement_index < 0 or selected_arrangement_index >= arrangement_sections.size():
+		return
+	var label := section_label_edit.text.strip_edges()
+	if label.is_empty():
+		label = "Section %02d" % (selected_arrangement_index + 1)
+	arrangement_sections[selected_arrangement_index]["label"] = label
+	arrangement_sections[selected_arrangement_index]["repeat_count"] = clampi(int(section_repeat_spin.value), 1, 64)
+	_store_arrangement()
+	_refresh_arrangement()
+	arrangement_list.select(selected_arrangement_index)
+	_append_event("ARRANGEMENT EDIT section %02d" % (selected_arrangement_index + 1))
+
+
+func _on_arrangement_move_up() -> void:
+	_move_arrangement(-1)
+
+
+func _on_arrangement_move_down() -> void:
+	_move_arrangement(1)
+
+
+func _move_arrangement(delta: int) -> void:
+	var target_index := selected_arrangement_index + delta
+	if selected_arrangement_index < 0 or target_index < 0 or target_index >= arrangement_sections.size():
+		return
+	var moved: Dictionary = arrangement_sections[selected_arrangement_index]
+	arrangement_sections[selected_arrangement_index] = arrangement_sections[target_index]
+	arrangement_sections[target_index] = moved
+	selected_arrangement_index = target_index
+	_store_arrangement()
+	_refresh_arrangement()
+	arrangement_list.select(selected_arrangement_index)
+	_append_event("ARRANGEMENT MOVE section %02d" % (selected_arrangement_index + 1))
+
+
+func _on_arrangement_play() -> void:
+	if arrangement_sections.is_empty():
+		_show_error("Add at least one section before playing an arrangement")
+		return
+	_store_arrangement()
+	player.stop()
+	if arranger.play_arrangement(selected_track_id, arrangement_sections, arrangement_loop_check.button_pressed):
+		error_label.text = ""
+
+
+func _on_arrangement_stop() -> void:
+	arranger.stop()
+	_append_event("ARRANGEMENT STOP")
+	_refresh_controls()
+
+
+func _on_arrangement_save() -> void:
+	_store_arrangement()
+	if arrangement_catalog.save_catalog():
+		error_label.text = ""
+		_append_event("ARRANGEMENT SAVED %s" % arrangement_catalog.catalog_path)
+
+
+func _on_arrangement_reload() -> void:
+	arranger.stop()
+	if arrangement_catalog.load_catalog():
+		_load_arrangement_for_track()
+		_append_event("ARRANGEMENT RELOADED")
+
+
+func _stop_arrangement_transport() -> void:
+	if arranger != null and arranger.is_playing():
+		arranger.stop()
 
 
 func _refresh_sequence() -> void:
@@ -396,7 +676,10 @@ func _refresh_sequence() -> void:
 func _refresh_live_state() -> void:
 	if live_label == null:
 		return
-	live_label.text = "STATE %s | Track %s | Holding %s | Pending %s | %.2f / %.2f s" % [String(player.state), player.current_track_id if not player.current_track_id.is_empty() else "-", _cue_label(player.current_track_id, player.current_cue_id), _cue_label(player.current_track_id, player.pending_cue_id), player.current_playback_position, player.stream_length_seconds]
+	var arrangement_state := ""
+	if arranger != null and arranger.is_playing():
+		arrangement_state = " | Arrangement %d/%d" % [arranger.current_section_index + 1, arranger.timeline.size()]
+	live_label.text = "STATE %s | Track %s | Holding %s | Pending %s | %.2f / %.2f s%s" % [String(player.state), player.current_track_id if not player.current_track_id.is_empty() else "-", _cue_label(player.current_track_id, player.current_cue_id), _cue_label(player.current_track_id, player.pending_cue_id), player.current_playback_position, player.stream_length_seconds, arrangement_state]
 
 
 func _refresh_controls() -> void:
@@ -416,6 +699,17 @@ func _refresh_controls() -> void:
 	approve_button.disabled = not has_candidate
 	reject_button.disabled = not has_candidate
 	clear_review_button.disabled = not has_candidate
+	var has_arrangement_selection := selected_arrangement_index >= 0 and selected_arrangement_index < arrangement_sections.size()
+	add_section_button.disabled = not has_candidate
+	replace_section_button.disabled = not has_candidate or not has_arrangement_selection
+	remove_section_button.disabled = not has_arrangement_selection
+	apply_section_button.disabled = not has_arrangement_selection
+	move_section_up_button.disabled = not has_arrangement_selection or selected_arrangement_index <= 0
+	move_section_down_button.disabled = not has_arrangement_selection or selected_arrangement_index >= arrangement_sections.size() - 1
+	arrangement_play_button.disabled = arrangement_sections.is_empty() or selected_track_id.is_empty()
+	arrangement_stop_button.disabled = arranger == null or not arranger.is_playing()
+	arrangement_save_button.disabled = selected_track_id.is_empty()
+	arrangement_reload_button.disabled = selected_track_id.is_empty()
 
 
 func _cue_label(track_id: String, cue_id: String) -> String:

@@ -1,7 +1,8 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://debug/MusicLoopAudition.gd" id="1_test"]
 [ext_resource type="Script" path="res://audio_system/MusicDirector.gd" id="2_player"]
+[ext_resource type="Script" path="res://audio_system/MusicArrangementPlayer.gd" id="3_arranger"]
 
 [node name="MusicLoopAudition" type="Control"]
 layout_mode = 3
@@ -14,3 +15,6 @@ script = ExtResource("1_test")
 
 [node name="MusicDirector" type="Node" parent="."]
 script = ExtResource("2_player")
+
+[node name="MusicArrangementPlayer" type="Node" parent="."]
+script = ExtResource("3_arranger")

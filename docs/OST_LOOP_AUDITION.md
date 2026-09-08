@@ -42,6 +42,30 @@ order.
 Machine scores are triage, not approval. Short hooks and vocal phrases are
 allowed when they survive listening. Whole-track fallback loops remain forbidden.
 
+## Segment arrangement workflow
+
+The same tester also includes a small beat-making style arranger for offline
+experimentation. It works on one source track at a time:
+
+1. Switch to **Every candidate** when you want the full bar-aligned segment
+   catalog.
+2. Select a candidate and choose **Add Selected**. The new row is inserted
+   after the selected arrangement row, or appended when none is selected.
+3. Select an arrangement row to rename it, set its repeat count, replace its
+   candidate, remove it, or move it up/down.
+4. Use **Play Arrangement** to audition the assembled order. **Loop** repeats
+   the complete arrangement; it does not alter the source track.
+5. Use **Save** to persist the arrangement to
+   `assets/audio/ost/ost_arrangements.json`; **Reload** discards unsaved edits
+   and reloads that file.
+
+Arrangement sections reference candidate IDs, so they can be used for
+listening experiments before cue approval. Cue review decisions remain in
+`ost_cues.json` and are intentionally independent. Playback reads the original
+PCM WAV, concatenates exact catalog sample ranges into a temporary in-memory
+stream, and leaves the imported source bytes and loop points unchanged. This
+is a tester feature, not gameplay wiring or a stem mixer.
+
 ## Transport rules
 
 - **Release → Catch Next** chooses the first approved cue whose start is
@@ -61,27 +85,36 @@ allowed when they survive listening. Whole-track fallback loops remain forbidden
   de-duplicated audition candidates.
 - `assets/audio/ost/ost_cues.json`: human review decisions; currently no cues
   are approved in the production catalog.
+- `assets/audio/ost/ost_arrangements.json`: saved manual section orders and
+  repeat counts, independent from cue approvals.
 - `audio_system/MusicCueCatalog.gd`: candidate and review authority.
 - `audio_system/MusicDirector.gd`: cue audition and DJ transport authority.
+- `audio_system/MusicArrangementCatalog.gd`: arrangement persistence authority.
+- `audio_system/MusicArrangementPlayer.gd`: exact-slice arrangement playback.
 - `debug/MusicLoopAudition.tscn`: standalone tester.
 - `tools/ost_loop_catalog_smoke.gd`: catalog/schema verification.
 - `tools/music_director_smoke.gd`: deterministic tester and transport proof.
+- `tools/music_arrangement_smoke.gd`: deterministic segment-arrangement proof.
 - `tools/fixtures/music_director_test_cues.json`: test-only approved sequence;
   it is not a claim that those boundaries passed human listening.
 
-The obsolete section-based tester and the intermediate `MusicLoopPlayer` were
-removed. There is now one standalone tester and one transport controller.
+The obsolete standalone section-based tester and the intermediate
+`MusicLoopPlayer` were removed. The current tester contains the arrangement
+surface alongside the DJ transport, while the two playback authorities remain
+separate.
 
 ## Automated proof
 
 ```text
 OST_LOOP_CATALOG_SMOKE: PASS tracks=26 exhaustive=true roles=none
 MUSIC_DIRECTOR_SMOKE: PASS five-cue-ui bar-sort audition approval hold release catch reprise jump finish
+MUSIC_ARRANGEMENT_SMOKE: PASS section-insert-replace-reorder-repeat-save-play-source-preserved
 ```
 
 These checks prove catalog coverage, review persistence, exact sample-boundary
 configuration, state transitions, source-preserving forward travel, backward
-reprise timing, and tester wiring. They cannot prove that a seam sounds good.
+reprise timing, arrangement editing/persistence/playback, source preservation,
+and tester wiring. They cannot prove that a seam sounds good.
 That decision remains human listening work inside the tester.
 
 ## Scope boundary
