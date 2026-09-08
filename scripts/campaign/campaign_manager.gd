@@ -63,6 +63,7 @@ var event_manager: EventManager
 var drink_manager: DrinkManager
 var wallet: VndWallet
 var active_deal_wallet_before_vnd: int = 0
+var gieo_que: GieoQueService
 
 
 func _init(
@@ -75,12 +76,14 @@ func _init(
 	event_manager = p_event_manager if p_event_manager != null else EventManager.new()
 	drink_manager = p_drink_manager if p_drink_manager != null else DrinkManager.new(wallet)
 	campaign_days = CampaignConfig.day_definitions() if p_days.is_empty() else p_days.duplicate(true)
+	gieo_que = GieoQueService.new(wallet)
 
 
 func start_campaign(reset_wallet: bool = true) -> void:
 	if reset_wallet:
 		wallet.reset()
 	drink_manager.clear_day()
+	gieo_que.reset_campaign()
 	current_day_index = 0
 	campaign_complete = false
 	run_failed = false
@@ -127,6 +130,7 @@ func complete_current_event() -> bool:
 
 func _begin_current_day() -> void:
 	_set_phase(CampaignPhase.DAY_START)
+	gieo_que.begin_day(current_day_index)
 	day_started.emit(current_day())
 	_enter_phase(CampaignPhase.STARTER_EVENT)
 

@@ -109,6 +109,56 @@ func test_base_new_phom_scoring_uses_value_sum_times_card_count() -> void:
 	assert_eq(context.final_points, 72)
 
 
+func test_gieo_making_phom_retrigger_doubles_only_its_card_contribution() -> void:
+	var cards: Array[CardData] = [_card("K", "Spades"), _card("K", "Hearts"), _card("K", "Diamonds")]
+	cards[0].add_gieo_property(GieoQueService.PROPERTY_MAKING_PHOM_RETRIGGER)
+	var context := ScoringPipeline.new().score_new_meld(cards, MeldRules.TYPE_SET, 1)
+	assert_eq(context.card_value_sum, 52)
+	assert_eq(context.theoretical_score, 156)
+	assert_eq(context.final_points, 156)
+	assert_eq(context.value_equation(), "13 + 13 + 13 + 13")
+
+
+func test_gieo_extend_retrigger_doubles_only_newly_committed_card_contribution() -> void:
+	var cards: Array[CardData] = [
+		_card("4", "Hearts"), _card("5", "Hearts"), _card("6", "Hearts"), _card("7", "Hearts"),
+	]
+	cards[-1].add_gieo_property(GieoQueService.PROPERTY_EXTEND_RETRIGGER)
+	var context := ScoringPipeline.new().score_extension(cards, MeldRules.TYPE_RUN, 45, 1, [cards[-1]])
+	assert_eq(context.card_value_sum, 29)
+	assert_eq(context.theoretical_score, 116)
+	assert_eq(context.final_points, 71)
+
+
+func test_gieo_set_retrigger_cards_add_full_non_recursive_scoring_passes() -> void:
+	var cards := _kings(3)
+	cards[0].add_gieo_property(GieoQueService.PROPERTY_SET_RETRIGGER)
+	cards[1].add_gieo_property(GieoQueService.PROPERTY_SET_RETRIGGER)
+	var context := ScoringPipeline.new().score_new_meld(cards, MeldRules.TYPE_SET, 1)
+	assert_eq(context.theoretical_score, 117)
+	assert_eq(context.final_points, 351)
+	assert_eq(context.retrigger_count, 2)
+	assert_eq(context.scoring_passes.size(), 3)
+	for scoring_pass: ScoringContext in context.scoring_passes:
+		assert_true(scoring_pass.scoring_passes.is_empty())
+		assert_eq(scoring_pass.final_points, 117)
+
+
+func test_gieo_run_retrigger_adds_full_pass_after_extension_delta() -> void:
+	var cards: Array[CardData] = [
+		_card("4", "Clubs"), _card("5", "Clubs"), _card("6", "Clubs"), _card("7", "Clubs"),
+	]
+	cards[0].add_gieo_property(GieoQueService.PROPERTY_RUN_RETRIGGER)
+	var context := ScoringPipeline.new().score_extension(cards, MeldRules.TYPE_RUN, 45, 1, [cards[-1]])
+	assert_eq(context.theoretical_score, 88)
+	assert_eq(context.base_extension_score, 43)
+	assert_eq(context.final_points, 131)
+	assert_eq(context.scoring_passes.size(), 2)
+	assert_eq((context.scoring_passes[0] as ScoringContext).final_points, 43)
+	assert_eq((context.scoring_passes[1] as ScoringContext).final_points, 88)
+	assert_eq((context.scoring_passes[1] as ScoringContext).trigger_origin, ScoringPipeline.TRIGGER_GIEO_RETRIGGER)
+
+
 func test_extension_pays_only_intrinsic_score_delta() -> void:
 	var all_cards: Array[CardData] = [_card("6", "Spades"), _card("7", "Spades"), _card("8", "Spades"), _card("9", "Spades")]
 	var context := ScoringPipeline.new().score_extension(all_cards, MeldRules.TYPE_RUN, 63, 1, [all_cards[-1]])

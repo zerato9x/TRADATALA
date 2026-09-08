@@ -23,31 +23,31 @@ const EVENT_ROSTERS := {
 }
 const NPC_DATA := {
 	NPC_DANH_GIAY: {
-		"name": "ĐÁNH GIÀY",
+		"name_key": "NPC_DANH_GIAY",
 		"slot": &"left",
 		"overlay": preload("res://assets/environment/npcs/danhgiay_overlay.png"),
 		"sprite": preload("res://assets/environment/npcs/danhgiay.png"),
 	},
 	NPC_TRA_DA: {
-		"name": "CÔ TRÀ ĐÁ",
+		"name_key": "NPC_TRA_DA_AUNTIE",
 		"slot": &"right",
 		"overlay": preload("res://assets/environment/npcs/trada_overlay.png"),
 		"sprite": preload("res://assets/environment/npcs/trada.png"),
 	},
 	NPC_THAY_BOI: {
-		"name": "THẦY BÓI",
+		"name_key": "NPC_THAY_BOI",
 		"slot": &"left",
 		"overlay": preload("res://assets/environment/npcs/thayboi_overlay.png"),
 		"sprite": preload("res://assets/environment/npcs/thayboi.png"),
 	},
 	NPC_HANG_RONG: {
-		"name": "HÀNG RONG",
+		"name_key": "NPC_HANG_RONG",
 		"slot": &"right",
 		"overlay": preload("res://assets/environment/npcs/hangrong_overlay.png"),
 		"sprite": preload("res://assets/environment/npcs/hangrong.png"),
 	},
 	NPC_LOTTO: {
-		"name": "VÉ SỐ",
+		"name_key": "NPC_LOTTO",
 		"slot": &"top",
 		"overlay": preload("res://assets/environment/npcs/lode_overlay.png"),
 		"sprite": preload("res://assets/environment/npcs/lode.png"),
@@ -103,7 +103,8 @@ func enter_event(event_slot: int, day_text: String, period_text: String, money_t
 	day_label.text = day_text.to_upper()
 	period_label.text = period_text.to_upper()
 	money_label.text = money_text
-	continue_button.text = "TIẾP TỤC"
+	continue_button.text = tr("EVENT_CONTINUE")
+	continue_button.visible = true
 	if already_showing:
 		return
 	table_state = TABLE_STATE_EVENT
@@ -150,6 +151,14 @@ func set_continue_enabled(enabled: bool) -> void:
 	continue_button.disabled = not enabled
 
 
+func refresh_localized_ui() -> void:
+	continue_button.text = tr("EVENT_CONTINUE")
+	back_button.text = tr("EVENT_BACK")
+	for npc_id in _npc_layers:
+		var layer: Dictionary = _npc_layers[npc_id]
+		(layer["name_tag"] as Label).text = npc_display_name(String(npc_id))
+
+
 func focus_npc(npc_id: String) -> void:
 	if table_state != TABLE_STATE_EVENT or not _npc_layers.has(npc_id) or focused_npc_id == npc_id:
 		return
@@ -184,6 +193,7 @@ func unfocus_npc() -> void:
 		return
 	var previous := focused_npc_id
 	focused_npc_id = ""
+	continue_button.visible = true
 	_clear_content()
 	_set_header_focused(false)
 	var tween := create_tween().set_parallel(true)
@@ -238,7 +248,7 @@ func clear_content() -> void:
 func npc_display_name(npc_id: String) -> String:
 	if not NPC_DATA.has(npc_id):
 		return npc_id
-	return String((NPC_DATA[npc_id] as Dictionary)["name"])
+	return tr(String((NPC_DATA[npc_id] as Dictionary)["name_key"]))
 
 
 func _build_markers() -> void:
@@ -312,11 +322,7 @@ func _build_content() -> void:
 	content_panel.size = Vector2(580, 360)
 	content_panel.visible = false
 	content_panel.mouse_filter = Control.MOUSE_FILTER_STOP
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.025, 0.075, 0.11, 0.82)
-	style.border_color = Color(0.94, 0.73, 0.25, 0.78)
-	style.set_border_width_all(2)
-	style.set_corner_radius_all(12)
+	var style := PresentationTheme.universal_frame_style()
 	style.content_margin_left = 22
 	style.content_margin_top = 18
 	style.content_margin_right = 22
@@ -336,7 +342,7 @@ func _build_content() -> void:
 	margin.add_child(participants_container)
 	back_button = Button.new()
 	back_button.name = "EventBack"
-	back_button.text = "← TRỞ LẠI"
+	back_button.text = tr("EVENT_BACK")
 	back_button.position = Vector2(24, 90)
 	back_button.size = Vector2(132, 42)
 	back_button.visible = false
@@ -348,7 +354,7 @@ func _build_content() -> void:
 func _build_continue() -> void:
 	continue_button = Button.new()
 	continue_button.name = "EventContinue"
-	continue_button.text = "TIẾP TỤC"
+	continue_button.text = tr("EVENT_CONTINUE")
 	continue_button.position = Vector2(520, 642)
 	continue_button.size = Vector2(240, 54)
 	continue_button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
@@ -397,7 +403,7 @@ func _build_npc_layers() -> void:
 		add_child(button)
 		var name_tag := Label.new()
 		name_tag.name = "%sName" % npc_id.to_pascal_case()
-		name_tag.text = String(data["name"])
+		name_tag.text = npc_display_name(npc_id)
 		name_tag.position = _slot_name_position(slot)
 		name_tag.size = Vector2(210, 34)
 		name_tag.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER

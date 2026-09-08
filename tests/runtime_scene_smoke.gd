@@ -16,6 +16,21 @@ func _run() -> void:
 	if packed == null:
 		_finish()
 		return
+	var root_settings = root.get_node_or_null("GameSettings")
+	_check(root_settings != null, "GameSettings autoload exists before MatchUI startup")
+	if root_settings != null:
+		root_settings.set_locale("en")
+	var startup_probe := packed.instantiate() as MatchUI
+	root.add_child(startup_probe)
+	await process_frame
+	await process_frame
+	await process_frame
+	_check(startup_probe.play_button != null and startup_probe.play_button.text == "NEW GAME", "persisted English locale is applied during MatchUI startup")
+	_check(startup_probe.event_table != null and startup_probe.event_table.continue_button.text == "CONTINUE" and startup_probe.event_table.back_button.text == "← BACK", "persisted English locale reaches event-table controls during startup")
+	startup_probe.queue_free()
+	await process_frame
+	if root_settings != null:
+		root_settings.set_locale("vi")
 	var scene := packed.instantiate() as MatchUI
 	root.add_child(scene)
 	current_scene = scene
@@ -109,6 +124,8 @@ func _run() -> void:
 	await process_frame
 	_check(TranslationServer.get_locale() == "en" and scene.play_button.text == "NEW GAME", "English selection localizes the menu immediately")
 	_check(scene.how_to_play_button.text == "HOW TO PLAY" and scene.tutorial_button.text == "TUTORIAL" and scene.options_button.text == "OPTIONS", "English selection refreshes main-menu navigation")
+	_check(scene.event_table.continue_button.text == "CONTINUE" and scene.event_table.back_button.text == "← BACK", "English selection refreshes event-table navigation")
+	_check((scene.event_table.get_node("TraDaAuntieName") as Label).text == "ICED TEA AUNTIE", "English selection refreshes event-table NPC labels")
 	_check((scene.how_tab_buttons[&"cards"] as Button).text == "CARDS & MELDS" and (scene.how_tab_buttons[&"phases"] as Button).text == "PHASES & TURNS" and (scene.how_tab_buttons[&"scoring"] as Button).text == "SCORING", "English selection refreshes all How to Play tabs")
 	_check((scene.how_scoring_topic_buttons[&"basic"] as Button).text == "BASIC SCORING" and (scene.how_scoring_topic_buttons[&"special"] as Button).text == "SPECIAL OUTCOMES", "English selection refreshes both Scoring topics")
 	_check(scene.music_settings_label.text == "MUSIC" and scene.sound_settings_label.text == "SOUND" and scene.hint_button.text == "HINT  [G]" and (scene.header_caption_labels["VndPerPointStat"] as Label).text == "VND / POINT", "English selection refreshes Options, gameplay controls, and the VND-per-point caption")
@@ -257,6 +274,13 @@ func _run() -> void:
 	var wallet_pile := scene.get_node_or_null("GameLayer/Header/HeaderRow/WalletStat/MarginContainer/WalletRow/WalletPile") as Control
 	_check(scene.money_presentation != null and scene.money_presentation.get_parent() == scene.game_layer, "one reusable table-native money presentation layer replaces the old resolve popup")
 	_check(scene.score_overlay != null and not scene.score_overlay.visible and scene.score_panel != null, "money ceremony begins hidden while preserving tutorial targeting")
+	_check(scene.money_presentation.get_node_or_null("Ceremony/ResolveBackdrop") == null, "resolve feedback is floating text with no opaque backing")
+	_check(scene.money_presentation.get_node_or_null("Ceremony/HitFlash") == null, "resolve ceremony has no full-screen hit flash")
+	_check(scene.money_presentation.get_node_or_null("Ceremony/ScoreStage/StageShadow") == null, "floating resolve text has no modal panel shadow")
+	_check(scene.score_overlay.mouse_filter == Control.MOUSE_FILTER_IGNORE and scene.score_panel.size.x <= 460.0, "floating resolve feedback cannot consume table input")
+	scene.money_presentation._position_score_stage(scene.meld_scroll)
+	_check(absf(scene.score_panel.get_global_rect().get_center().x - scene.meld_scroll.get_global_rect().get_center().x) < 12.0, "resolve text anchors horizontally over its Meld source")
+	_check(is_equal_approx(MoneyPresentation.MONEY_FLIGHT_DURATION, 0.48), "all money resolutions use the shared flight duration")
 	_check(wallet_pile == scene.wallet_pile_anchor and wallet_pile.get_child_count() == 1, "zero wallet renders an empty cash state without fake banknotes")
 	scene.money_presentation.sync_wallet(45_000)
 	var wallet_bill := wallet_pile.get_child(0) as Control
@@ -723,7 +747,8 @@ func _run() -> void:
 	var table_drop_position := scene.table_surface.get_global_rect().get_center()
 	_check(scene._card_drop_target_at(table_drop_position)["kind"] == scene.DROP_TARGET_TABLE, "the open table resolves as the new-Meld drop target")
 	scene._finish_card_drag(table_drop_position)
-	_check(await _wait_for_scene_unlock(scene), "dragging selected cards to the table completes the Meld action")
+	_check(await _wait_for_interaction_unlock(scene), "dragging selected cards to the table completes the Meld action")
+	_check(not scene.interaction_locked and scene.score_overlay.visible, "Meld money continues floating while the next player interaction is already enabled")
 	_check(scene.deal.melds.size() == 1 and scene.deal.melds[0].cards.size() == 3, "the table drop commits the selected three-card Meld")
 	_check(int(scene.card_sfx_play_counts[scene.CARD_SFX_PLACE]) == place_sfx_count + 1 and (scene.card_sfx_players[scene.CARD_SFX_PLACE] as AudioStreamPlayer).stream.resource_path.begins_with("res://assets/audio/sfx/card_place"), "creating a Phỏm plays one supplied placement variant")
 	var first_place_index := scene.card_place_stream_index
@@ -776,9 +801,19 @@ func _run() -> void:
 	_finish()
 
 
-func _wait_for_scene_unlock(scene: MatchUI, max_frames: int = 480) -> bool:
-	for _frame in range(max_frames):
+func _wait_for_scene_unlock(scene: MatchUI, timeout_msec: int = 6000) -> bool:
+	var deadline := Time.get_ticks_msec() + timeout_msec
+	while Time.get_ticks_msec() < deadline:
 		if not scene.interaction_locked and not scene.score_overlay.visible:
+			return true
+		await process_frame
+	return false
+
+
+func _wait_for_interaction_unlock(scene: MatchUI, timeout_msec: int = 2000) -> bool:
+	var deadline := Time.get_ticks_msec() + timeout_msec
+	while Time.get_ticks_msec() < deadline:
+		if not scene.interaction_locked:
 			return true
 		await process_frame
 	return false

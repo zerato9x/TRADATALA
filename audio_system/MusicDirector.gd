@@ -9,6 +9,7 @@ signal authored_transition_started(from_cue_id: String, to_cue_id: String)
 signal reprise_started(from_cue_id: String, to_cue_id: String)
 signal source_released(track_id: String)
 signal source_finished(track_id: String)
+signal cue_loop_completed(track_id: String, cue_id: String)
 signal state_changed(next_state: StringName)
 signal error_occurred(message: String)
 
@@ -49,6 +50,8 @@ func _process(_delta: float) -> void:
 	if audio_player == null or not audio_player.playing:
 		return
 	current_playback_position = _read_position()
+	if _did_hold_cue_wrap():
+		cue_loop_completed.emit(current_track_id, current_cue_id)
 	match state:
 		STATE_AUDITIONING_CUE, STATE_TRAVELING_FORWARD:
 			_catch_pending_cue_if_reached()
@@ -59,6 +62,14 @@ func _process(_delta: float) -> void:
 			if crossed_boundary or wrapped_unexpectedly:
 				_jump_and_hold(pending_cue_id)
 	_last_playback_position = current_playback_position
+
+
+func _did_hold_cue_wrap() -> bool:
+	return state == STATE_HOLDING_CUE \
+		and not current_cue_id.is_empty() \
+		and runtime_stream != null \
+		and runtime_stream.loop_mode == AudioStreamWAV.LOOP_FORWARD \
+		and current_playback_position + POSITION_EPSILON_SECONDS < _last_playback_position
 
 
 func _exit_tree() -> void:

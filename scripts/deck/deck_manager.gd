@@ -12,7 +12,14 @@ var _rng := RandomNumberGenerator.new()
 
 
 func reset(shuffle_seed: int = -1) -> void:
-	draw_pile = build_standard_deck()
+	reset_from_campaign_cards(build_standard_deck(), shuffle_seed)
+
+
+func reset_from_campaign_cards(cards: Array[CardData], shuffle_seed: int = -1) -> void:
+	draw_pile.clear()
+	for card in cards:
+		var deal_card := card.copy_for_deal()
+		draw_pile.append(deal_card)
 	discard_pile.clear()
 	if shuffle_seed >= 0:
 		_rng.seed = shuffle_seed

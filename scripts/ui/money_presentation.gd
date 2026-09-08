@@ -3,23 +3,27 @@ extends Control
 
 signal impact_requested(intensity: float, positive: bool)
 
-const BILL_ATLAS := preload("res://assets/environment/vnd_bills.png")
 const DENOMINATIONS: Array[int] = [500_000, 200_000, 100_000, 50_000, 20_000, 10_000, 5_000, 2_000, 1_000]
+const DENOMINATION_TEXTURES := {
+	500_000: preload("res://assets/money/bill_500k.png"),
+	200_000: preload("res://assets/money/bill_200k.png"),
+	100_000: preload("res://assets/money/bill_100k.png"),
+	50_000: preload("res://assets/money/bill_50k.png"),
+	20_000: preload("res://assets/money/bill_20k.png"),
+	10_000: preload("res://assets/money/bill_10k.png"),
+	5_000: preload("res://assets/money/bill_5k.png"),
+	2_000: preload("res://assets/money/bill_2k.png"),
+	1_000: preload("res://assets/money/bill_1k.png"),
+}
 const MAX_TRANSACTION_OBJECTS := 8
 const MAX_WALLET_OBJECTS := 9
-const CELL_SIZE := Vector2(1448.0 / 3.0, 1086.0 / 3.0)
-const DENOMINATION_CELLS := {
-	1_000: Vector2i(0, 0),
-	2_000: Vector2i(1, 0),
-	20_000: Vector2i(2, 0),
-	10_000: Vector2i(0, 1),
-	5_000: Vector2i(1, 1),
-	50_000: Vector2i(2, 1),
-	100_000: Vector2i(0, 2),
-	200_000: Vector2i(1, 2),
-	500_000: Vector2i(2, 2),
-}
-
+const MONEY_REVEAL_GAP := 0.025
+const MONEY_REVEAL_LEAD_IN := 0.14
+const MONEY_FLIGHT_DURATION := 0.48
+const MONEY_BILL_STAGGER := 0.04
+const MONEY_BILL_FADE_DURATION := 0.08
+const MONEY_SETTLE_DELAY := 0.16
+const MONEY_CEREMONY_FADE_DURATION := 0.14
 var ceremony: Control
 var score_panel: Control
 var title_label: Label
@@ -27,14 +31,12 @@ var line_a_label: Label
 var line_b_label: Label
 var payout_label: Label
 var bill_layer: Control
-var hit_flash: ColorRect
 
 var wallet_label: Label
 var wallet_pile_anchor: Control
 var presentation_active := false
 var peak_transaction_object_count := 0
 
-var _atlas_textures: Dictionary = {}
 var _rng := RandomNumberGenerator.new()
 
 
@@ -59,10 +61,10 @@ func sync_wallet(balance_vnd: int) -> void:
 func present_transaction(event: Dictionary) -> void:
 	presentation_active = true
 	ceremony.visible = true
+	_position_score_stage(event.get("source_control") as Control)
 	_reset_ceremony()
 	var positive := String(event.get("direction", "gain")) != "loss"
 	var intensity := clampf(float(event.get("intensity", 1.0)), 0.45, 2.0)
-	var compact := bool(event.get("compact", false))
 	var title := String(event.get("title", ""))
 	var steps: Array = event.get("steps", [])
 	var payout := String(event.get("payout", ""))
@@ -74,20 +76,20 @@ func present_transaction(event: Dictionary) -> void:
 
 	_set_label_text(title_label, title, Color("#f5bf42"))
 	if not title.is_empty():
-		await _pop_label(title_label, 0.035 if compact else 0.11, 1.0 + 0.04 * intensity)
+		await _pop_label(title_label, 0.11, 1.0 + 0.04 * intensity)
 	if not steps.is_empty():
 		_set_label_text(line_a_label, String(steps[0]), Color("#f8edd0"))
-		await _pop_label(line_a_label, 0.035 if compact else 0.12, 1.02 + 0.05 * intensity)
+		await _pop_label(line_a_label, 0.12, 1.02 + 0.05 * intensity)
 	if steps.size() > 1:
 		_set_label_text(line_b_label, String(steps[1]), Color("#f5bf42"))
-		await _pop_label(line_b_label, 0.032 if compact else 0.11, 1.06 + 0.06 * intensity)
+		await _pop_label(line_b_label, 0.11, 1.06 + 0.06 * intensity)
 	_set_label_text(payout_label, payout, Color("#79d94c") if positive else Color("#ff625e"))
-	await _pop_label(payout_label, 0.045 if compact else 0.14, 1.12 + 0.08 * intensity)
-	_flash_impact(Color("#79d94c") if positive else Color("#ff4d4d"), intensity)
+	await _pop_label(payout_label, 0.14, 1.12 + 0.08 * intensity)
+	_nudge_score_panel(intensity)
 	impact_requested.emit(intensity, positive)
-	await _move_money(amount_vnd, positive, source, destination, start_wallet_vnd, target_wallet_vnd, intensity, compact)
-	await get_tree().create_timer(0.04 if compact else 0.16).timeout
-	await _fade_ceremony(0.06 if compact else 0.14)
+	await _move_money(amount_vnd, positive, source, destination, start_wallet_vnd, target_wallet_vnd, intensity)
+	await get_tree().create_timer(MONEY_SETTLE_DELAY).timeout
+	await _fade_ceremony(MONEY_CEREMONY_FADE_DURATION)
 	sync_wallet(target_wallet_vnd)
 	presentation_active = false
 
@@ -95,6 +97,7 @@ func present_transaction(event: Dictionary) -> void:
 func present_phase(event: Dictionary) -> void:
 	presentation_active = true
 	ceremony.visible = true
+	_position_score_stage(event.get("source_control") as Control)
 	_reset_ceremony()
 	var is_mom := bool(event.get("mom", false))
 	var has_u := bool(event.get("u", false))
@@ -117,9 +120,9 @@ func present_phase(event: Dictionary) -> void:
 		await _pop_label(line_b_label, 0.14, 1.18)
 		_set_label_text(payout_label, VndWallet.format_vnd(-deadwood_vnd), Color("#ff625e"))
 		await _pop_label(payout_label, 0.17, 1.28)
-		_flash_impact(Color("#ff3d38"), 1.65)
+		_nudge_score_panel(1.65)
 		impact_requested.emit(1.65, false)
-		await _move_money(deadwood_vnd, false, source, source, start_wallet_vnd, target_wallet_vnd, 1.65, false)
+		await _move_money(deadwood_vnd, false, source, source, start_wallet_vnd, target_wallet_vnd, 1.65)
 	else:
 		var shown_gross_vnd := raw_gross_vnd if has_u else gross_vnd
 		_set_label_text(line_a_label, VndWallet.format_vnd(shown_gross_vnd, true), Color("#79d94c"))
@@ -133,19 +136,20 @@ func present_phase(event: Dictionary) -> void:
 			var u_adjustment_vnd := maxi(gross_vnd - raw_gross_vnd, 0)
 			if u_adjustment_vnd > 0:
 				var u_target := running_wallet + u_adjustment_vnd
-				_flash_impact(Color("#f5bf42"), 1.55)
+				_nudge_score_panel(1.55)
 				impact_requested.emit(1.55, true)
-				await _move_money(u_adjustment_vnd, true, source, wallet_pile_anchor, running_wallet, u_target, 1.55, false)
+				await _move_money(u_adjustment_vnd, true, source, wallet_pile_anchor, running_wallet, u_target, 1.55)
 				running_wallet = u_target
 		if deadwood_vnd > 0:
 			_set_label_text(line_b_label, VndWallet.format_vnd(-deadwood_vnd), Color("#ff625e"))
 			await _replace_label(line_b_label, 0.11, 1.14)
+			_nudge_score_panel(1.0)
 			impact_requested.emit(1.0, false)
-			await _move_money(deadwood_vnd, false, source, source, running_wallet, target_wallet_vnd, 1.0, false)
+			await _move_money(deadwood_vnd, false, source, source, running_wallet, target_wallet_vnd, 1.0)
 		_set_label_text(payout_label, "= %s" % VndWallet.format_vnd(net_vnd, true), Color("#79d94c") if net_vnd >= 0 else Color("#ff625e"))
 		await _pop_label(payout_label, 0.16, 1.2)
-	await get_tree().create_timer(0.18 if not is_mom else 0.24).timeout
-	await _fade_ceremony(0.14)
+	await get_tree().create_timer(MONEY_SETTLE_DELAY if not is_mom else 0.24).timeout
+	await _fade_ceremony(MONEY_CEREMONY_FADE_DURATION)
 	sync_wallet(target_wallet_vnd)
 	presentation_active = false
 
@@ -194,13 +198,6 @@ func _build_runtime_ui() -> void:
 	ceremony.set_meta("match_binding", "score_overlay")
 	add_child(ceremony)
 
-	hit_flash = ColorRect.new()
-	hit_flash.name = "HitFlash"
-	hit_flash.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	hit_flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	hit_flash.modulate = Color(1, 1, 1, 0)
-	ceremony.add_child(hit_flash)
-
 	bill_layer = Control.new()
 	bill_layer.name = "TransactionBills"
 	bill_layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -209,29 +206,20 @@ func _build_runtime_ui() -> void:
 
 	score_panel = Control.new()
 	score_panel.name = "ScoreStage"
-	score_panel.set_anchors_preset(Control.PRESET_CENTER)
-	score_panel.position = Vector2(-330, -150)
-	score_panel.size = Vector2(660, 280)
+	score_panel.position = Vector2(300, 90)
+	score_panel.size = Vector2(460, 214)
 	score_panel.pivot_offset = score_panel.size * 0.5
 	score_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	score_panel.set_meta("match_binding", "score_panel")
 	ceremony.add_child(score_panel)
 
-	var shadow := ColorRect.new()
-	shadow.name = "StageShadow"
-	shadow.position = Vector2(58, 32)
-	shadow.size = Vector2(544, 214)
-	shadow.color = Color(0.02, 0.025, 0.04, 0.0)
-	shadow.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	score_panel.add_child(shadow)
-
-	title_label = _new_stage_label("ScoreTitle", Vector2(45, 18), Vector2(570, 42), 18)
+	title_label = _new_stage_label("ScoreTitle", Vector2(20, 0), Vector2(420, 34), 16)
 	title_label.set_meta("match_binding", "score_title")
-	line_a_label = _new_stage_label("ScoreLineA", Vector2(25, 64), Vector2(610, 58), 36)
+	line_a_label = _new_stage_label("ScoreLineA", Vector2(10, 31), Vector2(440, 48), 30)
 	line_a_label.set_meta("match_binding", "score_line_a")
-	line_b_label = _new_stage_label("ScoreLineB", Vector2(25, 119), Vector2(610, 54), 34)
+	line_b_label = _new_stage_label("ScoreLineB", Vector2(10, 74), Vector2(440, 44), 27)
 	line_b_label.set_meta("match_binding", "score_line_b")
-	payout_label = _new_stage_label("ScorePayout", Vector2(15, 173), Vector2(630, 78), 48)
+	payout_label = _new_stage_label("ScorePayout", Vector2(0, 113), Vector2(460, 72), 42)
 	payout_label.set_meta("match_binding", "score_payout")
 
 
@@ -255,13 +243,26 @@ func _reset_ceremony() -> void:
 	for child in bill_layer.get_children():
 		bill_layer.remove_child(child)
 		child.queue_free()
-	hit_flash.modulate = Color(1, 1, 1, 0)
 	for label in [title_label, line_a_label, line_b_label, payout_label]:
 		label.text = ""
 		label.modulate = Color(1, 1, 1, 0)
 		label.scale = Vector2(0.7, 0.7)
 	score_panel.modulate = Color.WHITE
 	score_panel.scale = Vector2.ONE
+
+
+func _position_score_stage(source: Control) -> void:
+	var source_rect := Rect2(Vector2(size.x * 0.5 - 90.0, size.y * 0.42), Vector2(180, 120))
+	if source != null and is_instance_valid(source):
+		source_rect = source.get_global_rect()
+	var wanted := Vector2(
+		source_rect.get_center().x - score_panel.size.x * 0.5,
+		source_rect.position.y - score_panel.size.y * 0.70
+	) - global_position
+	score_panel.position = Vector2(
+		clampf(wanted.x, 12.0, maxf(12.0, size.x - score_panel.size.x - 12.0)),
+		clampf(wanted.y, 54.0, maxf(54.0, size.y - score_panel.size.y - 12.0))
+	)
 
 
 func _set_label_text(label: Label, text_value: String, color: Color) -> void:
@@ -293,18 +294,14 @@ func _fade_ceremony(duration: float) -> void:
 	ceremony.visible = false
 
 
-func _flash_impact(color: Color, intensity: float) -> void:
-	hit_flash.color = Color(color.r, color.g, color.b, 0.12 * intensity)
-	hit_flash.modulate = Color.WHITE
-	var tween := create_tween()
-	tween.tween_property(hit_flash, "modulate:a", 0.0, 0.18).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+func _nudge_score_panel(intensity: float) -> void:
 	var start_y := score_panel.position.y
 	var stage_tween := create_tween()
 	stage_tween.tween_property(score_panel, "position:y", start_y + 3.0 * intensity, 0.035)
 	stage_tween.tween_property(score_panel, "position:y", start_y, 0.09)
 
 
-func _move_money(amount_vnd: int, positive: bool, source: Control, destination: Control, start_wallet_vnd: int, target_wallet_vnd: int, intensity: float, compact: bool) -> void:
+func _move_money(amount_vnd: int, positive: bool, source: Control, destination: Control, start_wallet_vnd: int, target_wallet_vnd: int, intensity: float) -> void:
 	if amount_vnd <= 0:
 		_set_wallet_number(target_wallet_vnd)
 		return
@@ -332,11 +329,11 @@ func _move_money(amount_vnd: int, positive: bool, source: Control, destination: 
 		bill_layer.add_child(bill)
 		bill_nodes.append(bill)
 		var pop := create_tween().set_parallel(true)
-		var pop_delay := index * (0.015 if compact else 0.025)
-		pop.tween_property(bill, "modulate", Color.WHITE, 0.06 if compact else 0.09).set_delay(pop_delay)
-		pop.tween_property(bill, "scale", Vector2.ONE * (1.08 + 0.04 * intensity), 0.07 if compact else 0.14).set_delay(pop_delay).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	await get_tree().create_timer((0.075 + object_count * 0.015) if compact else (0.14 + object_count * 0.025)).timeout
-	var flight_duration := (0.20 + 0.025 * intensity) if compact else (0.42 + 0.045 * intensity)
+		var pop_delay := index * MONEY_REVEAL_GAP
+		pop.tween_property(bill, "modulate", Color.WHITE, 0.09).set_delay(pop_delay)
+		pop.tween_property(bill, "scale", Vector2.ONE * (1.08 + 0.04 * intensity), 0.14).set_delay(pop_delay).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	await get_tree().create_timer(MONEY_REVEAL_LEAD_IN + object_count * MONEY_REVEAL_GAP).timeout
+	var flight_duration := MONEY_FLIGHT_DURATION
 	var wallet_tween := create_tween()
 	wallet_tween.tween_method(_set_wallet_number, float(start_wallet_vnd), float(target_wallet_vnd), flight_duration).set_delay(flight_duration * 0.32)
 	for index in bill_nodes.size():
@@ -346,14 +343,13 @@ func _move_money(amount_vnd: int, positive: bool, source: Control, destination: 
 		var arc_height := (62.0 + 18.0 * intensity) * (-1.0 if positive else 1.0)
 		var curve_control := (start + end) * 0.5 + Vector2(_rng.randf_range(-28.0, 28.0), arc_height)
 		var travel := create_tween().set_parallel(true)
-		var delay := index * (0.015 if compact else 0.04)
+		var delay := index * MONEY_BILL_STAGGER
 		travel.tween_method(_set_bill_curve_position.bind(bill, start, curve_control, end), 0.0, 1.0, flight_duration).set_delay(delay).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN_OUT)
 		travel.tween_property(bill, "rotation", bill.rotation + deg_to_rad(_rng.randf_range(-22.0, 22.0)), flight_duration).set_delay(delay)
 		travel.tween_property(bill, "scale", Vector2(0.64, 0.64), flight_duration).set_delay(delay).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-		var fade_duration := 0.06 if compact else 0.08
-		travel.tween_property(bill, "modulate:a", 0.0, fade_duration).set_delay(delay + flight_duration - fade_duration)
+		travel.tween_property(bill, "modulate:a", 0.0, MONEY_BILL_FADE_DURATION).set_delay(delay + flight_duration - MONEY_BILL_FADE_DURATION)
 		travel.chain().tween_callback(bill.queue_free)
-	await get_tree().create_timer(flight_duration + bill_nodes.size() * (0.015 if compact else 0.04)).timeout
+	await get_tree().create_timer(flight_duration + bill_nodes.size() * MONEY_BILL_STAGGER).timeout
 	_set_wallet_number(target_wallet_vnd)
 	_wallet_impact(positive, intensity)
 
@@ -453,16 +449,8 @@ func _new_bill_stack(denomination: int, logical_count: int, bill_size: Vector2) 
 	return stack
 
 
-func _texture_for(denomination: int) -> AtlasTexture:
-	var cached := _atlas_textures.get(denomination) as AtlasTexture
-	if cached != null:
-		return cached
-	var cell: Vector2i = DENOMINATION_CELLS.get(denomination, Vector2i.ZERO)
-	var texture := AtlasTexture.new()
-	texture.atlas = BILL_ATLAS
-	texture.region = Rect2(Vector2(cell) * CELL_SIZE, CELL_SIZE)
-	_atlas_textures[denomination] = texture
-	return texture
+func _texture_for(denomination: int) -> Texture2D:
+	return DENOMINATION_TEXTURES.get(denomination) as Texture2D
 
 
 func _control_center(control: Control) -> Vector2:

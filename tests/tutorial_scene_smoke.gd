@@ -26,6 +26,23 @@ func _run() -> void:
 	_check(scene.tutorial_coach.visible and scene.tutorial_progress_label.text == "GĐ 1 • LƯỢT 1\n1 / 10", "tutorial coach presents Phase, Turn, and full lesson progress")
 	_check(scene.tutorial_spotlight.visible and scene.tutorial_spotlight.targets.size() == 3, "tutorial shadows the table except for the three target Run cards")
 	_check(scene.deal.hand.size() == DealState.ACTIVE_HAND_TARGET, "tutorial starts with ten deterministic cards")
+	_check(InputMap.has_action(&"game_keep") and InputMap.has_action(&"game_redraw") and InputMap.has_action(&"game_new_deal") and InputMap.has_action(&"game_meld") and InputMap.has_action(&"game_extend") and InputMap.has_action(&"game_discard") and InputMap.has_action(&"game_settle") and InputMap.has_action(&"game_sort") and InputMap.has_action(&"game_hint"), "gameplay shortcuts are declared in the InputMap")
+
+	scene._on_card_pressed(_card_by_id(scene, String(MatchUI.TUTORIAL_RUN_IDS[0])))
+	scene.drink_targeting_active = true
+	scene.pending_drink_card_ids["stale_card"] = true
+	scene.selected_drink_meld_id = 9
+	scene.selected_drink_meld_card_id = "stale_card"
+	scene.selected_drink_discard_key = "stale_discard"
+	scene.modal_mode = "phase_choice"
+	scene.modal_overlay.visible = true
+	scene.tutorial_outcome_visible = true
+	scene._deactivate_tutorial(true)
+	_check(not scene.tutorial_active and scene.tutorial_step == &"" and scene.selected_card_ids.is_empty() and scene.selected_meld_id == -1, "leaving a tutorial clears lesson selection state")
+	_check(not scene.drink_targeting_active and scene.pending_drink_card_ids.is_empty() and scene.selected_drink_meld_id == -1 and scene.selected_drink_meld_card_id.is_empty() and scene.selected_drink_discard_key.is_empty(), "leaving a tutorial clears Drink targeting state")
+	_check(scene.modal_mode.is_empty() and not scene.modal_overlay.visible and not scene.score_overlay.visible and not scene.tutorial_coach.visible and scene.tutorial_spotlight.targets.is_empty(), "leaving a tutorial clears transient overlays and spotlight targets")
+	scene._start_tutorial_deal()
+	_check(scene.tutorial_active and scene.tutorial_step == MatchUI.TUTORIAL_SELECT_RUN and scene.selected_card_ids.is_empty(), "tutorial can restart from a clean UI state")
 
 	var wrong_card := _card_by_id(scene, "standard_9_spades")
 	scene._on_card_pressed(wrong_card)
@@ -106,7 +123,7 @@ func _card_by_id(scene: MatchUI, card_id: String) -> CardData:
 func _send_escape(scene: MatchUI) -> void:
 	var event := InputEventKey.new()
 	event.pressed = true
-	event.keycode = KEY_ESCAPE
+	event.physical_keycode = KEY_ESCAPE
 	scene._unhandled_key_input(event)
 
 

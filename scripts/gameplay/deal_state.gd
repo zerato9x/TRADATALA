@@ -63,6 +63,7 @@ var _next_meld_id: int = 1
 var _turn_started_with_ten: bool = false
 var _turn_committed_card_count: int = 0
 var _expected_deal_card_ids: Dictionary = {}
+var campaign_deck_cards: Array[CardData] = []
 
 
 func _init() -> void:
@@ -72,7 +73,10 @@ func _init() -> void:
 func start_deal(shuffle_seed: int = -1, reset_wallet: bool = false) -> Dictionary:
 	if reset_wallet:
 		wallet.reset()
-	deck.reset(shuffle_seed)
+	if campaign_deck_cards.is_empty():
+		deck.reset(shuffle_seed)
+	else:
+		deck.reset_from_campaign_cards(campaign_deck_cards, shuffle_seed)
 	_reset_exhaustion_state()
 	_capture_expected_deal_card_ids()
 	hand.clear()
@@ -146,6 +150,11 @@ func set_current_drink(drink_id: String) -> Dictionary:
 	}
 	state_changed.emit(result)
 	return result
+
+
+func set_campaign_deck(cards: Array[CardData]) -> void:
+	campaign_deck_cards.clear()
+	campaign_deck_cards.append_array(cards)
 
 
 func exhaustion_status() -> Dictionary:

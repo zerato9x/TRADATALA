@@ -77,6 +77,11 @@ func pulse_drink_targets(strength: float = 0.6) -> void:
 			outline.play_target_pulse(strength)
 
 
+func card_global_rect(card_id: String) -> Rect2:
+	var texture := _card_views.get(card_id) as TextureRect
+	return texture.get_global_rect() if texture != null else Rect2()
+
+
 func _sync_cards(
 	cards: Array[CardData],
 	drink_highlight_enabled: bool,
@@ -138,7 +143,10 @@ func _sync_cards(
 		if drink_selection_enabled:
 			texture.tooltip_text = tr("DRINK_NUOC_VOI_CARD_VALID") if drink_removable_card_ids.has(card.unique_id) else tr("DRINK_NUOC_VOI_CARD_INVALID")
 		else:
-			texture.tooltip_text = ""
+			texture.tooltip_text = tr("CARD_POINTS") % [card.short_label(), card.score_value()]
+			var gieo_descriptions := card.gieo_property_descriptions()
+			if not gieo_descriptions.is_empty():
+				texture.tooltip_text += "\n\nGIEO QUẺ\n" + "\n".join(gieo_descriptions)
 
 
 func _build_content() -> void:

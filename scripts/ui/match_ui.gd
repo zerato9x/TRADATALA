@@ -2,6 +2,7 @@ class_name MatchUI
 extends Control
 
 signal tutorial_step_changed(step: StringName)
+signal money_job_completed(job_id: int)
 
 const CARD_SIZE := PlayingCardView.CARD_SIZE
 const INITIAL_RELIC_SLOT_COUNT := 4
@@ -12,6 +13,7 @@ const CARD_DRAG_PAYLOAD_SCRIPT := preload("res://scripts/ui/card_drag_payload.gd
 const CARD_ACTION_OUTLINE_SCRIPT := preload("res://scripts/ui/card_action_outline.gd")
 const GAMEPLAY_MUSIC_CONDUCTOR_SCRIPT := preload("res://scripts/audio/gameplay_music_conductor.gd")
 const EVENT_TABLE_CONTROLLER_SCRIPT := preload("res://scripts/ui/event_table_controller.gd")
+const GIEO_QUE_PANEL_SCRIPT := preload("res://scripts/ui/gieo_que_panel.gd")
 const DRINK_CUE_STREAMS: Array[AudioStream] = [
 	preload("res://assets/audio/sfx/glass_clink.mp3"),
 	preload("res://assets/audio/sfx/glass_clink_2.mp3"),
@@ -95,7 +97,12 @@ var selected_meld_id: int = -1
 var hand_views: Dictionary = {}
 var displayed_wallet_vnd: int = 0
 var pending_u_khan_presentations: Array[Dictionary] = []
-var pending_exhaustion_scoring: Array[ScoringContext] = []
+var pending_exhaustion_presentations: Array[Dictionary] = []
+var money_jobs: Array[Dictionary] = []
+var completed_money_jobs: Dictionary = {}
+var money_queue_running: bool = false
+var next_money_job_id: int = 1
+var money_queue_wallet_vnd: int = 0
 var interaction_locked: bool = false
 var sort_mode: int = 0
 var modal_mode: String = ""
@@ -279,10 +286,11 @@ func _ready() -> void:
 	settings.locale_changed.connect(_on_locale_changed)
 	_setup_drink_cue_audio()
 	_setup_card_sfx_audio()
-	_refresh_music_policy_controls()
+	_refresh_localized_ui()
 	get_viewport().size_changed.connect(_on_viewport_size_changed)
 	var result := deal.start_deal(-1, true)
 	displayed_wallet_vnd = deal.wallet.balance_vnd
+	money_queue_wallet_vnd = displayed_wallet_vnd
 	event_manager = EventManager.new()
 	CampaignNpcCatalog.register_initial_npcs(event_manager)
 	drink_manager = DrinkManager.new(deal.wallet)
@@ -307,9 +315,13 @@ func _process(_delta: float) -> void:
 func _exit_tree() -> void:
 	if drink_cue_player != null:
 		drink_cue_player.stop()
+		drink_cue_player.stream = null
 	for card_sfx_player in card_sfx_players.values():
 		if card_sfx_player is AudioStreamPlayer:
-			(card_sfx_player as AudioStreamPlayer).stop()
+			var player := card_sfx_player as AudioStreamPlayer
+			player.stop()
+			player.stream = null
+	card_sfx_players.clear()
 	if campaign == null:
 		return
 	var connections := [
@@ -437,6 +449,7 @@ func _connect_editor_interface_signals() -> void:
 	_connect_signal_once(settle_button.pressed, _on_settle_pressed)
 	_connect_signal_once(deal.new_phom_scored, _on_deal_new_phom_scored)
 	_connect_signal_once(deal.u_triggered, _on_deal_u_triggered)
+	_connect_signal_once(deal.meld_exhaustion_triggered, _on_deal_meld_exhaustion_triggered)
 	_connect_signal_once(deal.exhaustion_triggered, _on_deal_exhaustion_triggered)
 	_connect_signal_once(tutorial_exit_button.pressed, _on_tutorial_exit_pressed)
 	var archive_dim := discard_archive_overlay.find_child("ArchiveDim", true, false)
@@ -746,10 +759,14 @@ func _refresh_localized_ui() -> void:
 	settle_button.text = tr("ACTION_SETTLE")
 	settle_button.tooltip_text = tr("ACTION_SETTLE_TOOLTIP")
 	discard_archive_close.text = tr("ARCHIVE_CLOSE")
+	if event_table != null:
+		event_table.refresh_localized_ui()
 	if tutorial_active:
 		_refresh_tutorial_coach()
 	if campaign_overlay.visible and current_campaign_event != null:
 		_show_campaign_event(current_campaign_event)
+		if not event_table.focused_npc_id.is_empty():
+			_on_event_table_npc_focused(event_table.focused_npc_id)
 	for suit in DeckManager.SUITS:
 		(discard_archive_suit_titles.get(suit) as Label).text = _discard_suit_title(suit)
 	_sync_all()
@@ -892,6 +909,7 @@ func _start_tutorial_deal() -> void:
 	deal.set_current_drink(DrinkCatalog.NONE)
 	var result := deal.start_tutorial_deal()
 	displayed_wallet_vnd = deal.wallet.balance_vnd
+	money_queue_wallet_vnd = displayed_wallet_vnd
 	_sync_all(result, true)
 	tutorial_coach.visible = true
 	interaction_locked = false
@@ -910,10 +928,42 @@ func _deactivate_tutorial(restore_wallet: bool) -> void:
 	tutorial_outcome_visible = false
 	tutorial_coach.visible = false
 	tutorial_spotlight.set_targets([] as Array[Control])
-	score_overlay.visible = false
+	if money_presentation != null:
+		money_presentation.hide_ceremony()
+	else:
+		score_overlay.visible = false
+	_reset_tutorial_ui_state()
 	if restore_wallet:
 		deal.wallet.reset(tutorial_wallet_before)
 		displayed_wallet_vnd = tutorial_wallet_before
+		money_queue_wallet_vnd = displayed_wallet_vnd
+
+
+func _reset_tutorial_ui_state() -> void:
+	selected_card_ids.clear()
+	selected_meld_id = -1
+	drink_hover_active = false
+	_cancel_drink_targeting()
+	drink_cue_active = false
+	drink_cue_signature = ""
+	if drink_cue_player != null:
+		drink_cue_player.stop()
+	if active_drag_payload != null:
+		_cancel_card_drag()
+	else:
+		_clear_card_drag_visuals()
+	modal_mode = ""
+	if modal_overlay != null:
+		modal_overlay.visible = false
+	if discard_archive_overlay != null and discard_archive_overlay.visible:
+		_hide_discard_archive()
+	pending_deal_presentation_unlock = false
+	pending_u_khan_presentations.clear()
+	pending_exhaustion_presentations.clear()
+	money_jobs.clear()
+	completed_money_jobs.clear()
+	money_queue_running = false
+	money_queue_wallet_vnd = displayed_wallet_vnd
 
 
 func _on_tutorial_exit_pressed() -> void:
@@ -1185,6 +1235,9 @@ func _build_discard_archive_card(card: CardData) -> Control:
 	var holder := Control.new()
 	holder.custom_minimum_size = Vector2(54, 75)
 	holder.tooltip_text = tr("CARD_POINTS") % [card.short_label(), card.score_value()]
+	var gieo_descriptions := card.gieo_property_descriptions()
+	if not gieo_descriptions.is_empty():
+		holder.tooltip_text += "\n\nGIEO QUẺ\n" + "\n".join(gieo_descriptions)
 	var texture := TextureRect.new()
 	texture.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	texture.texture = load(card.texture_path()) as Texture2D
@@ -1242,16 +1295,93 @@ func _show_campaign_event(event: EventInstance) -> void:
 
 func _on_event_table_npc_focused(npc_id: String) -> void:
 	_clear_campaign_participants()
+	_restore_event_content_frame()
+	event_table.continue_button.visible = true
+	event_table.content_panel.position = Vector2(350, 205)
+	event_table.content_panel.size = Vector2(580, 360)
+	event_table.back_button.disabled = false
 	var participant: NPCDefinition
 	if current_campaign_event != null:
 		for candidate in current_campaign_event.participants:
 			if candidate.id == npc_id:
 				participant = candidate
 				break
-	if npc_id == EventTableController.NPC_TRA_DA and participant != null:
+	if npc_id == EventTableController.NPC_THAY_BOI and participant != null:
+		_build_gieo_que_service()
+	elif npc_id == EventTableController.NPC_TRA_DA and participant != null:
 		_build_campaign_participant(participant, current_campaign_event)
 	else:
 		_build_event_placeholder(npc_id)
+
+
+func _build_gieo_que_service() -> void:
+	# Keep the event header and wallet readable above the full-height cabinet.
+	event_table.content_panel.position = Vector2(380, 120)
+	event_table.content_panel.size = Vector2(870, 600)
+	event_table.continue_button.visible = false
+	event_table.content_panel.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
+	var content_margin := event_table.content_panel.get_child(0) as MarginContainer
+	if content_margin != null:
+		for constant_name in [&"margin_left", &"margin_top", &"margin_right", &"margin_bottom"]:
+			content_margin.add_theme_constant_override(constant_name, 0)
+	var panel := GIEO_QUE_PANEL_SCRIPT.new() as GieoQuePanel
+	campaign_participants.add_child(panel)
+	panel.configure(campaign.gieo_que)
+	panel.wallet_changed.connect(_on_gieo_wallet_changed)
+	panel.feedback_requested.connect(_show_banner)
+	panel.impact_requested.connect(_on_gieo_impact_requested)
+	panel.commitment_changed.connect(_on_gieo_commitment_changed)
+	var committed := campaign.gieo_que.state not in [GieoQueService.STATE_READY, GieoQueService.STATE_COMPLETE]
+	_on_gieo_commitment_changed(committed)
+
+
+func _restore_event_content_frame() -> void:
+	if event_table == null or event_table.content_panel == null:
+		return
+	var style := PresentationTheme.universal_frame_style()
+	style.content_margin_left = 22
+	style.content_margin_top = 18
+	style.content_margin_right = 22
+	style.content_margin_bottom = 18
+	event_table.content_panel.add_theme_stylebox_override("panel", style)
+	var content_margin := event_table.content_panel.get_child(0) as MarginContainer
+	if content_margin != null:
+		content_margin.add_theme_constant_override("margin_left", 16)
+		content_margin.add_theme_constant_override("margin_top", 14)
+		content_margin.add_theme_constant_override("margin_right", 16)
+		content_margin.add_theme_constant_override("margin_bottom", 14)
+
+
+func _on_gieo_wallet_changed() -> void:
+	displayed_wallet_vnd = deal.wallet.balance_vnd
+	money_queue_wallet_vnd = displayed_wallet_vnd
+	event_table.event_money_feedback(_event_money_text(displayed_wallet_vnd))
+	_refresh_stats()
+
+
+func _on_gieo_impact_requested(kind: StringName) -> void:
+	match kind:
+		&"cast", &"lever":
+			_play_card_sfx(CARD_SFX_SHUFFLE)
+		&"lever_clunk", &"result_reveal", &"transform", &"transform_card":
+			_play_card_sfx(CARD_SFX_PLACE)
+			if kind == &"transform":
+				_show_banner(tr("GIEO_TRANSFORM_BANNER"))
+		&"reel_stop":
+			_play_card_sfx(CARD_SFX_CHOOSE)
+		&"upper_reveal", &"lower_reveal":
+			_play_card_sfx(CARD_SFX_DRAW)
+		&"jackpot":
+			_play_card_sfx(CARD_SFX_DRAW)
+			_play_card_sfx(CARD_SFX_PLACE)
+		_:
+			_play_card_sfx(CARD_SFX_CHOOSE)
+
+
+func _on_gieo_commitment_changed(committed: bool) -> void:
+	event_table.back_button.disabled = committed
+	if current_campaign_event != null:
+		event_table.set_continue_enabled(current_campaign_event.can_exit and not committed)
 
 
 func _build_event_placeholder(npc_id: String) -> void:
@@ -1262,23 +1392,15 @@ func _build_event_placeholder(npc_id: String) -> void:
 	title.add_theme_color_override("font_color", PresentationTheme.GOLD)
 	campaign_participants.add_child(title)
 	var system_label := Label.new()
-	match npc_id:
-		EventTableController.NPC_THAY_BOI:
-			system_label.text = "THẺ XĂM / SỬA BỘ BÀI"
-		EventTableController.NPC_HANG_RONG:
-			system_label.text = "BẢO VẬT HÀNG RONG"
-		EventTableController.NPC_DANH_GIAY:
-			system_label.text = "LỘC ĐẦU NGÀY / HỘP TIỀN BO"
-		EventTableController.NPC_LOTTO:
-			system_label.text = "KẾT QUẢ VÉ SỐ" if current_campaign_event != null and current_campaign_event.slot == EventManager.EventSlot.AFTERNOON else "CHỌN VÉ SỐ 2 CHỮ SỐ"
-		_:
-			system_label.text = "NỘI DUNG SỰ KIỆN"
+	var system_key := _event_placeholder_key(npc_id)
+	var system_name := tr(system_key)
+	system_label.text = system_name
 	system_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	system_label.add_theme_font_size_override("font_size", 16)
 	system_label.add_theme_color_override("font_color", PresentationTheme.TEA)
 	campaign_participants.add_child(system_label)
 	var note := Label.new()
-	note.text = "Khung trình bày đã sẵn sàng. Cơ chế của nhân vật sẽ được nối vào đây mà không mở màn hình riêng."
+	note.text = tr("EVENT_PLACEHOLDER_NOTE")
 	note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	note.add_theme_color_override("font_color", PresentationTheme.MUTED)
@@ -1294,19 +1416,33 @@ func _build_event_placeholder(npc_id: String) -> void:
 		card.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		card.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 		PresentationTheme.configure_button(card, "neutral")
-		card.pressed.connect(_on_event_placeholder_pressed.bind(system_label.text))
+		card.pressed.connect(_on_event_placeholder_pressed.bind(system_key))
 		cards.add_child(card)
 
 
-func _on_event_placeholder_pressed(system_name: String) -> void:
-	_show_banner("%s · SẴN SÀNG KẾT NỐI CƠ CHẾ" % system_name)
+func _event_placeholder_key(npc_id: String) -> String:
+	match npc_id:
+		EventTableController.NPC_THAY_BOI:
+			return "EVENT_PLACEHOLDER_THAY_BOI"
+		EventTableController.NPC_HANG_RONG:
+			return "EVENT_PLACEHOLDER_HANG_RONG"
+		EventTableController.NPC_DANH_GIAY:
+			return "EVENT_PLACEHOLDER_DANH_GIAY"
+		EventTableController.NPC_LOTTO:
+			return "EVENT_PLACEHOLDER_LOTTO_RESULT" if current_campaign_event != null and current_campaign_event.slot == EventManager.EventSlot.AFTERNOON else "EVENT_PLACEHOLDER_LOTTO_CHOICE"
+		_:
+			return "EVENT_PLACEHOLDER_GENERIC"
+
+
+func _on_event_placeholder_pressed(system_key: String) -> void:
+	_show_banner(tr("EVENT_PLACEHOLDER_READY") % tr(system_key))
 
 
 func _on_event_table_deal_ready() -> void:
 	if not pending_deal_presentation_unlock:
 		return
 	pending_deal_presentation_unlock = false
-	await _drain_pending_exhaustion_presentations()
+	_drain_pending_exhaustion_presentations()
 	await _drain_pending_u_khan_presentations()
 	interaction_locked = false
 	_set_hand_interaction_enabled(true)
@@ -1721,6 +1857,9 @@ func _build_discard_thumbnail(record: DiscardRecord) -> Control:
 	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	holder.mouse_default_cursor_shape = Control.CURSOR_ARROW
 	holder.tooltip_text = tr("HUD_DISCARD_TOOLTIP") % [record.phase, record.discard_number, record.card.short_label()]
+	var gieo_descriptions := record.card.gieo_property_descriptions()
+	if not gieo_descriptions.is_empty():
+		holder.tooltip_text += "\n\nGIEO QUẺ\n" + "\n".join(gieo_descriptions)
 	holder.set_meta("default_tooltip", holder.tooltip_text)
 	holder.set_meta("action_target_kind", "mandatory_discard")
 	holder.set_meta("action_target_card_id", record.card.unique_id)
@@ -1964,7 +2103,7 @@ func _drink_target_status() -> String:
 func _input(event: InputEvent) -> void:
 	if active_drag_payload == null:
 		return
-	if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
+	if event is InputEventKey and event.is_action_pressed(&"ui_cancel"):
 		get_viewport().set_input_as_handled()
 		_cancel_card_drag()
 	elif event is InputEventMouseMotion:
@@ -2564,7 +2703,7 @@ func _on_ha_pressed() -> void:
 	_sync_all(result)
 	if tutorial_active:
 		_set_tutorial_step(TUTORIAL_MELD_SCORE)
-	await _show_scoring(result["context"])
+	_queue_scoring(result["context"], meld_views.get(selected_meld_id) as Control)
 	interaction_locked = false
 	if tutorial_active:
 		_set_tutorial_step(TUTORIAL_SELECT_DISCARD)
@@ -2588,7 +2727,7 @@ func _on_extend_pressed() -> void:
 	_sync_all(result)
 	if tutorial_active:
 		_set_tutorial_step(TUTORIAL_EXTEND_SCORE)
-	await _show_scoring(result["context"])
+	_queue_scoring(result["context"], meld_views.get(selected_meld_id) as Control)
 	interaction_locked = false
 	if tutorial_active:
 		selected_meld_id = -1
@@ -2613,7 +2752,7 @@ func _on_discard_pressed() -> void:
 	_play_card_sfx(CARD_SFX_PLACE)
 	selected_card_ids.clear()
 	_sync_all(result)
-	await _drain_pending_exhaustion_presentations()
+	_drain_pending_exhaustion_presentations()
 	await _drain_pending_u_khan_presentations()
 	if result.get("extra_discard_pending", false):
 		_show_banner(tr("BANNER_TRA_DA_EXTRA_DISCARD"))
@@ -2646,7 +2785,7 @@ func _on_settle_pressed() -> void:
 			_reject_action(turn_result.get("message", "Ending the turn failed."))
 			return
 		_sync_all(turn_result)
-		await _drain_pending_exhaustion_presentations()
+		_drain_pending_exhaustion_presentations()
 		if turn_result.get("final_commit_window", false):
 			_show_banner(tr("BANNER_LAST_CALL"))
 		else:
@@ -2727,25 +2866,39 @@ func _on_hint_pressed() -> void:
 	_refresh_actions()
 
 
-func _show_scoring(context: ScoringContext) -> void:
+func _show_scoring(context: ScoringContext, source_override: Control = null) -> void:
+	var last_job_id := _queue_scoring(context, source_override)
+	if last_job_id >= 0:
+		await _wait_for_money_job(last_job_id)
+
+
+func _queue_scoring(context: ScoringContext, source_override: Control = null, recycle_visual: Dictionary = {}) -> int:
 	var passes: Array = context.scoring_passes if not context.scoring_passes.is_empty() else [context]
-	for scoring_pass: ScoringContext in passes:
-		await _show_scoring_pass(scoring_pass)
+	var last_job_id := -1
+	for index in passes.size():
+		var scoring_pass := passes[index] as ScoringContext
+		last_job_id = _queue_scoring_pass(
+			scoring_pass,
+			source_override,
+			recycle_visual if index == passes.size() - 1 else {}
+		)
+	return last_job_id
 
 
-func _show_scoring_pass(context: ScoringContext) -> void:
+func _queue_scoring_pass(context: ScoringContext, source_override: Control = null, recycle_visual: Dictionary = {}) -> int:
 	var amount_vnd := _points_to_vnd(context.final_points)
-	var target_wallet := displayed_wallet_vnd + amount_vnd
-	var source := meld_views.get(selected_meld_id) as Control
+	var start_wallet := money_queue_wallet_vnd
+	var target_wallet := start_wallet + amount_vnd
+	money_queue_wallet_vnd = target_wallet
+	var source := source_override if source_override != null else meld_views.get(selected_meld_id) as Control
 	var event := {
 		"direction": "gain" if amount_vnd >= 0 else "loss",
 		"amount_vnd": absi(amount_vnd),
-		"start_wallet_vnd": displayed_wallet_vnd,
+		"start_wallet_vnd": start_wallet,
 		"target_wallet_vnd": target_wallet,
 		"source_control": source if source != null else meld_scroll,
 		"destination_control": wallet_pile_anchor,
 		"intensity": 0.72 if context.action_type == "extension" else clampf(0.9 + float(context.final_points) / 180.0, 0.9, 1.45),
-		"compact": context.action_type == "extension",
 		"title": tr("EXTEND_ACTION") if context.action_type == "extension" else "%s!" % tr("MELD_ACTION"),
 		"steps": [
 			"%d → %d" % [context.old_meld_score, context.theoretical_score] if context.action_type == "extension" else context.value_equation(),
@@ -2756,9 +2909,7 @@ func _show_scoring_pass(context: ScoringContext) -> void:
 	}
 	if context.action_type == "extension":
 		event["steps"] = [event["steps"][0]]
-	await money_presentation.present_transaction(event)
-	displayed_wallet_vnd = target_wallet
-	_refresh_stats()
+	return _enqueue_money_job("transaction", event, recycle_visual)
 
 
 func _show_phase_resolution(resolution: Dictionary) -> void:
@@ -2774,13 +2925,53 @@ func _show_phase_resolution(resolution: Dictionary) -> void:
 		"deadwood_multiplier": int(resolution.get("deadwood_multiplier", 1)),
 		"deadwood_vnd": _points_to_vnd(int(resolution.get("deadwood_points", 0))),
 		"net_vnd": _points_to_vnd(int(resolution.get("net", 0))),
-		"start_wallet_vnd": displayed_wallet_vnd,
+		"start_wallet_vnd": money_queue_wallet_vnd,
 		"target_wallet_vnd": target_wallet,
 		"source_control": hand_layer,
 	}
-	await money_presentation.present_phase(event)
-	displayed_wallet_vnd = target_wallet
-	_refresh_stats()
+	money_queue_wallet_vnd = target_wallet
+	var job_id := _enqueue_money_job("phase", event)
+	await _wait_for_money_job(job_id)
+
+
+func _enqueue_money_job(kind: String, event: Dictionary, recycle_visual: Dictionary = {}) -> int:
+	var job_id := next_money_job_id
+	next_money_job_id += 1
+	money_jobs.append({
+		"id": job_id,
+		"kind": kind,
+		"event": event,
+		"recycle_visual": recycle_visual,
+	})
+	if not money_queue_running:
+		money_queue_running = true
+		call_deferred("_drain_money_jobs")
+	return job_id
+
+
+func _drain_money_jobs() -> void:
+	while not money_jobs.is_empty():
+		var job: Dictionary = money_jobs.pop_front()
+		var event: Dictionary = job["event"]
+		if String(job["kind"]) == "phase":
+			await money_presentation.present_phase(event)
+		else:
+			await money_presentation.present_transaction(event)
+		displayed_wallet_vnd = int(event.get("target_wallet_vnd", displayed_wallet_vnd))
+		_refresh_stats()
+		var recycle_visual: Dictionary = job.get("recycle_visual", {})
+		if not recycle_visual.is_empty():
+			await _return_exhaustion_visual(recycle_visual)
+		var job_id := int(job["id"])
+		completed_money_jobs[job_id] = true
+		money_job_completed.emit(job_id)
+	money_queue_running = false
+
+
+func _wait_for_money_job(job_id: int) -> void:
+	while not completed_money_jobs.has(job_id):
+		await money_job_completed
+	completed_money_jobs.erase(job_id)
 
 
 func _show_phase_choice(resolution: Dictionary) -> void:
@@ -2869,7 +3060,7 @@ func _begin_phase_two(keep_hand: bool) -> void:
 	if gameplay_music != null:
 		gameplay_music.on_deal_phase_started(deal.current_phase)
 	_sync_all(result)
-	await _drain_pending_exhaustion_presentations()
+	_drain_pending_exhaustion_presentations()
 	if not keep_hand and not result.get("preserved", []).is_empty():
 		_show_banner(tr("BANNER_PHASE2_SAM_DUA") % result["preserved"].size())
 	else:
@@ -2888,7 +3079,8 @@ func _start_campaign() -> void:
 	selected_meld_id = -1
 	displayed_wallet_vnd = 0
 	pending_u_khan_presentations.clear()
-	pending_exhaustion_scoring.clear()
+	pending_exhaustion_presentations.clear()
+	money_queue_wallet_vnd = displayed_wallet_vnd
 	campaign.start_campaign(true)
 	_refresh_stats()
 
@@ -2904,6 +3096,7 @@ func _on_campaign_event_started(event: EventInstance) -> void:
 
 
 func _on_campaign_started() -> void:
+	deal.set_campaign_deck(campaign.gieo_que.persistent_deck)
 	if gameplay_music == null:
 		gameplay_music = GAMEPLAY_MUSIC_CONDUCTOR_SCRIPT.new(music_controller)
 	if settings.music_system != settings.MUSIC_SYSTEM_AUTHORED_DJ:
@@ -2937,6 +3130,7 @@ func _on_campaign_deal_requested(day: Dictionary, period: String, drink_id: Stri
 	if result.get("ok", false) and gameplay_music != null:
 		gameplay_music.on_deal_started(period)
 	displayed_wallet_vnd = deal.wallet.balance_vnd
+	money_queue_wallet_vnd = displayed_wallet_vnd
 	_sync_all(result, true)
 	pending_deal_presentation_unlock = true
 	event_table.enter_deal()
@@ -2982,22 +3176,78 @@ func _drain_pending_u_khan_presentations() -> void:
 			"payout": VndWallet.format_vnd(int(context.get("amount_vnd", 0)), true),
 			"reason": "u_khan",
 		}
-		await money_presentation.present_transaction(event)
-		displayed_wallet_vnd = int(context.get("target_wallet_vnd", deal.wallet.balance_vnd))
-		_refresh_stats()
+		money_queue_wallet_vnd = int(event["target_wallet_vnd"])
+		var job_id := _enqueue_money_job("transaction", event)
+		await _wait_for_money_job(job_id)
+
+
+func _on_deal_meld_exhaustion_triggered(meld: MeldState, context: Dictionary) -> void:
+	var view := meld_views.get(meld.meld_id) as MeldView
+	var visual := _capture_exhaustion_visual(meld, view)
+	pending_exhaustion_presentations.append({
+		"context": context.get("scoring_context") as ScoringContext,
+		"visual": visual,
+	})
+
+
+func _capture_exhaustion_visual(meld: MeldState, view: MeldView) -> Dictionary:
+	if view == null or particle_layer == null:
+		return {}
+	var anchor := Control.new()
+	anchor.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	anchor.position = view.global_position - particle_layer.global_position
+	anchor.size = view.size
+	particle_layer.add_child(anchor)
+	var ghosts: Array[Control] = []
+	for card in meld.cards:
+		var card_rect := view.card_global_rect(card.unique_id)
+		if card_rect.size == Vector2.ZERO:
+			continue
+		var ghost := TextureRect.new()
+		ghost.texture = load(card.texture_path()) as Texture2D
+		ghost.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		ghost.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		ghost.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		ghost.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		ghost.position = card_rect.position - particle_layer.global_position
+		ghost.size = card_rect.size
+		ghost.pivot_offset = ghost.size * 0.5
+		particle_layer.add_child(ghost)
+		ghosts.append(ghost)
+	view.modulate.a = 0.0
+	return {"anchor": anchor, "cards": ghosts}
+
+
+func _return_exhaustion_visual(visual: Dictionary) -> void:
+	var target := draw_pile_visual.get_global_rect().get_center() - particle_layer.global_position
+	for card_value in visual.get("cards", []):
+		var card := card_value as Control
+		if card == null or not is_instance_valid(card):
+			continue
+		var tween := create_tween().set_parallel(true)
+		tween.tween_property(card, "position", target - card.size * 0.5, 0.18).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+		tween.tween_property(card, "rotation", card.rotation + 0.12, 0.18)
+		tween.tween_property(card, "scale", Vector2(0.72, 0.72), 0.18)
+		tween.tween_property(card, "modulate:a", 0.0, 0.07).set_delay(0.12)
+		await tween.finished
+		card.queue_free()
+	var anchor := visual.get("anchor") as Control
+	if anchor != null and is_instance_valid(anchor):
+		anchor.queue_free()
 
 
 func _on_deal_exhaustion_triggered(context: Dictionary) -> void:
 	selected_meld_id = -1
-	for scoring_context: ScoringContext in context.get("scoring_contexts", []):
-		pending_exhaustion_scoring.append(scoring_context)
 	_show_banner(tr("BANNER_EXHAUSTION"))
 
 
 func _drain_pending_exhaustion_presentations() -> void:
-	while not pending_exhaustion_scoring.is_empty():
-		var context: ScoringContext = pending_exhaustion_scoring.pop_front()
-		await _show_scoring(context)
+	while not pending_exhaustion_presentations.is_empty():
+		var pending: Dictionary = pending_exhaustion_presentations.pop_front()
+		var context := pending.get("context") as ScoringContext
+		var visual: Dictionary = pending.get("visual", {})
+		if context != null:
+			_queue_scoring(context, visual.get("anchor") as Control, visual)
 
 
 
@@ -3005,6 +3255,8 @@ func _on_campaign_drink_pressed(event_slot: int, interaction_id: String, drink_i
 	var previous_displayed_wallet := displayed_wallet_vnd
 	var result := drink_manager.select_for_event(event_slot, drink_id)
 	if not result.get("ok", false):
+		if String(result.get("reason", "")) == "already_selected":
+			return
 		_show_banner(tr("EVENT_NOT_ENOUGH_VND"))
 		return
 	event_manager.complete_interaction(interaction_id)
@@ -3019,13 +3271,13 @@ func _on_campaign_drink_pressed(event_slot: int, interaction_id: String, drink_i
 			"source_control": wallet_pile_anchor,
 			"destination_control": event_table,
 			"intensity": 0.75,
-			"compact": true,
 			"title": tr(DrinkCatalog.display_name(drink_id)).to_upper(),
 			"steps": [],
 			"payout": VndWallet.format_vnd(-paid_vnd),
 			"reason": "drink_purchase",
 		})
 	displayed_wallet_vnd = target_wallet
+	money_queue_wallet_vnd = target_wallet
 	event_table.event_money_feedback(_event_money_text(target_wallet))
 	if current_campaign_event != null:
 		event_table.set_continue_enabled(current_campaign_event.can_exit)
@@ -3119,6 +3371,7 @@ func _start_new_deal() -> void:
 	selected_meld_id = -1
 	var result := deal.start_deal(-1, false)
 	displayed_wallet_vnd = deal.wallet.balance_vnd
+	money_queue_wallet_vnd = displayed_wallet_vnd
 	_sync_all(result, true)
 	_show_banner(tr("BANNER_NEW_DEAL_WALLET"))
 	interaction_locked = false
@@ -3237,55 +3490,54 @@ func _unhandled_key_input(event: InputEvent) -> void:
 	if not event is InputEventKey or not event.pressed or event.echo:
 		return
 	if menu_layer.visible:
-		if event.keycode == KEY_ESCAPE and menu_page != &"home":
+		if event.is_action_pressed(&"ui_cancel") and menu_page != &"home":
 			_show_menu_page(&"home")
-		elif game_started and event.keycode == KEY_ESCAPE:
+		elif game_started and event.is_action_pressed(&"ui_cancel"):
 			_close_menu_to_game()
-		elif menu_page == &"home" and not menu_transitioning and event.keycode in [KEY_ENTER, KEY_KP_ENTER, KEY_SPACE]:
+		elif menu_page == &"home" and not menu_transitioning and event.is_action_pressed(&"ui_accept"):
 			_on_play_pressed()
 		return
 	if event_table != null and event_table.visible and not event_table.focused_npc_id.is_empty():
-		if event.keycode == KEY_ESCAPE:
+		if event.is_action_pressed(&"ui_cancel"):
 			event_table.unfocus_npc()
 		return
 	if discard_archive_overlay.visible:
-		if event.keycode == KEY_ESCAPE:
+		if event.is_action_pressed(&"ui_cancel"):
 			_hide_discard_archive()
 		return
 	if modal_overlay.visible:
-		if modal_mode == "phase_choice" and event.keycode == KEY_K:
+		if modal_mode == "phase_choice" and event.is_action_pressed(&"game_keep"):
 			_begin_phase_two(true)
-		elif modal_mode == "phase_choice" and event.keycode == KEY_X:
+		elif modal_mode == "phase_choice" and event.is_action_pressed(&"game_redraw"):
 			_begin_phase_two(false)
-		elif modal_mode == "deal_over" and event.keycode == KEY_R:
+		elif modal_mode == "deal_over" and event.is_action_pressed(&"game_new_deal"):
 			_start_new_deal()
 		return
-	if tutorial_active and event.keycode == KEY_ESCAPE:
+	if tutorial_active and event.is_action_pressed(&"ui_cancel"):
 		_rewind_tutorial_selection()
 		return
-	match event.keycode:
-		KEY_H:
-			if not ha_button.disabled:
-				_on_ha_pressed()
-		KEY_E:
-			if not extend_button.disabled:
-				_on_extend_pressed()
-		KEY_D:
-			if not discard_button.disabled:
-				_on_discard_pressed()
-		KEY_C:
-			if not settle_button.disabled:
-				_on_settle_pressed()
-		KEY_S:
-			if not sort_button.disabled:
-				_on_sort_pressed()
-		KEY_G:
-			if not hint_button.disabled:
-				_on_hint_pressed()
-		KEY_ESCAPE:
-			if drink_targeting_active:
-				_cancel_drink_targeting()
-			else:
-				selected_card_ids.clear()
-				selected_meld_id = -1
-				_sync_all()
+	if event.is_action_pressed(&"game_meld"):
+		if not ha_button.disabled:
+			_on_ha_pressed()
+	elif event.is_action_pressed(&"game_extend"):
+		if not extend_button.disabled:
+			_on_extend_pressed()
+	elif event.is_action_pressed(&"game_discard"):
+		if not discard_button.disabled:
+			_on_discard_pressed()
+	elif event.is_action_pressed(&"game_settle"):
+		if not settle_button.disabled:
+			_on_settle_pressed()
+	elif event.is_action_pressed(&"game_sort"):
+		if not sort_button.disabled:
+			_on_sort_pressed()
+	elif event.is_action_pressed(&"game_hint"):
+		if not hint_button.disabled:
+			_on_hint_pressed()
+	elif event.is_action_pressed(&"ui_cancel"):
+		if drink_targeting_active:
+			_cancel_drink_targeting()
+		else:
+			selected_card_ids.clear()
+			selected_meld_id = -1
+			_sync_all()

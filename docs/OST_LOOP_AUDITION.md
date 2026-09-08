@@ -1,7 +1,8 @@
 # TRADATALA MusicDirector DJ tester
 
 The standalone DJ tester is the authority for cue discovery, listening review,
-and transport proof. It is deliberately not connected to gameplay yet.
+and transport proof. Approved cue plans are consumed by the gameplay music
+conductor; the tester itself remains separate from gameplay input.
 
 Open `res://debug/MusicLoopAudition.tscn` and run the scene with F6.
 
@@ -83,10 +84,12 @@ is a tester feature, not gameplay wiring or a stem mixer.
 - `assets/audio/ost/ost_timing.json`: measured BeatNet timing for 26 tracks.
 - `assets/audio/ost/ost_loops.json`: 6,724 exhaustive candidates and 1,046
   de-duplicated audition candidates.
-- `assets/audio/ost/ost_cues.json`: human review decisions; currently no cues
-  are approved in the production catalog.
+- `assets/audio/ost/ost_cues.json`: human review decisions; approved cues are
+  consumed only when explicitly referenced by the authored gameplay plan.
 - `assets/audio/ost/ost_arrangements.json`: saved manual section orders and
   repeat counts, independent from cue approvals.
+- `scripts/audio/gameplay_music_conductor.gd`: gameplay handoff authority for
+  approved cue roles and the authored-audio release points.
 - `audio_system/MusicCueCatalog.gd`: candidate and review authority.
 - `audio_system/MusicDirector.gd`: cue audition and DJ transport authority.
 - `audio_system/MusicArrangementCatalog.gd`: arrangement persistence authority.
@@ -119,6 +122,8 @@ That decision remains human listening work inside the tester.
 
 ## Scope boundary
 
-Do not wire gameplay actions to `MusicDirector` until the tester has a real,
-listening-approved cue sequence for the target track. The current in-game music
-path remains untouched during this tester-first pass.
+Do not add new gameplay actions or cue roles until the tester has a real,
+listening-approved sequence for the target track. Existing approved roles are
+already wired through `GameplayMusicConductor`; keep that route separate from
+the standalone tester and continue to treat transport proof and audible seam
+quality as separate evidence.

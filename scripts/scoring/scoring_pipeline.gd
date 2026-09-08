@@ -10,6 +10,7 @@ const TRIGGER_ORIGINATING := "originating"
 const TRIGGER_NATIVE_RETRIGGER := "native_retrigger"
 const TRIGGER_SET_MILESTONE := "set_milestone"
 const TRIGGER_PERFECTED_RUN := "perfected_run"
+const TRIGGER_GIEO_RETRIGGER := "gieo_retrigger"
 const NATIVE_RETRIGGER_TOTAL_PASSES := 2
 
 var _modifiers: Array[Callable] = []
@@ -34,6 +35,7 @@ func score_new_meld(cards: Array[CardData], meld_type: String, phase: int, phase
 func preview_new_meld(cards: Array[CardData], meld_type: String, phase: int, phase_new_phom_count: int = 0) -> ScoringContext:
 	var context := _build_context(cards, meld_type, phase)
 	context.action_type = "new_meld"
+	_apply_making_phom_retrigger(context)
 	_apply_modifiers(context)
 	context.theoretical_score = _calculate_theoretical(context)
 	_resolve_full_meld_trigger(context)
@@ -64,13 +66,14 @@ func preview_extension(
 	context.action_type = "extension"
 	context.old_meld_score = old_meld_score
 	context.added_cards.append_array(added_cards)
+	_apply_extend_retrigger(context)
 	_apply_modifiers(context)
 	context.theoretical_score = _calculate_theoretical(context)
 	context.base_extension_score = maxi(context.theoretical_score - old_meld_score, 0)
 	if is_set_milestone(meld_type, all_cards.size()):
 		_resolve_full_meld_trigger(context)
 	else:
-		_resolve_single_pass(context, context.base_extension_score)
+		_resolve_origin_and_gieo_retriggers(context, context.base_extension_score)
 	return context
 
 
@@ -143,25 +146,84 @@ func _resolve_full_meld_trigger(context: ScoringContext) -> void:
 	elif is_perfected_run(context.cards, context.meld_type):
 		total_passes = NATIVE_RETRIGGER_TOTAL_PASSES
 		reason = TRIGGER_PERFECTED_RUN
-	_resolve_passes(context, context.theoretical_score, total_passes, reason)
+	var gieo_retriggers := _gieo_full_meld_retrigger_count(context)
+	_resolve_passes(context, context.theoretical_score, total_passes + gieo_retriggers, reason, total_passes)
 
 
 func _resolve_single_pass(context: ScoringContext, points: int) -> void:
 	_resolve_passes(context, points, 1, "")
 
 
-func _resolve_passes(context: ScoringContext, points_per_pass: int, total_passes: int, reason: String) -> void:
+func _resolve_origin_and_gieo_retriggers(context: ScoringContext, originating_points: int) -> void:
+	var gieo_retriggers := _gieo_full_meld_retrigger_count(context)
+	context.retrigger_count = gieo_retriggers
+	context.trigger_reason = TRIGGER_GIEO_RETRIGGER if gieo_retriggers > 0 else ""
+	context.final_points = originating_points + context.theoretical_score * gieo_retriggers
+	context.scoring_passes.clear()
+	context.scoring_passes.append(_make_scoring_pass(context, 0, TRIGGER_ORIGINATING, originating_points))
+	for pass_index in range(gieo_retriggers):
+		context.scoring_passes.append(_make_scoring_pass(
+			context,
+			pass_index + 1,
+			TRIGGER_GIEO_RETRIGGER,
+			context.theoretical_score
+		))
+
+
+func _resolve_passes(
+	context: ScoringContext,
+	points_per_pass: int,
+	total_passes: int,
+	reason: String,
+	native_passes: int = 1
+) -> void:
 	context.retrigger_count = maxi(total_passes - 1, 0)
-	context.trigger_reason = reason
+	context.trigger_reason = TRIGGER_GIEO_RETRIGGER if total_passes > native_passes else reason
 	context.final_points = points_per_pass * total_passes
 	context.scoring_passes.clear()
 	for pass_index in range(total_passes):
-		var scoring_pass := _copy_context(context)
-		scoring_pass.trigger_index = pass_index
-		scoring_pass.trigger_origin = TRIGGER_ORIGINATING if pass_index == 0 else TRIGGER_NATIVE_RETRIGGER
-		scoring_pass.retrigger_count = 0
-		scoring_pass.final_points = points_per_pass
-		context.scoring_passes.append(scoring_pass)
+		var origin := TRIGGER_ORIGINATING
+		if pass_index > 0:
+			origin = TRIGGER_NATIVE_RETRIGGER if pass_index < native_passes else TRIGGER_GIEO_RETRIGGER
+		context.scoring_passes.append(_make_scoring_pass(context, pass_index, origin, points_per_pass))
+
+
+func _make_scoring_pass(context: ScoringContext, pass_index: int, origin: String, points: int) -> ScoringContext:
+	var scoring_pass := _copy_context(context)
+	scoring_pass.trigger_index = pass_index
+	scoring_pass.trigger_origin = origin
+	scoring_pass.retrigger_count = 0
+	scoring_pass.final_points = points
+	return scoring_pass
+
+
+func _apply_making_phom_retrigger(context: ScoringContext) -> void:
+	for card in context.cards:
+		if card.has_gieo_property(GieoQueService.PROPERTY_MAKING_PHOM_RETRIGGER):
+			context.card_value_sum += card.score_value()
+	context.base_score = context.card_value_sum
+
+
+func _apply_extend_retrigger(context: ScoringContext) -> void:
+	for card in context.added_cards:
+		if card.has_gieo_property(GieoQueService.PROPERTY_EXTEND_RETRIGGER):
+			context.card_value_sum += card.score_value()
+	context.base_score = context.card_value_sum
+
+
+func _gieo_full_meld_retrigger_count(context: ScoringContext) -> int:
+	var property_id := ""
+	if context.meld_type == MeldRules.TYPE_SET:
+		property_id = GieoQueService.PROPERTY_SET_RETRIGGER
+	elif context.meld_type == MeldRules.TYPE_RUN:
+		property_id = GieoQueService.PROPERTY_RUN_RETRIGGER
+	if property_id.is_empty():
+		return 0
+	var count := 0
+	for card in context.cards:
+		if card.has_gieo_property(property_id):
+			count += 1
+	return count
 
 
 func _copy_context(source: ScoringContext) -> ScoringContext:

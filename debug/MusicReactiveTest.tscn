@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://b7ruwmwxw1u35"]
 
-[ext_resource type="Script" path="res://debug/MusicReactiveTest.gd" id="1_music_test"]
+[ext_resource type="Script" path="res://debug/MusicLoopAudition.gd" id="1_music_test"]
 [ext_resource type="Script" uid="uid://do8187qgvmsbb" path="res://audio_system/MusicDirector.gd" id="2_music_director"]
 
 [node name="MusicReactiveTest" type="Control" unique_id=746868513]

@@ -6,11 +6,14 @@ func suite_name() -> String:
 	return "money_presentation"
 
 
-func test_denominations_cover_the_bill_atlas_once() -> void:
+func test_denominations_have_individual_bill_textures() -> void:
 	assert_eq(MoneyPresentation.DENOMINATIONS.size(), 9)
-	assert_eq(MoneyPresentation.DENOMINATION_CELLS.size(), 9)
+	assert_eq(MoneyPresentation.DENOMINATION_TEXTURES.size(), 9)
 	for denomination in MoneyPresentation.DENOMINATIONS:
-		assert_true(MoneyPresentation.DENOMINATION_CELLS.has(denomination))
+		assert_true(MoneyPresentation.DENOMINATION_TEXTURES.has(denomination))
+		var texture := MoneyPresentation.DENOMINATION_TEXTURES.get(denomination) as Texture2D
+		assert_true(texture != null)
+		assert_true(texture.resource_path.begins_with("res://assets/money/bill_"))
 
 
 func test_greedy_breakdown_is_largest_first_and_exact() -> void:
@@ -37,3 +40,8 @@ func test_negative_and_zero_wallets_create_no_cash_objects() -> void:
 	assert_eq(presentation.wallet_visual_object_count(-75_000), 0)
 	assert_true(presentation.wallet_visual_object_count(987_654_000) <= MoneyPresentation.MAX_WALLET_OBJECTS)
 	presentation.free()
+
+
+func test_money_resolution_uses_one_shared_flight_speed() -> void:
+	assert_eq(MoneyPresentation.MONEY_FLIGHT_DURATION, 0.48)
+	assert_true(MoneyPresentation.MONEY_FLIGHT_DURATION > 0.20)
