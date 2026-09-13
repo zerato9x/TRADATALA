@@ -53,6 +53,11 @@ var current_drink_id: String = DrinkCatalog.NONE
 var tra_da_used_this_turn: bool = false
 var tra_da_extra_discard_pending: bool = false
 var nhan_tran_used_this_phase: bool = false
+var den_da_used_this_turn: bool = false
+var nau_da_used_phases: Dictionary = {}
+var pair_used_this_turn: bool = false
+var pair_used_phases: Dictionary = {}
+var c2_used: bool = false
 var nuoc_voi_used_phases: Dictionary = {}
 var sam_dua_preserved_cards: Array[CardData] = []
 var sam_dua_used: bool = false
@@ -242,6 +247,53 @@ func can_use_nhan_tran(card: CardData, record: DiscardRecord) -> bool:
 	return true
 
 
+func can_use_den_da(card: CardData, record: DiscardRecord) -> bool:
+	return current_drink_id == DrinkCatalog.DEN_DA and _card_actions_available() and not den_da_used_this_turn and card != null and hand.has(card) and record != null and discard_history.has(record) and (_discard_pile_index(record.card) >= 0 or recyclable_spent_cards.has(record.card))
+
+
+func use_den_da(card: CardData, record: DiscardRecord) -> Dictionary:
+	if not can_use_den_da(card, record):
+		return _failure("Choose a loose card and a card still in this Deal's discards.")
+	var recovered := record.card
+	var index := _discard_pile_index(recovered)
+	if index >= 0:
+		deck.discard_pile[index] = card
+	else:
+		recyclable_spent_cards[recyclable_spent_cards.find(recovered)] = card
+	hand.erase(card)
+	hand.append(recovered)
+	record.card = card
+	den_da_used_this_turn = true
+	var result := {"ok": true, "action": "den_da_swap", "discarded": card, "recovered": recovered}
+	state_changed.emit(result)
+	return result
+
+
+func can_use_nau_da(meld_id: int) -> bool:
+	return current_drink_id == DrinkCatalog.NAU_DA and _card_actions_available() and not nau_da_used_phases.has(current_phase) and get_meld(meld_id) != null
+
+
+func use_nau_da(meld_id: int) -> Dictionary:
+	if not can_use_nau_da(meld_id):
+		return _failure("Choose a whole table Meld; Nâu đá is once per Phase.")
+	var meld := get_meld(meld_id)
+	var returned: Array[CardData] = meld.cards.duplicate()
+	melds.erase(meld)
+	hand.append_array(returned)
+	nau_da_used_phases[current_phase] = true
+	var result := {"ok": true, "action": "nau_da_return", "meld_id": meld_id, "returned": returned}
+	state_changed.emit(result)
+	return result
+
+
+func has_phase_transition_choice() -> bool:
+	return current_drink_id in [DrinkCatalog.SAM_DUA, DrinkCatalog.BAC_XIU]
+
+
+func preservation_limit() -> int:
+	return hand.size() if current_drink_id == DrinkCatalog.BAC_XIU else 3
+
+
 func use_nhan_tran(card: CardData, record: DiscardRecord) -> Dictionary:
 	if not can_use_nhan_tran(card, record):
 		return _failure("Select one loose card and one mandatory discard from this Phase.")
@@ -272,6 +324,8 @@ func can_use_nuoc_voi(meld_id: int, card: CardData) -> bool:
 	for existing in meld.cards:
 		if existing != card:
 			remaining.append(existing)
+	if meld.meld_type == MeldRules.TYPE_RUN:
+		return MeldRules.is_compatible_run(remaining, meld.run_compatibility)
 	return remaining.size() >= 3 and MeldRules.classify(remaining) == meld.meld_type
 
 
@@ -294,13 +348,13 @@ func use_nuoc_voi(meld_id: int, card: CardData) -> Dictionary:
 
 
 func select_sam_dua_preserves(cards: Array[CardData]) -> Dictionary:
-	if current_drink_id != DrinkCatalog.SAM_DUA:
+	if not has_phase_transition_choice():
 		return _failure("Sâm dứa is not the active Drink.")
 	if current_phase != 1 or state not in [STATE_FINAL_COMMIT_WINDOW, STATE_PHASE_CHOICE]:
 		return _failure("Sâm dứa is prepared during the Phase 1 to Phase 2 transition.")
 	if sam_dua_used:
 		return _failure("Sâm dứa has already been used this Deal.")
-	if cards.size() > 3:
+	if cards.size() > preservation_limit():
 		return _failure("Sâm dứa can preserve at most three loose cards.")
 	var seen_ids := {}
 	for card in cards:
@@ -325,9 +379,19 @@ func current_drink_has_charge() -> bool:
 			return false
 		DrinkCatalog.NHAN_TRAN:
 			return not nhan_tran_used_this_phase and _card_actions_available() and not discard_history_for_phase(current_phase).is_empty()
+		DrinkCatalog.DEN_DA:
+			return not den_da_used_this_turn and _card_actions_available()
+		DrinkCatalog.NAU_DA:
+			return not nau_da_used_phases.has(current_phase) and _card_actions_available()
+		DrinkCatalog.STING:
+			return not pair_used_phases.has(current_phase) and _card_actions_available()
+		DrinkCatalog.BO_HUC:
+			return not pair_used_this_turn and _card_actions_available()
+		DrinkCatalog.C2_ICED_TEA:
+			return not c2_used and _card_actions_available()
 		DrinkCatalog.NUOC_VOI:
 			return current_phase in [1, 2] and not nuoc_voi_used_phases.has(current_phase) and _card_actions_available()
-		DrinkCatalog.SAM_DUA:
+		DrinkCatalog.SAM_DUA, DrinkCatalog.BAC_XIU:
 			return not sam_dua_used and current_phase == 1 and state in [STATE_FINAL_COMMIT_WINDOW, STATE_PHASE_CHOICE]
 	return false
 
@@ -368,15 +432,23 @@ func nuoc_voi_targets() -> Array[Dictionary]:
 	return targets
 
 
-func create_meld(selected_cards: Array[CardData]) -> Dictionary:
+func create_meld(selected_cards: Array[CardData], use_drink: bool = false) -> Dictionary:
 	var guard := _validate_commit_selection(selected_cards)
 	if not guard.is_empty():
 		return _failure(guard)
-	var meld_type := MeldRules.classify(selected_cards)
+	var permission := meld_creation_rule(selected_cards, use_drink)
+	var meld_type: String = permission.get("type", MeldRules.TYPE_INVALID)
 	if meld_type == MeldRules.TYPE_INVALID:
 		return _failure("Selected cards are not a Set or Run.")
 	_remove_from_hand(selected_cards)
 	var meld := MeldState.new(_next_meld_id, meld_type, selected_cards)
+	meld.run_compatibility = permission.get("compatibility", "same")
+	meld.pair_created = permission.get("pair", false)
+	if meld.pair_created:
+		pair_used_this_turn = true
+		pair_used_phases[current_phase] = true
+	if permission.get("c2", false):
+		c2_used = true
 	_next_meld_id += 1
 	var context := scoring.score_new_meld(meld.cards, meld.meld_type, current_phase, phase_metrics.new_phom_count)
 	meld.scored_points = ScoringPipeline.meld_value(meld.cards)
@@ -405,7 +477,7 @@ func extend_meld(meld_id: int, selected_cards: Array[CardData]) -> Dictionary:
 	var meld := get_meld(meld_id)
 	if meld == null:
 		return _failure("Choose a table Meld to extend.")
-	if not meld.can_extend(selected_cards):
+	if not can_extend_meld(meld_id, selected_cards):
 		return _failure("Those cards do not legally extend the chosen Meld.")
 	var old_score := ScoringPipeline.meld_value(meld.cards)
 	var banked_score := meld.scored_points
@@ -414,6 +486,8 @@ func extend_meld(meld_id: int, selected_cards: Array[CardData]) -> Dictionary:
 		_turn_committed_card_count += selected_cards.size()
 	var additions: Array[CardData] = []
 	additions.append_array(selected_cards)
+	if meld.meld_type == MeldRules.TYPE_RUN and not meld.can_extend(selected_cards):
+		meld.run_compatibility = "red" if current_drink_id == DrinkCatalog.MIA_TAC else "black"
 	meld.extend(selected_cards)
 	var context := scoring.score_extension(meld.cards, meld.meld_type, old_score, current_phase, additions)
 	meld.scored_points = maxi(banked_score, context.theoretical_score)
@@ -505,12 +579,14 @@ func settle_phase() -> Dictionary:
 func choose_phase_two(keep_hand: bool) -> Dictionary:
 	if state != STATE_PHASE_CHOICE or current_phase != 1:
 		return _failure("KEEP / DUMP is only available between Phases.")
+	if keep_hand and not has_phase_transition_choice():
+		return _failure("KEEP requires Sâm dứa or Bạc xỉu; normal Phase transitions DUMP.")
 	var dumped: Array[CardData] = []
 	var preserved: Array[CardData] = []
 	if not keep_hand:
-		if current_drink_id == DrinkCatalog.SAM_DUA:
+		if has_phase_transition_choice():
 			for card in sam_dua_preserved_cards:
-				if hand.has(card) and preserved.size() < 3:
+				if hand.has(card) and preserved.size() < preservation_limit():
 					preserved.append(card)
 		for card in hand:
 			if not preserved.has(card):
@@ -518,6 +594,8 @@ func choose_phase_two(keep_hand: bool) -> Dictionary:
 		hand.clear()
 		hand.append_array(preserved)
 		move_to_recyclable_spent(dumped)
+		for card in dumped:
+			discard_history.append(DiscardRecord.new(card, current_phase, discard_history.size() + 1, DiscardRecord.KIND_DUMP))
 	current_phase = 2
 	discard_count = 0
 	_reset_phase_metrics()
@@ -542,15 +620,86 @@ func get_meld(meld_id: int) -> MeldState:
 	return null
 
 
-func can_create_meld(selected_cards: Array[CardData]) -> bool:
-	return _card_actions_available() and _validate_commit_selection(selected_cards).is_empty() and MeldRules.classify(selected_cards) != MeldRules.TYPE_INVALID
+func can_create_meld(selected_cards: Array[CardData], use_drink: bool = false) -> bool:
+	return _card_actions_available() and _validate_commit_selection(selected_cards).is_empty() and meld_creation_rule(selected_cards, use_drink).get("type", MeldRules.TYPE_INVALID) != MeldRules.TYPE_INVALID
+
+
+func meld_creation_rule(cards: Array[CardData], use_drink: bool = false) -> Dictionary:
+	if use_drink and not current_drink_has_charge():
+		return {"type": MeldRules.TYPE_INVALID}
+	if use_drink and current_drink_has_charge():
+		if current_drink_id in [DrinkCatalog.STING, DrinkCatalog.BO_HUC] and cards.size() == 2 and cards[0].rank == cards[1].rank:
+			return {"type": MeldRules.TYPE_SET, "pair": true}
+		if current_drink_id == DrinkCatalog.C2_ICED_TEA and MeldRules.is_compatible_run(cards, "any"):
+			return {"type": MeldRules.TYPE_RUN, "compatibility": "any", "c2": true}
+		return {"type": MeldRules.TYPE_INVALID}
+	var normal := MeldRules.classify(cards)
+	if normal != MeldRules.TYPE_INVALID:
+		return {"type": normal}
+	var compatibility := "red" if current_drink_id == DrinkCatalog.MIA_TAC else "black" if current_drink_id == DrinkCatalog.MIA_SAU_RIENG else "same"
+	if compatibility != "same" and MeldRules.is_compatible_run(cards, compatibility):
+		return {"type": MeldRules.TYPE_RUN, "compatibility": compatibility}
+	return {"type": MeldRules.TYPE_INVALID}
+
+
+func drink_creation_target_ids(selected: Array[CardData]) -> Dictionary:
+	var ids := {}
+	if not current_drink_has_charge():
+		return ids
+	# Test completion for each candidate, including gaps between selected run ends.
+	# This stays bounded by thirteen ranks even after whole-Meld recovery grows a hand.
+	for candidate in hand:
+		var required: Array[CardData] = selected.duplicate()
+		if not required.has(candidate):
+			required.append(candidate)
+		if current_drink_id in [DrinkCatalog.STING, DrinkCatalog.BO_HUC]:
+			if required.size() > 2:
+				continue
+			for partner in hand:
+				var pair: Array[CardData] = required.duplicate()
+				if not pair.has(partner):
+					pair.append(partner)
+				if can_create_meld(pair, true):
+					ids[candidate.unique_id] = true
+					break
+		elif current_drink_id == DrinkCatalog.C2_ICED_TEA:
+			for low in range(1, 12):
+				for high in range(low + 2, 14):
+					var run: Array[CardData] = required.duplicate()
+					var fits := true
+					for card in required:
+						if not hand.has(card) or card.rank_index < low or card.rank_index > high:
+							fits = false
+					if not fits:
+						continue
+					for rank_value in range(low, high + 1):
+						if run.any(func(card: CardData) -> bool: return card.rank_index == rank_value):
+							continue
+						for card in hand:
+							if card.rank_index == rank_value:
+								run.append(card)
+								break
+					if run.size() == high - low + 1 and can_create_meld(run, true):
+						ids[candidate.unique_id] = true
+						break
+				if ids.has(candidate.unique_id):
+					break
+	return ids
 
 
 func can_extend_meld(meld_id: int, selected_cards: Array[CardData]) -> bool:
 	if not _card_actions_available() or not _validate_commit_selection(selected_cards).is_empty():
 		return false
 	var meld := get_meld(meld_id)
-	return meld != null and meld.can_extend(selected_cards)
+	if meld == null:
+		return false
+	if meld.can_extend(selected_cards):
+		return true
+	if meld.meld_type != MeldRules.TYPE_RUN or current_drink_id not in [DrinkCatalog.MIA_TAC, DrinkCatalog.MIA_SAU_RIENG]:
+		return false
+	var combined: Array[CardData] = meld.cards.duplicate()
+	combined.append_array(selected_cards)
+	return MeldRules.is_compatible_run(combined, "red" if current_drink_id == DrinkCatalog.MIA_TAC else "black")
 
 
 func legal_action_card_ids() -> Dictionary:
@@ -579,7 +728,7 @@ func legal_action_targets_for_selection(selected_cards: Array[CardData], selecte
 	var selected_ids := {}
 	for card in selected_cards:
 		selected_ids[card.unique_id] = true
-	for combination in _hand_card_combinations():
+	for combination in _hand_card_combinations(selected_cards):
 		var cards: Array[CardData] = combination
 		if not selected_ids.is_empty() and cards.size() >= 3 and _cards_include_ids(cards, selected_ids) and can_create_meld(cards):
 			for card in cards:
@@ -614,8 +763,27 @@ func probability_draw_horizon() -> int:
 	return mini(refill_gap + later_refills_this_phase + next_phase_refills, probability_draw_pool().size())
 
 
-func _hand_card_combinations() -> Array:
+func _hand_card_combinations(required: Array[CardData] = []) -> Array:
 	var combinations: Array = []
+	# Whole-meld recovery can exceed ten cards. Never allocate 2^hand_size
+	# subsets for those hands. Minimal witnesses cover target cues; include
+	# the selection and full rank groups for larger commitments.
+	if hand.size() > 12:
+		var by_rank := {}
+		for a in range(hand.size()):
+			combinations.append([hand[a]] as Array[CardData])
+			var expanded: Array[CardData] = required.duplicate()
+			if not expanded.has(hand[a]): expanded.append(hand[a])
+			combinations.append(expanded)
+			if not by_rank.has(hand[a].rank): by_rank[hand[a].rank] = [] as Array[CardData]
+			by_rank[hand[a].rank].append(hand[a])
+			for b in range(a + 1, hand.size()):
+				combinations.append([hand[a], hand[b]] as Array[CardData])
+				for c in range(b + 1, hand.size()):
+					combinations.append([hand[a], hand[b], hand[c]] as Array[CardData])
+		for group in by_rank.values(): combinations.append(group)
+		if not required.is_empty(): combinations.append(required.duplicate())
+		return combinations
 	for mask in range(1, 1 << hand.size()):
 		var cards: Array[CardData] = []
 		for index in range(hand.size()):
@@ -623,6 +791,25 @@ func _hand_card_combinations() -> Array:
 				cards.append(hand[index])
 		combinations.append(cards)
 	return combinations
+
+
+func recommend_action() -> Dictionary:
+	var best := {"action": HandAdvisor.ACTION_NONE, "cards": [] as Array[CardData], "estimated_points": -1}
+	var candidates := _hand_card_combinations()
+	for cards: Array[CardData] in candidates:
+		if can_create_meld(cards):
+			var kind: String = meld_creation_rule(cards)["type"]
+			var points := scoring.preview_new_meld(cards, kind, current_phase, phase_new_meld_count).final_points
+			if points > int(best["estimated_points"]):
+				best = {"action": HandAdvisor.ACTION_NEW_MELD, "cards": cards, "meld_type": kind, "meld_id": -1, "estimated_points": points}
+	if best["action"] != HandAdvisor.ACTION_NONE: return best
+	for meld in melds:
+		for cards: Array[CardData] in candidates:
+			if can_extend_meld(meld.meld_id, cards):
+				var points := HandAdvisor.estimate_extension_points(meld, cards, scoring, current_phase)
+				if points > int(best["estimated_points"]):
+					best = {"action": HandAdvisor.ACTION_EXTENSION, "cards": cards, "meld_type": meld.meld_type, "meld_id": meld.meld_id, "estimated_points": points}
+	return best
 
 
 func _cards_include_ids(cards: Array[CardData], required_ids: Dictionary) -> bool:
@@ -667,8 +854,22 @@ func drink_mandatory_discard_targets() -> Array[DiscardRecord]:
 		return targets
 	match current_drink_id:
 		DrinkCatalog.NHAN_TRAN:
-			targets.append_array(discard_history_for_phase(current_phase))
+			for record in discard_history_for_phase(current_phase):
+				if _discard_pile_index(record.card) >= 0:
+					targets.append(record)
+		DrinkCatalog.DEN_DA:
+			targets.append_array(live_discard_records())
 	return targets
+
+
+func live_discard_records() -> Array[DiscardRecord]:
+	var records: Array[DiscardRecord] = []
+	var seen := {}
+	for record in discard_history:
+		if not seen.has(record.card.unique_id) and (_discard_pile_index(record.card) >= 0 or recyclable_spent_cards.has(record.card)):
+			seen[record.card.unique_id] = true
+			records.append(record)
+	return records
 
 
 func _on_draw_requested_while_empty(requested_count: int, drawn_count: int) -> void:
@@ -737,6 +938,9 @@ func _resolve_exhaustion(requested_count: int, drawn_count: int) -> Dictionary:
 
 
 func _begin_active_turn() -> Array[CardData]:
+	nhan_tran_used_this_phase = false # Compatibility field; cadence is now TURN.
+	den_da_used_this_turn = false
+	pair_used_this_turn = false
 	tra_da_used_this_turn = false
 	tra_da_extra_discard_pending = false
 	var all_drawn: Array[CardData] = []
@@ -915,6 +1119,11 @@ func _reset_phase_metrics() -> void:
 
 
 func _reset_drink_usage() -> void:
+	den_da_used_this_turn = false
+	nau_da_used_phases.clear()
+	pair_used_this_turn = false
+	pair_used_phases.clear()
+	c2_used = false
 	tra_da_used_this_turn = false
 	tra_da_extra_discard_pending = false
 	nhan_tran_used_this_phase = false

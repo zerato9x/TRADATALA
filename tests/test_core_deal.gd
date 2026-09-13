@@ -358,7 +358,7 @@ func test_extension_does_not_count_as_a_new_phom_for_mom() -> void:
 
 
 func test_keep_and_dump_happen_only_after_phase_one_settlement() -> void:
-	var keep_deal := _fresh_deal(17)
+	var keep_deal := _fresh_deal(17, DrinkCatalog.SAM_DUA)
 	_advance_to_last_call(keep_deal)
 	assert_false(keep_deal.choose_phase_two(true)["ok"])
 	keep_deal.settle_phase()
@@ -367,7 +367,7 @@ func test_keep_and_dump_happen_only_after_phase_one_settlement() -> void:
 	for kept_id in kept_ids:
 		assert_true(_hand_has_id(keep_deal.hand, kept_id))
 
-	var dump_deal := _fresh_deal(18)
+	var dump_deal := _fresh_deal(18, DrinkCatalog.SAM_DUA)
 	_advance_to_last_call(dump_deal)
 	dump_deal.settle_phase()
 	var dumped_ids := _ids(dump_deal.hand)
@@ -385,7 +385,7 @@ func test_discard_history_keeps_phase_and_number_provenance() -> void:
 		assert_eq(deal.discard_history[index].phase, 1)
 		assert_eq(deal.discard_history[index].discard_number, index + 1)
 	deal.settle_phase()
-	deal.choose_phase_two(true)
+	deal.choose_phase_two(false)
 	deal.discard_card(deal.hand[0])
 	assert_eq(deal.discard_history[-1].phase, 2)
 	assert_eq(deal.discard_history[-1].discard_number, 1)
@@ -568,7 +568,7 @@ func test_empty_stock_actions_do_not_trigger_until_a_draw_is_requested() -> void
 
 
 func test_dumped_cards_wait_in_spent_until_a_refill_requests_exhaustion() -> void:
-	var deal := _fresh_deal(310)
+	var deal := _fresh_deal(310, DrinkCatalog.SAM_DUA)
 	_advance_to_last_call(deal)
 	assert_true(deal.settle_phase()["ok"])
 	var dumped_hand := deal.hand.duplicate()
@@ -705,7 +705,7 @@ func test_tra_da_optional_discard_does_not_block_the_screenshot_u_extensions() -
 	assert_eq(deal.exhaustion_count, 1)
 
 
-func test_nhan_tran_swaps_one_current_phase_mandatory_discard_once_per_phase() -> void:
+func test_nhan_tran_swaps_one_current_phase_mandatory_discard_once_per_turn() -> void:
 	var deal := _fresh_deal(222, DrinkCatalog.NHAN_TRAN)
 	assert_false(deal.current_drink_has_charge())
 	var first_discard := deal.hand[0]
@@ -734,9 +734,9 @@ func test_nhan_tran_swaps_one_current_phase_mandatory_discard_once_per_phase() -
 	while deal.state == DealState.STATE_ACTIVE:
 		deal.discard_card(deal.hand[0])
 	assert_eq(deal.discard_count, DealState.DISCARDS_PER_PHASE)
-	assert_false(deal.current_drink_has_charge())
+	assert_true(deal.current_drink_has_charge())
 	assert_true(deal.settle_phase()["ok"])
-	assert_true(deal.choose_phase_two(true)["ok"])
+	assert_true(deal.choose_phase_two(false)["ok"])
 	assert_false(deal.current_drink_has_charge())
 	assert_true(deal.physical_card_accounting_is_valid())
 
@@ -896,7 +896,7 @@ func test_advanced_drink_taxonomy_exists_without_invented_effects() -> void:
 	assert_eq(DrinkCatalog.category(DrinkCatalog.DEN_DA), DrinkCatalog.CATEGORY_CAFFEINE)
 	assert_eq(DrinkCatalog.category(DrinkCatalog.BO_HUC), DrinkCatalog.CATEGORY_ENERGY)
 	assert_eq(DrinkCatalog.category(DrinkCatalog.MIA_TAC), DrinkCatalog.CATEGORY_SUGAR)
-	assert_false(DrinkCatalog.is_effect_implemented(DrinkCatalog.BO_HUC))
+	assert_true(DrinkCatalog.is_effect_implemented(DrinkCatalog.BO_HUC))
 
 
 func test_deadwood_resolution_hook_can_modify_the_controlled_pipeline() -> void:

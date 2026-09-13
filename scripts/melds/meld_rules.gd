@@ -62,3 +62,27 @@ static func sorted_for_display(cards: Array[CardData], meld_type: String) -> Arr
 		sorted_cards.sort_custom(func(left: CardData, right: CardData) -> bool: return left.suit < right.suit)
 	return sorted_cards
 
+
+# Compatibility belongs to one table meld, never to the global Run rule.
+static func is_compatible_run(cards: Array[CardData], compatibility: String) -> bool:
+	if cards.size() < 3:
+		return false
+	var ranks: Array[int] = []
+	var ids := {}
+	for card in cards:
+		if card == null or ids.has(card.unique_id) or ranks.has(card.rank_index) or card.rank_index < 1 or card.rank_index > 13:
+			return false
+		ids[card.unique_id] = true
+		if compatibility == "red" and card.suit not in ["Hearts", "Diamonds"]:
+			return false
+		if compatibility == "black" and card.suit not in ["Spades", "Clubs"]:
+			return false
+		if compatibility == "same" and card.suit != cards[0].suit:
+			return false
+		ranks.append(card.rank_index)
+	ranks.sort()
+	for index in range(1, ranks.size()):
+		if ranks[index] != ranks[index - 1] + 1:
+			return false
+	return compatibility in ["same", "any", "red", "black"]
+

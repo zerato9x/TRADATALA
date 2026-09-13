@@ -104,6 +104,7 @@ func test_drink_selection_uses_shared_wallet_and_two_deal_periods() -> void:
 	var wallet := VndWallet.new()
 	wallet.reset(50_000)
 	var drinks := DrinkManager.new(wallet)
+	drinks.test_all_drinks_available = false
 	var morning := drinks.select_for_event(EventManager.EventSlot.STARTER, DrinkCatalog.NUOC_VOI)
 	assert_true(morning["ok"])
 	assert_eq(wallet.balance_vnd, 40_000)
@@ -124,6 +125,7 @@ func test_drink_selection_is_once_per_event_and_does_not_double_charge() -> void
 	var wallet := VndWallet.new()
 	wallet.reset(50_000)
 	var drinks := DrinkManager.new(wallet)
+	drinks.test_all_drinks_available = false
 
 	var first := drinks.select_for_event(EventManager.EventSlot.STARTER, DrinkCatalog.NUOC_VOI)
 	assert_true(first["ok"])

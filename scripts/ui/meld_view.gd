@@ -34,7 +34,8 @@ func set_meld(
 	drink_selection_enabled: bool = false,
 	drink_removable_card_ids: Dictionary = {},
 	selected_drink_card_id: String = "",
-	vnd_per_point: int = VndWallet.VND_PER_POINT
+	vnd_per_point: int = VndWallet.VND_PER_POINT,
+	drink_returns_whole_meld: bool = false
 ) -> void:
 	meld_id = meld.meld_id
 	if _title == null:
@@ -47,6 +48,11 @@ func set_meld(
 	var background := Color("#2d251eee") if is_selected else Color("#19130fe8")
 	add_theme_stylebox_override("panel", PresentationTheme.panel_style(background, border, 2 if is_selected or extension_is_legal else 1, 2, 4))
 	_sync_cards(meld.cards, drink_highlight_enabled, drink_selection_enabled, drink_removable_card_ids, selected_drink_card_id)
+	if drink_highlight_enabled and not drink_removable_card_ids.is_empty():
+		_hint.text = tr("DRINK_RECOVER_MELD") if drink_returns_whole_meld else tr("DRINK_RECOVER_CARD")
+		if drink_returns_whole_meld:
+			for texture: TextureRect in _card_views.values():
+				texture.tooltip_text = tr("DRINK_TARGET_WHOLE_MELD")
 	tooltip_text = tr("MELD_TOOLTIP") % (tr("MELD_RUN") if meld.meld_type == MeldRules.TYPE_RUN else tr("MELD_SET"))
 
 
@@ -129,6 +135,7 @@ func _sync_cards(
 		var texture_path := card.texture_path()
 		if texture.texture == null or texture.texture.resource_path != texture_path:
 			texture.texture = load(texture_path) as Texture2D
+		GieoCardFX.attach_texture(texture, card)
 		if texture.get_index() != index:
 			_cards_row.move_child(texture, index)
 		texture.mouse_filter = Control.MOUSE_FILTER_STOP if drink_selection_enabled else Control.MOUSE_FILTER_IGNORE

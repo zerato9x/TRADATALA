@@ -161,8 +161,12 @@ func _run() -> void:
 	scene.music_repeat_button.pressed.emit()
 	_check(scene.music_controller.repeat_mode == ReactiveMusicController.REPEAT_OFF, "Repeat cycles from One back to Off")
 	scene.music_track_list.item_selected.emit(3)
-	await create_timer(ReactiveMusicController.TRANSITION_OVERLAP_SECONDS + 0.05).timeout
-	_check(scene.music_controller.current_mix_path == "res://assets/audio/ost/mouse_2.wav", "selecting the tracklist crossfades directly to the chosen file")
+	var expected_selected_mix := "res://assets/audio/ost/mouse_2.wav"
+	var track_transition_wait_frames := 0
+	while (scene.music_controller.current_mix_path != expected_selected_mix or scene.music_controller.transition_in_progress) and track_transition_wait_frames < 120:
+		await process_frame
+		track_transition_wait_frames += 1
+	_check(scene.music_controller.current_mix_path == expected_selected_mix, "selecting the tracklist crossfades directly to the chosen file; actual=%s" % scene.music_controller.current_mix_path)
 	_check(scene.music_cover.texture.resource_path == "res://assets/audio/covers/mouse.png", "track selection updates the album cover")
 	scene.music_system_selector.select(1)
 	scene.music_system_selector.item_selected.emit(1)
@@ -183,7 +187,10 @@ func _run() -> void:
 		segment.scale = Vector2.ONE
 		segment.rotation = 0.0
 	scene._on_music_band_pulse(2, 1.0)
-	await create_timer(0.06).timeout
+	var logo_pulse_wait_frames := 0
+	while scene.logo_segments[2].scale.y <= 1.01 and logo_pulse_wait_frames < 30:
+		await process_frame
+		logo_pulse_wait_frames += 1
 	_check(scene.logo_segments[2].scale.y > 1.01, "TA reacts to its assigned frequency band")
 	_check(scene.logo_segments[0].scale.is_equal_approx(Vector2.ONE) and scene.logo_segments[1].scale.is_equal_approx(Vector2.ONE) and scene.logo_segments[3].scale.is_equal_approx(Vector2.ONE), "a TA-band pulse does not animate TRA, DA, or LA")
 	_check(game_layer != null and game_layer.position.x > 0.0, "game layer begins parked beyond the right screen edge")
@@ -212,6 +219,12 @@ func _run() -> void:
 	var starter_drink_button := scene.campaign_overlay.find_child("Drink_tra_da", true, false) as Button
 	_check(starter_drink_button != null and not starter_drink_button.disabled, "free Trà đá is purchasable in the Starter Event")
 	starter_drink_button.pressed.emit()
+	await process_frame
+	_check(not scene.current_campaign_event.can_exit, "inspecting a Drink does not silently purchase it")
+	_check(scene.event_table.conversation.speech.text.contains("Trà đá"), "Cô Trà Đá explains the inspected Drink")
+	var order_button := scene.campaign_overlay.find_child("Confirm", true, false) as Button
+	_check(order_button != null and not order_button.disabled, "inspected Drink exposes an explicit order response")
+	order_button.pressed.emit()
 	await process_frame
 	_check(scene.current_campaign_event.can_exit and not scene.campaign_continue_button.disabled, "selecting a Drink completes Cô Trà Đá's mandatory interaction")
 	_check(scene.drink_manager.morning_drink_id == DrinkCatalog.TRA_DA and scene.deal.wallet.balance_vnd == 0, "Starter Drink is assigned to Morning/Noon without inventing a charge for free Trà đá")
@@ -328,7 +341,7 @@ func _run() -> void:
 	_check(loose_hand.get_global_rect().end.x <= scene.drink_table_button.get_global_rect().position.x, "the Drink sprite sits fully to the right of the hand interaction surface")
 	scene.campaign.current_phase = CampaignManager.CampaignPhase.NOON_DEAL
 	scene._sync_drink_table_visual()
-	_check(scene.drink_table_texture.texture.resource_path == "res://assets/drinks/tra_da_half.png", "the noon Deal shows the carried-over Drink half-empty")
+	_check(scene.drink_table_texture.texture.resource_path == "res://assets/drinks/tra_da_full.png", "the noon Deal does not falsely mark an available Drink spent")
 	scene.campaign.current_phase = CampaignManager.CampaignPhase.MORNING_DEAL
 	scene._sync_drink_table_visual()
 	scene.drink_manager.afternoon_drink_id = DrinkCatalog.SAM_DUA
@@ -341,7 +354,7 @@ func _run() -> void:
 	_check(scene.drink_name_label != null and scene.drink_name_label.text == "TRÀ ĐÁ", "free Trà đá is the visible starter Drink")
 	_check(scene.drink_table_button.disabled, "Trà đá stays unavailable until the current Phase has a mandatory discard")
 	_check(not scene.drink_charge_outline.visible and not scene.drink_charge_outline.is_processing(), "Trà đá has no blue charge cue before a mandatory discard exists")
-	_check(scene.drink_table_button.tooltip_text.contains(scene.tr("DRINK_TRA_DA_TOOLTIP")), "Trà đá tooltip exposes the revised mandatory-discard effect")
+	_check(scene.drink_table_button.tooltip_text.contains(DrinkCatalog.effect_text(DrinkCatalog.TRA_DA)), "Trà đá tooltip explains its optional extra discard")
 	_check(scene.get_node_or_null("GameLayer/TableSurface/DiscardHistoryTray") == null, "persistent discard tray is replaced by the pile archive")
 	_check(scene.discard_archive_overlay != null and not scene.discard_archive_overlay.visible, "discard archive begins closed")
 	var draw_archive_button := scene.get_node_or_null("GameLayer/TableSurface/DrawPile/OpenDrawArchive") as Button
@@ -561,7 +574,7 @@ func _run() -> void:
 	stable_meld.scored_points = ScoringPipeline.meld_value(stable_meld.cards)
 	scene._sync_all()
 	_check(scene.drink_cue_play_count == nuoc_cue_count + 1 and scene.drink_cue_stream_index != previous_cue_stream_index, "Nước vối's removable Meld card triggers the next non-repeating glass cue")
-	_check(scene.drink_table_button.tooltip_text.contains("chọn trực tiếp 1 lá trong Phỏm"), "switching Drinks refreshes the clickable sprite tooltip")
+	_check(scene.drink_table_button.tooltip_text.contains(DrinkCatalog.effect_text(DrinkCatalog.NUOC_VOI)), "switching Drinks refreshes the clickable sprite tooltip")
 	var removable_endpoint: CardData = stable_meld.cards[0]
 	scene._on_meld_card_pressed(stable_meld.meld_id, removable_endpoint)
 	_check(scene.selected_drink_meld_card_id.is_empty(), "Nước vối ignores table-card targeting until the Drink is clicked first")

@@ -64,6 +64,7 @@ var participants_container: VBoxContainer
 var continue_button: Button
 var back_button: Button
 var content_panel: PanelContainer
+var conversation: NpcConversation
 
 var _deal_nodes: Array[Control] = []
 var _deal_home: Dictionary = {}
@@ -81,6 +82,12 @@ func _ready() -> void:
 	_build_content()
 	_build_continue()
 	_build_npc_layers()
+	conversation = preload("res://scenes/ui/npc_conversation.tscn").instantiate()
+	add_child(conversation)
+	conversation.position = Vector2(165, 140)
+	conversation.size = Vector2(710, 124)
+	conversation.visible = false
+	conversation.response_selected.connect(_on_conversation_response)
 	visible = false
 
 
@@ -181,7 +188,8 @@ func focus_npc(npc_id: String) -> void:
 			sprite.visible = true
 			sprite.modulate.a = 0.0
 			sprite.position = _sprite_out_position(StringName(layer["slot"]), sprite.size)
-			tween.tween_property(sprite, "position", _sprite_focus_position(StringName(layer["slot"]), sprite.size), TRANSITION_SECONDS)
+			var focus_position := Vector2(0, 95) if npc_id == NPC_THAY_BOI else _sprite_focus_position(StringName(layer["slot"]), sprite.size)
+			tween.tween_property(sprite, "position", focus_position, TRANSITION_SECONDS)
 			tween.tween_property(sprite, "modulate:a", 1.0, 0.2)
 		elif overlay.visible:
 			tween.tween_property(overlay, "modulate", Color(0.42, 0.46, 0.5, 0.38), 0.22)
@@ -381,6 +389,8 @@ func _build_npc_layers() -> void:
 		var sprite := TextureRect.new()
 		sprite.name = "%sFocused" % npc_id.to_pascal_case()
 		var target_height := 650.0 if slot != &"top" else 590.0
+		if npc_id == NPC_THAY_BOI:
+			target_height = 600.0
 		var ratio := target_height / sprite_texture.get_height()
 		sprite.size = sprite_texture.get_size() * ratio
 		sprite.texture = sprite_texture
@@ -532,11 +542,30 @@ func _set_header_focused(focused: bool, animate: bool = true) -> void:
 
 
 func _clear_content() -> void:
+	if conversation != null:
+		conversation.visible = false
 	content_panel.visible = false
 	back_button.visible = false
 	for child in participants_container.get_children():
 		participants_container.remove_child(child)
 		child.queue_free()
+
+
+func say(line: String) -> void:
+	if focused_npc_id.is_empty():
+		return
+	conversation.position = Vector2(20, 115) if focused_npc_id == NPC_THAY_BOI else Vector2(165, 140)
+	conversation.say(npc_display_name(focused_npc_id), line)
+	conversation.show_responses(focused_npc_id != NPC_TRA_DA, not back_button.disabled)
+	var speech_size := Vector2(330, 160) if focused_npc_id == NPC_THAY_BOI else Vector2(710, 124 if focused_npc_id == NPC_TRA_DA else 160)
+	conversation.set_deferred("size", speech_size)
+
+
+func _on_conversation_response(response_id: String) -> void:
+	if response_id == "leave":
+		if not back_button.disabled: unfocus_npc()
+	elif response_id == "small_talk":
+		say(tr("NPC_CHAT_" + focused_npc_id.to_upper()))
 
 
 func _start_money_pulse() -> void:

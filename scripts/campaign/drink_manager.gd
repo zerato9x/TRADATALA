@@ -4,6 +4,11 @@ extends RefCounted
 signal drink_selected(drink_id: String, period: String, price_vnd: int)
 signal drink_cleared()
 
+# Mechanics test override; zero is provisional, not a balanced final price.
+const TEST_ALL_DRINKS_AVAILABLE := true
+const TEST_PRICE_VND := 0
+var test_all_drinks_available: bool = TEST_ALL_DRINKS_AVAILABLE
+
 const PRICES_VND := {
 	DrinkCatalog.TRA_DA: 0,
 	DrinkCatalog.NUOC_VOI: 10_000,
@@ -22,10 +27,14 @@ func _init(p_wallet: VndWallet = null) -> void:
 
 
 func available_drink_ids() -> Array[String]:
+	if test_all_drinks_available:
+		return DrinkCatalog.all_ids()
 	return DrinkCatalog.basic_ids()
 
 
 func price_for(drink_id: String) -> int:
+	if test_all_drinks_available:
+		return TEST_PRICE_VND
 	return int(PRICES_VND.get(drink_id, 0))
 
 

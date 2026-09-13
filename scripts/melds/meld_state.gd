@@ -7,6 +7,8 @@ var meld_id: int
 var meld_type: String
 var cards: Array[CardData] = []
 var scored_points: int = 0
+var run_compatibility: String = "same"
+var pair_created: bool = false
 
 
 func _init(p_meld_id: int = 0, p_meld_type: String = MeldRules.TYPE_INVALID, p_cards: Array[CardData] = []) -> void:
@@ -17,6 +19,11 @@ func _init(p_meld_id: int = 0, p_meld_type: String = MeldRules.TYPE_INVALID, p_c
 
 
 func can_extend(additions: Array[CardData]) -> bool:
+	if meld_type == MeldRules.TYPE_RUN and run_compatibility != "same":
+		var combined: Array[CardData] = []
+		combined.append_array(cards)
+		combined.append_array(additions)
+		return not additions.is_empty() and MeldRules.is_compatible_run(combined, run_compatibility)
 	return MeldRules.can_extend(cards, additions, meld_type)
 
 

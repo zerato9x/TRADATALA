@@ -6,6 +6,7 @@
 [ext_resource type="PackedScene" path="res://scenes/ui/match_board.tscn" id="4_6dstc"]
 [ext_resource type="PackedScene" path="res://scenes/ui/main_menu.tscn" id="5_et4mf"]
 [ext_resource type="PackedScene" path="res://scenes/ui/reactive_music.tscn" id="6_4bnf7"]
+[ext_resource type="PackedScene" path="res://scenes/ui/action_legend.tscn" id="7_verbs"]
 [sub_resource type="Theme" id="Theme_3ygla"]
 default_font = ExtResource("1_slo71")
 default_font_size = 14
@@ -20,6 +21,8 @@ grow_horizontal = 2
 grow_vertical = 2
 theme = SubResource("Theme_3ygla")
 script = ExtResource("1_match")
+
+[node name="ActionLegend" parent="." instance=ExtResource("7_verbs")]
 
 [node name="SidewalkTableBackground" type="TextureRect" parent="." unique_id=23909907]
 texture_filter = 1

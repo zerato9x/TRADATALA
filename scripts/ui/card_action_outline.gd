@@ -91,6 +91,8 @@ func _draw() -> void:
 
 func _gradient_color(ratio: float, wave: float) -> Color:
 	var color_pairs := _active_color_pairs()
+	if color_pairs.is_empty():
+		return Color.TRANSPARENT
 	if color_pairs.size() == 1:
 		return (color_pairs[0]["base"] as Color).lerp(color_pairs[0]["highlight"] as Color, 0.18 + wave * 0.82)
 	var count := float(color_pairs.size())

@@ -25,6 +25,9 @@ const STAGE_SIZE := Vector2(840, 600)
 const LEVER_COLUMNS := 4
 const LEVER_ROWS := 2
 const LEVER_FRAME_SIZE := Vector2(543, 362)
+const LEVER_DRAW_SIZE := Vector2(326, 246)
+# The painted bases drift inside the atlas cells; compensate at the mount.
+const LEVER_FRAME_OFFSETS := [Vector2(0, 0), Vector2(12, 0), Vector2(24, 0), Vector2(35, 0), Vector2(0, 6), Vector2(12, 6), Vector2(24, 6), Vector2(35, 6)]
 const REEL_Y := [104.0, 153.0, 201.0, 258.0, 304.0, 352.0]
 
 var service: GieoQueService
@@ -57,7 +60,7 @@ func configure(p_service: GieoQueService) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event.is_action_pressed("ui_accept") and presentation_state == PresentationState.IDLE and not _busy:
+	if is_visible_in_tree() and event.is_action_pressed("ui_accept") and not event.is_echo() and presentation_state == PresentationState.IDLE and not _busy and service != null and service.can_afford_pull():
 		get_viewport().set_input_as_handled()
 		_on_cast_pressed(false)
 
@@ -143,6 +146,12 @@ func _build_machine(lines: Array, is_ready: bool) -> void:
 
 	_build_lever(is_ready)
 	_build_oracle_panels(is_ready)
+	if is_ready:
+		var pull_hint := _label("%s\n%s" % [tr("GIEO_PULL_LEVER"), VndWallet.format_vnd(service.current_pull_cost())], 16, PresentationTheme.GOLD, HORIZONTAL_ALIGNMENT_CENTER)
+		pull_hint.name = "OraclePullCost"
+		pull_hint.position = Vector2(340, 430)
+		pull_hint.size = Vector2(320, 75)
+		_stage.add_child(pull_hint)
 
 
 func _build_reel(index: int, value: String) -> void:
@@ -183,22 +192,22 @@ func _build_reel(index: int, value: String) -> void:
 func _build_lever(is_ready: bool) -> void:
 	_lever_button = Button.new()
 	_lever_button.name = "OracleLever"
-	_lever_button.position = Vector2(625, 165)
-	_lever_button.size = Vector2(170, 294)
+	_lever_button.position = Vector2(675, 160)
+	_lever_button.size = Vector2(155, 250)
 	_lever_button.flat = true
 	_lever_button.clip_contents = false
 	_lever_button.focus_mode = Control.FOCUS_ALL
 	_lever_button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	_lever_button.disabled = not is_ready or not service.can_afford_pull()
-	_lever_button.tooltip_text = tr("GIEO_PULL_LEVER")
+	_lever_button.tooltip_text = "%s · %s" % [tr("GIEO_PULL_LEVER"), VndWallet.format_vnd(service.current_pull_cost())]
 	_lever_button.pressed.connect(_on_cast_pressed.bind(false))
 	_stage.add_child(_lever_button)
 
 	_lever_image = TextureRect.new()
-	_lever_image.position = Vector2(-112, -14)
-	_lever_image.size = Vector2(450, 300)
+	_lever_image.position = Vector2(-110, 2)
+	_lever_image.size = LEVER_DRAW_SIZE
 	_lever_image.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	_lever_image.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	_lever_image.stretch_mode = TextureRect.STRETCH_SCALE
 	_lever_image.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	_lever_image.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_lever_button.add_child(_lever_image)
@@ -258,7 +267,7 @@ func _set_reel_value(index: int, value: String) -> void:
 		left.size = Vector2(140, 9)
 		right.visible = false
 		label.text = tr("GIEO_DUONG")
-		label.add_theme_color_override("font_color", PresentationTheme.GOLD)
+		label.add_theme_color_override("font_color", Color("#57350e"))
 	elif value == GieoQueService.LINE_AM:
 		left.position = Vector2(65, 16)
 		left.size = Vector2(60, 9)
@@ -266,7 +275,7 @@ func _set_reel_value(index: int, value: String) -> void:
 		right.size = Vector2(60, 9)
 		right.visible = true
 		label.text = tr("GIEO_AM")
-		label.add_theme_color_override("font_color", Color("#8fc7ed"))
+		label.add_theme_color_override("font_color", Color("#163e60"))
 	else:
 		left.position = Vector2(105, 18)
 		left.size = Vector2(80, 5)
@@ -357,8 +366,10 @@ func _activate_oracle_group(upper: bool, transition: bool) -> void:
 	if _upper_panel == null or _lower_panel == null:
 		return
 	_active_oracle_panel = _upper_panel if upper else _lower_panel
-	var active_labels: Array[Label] = [_upper_label, _upper_detail] if upper else [_lower_label, _lower_detail]
-	var resting_labels: Array[Label] = [_lower_label, _lower_detail] if upper else [_upper_label, _upper_detail]
+	var active_labels: Array[Label] = []
+	active_labels.assign([_upper_label, _upper_detail] if upper else [_lower_label, _lower_detail])
+	var resting_labels: Array[Label] = []
+	resting_labels.assign([_lower_label, _lower_detail] if upper else [_upper_label, _upper_detail])
 	if transition:
 		var fade_out := create_tween()
 		fade_out.set_parallel(true)
@@ -403,7 +414,7 @@ func _add_result_panel(animated: bool) -> void:
 	_upper_panel.name = "ResolvedOracleUpperPanel"
 	_lower_panel.name = "ResolvedOracleLowerPanel"
 	_upper_label.text = tr("GIEO_CHANGE").to_upper()
-	_upper_detail.text = tr(service.effect_label_key())
+	_upper_detail.text = _effect_text()
 	_upper_detail.add_theme_color_override("font_color", PresentationTheme.GOLD)
 	_lower_label.text = tr("GIEO_TARGET").to_upper()
 	_lower_detail.text = tr(service.targeting_label_key())
@@ -450,7 +461,7 @@ func _add_decisions(animated: bool) -> void:
 	_decision_row = decisions
 	if animated:
 		decisions.modulate.a = 0.0
-		decisions.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		decisions.hide()
 
 
 func _animate_result_reveal() -> void:
@@ -460,6 +471,7 @@ func _animate_result_reveal() -> void:
 		tween.tween_property(part, "modulate:a", 1.0, 0.12)
 		await tween.finished
 	if _decision_row != null:
+		_decision_row.show()
 		var buttons_tween := create_tween()
 		buttons_tween.tween_property(_decision_row, "modulate:a", 1.0, 0.18)
 		await buttons_tween.finished
@@ -521,6 +533,8 @@ func _build_complete() -> void:
 	again.disabled = not service.can_afford_pull()
 	again.pressed.connect(_on_cast_pressed.bind(false))
 	box.add_child(again)
+	for transformation in service.last_transformations:
+		_build_transformation_row(box, transformation, false)
 
 
 func _build_flow_shell(title_text: String) -> VBoxContainer:
@@ -545,7 +559,7 @@ func _build_flow_shell(title_text: String) -> VBoxContainer:
 	stage.add_child(art)
 	var panel := PanelContainer.new()
 	panel.position = Vector2(24, 18)
-	panel.size = Vector2(732, 469)
+	panel.size = STAGE_SIZE - Vector2(48, 36)
 	panel.add_theme_stylebox_override("panel", PresentationTheme.panel_style(Color("#08192bf2"), PresentationTheme.GOLD, 2, 9, 6))
 	stage.add_child(panel)
 	var margin := MarginContainer.new()
@@ -554,9 +568,14 @@ func _build_flow_shell(title_text: String) -> VBoxContainer:
 	margin.add_theme_constant_override("margin_right", 18)
 	margin.add_theme_constant_override("margin_bottom", 12)
 	panel.add_child(margin)
+	var scroll := ScrollContainer.new()
+	scroll.name = "OracleFlowScroll"
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	margin.add_child(scroll)
 	var box := VBoxContainer.new()
+	box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	box.add_theme_constant_override("separation", 8)
-	margin.add_child(box)
+	scroll.add_child(box)
 	var title := _label(title_text, 22, PresentationTheme.GOLD, HORIZONTAL_ALIGNMENT_CENTER)
 	box.add_child(title)
 	return box
@@ -566,12 +585,21 @@ func _build_compact_result(parent: VBoxContainer) -> void:
 	var row := HBoxContainer.new()
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	row.add_theme_constant_override("separation", 24)
-	row.add_child(_result_value_block(tr("GIEO_CHANGE"), tr(service.effect_label_key()), PresentationTheme.GOLD))
+	row.add_child(_result_value_block(tr("GIEO_CHANGE"), _effect_text(), PresentationTheme.GOLD))
 	row.add_child(_result_value_block(tr("GIEO_TARGET"), tr(service.targeting_label_key()), Color("#9ed0ff")))
 	parent.add_child(row)
 
 
-func _build_transformation_row(parent: VBoxContainer, transformation: Dictionary) -> void:
+func _effect_text() -> String:
+	var text := tr(service.effect_label_key())
+	if service.current_result.has("resolved_rank"):
+		text += " · " + String(service.current_result["resolved_rank"])
+	elif service.current_result.has("resolved_suit"):
+		text += " · " + _suit_label(String(service.current_result["resolved_suit"]))
+	return text
+
+
+func _build_transformation_row(parent: VBoxContainer, transformation: Dictionary, animated: bool = true) -> void:
 	var row := HBoxContainer.new()
 	row.name = "TransformationRow"
 	row.set_meta("gieo_transform_row", true)
@@ -582,7 +610,8 @@ func _build_transformation_row(parent: VBoxContainer, transformation: Dictionary
 	var after: Dictionary = transformation["after"]
 	var before_card := _snapshot_card(before, tr("GIEO_BEFORE"))
 	var after_card := _snapshot_card(after, tr("GIEO_PERMANENT"))
-	after_card.modulate = Color(1.45, 1.2, 0.55, 0.0)
+	if animated:
+		after_card.modulate = Color(1.45, 1.2, 0.55, 0.0)
 	row.add_child(before_card)
 	row.add_child(_label("➜", 26, PresentationTheme.GOLD, HORIZONTAL_ALIGNMENT_CENTER))
 	row.add_child(after_card)
@@ -606,6 +635,7 @@ func _snapshot_card(snapshot: Dictionary, caption: String) -> Control:
 	panel.set_meta("card_texture_path", texture_path)
 	card_art.custom_minimum_size = Vector2(48, 67)
 	card_art.texture = load(texture_path) as Texture2D
+	GieoCardFX.apply_properties(card_art, snapshot.get("gieo_properties", []))
 	card_art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	card_art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	card_art.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
@@ -676,8 +706,20 @@ func _build_card_picker(parent: VBoxContainer, cards: Array[CardData], large: bo
 	for card in cards:
 		var button := Button.new()
 		button.custom_minimum_size = Vector2(82, 116) if large else CARD_THUMB_SIZE
-		button.icon = load(card.texture_path()) as Texture2D
-		button.expand_icon = true
+		var card_art := TextureRect.new()
+		card_art.name = "PickerCardArt"
+		card_art.texture = load(card.texture_path()) as Texture2D
+		card_art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		card_art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		card_art.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		card_art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		button.add_child(card_art)
+		card_art.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		card_art.offset_left = 6
+		card_art.offset_top = 6
+		card_art.offset_right = -6
+		card_art.offset_bottom = -6
+		GieoCardFX.attach_texture(card_art, card)
 		button.tooltip_text = "%s\n%s" % [card.short_label(), "\n".join(card.gieo_property_descriptions())]
 		button.disabled = not interactive
 		PresentationTheme.configure_button(button, "gold" if large else "neutral")
@@ -769,6 +811,8 @@ func _set_lever_frame(frame: int) -> void:
 		return
 	var column := posmod(frame, LEVER_COLUMNS)
 	var row := clampi(floori(float(frame) / float(LEVER_COLUMNS)), 0, LEVER_ROWS - 1)
+	var frame_index := row * LEVER_COLUMNS + column
+	_lever_image.position = Vector2(-110, 2) + LEVER_FRAME_OFFSETS[frame_index] * LEVER_DRAW_SIZE / LEVER_FRAME_SIZE
 	_lever_image.texture = _atlas_region(LEVER_TEXTURE, Rect2(Vector2(column, row) * LEVER_FRAME_SIZE, LEVER_FRAME_SIZE))
 
 

@@ -3,6 +3,7 @@ extends RefCounted
 
 const KIND_MANDATORY := "mandatory"
 const KIND_DRINK_EXTRA := "drink_extra"
+const KIND_DUMP := "dump"
 
 var card: CardData
 var phase: int

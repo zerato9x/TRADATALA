@@ -14,7 +14,6 @@ const BAC_XIU := "bac_xiu"
 const STING := "sting"
 const BO_HUC := "bo_huc"
 const C2_ICED_TEA := "c2_iced_tea"
-const NUOC_MIA := "nuoc_mia"
 const MIA_TAC := "mia_tac"
 const MIA_SAU_RIENG := "mia_sau_rieng"
 
@@ -24,19 +23,18 @@ const CATEGORY_ENERGY := "energy"
 const CATEGORY_SUGAR := "sugar"
 
 const DEFINITIONS := {
-	TRA_DA: {"name": "Trà đá", "category": CATEGORY_BASIC, "implemented": true, "cue_trigger": "extra_discard_pending"},
-	NUOC_VOI: {"name": "Nước vối", "category": CATEGORY_BASIC, "implemented": true, "cue_trigger": "removable_meld_card"},
-	NHAN_TRAN: {"name": "Nhân trần", "category": CATEGORY_BASIC, "implemented": true, "cue_trigger": "discard_completes_meld"},
-	SAM_DUA: {"name": "Sâm dứa", "category": CATEGORY_BASIC, "implemented": true, "cue_trigger": "phase_one_redraw_preserve"},
-	DEN_DA: {"name": "Đen đá", "category": CATEGORY_CAFFEINE, "implemented": false},
-	NAU_DA: {"name": "Nâu đá", "category": CATEGORY_CAFFEINE, "implemented": false},
-	BAC_XIU: {"name": "Bạc xỉu", "category": CATEGORY_CAFFEINE, "implemented": false},
-	STING: {"name": "Sting", "category": CATEGORY_ENERGY, "implemented": false},
-	BO_HUC: {"name": "Bò Húc", "category": CATEGORY_ENERGY, "implemented": false},
-	C2_ICED_TEA: {"name": "C2 Iced Tea", "category": CATEGORY_SUGAR, "implemented": false},
-	NUOC_MIA: {"name": "Nước mía", "category": CATEGORY_SUGAR, "implemented": false},
-	MIA_TAC: {"name": "Mía tắc", "category": CATEGORY_SUGAR, "implemented": false},
-	MIA_SAU_RIENG: {"name": "Mía sầu riêng", "category": CATEGORY_SUGAR, "implemented": false},
+	TRA_DA: {"tier": 0, "charge_scope": "PASSIVE", "targeting_mode": "discard", "active": false, "name": "Trà đá", "category": CATEGORY_BASIC, "implemented": true, "cue_trigger": "extra_discard_pending"},
+	NUOC_VOI: {"tier": 1, "charge_scope": "PHASE", "targeting_mode": "meld_card", "active": true, "name": "Nước vối", "category": CATEGORY_BASIC, "implemented": true, "cue_trigger": "removable_meld_card"},
+	NHAN_TRAN: {"tier": 1, "charge_scope": "TURN", "targeting_mode": "discard_swap", "active": true, "name": "Nhân trần", "category": CATEGORY_BASIC, "implemented": true, "cue_trigger": "discard_completes_meld"},
+	SAM_DUA: {"tier": 1, "charge_scope": "TRANSITION", "targeting_mode": "preserve", "active": true, "name": "Sâm dứa", "category": CATEGORY_BASIC, "implemented": true, "cue_trigger": "phase_one_redraw_preserve"},
+	DEN_DA: {"tier": 2, "charge_scope": "TURN", "targeting_mode": "discard_swap", "active": true, "name": "Đen đá", "category": CATEGORY_CAFFEINE, "implemented": true},
+	NAU_DA: {"tier": 2, "charge_scope": "PHASE", "targeting_mode": "whole_meld", "active": true, "name": "Nâu đá", "category": CATEGORY_CAFFEINE, "implemented": true},
+	BAC_XIU: {"tier": 2, "charge_scope": "TRANSITION", "targeting_mode": "preserve", "active": true, "name": "Bạc xỉu", "category": CATEGORY_CAFFEINE, "implemented": true},
+	STING: {"tier": 2, "charge_scope": "PHASE", "targeting_mode": "pair", "active": true, "name": "Sting", "category": CATEGORY_ENERGY, "implemented": true},
+	BO_HUC: {"tier": 3, "charge_scope": "TURN", "targeting_mode": "pair", "active": true, "name": "Bò Húc", "category": CATEGORY_ENERGY, "implemented": true},
+	C2_ICED_TEA: {"tier": 2, "charge_scope": "DEAL", "targeting_mode": "run", "active": true, "name": "C2", "category": CATEGORY_SUGAR, "implemented": true},
+	MIA_TAC: {"tier": 3, "charge_scope": "PASSIVE", "targeting_mode": "red_run", "active": false, "name": "Nước Mía Quất", "category": CATEGORY_SUGAR, "implemented": true},
+	MIA_SAU_RIENG: {"tier": 3, "charge_scope": "PASSIVE", "targeting_mode": "black_run", "active": false, "name": "Nước Mía Sầu Riêng", "category": CATEGORY_SUGAR, "implemented": true},
 }
 
 
@@ -55,7 +53,7 @@ static func category(drink_id: String) -> String:
 
 
 static func is_effect_implemented(drink_id: String) -> bool:
-	return DEFINITIONS.get(drink_id, {}).get("implemented", false)
+	return DEFINITIONS.has(drink_id)
 
 
 static func cue_trigger(drink_id: String) -> String:
@@ -64,3 +62,13 @@ static func cue_trigger(drink_id: String) -> String:
 
 static func basic_ids() -> Array[String]:
 	return [TRA_DA, NUOC_VOI, NHAN_TRAN, SAM_DUA]
+
+
+static func all_ids() -> Array[String]:
+	var ids: Array[String] = []
+	ids.assign(DEFINITIONS.keys())
+	return ids
+
+
+static func effect_text(drink_id: String) -> String:
+	return TranslationServer.translate("DRINK_EFFECT_" + drink_id.to_upper())

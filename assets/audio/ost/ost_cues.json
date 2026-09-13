@@ -511,13 +511,267 @@
         }
       }
     },
+    "dragon_1": {
+      "decisions": {
+        "dragon_1_bars_001_002": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-07T04:40:16"
+        },
+        "dragon_1_bars_003_004": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-07T04:41:10"
+        },
+        "dragon_1_bars_005_008": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-07T04:41:55"
+        },
+        "dragon_1_bars_008_011": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-07T04:47:25"
+        },
+        "dragon_1_bars_009_010": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-07T04:46:16"
+        },
+        "dragon_1_bars_009_012": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-07T04:46:39"
+        },
+        "dragon_1_bars_010_013": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-07T04:45:08"
+        },
+        "dragon_1_bars_010_017": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-07T04:43:23"
+        },
+        "dragon_1_bars_016_023": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-07T04:50:54"
+        },
+        "dragon_1_bars_017_018": {
+          "cue_name": "",
+          "notes": "",
+          "status": "rejected",
+          "updated_at_utc": "2026-09-07T04:51:29"
+        },
+        "dragon_1_bars_017_020": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-07T04:51:31"
+        },
+        "dragon_1_bars_018_021": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-07T04:52:00"
+        },
+        "dragon_1_bars_019_020": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-07T04:52:07"
+        },
+        "dragon_1_bars_019_022": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-07T04:53:11"
+        },
+        "dragon_1_bars_025_028": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-07T04:56:00"
+        },
+        "dragon_1_bars_036_039": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-07T04:58:04"
+        },
+        "dragon_1_bars_042_043": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-07T04:59:45"
+        },
+        "dragon_1_bars_043_044": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-07T04:59:59"
+        },
+        "dragon_1_bars_046_047": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-07T05:01:13"
+        },
+        "dragon_1_bars_050_051": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-07T05:01:57"
+        },
+        "dragon_1_bars_050_053": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-07T05:02:10"
+        },
+        "dragon_1_bars_051_054": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-07T05:02:26"
+        },
+        "dragon_1_bars_059_062": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-07T05:07:26"
+        },
+        "dragon_1_bars_062_065": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-07T05:06:45"
+        },
+        "dragon_1_bars_066_067": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-07T05:09:14"
+        }
+      }
+    },
+    "dragon_2": {
+      "decisions": {
+        "dragon_2_bars_002_003": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-08T13:35:23"
+        },
+        "dragon_2_bars_006_007": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-08T13:36:14"
+        },
+        "dragon_2_bars_010_013": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-08T13:37:21"
+        },
+        "dragon_2_bars_020_021": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-08T13:40:58"
+        },
+        "dragon_2_bars_027_028": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-08T13:42:19"
+        },
+        "dragon_2_bars_031_032": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-08T13:43:07"
+        },
+        "dragon_2_bars_034_035": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-08T13:43:43"
+        },
+        "dragon_2_bars_039_040": {
+          "cue_name": "",
+          "notes": "",
+          "status": "rejected",
+          "updated_at_utc": "2026-09-08T14:39:14"
+        },
+        "dragon_2_bars_040_041": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-08T14:38:57"
+        },
+        "dragon_2_bars_042_045": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-08T14:41:08"
+        },
+        "dragon_2_bars_048_051": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-08T14:44:07"
+        },
+        "dragon_2_bars_050_051": {
+          "cue_name": "",
+          "notes": "",
+          "status": "rejected",
+          "updated_at_utc": "2026-09-08T14:43:38"
+        },
+        "dragon_2_bars_055_056": {
+          "cue_name": "",
+          "notes": "",
+          "status": "rejected",
+          "updated_at_utc": "2026-09-08T14:46:24"
+        },
+        "dragon_2_bars_060_061": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-08T14:47:33"
+        }
+      }
+    },
     "goat_1": {
       "decisions": {
+        "goat_1_bars_001_002": {
+          "cue_name": "",
+          "notes": "",
+          "status": "rejected",
+          "updated_at_utc": "2026-09-09T05:05:21"
+        },
         "goat_1_bars_001_004": {
           "cue_name": "",
           "notes": "",
           "status": "approved",
-          "updated_at_utc": "2026-09-01T16:38:18"
+          "updated_at_utc": "2026-09-09T05:05:20"
+        },
+        "goat_1_bars_004_005": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-09T05:06:33"
         },
         "goat_1_bars_006_013": {
           "cue_name": "",
@@ -534,8 +788,14 @@
         "goat_1_bars_009_012": {
           "cue_name": "",
           "notes": "",
+          "status": "rejected",
+          "updated_at_utc": "2026-09-07T05:12:04"
+        },
+        "goat_1_bars_009_016": {
+          "cue_name": "",
+          "notes": "",
           "status": "approved",
-          "updated_at_utc": "2026-09-01T16:40:21"
+          "updated_at_utc": "2026-09-07T05:12:28"
         },
         "goat_1_bars_010_011": {
           "cue_name": "",
@@ -546,14 +806,420 @@
         "goat_1_bars_012_013": {
           "cue_name": "",
           "notes": "",
-          "status": "approved",
-          "updated_at_utc": "2026-09-01T16:42:14"
+          "status": "rejected",
+          "updated_at_utc": "2026-09-07T05:16:33"
         },
         "goat_1_bars_012_015": {
           "cue_name": "",
           "notes": "",
           "status": "rejected",
           "updated_at_utc": "2026-09-01T16:40:23"
+        },
+        "goat_1_bars_016_017": {
+          "cue_name": "",
+          "notes": "",
+          "status": "rejected",
+          "updated_at_utc": "2026-09-08T02:49:04"
+        },
+        "goat_1_bars_017_018": {
+          "cue_name": "",
+          "notes": "",
+          "status": "rejected",
+          "updated_at_utc": "2026-09-09T05:11:03"
+        },
+        "goat_1_bars_017_020": {
+          "cue_name": "",
+          "notes": "",
+          "status": "rejected",
+          "updated_at_utc": "2026-09-09T05:13:53"
+        },
+        "goat_1_bars_017_024": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-09T05:13:24"
+        },
+        "goat_1_bars_018_021": {
+          "cue_name": "",
+          "notes": "",
+          "status": "rejected",
+          "updated_at_utc": "2026-09-09T05:13:55"
+        },
+        "goat_1_bars_025_028": {
+          "cue_name": "",
+          "notes": "",
+          "status": "rejected",
+          "updated_at_utc": "2026-09-09T05:14:43"
+        },
+        "goat_1_bars_026_027": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-09T05:14:44"
+        },
+        "goat_1_bars_029_036": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-09T05:17:54"
+        },
+        "goat_1_bars_030_031": {
+          "cue_name": "",
+          "notes": "",
+          "status": "rejected",
+          "updated_at_utc": "2026-09-09T05:17:56"
+        },
+        "goat_1_bars_038_039": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-09T05:20:25"
+        },
+        "goat_1_bars_041_042": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-09T05:21:02"
+        },
+        "goat_1_bars_046_047": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-09T05:21:33"
+        },
+        "goat_1_bars_050_051": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-09T05:22:31"
+        },
+        "goat_1_bars_053_056": {
+          "cue_name": "",
+          "notes": "",
+          "status": "rejected",
+          "updated_at_utc": "2026-09-09T05:26:44"
+        },
+        "goat_1_bars_054_057": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-09T05:26:50"
+        }
+      }
+    },
+    "goat_2": {
+      "decisions": {
+        "goat_2_bars_001_002": {
+          "cue_name": "",
+          "notes": "",
+          "status": "rejected",
+          "updated_at_utc": "2026-09-08T14:53:15"
+        },
+        "goat_2_bars_001_004": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-08T14:53:06"
+        },
+        "goat_2_bars_008_009": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-08T14:53:48"
+        },
+        "goat_2_bars_010_017": {
+          "cue_name": "",
+          "notes": "",
+          "status": "rejected",
+          "updated_at_utc": "2026-09-08T14:59:30"
+        },
+        "goat_2_bars_011_014": {
+          "cue_name": "",
+          "notes": "",
+          "status": "rejected",
+          "updated_at_utc": "2026-09-08T15:00:03"
+        },
+        "goat_2_bars_011_018": {
+          "cue_name": "",
+          "notes": "",
+          "status": "rejected",
+          "updated_at_utc": "2026-09-08T15:00:02"
+        },
+        "goat_2_bars_012_013": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-08T14:55:46"
+        },
+        "goat_2_bars_019_020": {
+          "cue_name": "",
+          "notes": "",
+          "status": "rejected",
+          "updated_at_utc": "2026-09-08T15:00:58"
+        },
+        "goat_2_bars_019_022": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-08T15:00:56"
+        },
+        "goat_2_bars_023_024": {
+          "cue_name": "",
+          "notes": "",
+          "status": "rejected",
+          "updated_at_utc": "2026-09-08T15:01:42"
+        },
+        "goat_2_bars_023_026": {
+          "cue_name": "",
+          "notes": "",
+          "status": "rejected",
+          "updated_at_utc": "2026-09-08T15:01:50"
+        },
+        "goat_2_bars_027_028": {
+          "cue_name": "",
+          "notes": "",
+          "status": "rejected",
+          "updated_at_utc": "2026-09-08T15:02:15"
+        },
+        "goat_2_bars_028_029": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-08T15:02:24"
+        },
+        "goat_2_bars_035_038": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-08T15:03:37"
+        },
+        "goat_2_bars_042_045": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-08T15:05:39"
+        },
+        "goat_2_bars_043_044": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-08T15:04:28"
+        },
+        "goat_2_bars_051_052": {
+          "cue_name": "",
+          "notes": "",
+          "status": "rejected",
+          "updated_at_utc": "2026-09-08T15:06:27"
+        },
+        "goat_2_bars_052_053": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-08T15:06:25"
+        },
+        "goat_2_bars_055_056": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-08T15:07:44"
+        },
+        "goat_2_bars_060_061": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-08T15:08:00"
+        },
+        "goat_2_bars_067_068": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-08T15:09:30"
+        }
+      }
+    },
+    "main_1": {
+      "decisions": {
+        "main_1_bars_001_002": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-08T15:13:04"
+        },
+        "main_1_bars_001_004": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-08T15:13:20"
+        }
+      }
+    },
+    "monkey_1": {
+      "decisions": {
+        "monkey_1_bars_002_003": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-08T02:34:52"
+        },
+        "monkey_1_bars_006_007": {
+          "cue_name": "",
+          "notes": "",
+          "status": "rejected",
+          "updated_at_utc": "2026-09-08T02:35:38"
+        },
+        "monkey_1_bars_006_009": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-08T02:35:50"
+        },
+        "monkey_1_bars_010_013": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-08T02:37:18"
+        },
+        "monkey_1_bars_018_019": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-08T02:38:12"
+        },
+        "monkey_1_bars_022_023": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-08T02:39:09"
+        },
+        "monkey_1_bars_027_030": {
+          "cue_name": "",
+          "notes": "",
+          "status": "rejected",
+          "updated_at_utc": "2026-09-08T02:40:39"
+        },
+        "monkey_1_bars_028_029": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-08T02:40:49"
+        },
+        "monkey_1_bars_032_033": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-08T02:41:54"
+        },
+        "monkey_1_bars_040_041": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-08T02:42:48"
+        }
+      }
+    },
+    "monkey_2": {
+      "decisions": {
+        "monkey_2_bars_001_002": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-08T13:08:15"
+        },
+        "monkey_2_bars_005_008": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-08T13:10:45"
+        },
+        "monkey_2_bars_009_012": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-08T13:12:04"
+        },
+        "monkey_2_bars_013_014": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-08T13:12:38"
+        },
+        "monkey_2_bars_014_015": {
+          "cue_name": "",
+          "notes": "",
+          "status": "rejected",
+          "updated_at_utc": "2026-09-08T13:12:28"
+        },
+        "monkey_2_bars_015_016": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-08T13:13:10"
+        },
+        "monkey_2_bars_018_019": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-08T13:13:41"
+        },
+        "monkey_2_bars_019_022": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-08T13:14:13"
+        },
+        "monkey_2_bars_026_029": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-08T13:16:57"
+        },
+        "monkey_2_bars_027_028": {
+          "cue_name": "",
+          "notes": "",
+          "status": "rejected",
+          "updated_at_utc": "2026-09-08T13:16:19"
+        },
+        "monkey_2_bars_031_032": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-08T13:18:32"
+        },
+        "monkey_2_bars_033_036": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-08T13:19:13"
+        },
+        "monkey_2_bars_037_038": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-08T13:20:00"
+        },
+        "monkey_2_bars_038_041": {
+          "cue_name": "",
+          "notes": "",
+          "status": "rejected",
+          "updated_at_utc": "2026-09-08T13:20:03"
+        },
+        "monkey_2_bars_041_042": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-08T13:20:23"
+        },
+        "monkey_2_bars_043_044": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-08T13:20:33"
+        },
+        "monkey_2_bars_045_046": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-08T13:20:39"
         }
       }
     },
@@ -571,23 +1237,41 @@
           "status": "approved",
           "updated_at_utc": "2026-09-02T05:10:55"
         },
-        "mouse_1_bars_011_012": {
+        "mouse_1_bars_006_009": {
           "cue_name": "",
           "notes": "",
           "status": "rejected",
-          "updated_at_utc": "2026-09-02T05:02:35"
+          "updated_at_utc": "2026-09-08T01:55:31"
         },
-        "mouse_1_bars_011_014": {
-          "cue_name": "MORNING_PHASE_1",
+        "mouse_1_bars_009_010": {
+          "cue_name": "",
+          "notes": "",
+          "status": "rejected",
+          "updated_at_utc": "2026-09-08T01:57:07"
+        },
+        "mouse_1_bars_009_012": {
+          "cue_name": "",
           "notes": "",
           "status": "approved",
-          "updated_at_utc": "2026-09-02T05:11:45"
+          "updated_at_utc": "2026-09-08T02:00:00"
         },
         "mouse_1_bars_018_019": {
           "cue_name": "MORNING_PHASE_2_SUSTAIN",
           "notes": "",
           "status": "approved",
           "updated_at_utc": "2026-09-02T05:13:03"
+        },
+        "mouse_1_bars_022_023": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-08T02:03:42"
+        },
+        "mouse_1_bars_029_032": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-08T02:06:17"
         },
         "mouse_1_bars_034_035": {
           "cue_name": "",
@@ -615,13 +1299,71 @@
         }
       }
     },
+    "mouse_2": {
+      "decisions": {
+        "mouse_2_bars_002_003": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-09T05:55:58"
+        },
+        "mouse_2_bars_004_005": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-09T05:56:43"
+        },
+        "mouse_2_bars_007_014": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-09T05:57:43"
+        },
+        "mouse_2_bars_014_021": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-09T06:00:56"
+        },
+        "mouse_2_bars_024_025": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-09T07:05:56"
+        },
+        "mouse_2_bars_027_034": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-09T07:08:57"
+        },
+        "mouse_2_bars_035_038": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-09T07:10:35"
+        }
+      }
+    },
     "pig_1": {
       "decisions": {
+        "pig_1_bars_001_002": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-11T03:16:21"
+        },
         "pig_1_bars_001_004": {
           "cue_name": "EVENT (4bars)",
           "notes": "",
           "status": "approved",
-          "updated_at_utc": "2026-09-02T05:24:07"
+          "updated_at_utc": "2026-09-11T03:15:40"
+        },
+        "pig_1_bars_003_004": {
+          "cue_name": "",
+          "notes": "",
+          "status": "rejected",
+          "updated_at_utc": "2026-09-11T03:15:01"
         },
         "pig_1_bars_006_017": {
           "cue_name": "",
@@ -647,6 +1389,24 @@
           "status": "approved",
           "updated_at_utc": "2026-09-02T05:32:35"
         },
+        "pig_1_bars_013_016": {
+          "cue_name": "",
+          "notes": "",
+          "status": "rejected",
+          "updated_at_utc": "2026-09-11T03:18:13"
+        },
+        "pig_1_bars_013_020": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-11T03:19:15"
+        },
+        "pig_1_bars_014_017": {
+          "cue_name": "",
+          "notes": "",
+          "status": "rejected",
+          "updated_at_utc": "2026-09-11T03:19:22"
+        },
         "pig_1_bars_021_024": {
           "cue_name": "",
           "notes": "",
@@ -656,8 +1416,14 @@
         "pig_1_bars_029_030": {
           "cue_name": "",
           "notes": "vocal",
+          "status": "rejected",
+          "updated_at_utc": "2026-09-11T03:21:27"
+        },
+        "pig_1_bars_029_032": {
+          "cue_name": "",
+          "notes": "",
           "status": "approved",
-          "updated_at_utc": "2026-09-02T05:28:52"
+          "updated_at_utc": "2026-09-11T03:21:25"
         }
       }
     },
@@ -686,6 +1452,218 @@
           "notes": "",
           "status": "approved",
           "updated_at_utc": "2026-09-02T05:40:22"
+        }
+      }
+    },
+    "rooster_1": {
+      "decisions": {
+        "rooster_1_bars_001_002": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-09T05:27:22"
+        },
+        "rooster_1_bars_003_004": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-09T05:27:39"
+        },
+        "rooster_1_bars_005_006": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-09T05:27:55"
+        },
+        "rooster_1_bars_006_009": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-09T05:28:53"
+        },
+        "rooster_1_bars_012_013": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-09T05:29:31"
+        },
+        "rooster_1_bars_012_015": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-09T05:30:02"
+        },
+        "rooster_1_bars_014_017": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-09T05:30:44"
+        },
+        "rooster_1_bars_028_029": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-09T05:34:21"
+        },
+        "rooster_1_bars_035_036": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-09T05:35:24"
+        },
+        "rooster_1_bars_040_041": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-09T05:36:10"
+        },
+        "rooster_1_bars_043_044": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-09T05:36:48"
+        },
+        "rooster_1_bars_047_048": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-09T05:37:19"
+        },
+        "rooster_1_bars_050_051": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-09T05:37:44"
+        }
+      }
+    },
+    "rooster_2": {
+      "decisions": {
+        "rooster_2_bars_001_002": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-09T05:38:41"
+        },
+        "rooster_2_bars_003_004": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-09T05:38:56"
+        },
+        "rooster_2_bars_005_006": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-09T05:39:14"
+        },
+        "rooster_2_bars_006_007": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-09T05:39:51"
+        },
+        "rooster_2_bars_007_008": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-09T05:40:05"
+        },
+        "rooster_2_bars_009_012": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-09T05:41:04"
+        },
+        "rooster_2_bars_009_016": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-09T05:41:57"
+        },
+        "rooster_2_bars_018_019": {
+          "cue_name": "",
+          "notes": "",
+          "status": "rejected",
+          "updated_at_utc": "2026-09-09T05:44:04"
+        },
+        "rooster_2_bars_018_021": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-09T05:44:15"
+        },
+        "rooster_2_bars_025_032": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-09T05:45:41"
+        },
+        "rooster_2_bars_033_034": {
+          "cue_name": "",
+          "notes": "",
+          "status": "rejected",
+          "updated_at_utc": "2026-09-09T05:46:40"
+        },
+        "rooster_2_bars_034_035": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-09T05:46:38"
+        },
+        "rooster_2_bars_038_039": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-09T05:47:31"
+        },
+        "rooster_2_bars_041_044": {
+          "cue_name": "",
+          "notes": "",
+          "status": "rejected",
+          "updated_at_utc": "2026-09-09T05:49:44"
+        },
+        "rooster_2_bars_041_048": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-09T05:49:42"
+        },
+        "rooster_2_bars_050_051": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-09T05:50:04"
+        },
+        "rooster_2_bars_054_055": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-09T05:50:32"
+        },
+        "rooster_2_bars_057_058": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-09T05:50:54"
+        },
+        "rooster_2_bars_059_060": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-09T05:51:23"
+        },
+        "rooster_2_bars_059_062": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-09T05:53:59"
+        },
+        "rooster_2_bars_064_065": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-09-09T05:54:49"
         }
       }
     }

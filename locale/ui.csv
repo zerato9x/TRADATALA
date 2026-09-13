@@ -160,8 +160,8 @@ HOW_TURN_TITLE,"MỘT LƯỢT","ONE TURN"
 HOW_TURN_BODY,"1. Rút đủ 10 lá\n2. Hạ/Ghép nếu muốn\n3. Bỏ đúng 1 lá","1. Refill to 10\n2. Meld/Extend if useful\n3. Discard exactly 1"
 HOW_PHASE_END_TITLE,"KẾT THÚC GIAI ĐOẠN","END THE PHASE"
 HOW_PHASE_END_BODY,"Lần bỏ thứ 4 mở Last Call.\nHạ/Ghép lần cuối, rồi nhấn CHỐT.","Discard #4 opens Last Call.\nMeld/Extend once more, then SETTLE."
-HOW_PHASE_CHOICE_TITLE,"GIỮ HAY ĐỔI","KEEP OR REDRAW"
-HOW_PHASE_CHOICE_BODY,"Phỏm trên bàn được giữ lại.\nGiai đoạn 2 cần ít nhất 1 Phỏm MỚI.","Played Melds stay.\nPhase 2 needs at least 1 NEW Meld."
+HOW_PHASE_CHOICE_TITLE,"SANG GIAI ĐOẠN 2","ENTER PHASE 2"
+HOW_PHASE_CHOICE_BODY,DUMP bài rời rồi bù lên 10. Chỉ Sâm dứa/Bạc xỉu cho GIỮ.\nPhỏm ở lại; cần ít nhất 1 Phỏm MỚI.,DUMP loose cards and refill toward 10. Only Sâm dứa/Bạc xỉu allow KEEP.\nMelds stay; make at least 1 NEW Meld.
 HOW_SCORING_INTRO,"Hạ và Ghép trả điểm ngay. Khi Chốt, bài rời bị trừ khỏi tổng Giai đoạn.","Meld and Extend pay immediately. At Settle, loose cards are deducted from the Phase total."
 HOW_SCORE_TOPIC_BASIC,"ĐIỂM CƠ BẢN","BASIC SCORING"
 HOW_SCORE_TOPIC_SPECIAL,"MÓM • Ù • Ù KHAN","SPECIAL OUTCOMES"
@@ -247,7 +247,7 @@ STATUS_TRA_DA_EXTRA_DISCARD,"TRÀ ĐÁ: BỎ THÊM 1 LÁ HOẶC KẾT THÚC LƯ�
 BANNER_TRA_DA_EXTRA_DISCARD,"KENG! TRÀ ĐÁ  •  +1 LÁ TÙY CHỌN","CLINK! TRÀ ĐÁ  •  OPTIONAL +1 DISCARD"
 DRINK_USED_THIS_PHASE,"Đã dùng trong Giai đoạn này.","Already used this Phase."
 DRINK_SAM_DUA_SELECTED,"Đã đánh dấu giữ %d lá nếu chọn ĐỔI.","Marked %d card(s) to preserve if REDRAW is chosen."
-DRINK_NUOC_VOI_CARD_VALID,"Có thể tháo bằng Nước vối. Chọn lá này rồi nhấn Đồ uống.","Removable with Nước vối. Select this card, then click the Drink."
+DRINK_NUOC_VOI_CARD_VALID,"Nhấn để lấy lại lá này bằng Nước vối.","Click to return this card to your hand with Nước vối."
 DRINK_NUOC_VOI_CARD_INVALID,"Không thể tháo lá này mà vẫn giữ Phỏm hợp lệ có ít nhất 3 lá.","This card cannot be removed while leaving a valid Meld of at least 3 cards."
 HUD_NO_DISCARDS,"CHƯA CÓ LÁ BỎ","NO DISCARDS YET"
 HUD_PHASE_SHORT,"P%d","P%d"
@@ -300,7 +300,7 @@ MELD_SELECT_EXTEND,"CHỌN ĐỂ GHÉP","SELECT TO EXTEND"
 MELD_TOOLTIP,"Nhấn để chọn %s này làm mục tiêu Ghép.","Click to target this %s for Extend."
 STATUS_RESOLVING,"ĐANG GIẢI QUYẾT…","RESOLVING…"
 STATUS_DRINK_TARGETING_ONE,"ĐỒ UỐNG ĐÃ SẴN SÀNG  •  CHỌN 1 LÁ CÓ VIỀN XANH  •  ESC ĐỂ HỦY","DRINK ARMED  •  CHOOSE 1 BLUE-OUTLINED CARD  •  ESC TO CANCEL"
-STATUS_DRINK_TARGETING_SAM_DUA,"SÂM DỨA ĐÃ SẴN SÀNG  •  ĐÃ CHỌN %d / 3  •  NHẤN ĐỒ UỐNG ĐỂ XÁC NHẬN","SÂM DỨA ARMED  •  SELECTED %d / 3  •  CLICK DRINK TO CONFIRM"
+STATUS_DRINK_TARGETING_SAM_DUA,"SÂM DỨA ĐÃ SẴN SÀNG  •  ĐÃ CHỌN %d / 3  •  NHẤN DÙNG NƯỚC ĐỂ XÁC NHẬN","SÂM DỨA ARMED  •  SELECTED %d / 3  •  PRESS USE DRINK TO CONFIRM"
 STATUS_PHASE_CHOICE,"GIAI ĐOẠN 1 ĐÃ KHÉP LẠI  •  CHỌN GIỮ HOẶC ĐỔI BÀI","PHASE 1 COMPLETE  •  CHOOSE KEEP OR REDRAW"
 STATUS_DEAL_OVER,"VÁN ĐÃ KẾT THÚC","DEAL COMPLETE"
 STATUS_LAST_CALL,"LAST CALL  •  HẠ/GHÉP TÙY Ý  •  KHÔNG BỎ THÊM  •  NHẤN CHỐT","LAST CALL  •  MELD/EXTEND FREELY  •  NO MORE DISCARDS  •  PRESS SETTLE"
@@ -369,3 +369,69 @@ BANNER_TRUE_EXHAUSTION_DISCARD,"TRUE EXHAUSTION    B? L? +%d DI?M","TRUE EXHAUS
 ACTION_END_TURN,"KẾT THÚC LƯỢT  [C]","END TURN  [C]"
 ACTION_END_TURN_TOOLTIP,"Bỏ qua lượt bỏ thêm tùy chọn của Trà đá và sang lượt kế.","Skip Trà đá's optional extra discard and continue to the next turn."
 BANNER_EXHAUSTION,"CẠN KIỆT  •  KÍCH HOẠT PHỎM  •  XÁO LẠI TOÀN BỘ","EXHAUSTION  •  MELDS TRIGGERED  •  FULL DECK RESHUFFLED"
+DRINK_ORDER,Cho cháu món này,I'll have this one
+DRINK_TEST_PRICE,Thử món: miễn phí (tạm thời),Tasting: free (temporary test price)
+DRINK_EXPLAIN,%s à? %s,%s? %s
+DRINK_RECEIPT,%s của cháu đây. Cứ thong thả chơi nhé. Muốn đổi món thì ghé cô buổi sau.,Here’s your %s. Take your time at the table. Come back next service to try something else.
+DRINK_CONFIRM_HINT,Chọn bài rồi bấm DÙNG NƯỚC để xác nhận. Esc để hủy.,"Choose cards, then click the glass again to confirm. Esc cancels."
+NPC_GREETING_TRA_DA_AUNTIE,"Ngồi xuống đi cháu. Thích ly nào cứ chỉ, cô kể cho nghe rồi hãy chọn.",Have a seat. Point to any drink and I’ll tell you what it does before you choose.
+NPC_GREETING_DANH_GIAY,"Anh chị ngồi nghỉ đi ạ! Hôm nay em chưa nhận đánh giày, nhưng ngồi nói chuyện với em chút nha.",Hi! Want to sit here a bit? I’m not shining shoes yet today. You can keep me company though!
+NPC_GREETING_HANG_RONG,"Ghé xem cho vui nhé. Hàng hôm nay chưa bán, khi nào sẵn tôi gọi.",Come have a look. These goods aren’t for sale yet; I’ll let you know when they’re ready.
+NPC_GREETING_LOTTO,Ngồi đây nghe chuyện chút nhé. Hôm nay chưa nhận số đâu.,Stay for a little gossip. I’m not taking number bets yet.
+NPC_GREETING_THAY_BOI,Muốn xem quẻ thì chọn bài trước. Cứ xem kỹ rồi hãy gieo.,"If you want a reading, choose your cards first. Take a good look before you cast."
+DRINK_EFFECT_TRA_DA,Miễn phí. Mỗi lượt có thể bỏ thêm một lá sau lá bắt buộc. Bấm Kết lượt nếu không muốn dùng.,"Free. After each mandatory discard, you may discard one extra card. Choose End Turn to skip the extra discard."
+DRINK_EFFECT_NHAN_TRAN,"Mỗi lượt đổi một lá rác trên tay với một lá bỏ bắt buộc của hiệp này. Last Call dùng lượt còn lại, không thêm lượt.","Once per Turn, swap a loose card with a mandatory discard from this Phase. Last Call shares your final Turn’s unused charge."
+DRINK_EFFECT_NUOC_VOI,"Mỗi hiệp lấy lại một lá từ Phỏm, miễn phần còn lại vẫn hợp lệ và có ít nhất ba lá. Tiền đã ăn vẫn giữ.","Once per Phase, take one card back from a Meld if at least three cards remain legal. Your earned score stays banked."
+DRINK_EFFECT_SAM_DUA,"Trước khi kết hiệp một, chọn tối đa ba lá rác để giữ. Chọn DUMP thì bỏ phần còn lại, bù tay lên mười. Các lá giữ vẫn tính phạt hiệp một.","Before settling Phase 1, preserve up to three loose cards. DUMP replaces the rest and refills toward ten. Preserved cards still count as Phase 1 deadwood; KEEP has no preservation effect."
+DRINK_EFFECT_DEN_DA,"Mỗi lượt đổi một lá rác trên tay với bất kỳ lá nào còn trong chồng bỏ của ván này, kể cả DUMP. Last Call không thêm lượt dùng.","Once per Turn, swap a loose card with any card still in this Deal’s discards, including extra and DUMP cards. Last Call adds no charge."
+DRINK_EFFECT_NAU_DA,Mỗi hiệp lấy lại cả một Phỏm lên tay. Tiền cũ giữ nguyên; hạ lại hợp lệ thì ăn như Phỏm mới. Không giới hạn tay khi lấy lại.,"Once per Phase, take a whole Meld back into your hand. Keep the old score; lay those cards again legally and they score as a new Phỏm. No hand cap on recovery."
+DRINK_EFFECT_BAC_XIU,"Như Sâm dứa nhưng giữ bao nhiêu lá rác cũng được, từ không lá đến cả tay. DUMP bỏ phần không chọn; vẫn tính phạt rồi mới bù lên mười.","Before settling Phase 1, preserve any number of loose cards, including zero or all. DUMP only the rest. All cards count as deadwood first, then refill toward ten; KEEP has no preservation effect."
+DRINK_EFFECT_STING,"Mỗi hiệp hạ được một đôi đồng hạng thành Phỏm Bộ. Ăn điểm bình thường, tránh MÓM và gửi thêm đồng hạng được.","Once per Phase, lay exactly two same-rank cards as a Set Phỏm. It scores normally, prevents MÓM, and accepts matching-rank extensions."
+DRINK_EFFECT_BO_HUC,Mỗi lượt hạ được một đôi đồng hạng thành Phỏm Bộ. Ăn như thường. Last Call không cấp thêm lượt dùng.,"Once per Turn, lay exactly two same-rank cards as a Set Phỏm. Normal scoring and extensions apply. Last Call adds no charge."
+DRINK_EFFECT_C2_ICED_TEA,"Mỗi ván tạo một Dây không cần đồng chất: ít nhất ba hạng liền nhau, Át thấp, không vòng. Dây đó gửi thêm khác chất được cả ván.","Once per Deal, create a Run ignoring suit: at least three unique consecutive ranks, Ace low, no wrap. That Run keeps accepting off-suit endpoints for the rest of the Deal."
+DRINK_EFFECT_MIA_TAC,"Dây được trộn Cơ với Rô, kể cả khi gửi. Hạng vẫn liền nhau, Át thấp, không vòng. Không trộn hai chất đen.","Runs may mix Hearts and Diamonds, including extensions. Ranks stay unique and consecutive, Ace low, no wrap. Black suits gain no compatibility."
+DRINK_EFFECT_MIA_SAU_RIENG,"Dây được trộn Bích với Tép, kể cả khi gửi. Hạng vẫn liền nhau, Át thấp, không vòng. Không trộn hai chất đỏ.","Runs may mix Spades and Clubs, including extensions. Ranks stay unique and consecutive, Ace low, no wrap. Red suits gain no compatibility."
+NPC_ASK_BUSINESS,Hôm nay thế nào?,How is business?
+NPC_LEAVE,Cháu đi nhé.,I'll let you work.
+NPC_CHAT_DANH_GIAY,Sáng giờ ai cũng đi vội hết á. Em đang để dành tiền mua quả bóng mới. Anh chị biết đá bóng không?,Everyone keeps rushing past! I’m saving up for a new football. Do you play?
+NPC_CHAT_HANG_RONG,Sáng gánh đi đầy cả hai đầu. Chiều nhẹ vai là mừng rồi.,I carry a full load out each morning. A lighter load home is a good day.
+NPC_CHAT_LOTTO,Người trúng thì kể cả tuần. Người trượt thì bảo mai sẽ khác.,A winner tells the story all week. Everyone else says tomorrow will be different.
+NPC_CHAT_THAY_BOI,Quẻ chỉ là lời gợi. Bài nằm trong tay cháu thì cháu tự quyết.,A reading is only a suggestion. The cards are in your hands; the choice is yours.
+DRINK_TARGET_ANY_DISCARD,Chọn một lá trên tay và một lá bỏ có viền xanh.,Choose one loose card and one highlighted discard.
+DRINK_TARGET_WHOLE_MELD,Chọn cả một Phỏm để lấy lại. Esc để hủy.,Choose a whole Meld to reclaim. Esc cancels.
+DRINK_TARGET_PAIR,Chọn đúng hai lá đồng hạng rồi bấm DÙNG NƯỚC để hạ.,Choose exactly two same-rank cards; press USE DRINK to lay them.
+DRINK_TARGET_RUN,Chọn ít nhất ba hạng liền nhau rồi bấm DÙNG NƯỚC để hạ.,Choose at least three consecutive ranks; press USE DRINK to lay them.
+DRINK_TARGET_PRESERVE_ANY,Đã chọn giữ %d lá • bấm DÙNG NƯỚC để xác nhận • Esc để hủy.,%d cards marked • press USE DRINK to confirm • Esc cancels.
+DRINK_CLASS_BASIC,CƠ BẢN,BASIC
+DRINK_CLASS_CAFFEINE,CAFFEINE,CAFFEINE
+DRINK_CLASS_ENERGY,NĂNG LƯỢNG,ENERGY
+DRINK_CLASS_SUGAR,ĐƯỜNG,SUGAR
+VERB_LEGEND_TITLE,TỪ KHÓA HÀNH ĐỘNG,ACTION WORDS
+VERB_MELD,HẠ,MELD
+VERB_HELP_MELD,Tạo Phỏm mới từ bài trên tay.,Lay a new Phỏm from loose cards.
+VERB_EXTEND,GỬI / GHÉP,EXTEND
+VERB_HELP_EXTEND,Thêm bài hợp lệ vào Phỏm trên bàn.,Add legal cards to an existing Meld.
+VERB_DISCARD,BỎ,DISCARD
+VERB_HELP_DISCARD,Bỏ một lá; chỉ lá bắt buộc mới tính lượt.,Discard one card; only mandatory discards advance the count.
+VERB_DUMP,DUMP / ĐỔI BÀI,DUMP / REDRAW
+VERB_HELP_DUMP,Bỏ bài rời giữa hai hiệp; chỉ Đồ uống giữ bài mới cho ngoại lệ.,Discard loose cards between Phases; preservation Drinks allow exceptions.
+VERB_KEEP,GIỮ / BẢO LƯU,KEEP / PRESERVE
+VERB_HELP_KEEP,Mang bài sang hiệp sau nhờ Sâm dứa hoặc Bạc xỉu.,Carry cards forward with Sâm dứa or Bạc xỉu.
+VERB_DRAW,RÚT / BÙ,DRAW / REFILL
+VERB_HELP_DRAW,Rút từ nọc và bù tay về mười lá.,Draw from stock and refill toward ten cards.
+VERB_SWAP,ĐỔI LÁ,SWAP
+VERB_HELP_SWAP,Đổi một lá trên tay với một lá bỏ hợp lệ.,Exchange a loose card with a valid discard.
+VERB_RECOVER,LẤY LẠI,RECOVER
+VERB_HELP_RECOVER,Đưa bài từ Phỏm về tay; tiền đã ăn vẫn giữ.,Return Meld cards to hand; earned score stays banked.
+VERB_SETTLE,CHỐT,SETTLE
+VERB_HELP_SETTLE,Khép hiệp và tính phạt bài rời.,Finish the Phase and settle deadwood.
+VERB_ORDER,MUA / GỌI MÓN,ORDER
+VERB_HELP_ORDER,Xác nhận chọn Đồ uống; xem trước chưa phải mua.,Confirm your Drink choice; inspection is not a purchase.
+VERB_END_TURN,KẾT LƯỢT,END TURN
+VERB_HELP_END_TURN,Sang lượt mới; bỏ qua lá bỏ thêm tùy chọn của Trà đá.,Start the next Turn; skip Trà đá's optional extra discard.
+ACTION_DRINK_CONFIRM,"DÙNG NƯỚC","USE DRINK"
+ACTION_DRINK_CANCEL,"HỦY · Esc","CANCEL · Esc"
+DRINK_PICK_DISCARD,"ĐỔI · CHỌN LÁ MUỐN LẤY","SWAP · CHOOSE THE CARD TO TAKE"
+DRINK_NO_LEGAL_TARGET,"Hiện chưa có lá hợp lệ. Bạn vẫn còn lượt dùng nước.","No legal target yet. Your Drink charge is still available."
+DRINK_RECOVER_MELD,"LẤY LẠI PHỎM","RECOVER MELD"
+DRINK_RECOVER_CARD,"LẤY LẠI LÁ","RECOVER CARD"

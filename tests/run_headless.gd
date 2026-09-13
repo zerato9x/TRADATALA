@@ -1,6 +1,7 @@
 extends SceneTree
 
 const TestSuiteScript := preload("res://tests/test_core_deal.gd")
+const DrinkRosterSuiteScript := preload("res://tests/test_drink_roster.gd")
 const CampaignTestSuiteScript := preload("res://tests/test_campaign.gd")
 const MoneyPresentationTestSuiteScript := preload("res://tests/test_money_presentation.gd")
 const GieoQueTestSuiteScript := preload("res://tests/test_gieo_que.gd")
@@ -11,6 +12,7 @@ func _initialize() -> void:
 	var runner := McpTestRunner.new()
 	var result := runner.run_suites([
 		TestSuiteScript.new(),
+		DrinkRosterSuiteScript.new(),
 		CampaignTestSuiteScript.new(),
 		MoneyPresentationTestSuiteScript.new(),
 		GieoQueTestSuiteScript.new(),

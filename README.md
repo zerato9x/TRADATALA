@@ -38,7 +38,7 @@ Distribute `TRADATALA-v1.0.1.exe` together with `TRADATALA-v1.0.1.pck`. The PCK 
 - Ready action cards carry one reusable animated outline: flowing green for a legal new Phỏm, orange for a legal table extension, and blue for an active Drink target. Any combination can coexist in the same multicolor sweep without covering the card face. The Drink box keeps its own blue charge outline until spent, while Sâm dứa preservation keeps blue on marked cards until the Phase transition resolves.
 - Click the `BỎ • XEM` pile to open every discarded card grouped into Bích, Cơ, Rô, and Tép columns.
 - Hover the active Drink for its complete effect and timing. Click the charged Drink first to arm it, then choose its eligible target objects; blue gradients identify every current Drink target.
-- For Sâm dứa, click the Drink during Phase 1 LAST CALL, select up to three blue-outlined loose cards, then click the Drink again to confirm before CHỐT; those marked cards survive only if the following choice is DUMP.
+- Drink targeting raises selected cards and exposes **Use Drink** and **Cancel / Esc**. Swap Drinks open a larger legal-discard picker after choosing a hand card. For Sâm dứa, select up to three cards during Phase 1 LAST CALL and press **Use Drink** before CHỐT; those marked cards survive only if the following choice is DUMP.
 - `K` / `X`: KEEP / DUMP at the Phase 1 settlement.
 - `Esc`: clear card and Meld selection.
 - After Phase 2, continue into the next campaign Event; the wallet persists across all 28 Deals.
@@ -63,7 +63,7 @@ Buttons remain disabled until their action is legal. The footer explains the cur
 
 - Exhaustion is checked only when an active draw/refill requests a card from an already-empty draw deck. The interrupted request triggers each current table Meld once, rebuilds and shuffles the draw deck from discard, spent/DUMP, and table-Meld cards, then resumes until the original request is satisfied. Drawing the final requested stock card does not trigger Exhaustion.
 
-The prototype now follows the two-Phase Deal contract: each Phase has four mandatory discards, a player-confirmed LAST CALL window, and its own settlement. Table Phỏm persist across Phases; Phase 1 then offers KEEP or DUMP, with DUMP refilling toward ten.
+The prototype now follows the two-Phase Deal contract: each Phase has four mandatory discards, a player-confirmed LAST CALL window, and its own settlement. Table Phỏm persist across Phases. Normal Phase 2 entry automatically DUMPs loose cards and refills toward ten; only Sâm dứa and Bạc xỉu allow KEEP / preservation.
 
 - Deadwood is calculated once per Phase. A safe Phase uses the simple sum of remaining loose-card values; a MÓM Phase uses `value sum × loose-card count`. Phase Net is `Gross after Ù − Deadwood`.
 - MÓM is checked independently per Phase from new Phỏm count. Its multiplied Deadwood is charged immediately at that Phase's settlement, with no later Wallet percentage penalty.
@@ -73,7 +73,7 @@ The prototype now follows the two-Phase Deal contract: each Phase has four manda
 - Sets accept any number of same-rank physical cards; Runs require one suit, unique consecutive ranks, A low, and no wrap.
 - Every card sent to the discard pile remains available through the suit-grouped discard archive; mandatory discards retain Phase and discard-number provenance in the Deal record.
 - Each card's hover badge summarizes its best canonical three-card Set/Run target. Percentages are exact without-replacement odds for the next refill toward ten, using the known remaining deck; the full target and missing-card calculation stay in the tooltip so probability information does not obstruct the table.
-- Exactly one Drink is active at a time, and basic Drinks manipulate card flow only—never scoring. Trà đá passively requires two discards per turn: the first is the Phase's mandatory discard, the second is separately recorded and must resolve before refill/LAST CALL. Nhân trần swaps one selected loose card with any mandatory discard from the current Phase once per Phase; Nước vối returns one legal card from a table Meld once per Phase without removing banked score; Sâm dứa preserves up to three marked loose cards during the Phase 1 DUMP before the normal refill toward ten. Trà đá is the current free starter. Advanced Caffeine/Energy/Sugar IDs and categories exist without invented formulas.
+- Exactly one Drink is active at a time. All 12 Drinks are implemented for mechanics testing, available in both Starter and Noon shops at an explicitly temporary zero test price. Every Drink effect is optional: Trà đá lets you skip its extra discard with End Turn. Nhân trần and Đen đá reset each normal Turn, with no bonus LAST CALL charge. Energy Pair creation and C2 Run creation require explicit Drink targeting. Drinks add no score multiplier; new Phỏm use the ordinary scoring pipeline. See [Drink roster and conversation flow](docs/DRINK_ROSTER_TESTING.md) for rules and controls.
 - Every implemented basic Drink has a reactive opportunity cue on the Sound bus. The three glass-clink variants rotate without immediate repetition and fire only on the inactive-to-active edge: Trà đá after its first discard, Nhân trần when a current-Phase discard completes a hand Meld, Nước vối when a legal Meld card can be recovered, and Sâm dứa on entry to the Phase 1 preservation window.
 - Card manipulation also routes through the Sound bus: selecting a card plays the dedicated choose clip, successful Phỏm/extension/discard placement rotates three non-repeating place clips, every non-empty draw result plays the draw clip once, and an authoritative Deal reset plays the shuffle clip. Hidden boot setup stays silent.
 - Scoring and resolution expose controlled hooks for new Phỏm, Extensions, settlement, Deadwood, MÓM, Deal resolution, and Ù.
@@ -86,7 +86,7 @@ The prototype now follows the two-Phase Deal contract: each Phase has four manda
 - Daily VND thresholds and Drink prices are provisional data in `campaign_config.gd` and `drink_manager.gd`; thresholds are not deducted, and the wallet carries across days.
 - Failing any end-of-day threshold ends the run. Passing Sunday's threshold wins the current early campaign without a Zodiac boss.
 
-The Escape/Menu window defaults to the reactive Authored DJ system for a new campaign: the approved Mèo/CAT route plays on day one, the Chó/DOG route on day two, and the two routes alternate by day. The standalone album player for all 26 OST files remains available as an explicit Playing Tracks option, with cover art, track selection, progress, next-track preview, play/pause, Shuffle, and Repeat Off/All/One; its spectrum still drives four presentation frequency bands. The offline `MusicLoopAudition` tester also supports arranging bar-aligned segments into named, repeatable sections without changing the source WAVs. Relics, advanced Drink formulas, Zodiac bosses, special weekday mechanics, story chains, shops, multiplayer, AI opponents, broader ambient/UI sound design, and 3D presentation remain intentionally unimplemented.
+The Escape/Menu window defaults to the reactive Authored DJ system for a new campaign: the approved Mèo/CAT route plays on day one, the Chó/DOG route on day two, and the two routes alternate by day. The standalone album player for all 26 OST files remains available as an explicit Playing Tracks option, with cover art, track selection, progress, next-track preview, play/pause, Shuffle, and Repeat Off/All/One; its spectrum still drives four presentation frequency bands. The offline `MusicLoopAudition` tester also supports arranging bar-aligned segments into named, repeatable sections without changing the source WAVs. Relics, final Drink progression/prices/art, Zodiac bosses, special weekday mechanics, story chains, non-Drink shops, multiplayer, AI opponents, broader ambient/UI sound design, and 3D presentation remain intentionally unimplemented.
 
 ## Verification
 
@@ -105,3 +105,20 @@ Godot_v4.7.1-stable_win64_console.exe --headless --path . --script res://tests/r
 Godot_v4.7.1-stable_win64_console.exe --headless --path . --script res://tests/tutorial_scene_smoke.gd
 ```
 
+## Gieo permanent card marks
+
+For the pull-error fix, sprite alignment, screen behavior, and the 64-composition
+runtime regression, see [Gieo Quẻ screen audit](docs/GIEO_QUE_SCREEN.md).
+
+Gieo-modified cards combine four always-on signatures: a vermilion seal, spectral
+frame, gilded diagonal cuts and liquid foil. The developer comparison at
+`scenes/debug/gieo_card_fx_preview.tscn` (F6) shows all 16 property states on 48 cards,
+with native-size artwork and a clickable enlarged inspector.
+See [Gieo materials](docs/GIEO_CARD_FX.md) for composition, tuning and actual checks.
+Focused tests passed 90/90; the runtime smoke passed with shutdown resource
+diagnostics documented there. Live GPU checks cover all combinations and animation.
+
+
+## Drink roster and NPC conversations
+
+All twelve Drinks have mechanics-testing effects at a temporary zero test price. The table shop uses inspect-before-order interactions, shared localized NPC speech, and an action-word legend; only Sâm dứa and Bạc xỉu offer the Phase transition preservation choice. See [Drink roster and NPC conversation testing](docs/DRINK_ROSTER_TESTING.md) for the rules and current verification evidence.

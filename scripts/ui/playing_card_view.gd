@@ -31,6 +31,7 @@ var _drink_emphasized: bool = false
 var _press_active: bool = false
 var _dragging: bool = false
 var _press_position := Vector2.ZERO
+var drag_enabled: bool = true
 
 
 func _ready() -> void:
@@ -222,6 +223,7 @@ func _apply_card_texture() -> void:
 	if _texture == null or card == null:
 		return
 	_texture.texture = load(card.texture_path()) as Texture2D
+	GieoCardFX.attach_texture(_texture, card)
 
 
 func _refresh_tooltip() -> void:
@@ -237,12 +239,14 @@ func _refresh_tooltip() -> void:
 
 
 func _gui_input(event: InputEvent) -> void:
+	if not _interaction_enabled:
+		return
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		accept_event()
 		if event.pressed:
 			_press_active = true
 			_dragging = false
-			_press_position = event.position
+			_press_position = get_global_transform() * event.position
 		elif _press_active:
 			var was_dragging := _dragging
 			_press_active = false
@@ -252,7 +256,9 @@ func _gui_input(event: InputEvent) -> void:
 			_refresh_z_index()
 			_update_pose(true)
 	elif event is InputEventMouseMotion and _press_active:
-		if not _dragging and event.position.distance_to(_press_position) >= DRAG_THRESHOLD:
+		# Hover and selection animate the Control underneath a stationary pointer.
+		# Measure pointer travel in canvas coordinates, never moving card coordinates.
+		if drag_enabled and not _dragging and (get_global_transform() * event.position).distance_to(_press_position) >= DRAG_THRESHOLD:
 			_dragging = true
 			_refresh_z_index()
 			_update_pose(true)
