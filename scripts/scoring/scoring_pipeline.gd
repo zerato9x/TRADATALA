@@ -70,7 +70,7 @@ func preview_extension(
 	_apply_modifiers(context)
 	context.theoretical_score = _calculate_theoretical(context)
 	context.base_extension_score = maxi(context.theoretical_score - old_meld_score, 0)
-	if is_set_milestone(meld_type, all_cards.size()):
+	if is_set_milestone(meld_type, all_cards.size()) or is_perfected_run(all_cards, meld_type):
 		_resolve_full_meld_trigger(context)
 	else:
 		_resolve_origin_and_gieo_retriggers(context, context.base_extension_score)
@@ -92,7 +92,8 @@ static func is_set_milestone(meld_type: String, card_count: int) -> bool:
 
 
 static func is_perfected_run(cards: Array[CardData], meld_type: String) -> bool:
-	if meld_type != MeldRules.TYPE_RUN or cards.size() != 13 or not MeldRules.is_run(cards):
+	# DealState validates the meld's suit compatibility; legal drink Runs can mix suits.
+	if meld_type != MeldRules.TYPE_RUN or cards.size() != 13 or not MeldRules.is_compatible_run(cards, "any"):
 		return false
 	var ranks: Array[int] = []
 	for card in cards:
@@ -194,7 +195,57 @@ func _make_scoring_pass(context: ScoringContext, pass_index: int, origin: String
 	scoring_pass.trigger_origin = origin
 	scoring_pass.retrigger_count = 0
 	scoring_pass.final_points = points
+	if origin == TRIGGER_GIEO_RETRIGGER:
+		var property_id := GieoQueService.PROPERTY_SET_RETRIGGER if context.meld_type == MeldRules.TYPE_SET else GieoQueService.PROPERTY_RUN_RETRIGGER
+		var source_index := 0
+		for previous: ScoringContext in context.scoring_passes:
+			if previous.trigger_origin == TRIGGER_GIEO_RETRIGGER:
+				source_index += 1
+		for card in context.cards:
+			if card.has_gieo_property(property_id):
+				if source_index == 0:
+					scoring_pass.retrigger_source_id = card.unique_id
+					scoring_pass.retrigger_property = property_id
+					break
+				source_index -= 1
+	_build_presentation_hits(scoring_pass)
 	return scoring_pass
+
+
+func _build_presentation_hits(context: ScoringContext) -> void:
+	# An ordinary extension pays a delta. Show the committed cards, then the
+	# remaining meld revaluation explicitly, rather than inventing card payouts.
+	var delta_pass := context.action_type == "extension" and context.trigger_index == 0 and not is_set_milestone(context.meld_type, context.cards.size()) and not is_perfected_run(context.cards, context.meld_type)
+	var shown_cards: Array[CardData] = context.added_cards if delta_pass else context.cards
+	var accounted := 0
+	for card in shown_cards:
+		var points := card.score_value() * context.local_mult
+		context.presentation_hits.append(_card_hit(card, points, ""))
+		accounted += points
+		var property_id := ""
+		if context.action_type == "new_meld" and card.has_gieo_property(GieoQueService.PROPERTY_MAKING_PHOM_RETRIGGER):
+			property_id = GieoQueService.PROPERTY_MAKING_PHOM_RETRIGGER
+		elif context.action_type == "extension" and context.added_cards.has(card) and card.has_gieo_property(GieoQueService.PROPERTY_EXTEND_RETRIGGER):
+			property_id = GieoQueService.PROPERTY_EXTEND_RETRIGGER
+		if not property_id.is_empty():
+			context.presentation_hits.append(_card_hit(card, points, property_id))
+			accounted += points
+	var adjustment := context.final_points - accounted
+	if adjustment != 0:
+		context.presentation_hits.append({
+			"card_id": "", "label": "", "texture_path": "", "properties": [],
+			"property": "", "kind": "meld_delta" if delta_pass else "modifier",
+			"points": adjustment,
+		})
+
+
+func _card_hit(card: CardData, points: int, property_id: String) -> Dictionary:
+	return {
+		"card_id": card.unique_id, "label": card.short_label(),
+		"texture_path": card.texture_path(), "properties": card.gieo_properties.duplicate(),
+		"property": property_id, "kind": "card" if property_id.is_empty() else "card_retrigger",
+		"points": points,
+	}
 
 
 func _apply_making_phom_retrigger(context: ScoringContext) -> void:

@@ -29,19 +29,39 @@ func _run() -> void:
 		await process_frame
 		npc_layout_wait_frames += 1
 	_check(npc_viewport.encloses(npc.get_global_rect()), "fortune teller fits inside campaign viewport; rect=%s" % npc.get_global_rect())
-	for frame in range(8):
+	for frame in range(5):
 		panel._set_lever_frame(frame)
-		var atlas := panel._lever_image.texture as AtlasTexture
-		_check(Rect2(Vector2.ZERO, atlas.atlas.get_size()).encloses(atlas.region), "lever frame %d stays inside atlas" % frame)
+		_check(panel._lever_image.texture == GieoQuePanel.LEVER_FRAMES[frame], "lever uses cropped frame %d" % frame)
+		_check(panel._lever_image.texture.get_size() == Vector2(297, 359), "lever canvas stays fixed")
+	panel._set_lever_frame(0)
+	_check(is_equal_approx(npc.size.y, 600.0), "fortune teller retains full-size portrait")
+	_check(scene.event_table.conversation.position == Vector2(20, 510), "dialogue stays in the lower-left area")
+	_check(panel._lever_button.z_index > 0, "lever draws over cabinet mount")
+	_check(panel._stage.get_node("OracleTitle").get_rect().end.y < 80, "title stays inside cabinet plaque")
+	for reel in panel._reels:
+		_check((reel["panel"] as Control).clip_contents, "reel motion is clipped to drum")
+		_check((reel["panel"] as Control).find_children("*", "Label", true, false).is_empty(), "drum contains symbols only")
+	if "--capture" in OS.get_cmdline_user_args():
+		Engine.time_scale = 1.0
+		await _capture("ready")
 	service.wallet.reset(1_000_000)
+	var pull_started := Time.get_ticks_msec()
 	panel._lever_button.pressed.emit()
 	_check(panel._busy and scene.event_table.back_button.disabled, "pull locks campaign navigation immediately")
 	panel._on_cast_pressed(false)
 	_check(service.paid_cast_count_today == 0, "double pull cannot charge twice")
+	if "--capture" in OS.get_cmdline_user_args():
+		await create_timer(0.4).timeout
+		await _capture("spinning")
 	await _wait_idle(panel)
 	_check(panel.presentation_state == GieoQuePanel.PresentationState.SHOWING_RESULT, "full lever and both trigram animations finish")
 	_check(panel.displayed_reel_values() == service.current_result["lines"], "six rendered lines match charged result")
 	_check(panel._decision_row.is_visible_in_tree(), "decisions become visible after reveal")
+	_check(Rect2(Vector2(306, 431), Vector2(442, 98)).encloses(panel._decision_row.get_rect()), "choices fit inside cabinet lower HUD")
+	if "--capture" in OS.get_cmdline_user_args():
+		_check(Time.get_ticks_msec() - pull_started < 3500, "real-time cast reaches choices in under 3.5 seconds")
+		await _capture("result")
+	Engine.time_scale = 30.0
 	await panel._on_cast_pressed(true)
 	_check(service.paid_cast_count_today == 1 and service.wallet.balance_vnd == 990_000, "animated reroll charges once")
 	panel._on_refuse_pressed()
@@ -101,3 +121,9 @@ func _check(ok: bool, message: String) -> void:
 	checks += 1
 	if not ok:
 		failures.append(message)
+
+
+func _capture(label: String) -> void:
+	await process_frame
+	await RenderingServer.frame_post_draw
+	root.get_texture().get_image().save_png("res://.godot/gieo_%s.png" % label)

@@ -1,7 +1,7 @@
 class_name MusicAntiFatigue
 extends Node
 
-## Runtime-only EQ variation for a cue that remains held across many loop wraps.
+## A gradual low-pass descent after four held loops; release restores full range.
 ## The authored stream and MusicDirector transport are intentionally unaware of
 ## these filters; this node only changes the existing Music bus at runtime.
 
@@ -9,33 +9,20 @@ signal state_changed(next_state: StringName)
 
 const STATE_FULL: StringName = &"FULL"
 const STATE_DARK: StringName = &"DARK"
-const STATE_THIN: StringName = &"THIN"
-const STATE_MID: StringName = &"MID"
-const LOOP_PASSES_BEFORE_VARIATION := 2
+const LOOP_PASSES_BEFORE_VARIATION := 4
 const FULL_HIGH_PASS_HZ := 20.0
 const FULL_LOW_PASS_HZ := 20_000.0
 const DARK_HIGH_PASS_HZ := 20.0
 const DARK_LOW_PASS_HZ := 4_000.0
-const THIN_HIGH_PASS_HZ := 240.0
-const THIN_LOW_PASS_HZ := 20_000.0
-const MID_HIGH_PASS_HZ := 240.0
-const MID_LOW_PASS_HZ := 4_200.0
-const STATE_POOL: Array[StringName] = [
-	STATE_FULL, STATE_FULL, STATE_FULL,
-	STATE_DARK, STATE_DARK,
-	STATE_THIN,
-	STATE_MID,
-]
 
 @export var enabled := true
 @export var debug_logging := false
-@export_range(0.0, 1.0, 0.01) var transition_seconds := 0.35
+@export_range(0.0, 60.0, 0.5) var transition_seconds := 16.0
 
 var bus_name: StringName = &"Music"
 var current_cue_id := ""
 var loop_pass_count := 0
 var current_state: StringName = STATE_FULL
-var state_rng := RandomNumberGenerator.new()
 
 var high_pass_filter: AudioEffectHighPassFilter
 var low_pass_filter: AudioEffectLowPassFilter
@@ -51,7 +38,6 @@ var _transition_duration := 0.0
 
 
 func _ready() -> void:
-	state_rng.randomize()
 	if enabled:
 		_ensure_filter_effects()
 	_apply_filter_cutoffs()
@@ -66,7 +52,7 @@ func _process(delta: float) -> void:
 	)
 	var ratio := _transition_elapsed / _transition_duration
 	_current_high_pass_hz = lerpf(_transition_start_high_pass_hz, _target_high_pass_hz, ratio)
-	_current_low_pass_hz = lerpf(_transition_start_low_pass_hz, _target_low_pass_hz, ratio)
+	_current_low_pass_hz = exp(lerpf(log(_transition_start_low_pass_hz), log(_target_low_pass_hz), smoothstep(0.0, 1.0, ratio)))
 	_apply_filter_cutoffs()
 	if ratio >= 1.0:
 		_transition_duration = 0.0
@@ -84,25 +70,16 @@ func _exit_tree() -> void:
 func cue_started(cue_id: String) -> void:
 	current_cue_id = cue_id
 	loop_pass_count = 0
-	_set_state(STATE_FULL, true)
+	_set_state(STATE_FULL, false)
 
 
 func loop_completed(cue_id: String) -> void:
 	if not enabled or current_cue_id.is_empty() or cue_id != current_cue_id:
 		return
 	loop_pass_count += 1
-	if loop_pass_count <= LOOP_PASSES_BEFORE_VARIATION:
-		_set_state(STATE_FULL, false)
-		_log_pass(loop_pass_count, STATE_FULL)
-		if loop_pass_count == LOOP_PASSES_BEFORE_VARIATION:
-			var first_variation := _choose_next_state(STATE_FULL)
-			_set_state(first_variation, false)
-			_log_pass(loop_pass_count + 1, first_variation)
-		return
-	var next_state := _choose_next_state(current_state)
-	_set_state(next_state, false)
-	_log_pass(loop_pass_count + 1, next_state)
-
+	# Four full wraps, then one continuous descent. Later wraps never restart it.
+	if loop_pass_count == LOOP_PASSES_BEFORE_VARIATION:
+		_set_state(STATE_DARK, false)
 
 func prepare_for_cue_change() -> void:
 	current_cue_id = ""
@@ -127,16 +104,6 @@ func set_enabled(value: bool) -> void:
 		_remove_filter_effect(low_pass_filter)
 		high_pass_filter = null
 		low_pass_filter = null
-
-
-func _choose_next_state(previous_state: StringName) -> StringName:
-	var choices: Array[StringName] = []
-	for candidate in STATE_POOL:
-		if candidate != previous_state:
-			choices.append(candidate)
-	if choices.is_empty():
-		return STATE_FULL
-	return choices[state_rng.randi_range(0, choices.size() - 1)]
 
 
 func _set_state(next_state: StringName, immediate: bool) -> void:
@@ -165,16 +132,12 @@ func _targets_for_state(state: StringName) -> Dictionary:
 	match state:
 		STATE_DARK:
 			return {"high_pass_hz": DARK_HIGH_PASS_HZ, "low_pass_hz": DARK_LOW_PASS_HZ}
-		STATE_THIN:
-			return {"high_pass_hz": THIN_HIGH_PASS_HZ, "low_pass_hz": THIN_LOW_PASS_HZ}
-		STATE_MID:
-			return {"high_pass_hz": MID_HIGH_PASS_HZ, "low_pass_hz": MID_LOW_PASS_HZ}
 		_:
 			return {"high_pass_hz": FULL_HIGH_PASS_HZ, "low_pass_hz": FULL_LOW_PASS_HZ}
 
 
 func _has_state(state: StringName) -> bool:
-	return state in [STATE_FULL, STATE_DARK, STATE_THIN, STATE_MID]
+	return state in [STATE_FULL, STATE_DARK]
 
 
 func _log_pass(pass_number: int, state: StringName) -> void:

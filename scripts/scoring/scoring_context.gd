@@ -15,6 +15,10 @@ var trigger_origin: String = "originating"
 var trigger_reason: String = ""
 var trigger_index: int = 0
 var scoring_passes: Array = []
+# Immutable value snapshots for presentation; never used to apply wallet changes.
+var presentation_hits: Array[Dictionary] = []
+var retrigger_source_id: String = ""
+var retrigger_property: String = ""
 var base_extension_score: int = 0
 var theoretical_score: int = 0
 var final_points: int = 0

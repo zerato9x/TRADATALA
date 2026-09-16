@@ -1,71 +1,52 @@
 @tool
 extends McpTestSuite
 
-const MUSIC_ANTI_FATIGUE_SCRIPT := preload("res://scripts/audio/music_anti_fatigue.gd")
-
-
 func suite_name() -> String:
 	return "music_anti_fatigue"
 
-
-func test_first_two_completed_passes_are_full_and_variation_starts_after_pass_two() -> void:
-	var anti := _new_anti_fatigue()
-	anti.cue_started("short_loop")
-	assert_eq(anti.loop_pass_count, 0)
-	assert_eq(anti.current_state, MusicAntiFatigue.STATE_FULL)
-
-	anti.loop_completed("short_loop")
-	assert_eq(anti.loop_pass_count, 1)
-	assert_eq(anti.current_state, MusicAntiFatigue.STATE_FULL)
-	anti.loop_completed("short_loop")
-	assert_eq(anti.loop_pass_count, 2)
-	assert_ne(anti.current_state, MusicAntiFatigue.STATE_FULL)
+func test_four_full_loops_then_continuous_dark_descent() -> void:
+	var anti := MusicAntiFatigue.new()
+	anti.cue_started("held")
+	for index in 3:
+		anti.loop_completed("held")
+		anti._process(20.0)
+		assert_eq(anti.current_state, MusicAntiFatigue.STATE_FULL)
+		assert_eq(anti._current_low_pass_hz, 20000.0)
+	anti.loop_completed("wrong")
+	assert_eq(anti.loop_pass_count, 3)
+	anti.loop_completed("held")
+	assert_eq(anti.current_state, MusicAntiFatigue.STATE_DARK)
+	assert_eq(anti._current_low_pass_hz, 20000.0)
+	var previous := anti._current_low_pass_hz
+	for index in 16:
+		anti._process(1.0)
+		assert_true(anti._current_low_pass_hz < previous)
+		previous = anti._current_low_pass_hz
+		anti.loop_completed("held")
+	assert_eq(anti._current_low_pass_hz, 4000.0)
+	assert_eq(anti._current_high_pass_hz, 20.0)
 	anti.free()
 
-
-func test_variation_never_repeats_the_current_state() -> void:
-	var anti := _new_anti_fatigue()
-	anti.state_rng.seed = 17
-	anti.cue_started("held_loop")
-	anti.loop_completed("held_loop")
-	anti.loop_completed("held_loop")
-	var previous := anti.current_state
-	for _pass in range(12):
-		anti.loop_completed("held_loop")
-		assert_ne(anti.current_state, previous)
-		previous = anti.current_state
-	anti.free()
-
-
-func test_cue_change_resets_counter_and_state() -> void:
-	var anti := _new_anti_fatigue()
-	anti.cue_started("cue_a")
-	anti.loop_completed("cue_a")
-	anti.loop_completed("cue_a")
-	assert_ne(anti.current_state, MusicAntiFatigue.STATE_FULL)
-	anti.prepare_for_cue_change()
-	anti.cue_started("cue_b")
-	assert_eq(anti.current_cue_id, "cue_b")
+func test_release_ascends_without_cutoff_jump_or_transport_changes() -> void:
+	var anti := MusicAntiFatigue.new()
+	anti.cue_started("held")
+	for index in 4:
+		anti.loop_completed("held")
+	anti._process(8.0)
+	var dark := anti._current_low_pass_hz
+	anti.reset_variation(true)
+	assert_eq(anti._current_low_pass_hz, dark)
+	anti._process(8.0)
+	assert_true(anti._current_low_pass_hz > dark)
+	assert_true(anti._current_low_pass_hz < 20000.0)
+	# A new cue must not snap the recovery to full brightness.
+	var recovering := anti._current_low_pass_hz
+	anti.cue_started("next")
+	assert_eq(anti._current_low_pass_hz, recovering)
 	assert_eq(anti.loop_pass_count, 0)
-	assert_eq(anti.current_state, MusicAntiFatigue.STATE_FULL)
+	anti._process(16.0)
+	assert_eq(anti._current_low_pass_hz, 20000.0)
 	anti.free()
-
-
-func test_release_resets_state_and_non_looping_output_does_not_advance_it() -> void:
-	var anti := _new_anti_fatigue()
-	anti.cue_started("held_loop")
-	anti.loop_completed("held_loop")
-	anti.loop_completed("held_loop")
-	assert_ne(anti.current_state, MusicAntiFatigue.STATE_FULL)
-	anti.reset_variation(false)
-	assert_eq(anti.current_cue_id, "")
-	assert_eq(anti.loop_pass_count, 0)
-	assert_eq(anti.current_state, MusicAntiFatigue.STATE_FULL)
-	anti.loop_completed("album_track")
-	assert_eq(anti.loop_pass_count, 0)
-	assert_eq(anti.current_state, MusicAntiFatigue.STATE_FULL)
-	anti.free()
-
 
 func test_music_director_wrap_signal_condition_requires_a_held_forward_loop() -> void:
 	var director := MusicDirector.new()
@@ -82,10 +63,3 @@ func test_music_director_wrap_signal_condition_requires_a_held_forward_loop() ->
 	director.state = MusicDirector.STATE_TRAVELING_FORWARD
 	assert_false(director._did_hold_cue_wrap())
 	director.free()
-
-
-func _new_anti_fatigue() -> MusicAntiFatigue:
-	var anti: MusicAntiFatigue = MUSIC_ANTI_FATIGUE_SCRIPT.new()
-	anti.enabled = true
-	anti.transition_seconds = 0.0
-	return anti

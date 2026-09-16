@@ -143,6 +143,100 @@ func start_tutorial_deal() -> Dictionary:
 	return result
 
 
+func snapshot_state() -> Dictionary:
+	var metric_snapshot := {
+		"raw_gross": phase_metrics.raw_gross,
+		"deadwood_total": phase_metrics.deadwood_total,
+		"new_phom_count": phase_metrics.new_phom_count,
+		"extension_count": phase_metrics.extension_count,
+		"u": phase_metrics.u,
+		"u_bonus_paid": phase_metrics.u_bonus_paid,
+		"u_khan_count": phase_metrics.u_khan_count,
+		"missed_discards": phase_metrics.missed_discards,
+	}
+	return {
+		"deck": deck.snapshot_state(),
+		"hand": hand.duplicate(),
+		"melds": melds.duplicate(),
+		"discard_history": discard_history.duplicate(),
+		"settlements": settlements.duplicate(),
+		"phase_metrics": metric_snapshot,
+		"current_phase": current_phase,
+		"discard_count": discard_count,
+		"phase_earnings_points": phase_earnings_points,
+		"phase_new_meld_count": phase_new_meld_count,
+		"state": state,
+		"last_phase_resolution": last_phase_resolution.duplicate(true),
+		"current_drink_id": current_drink_id,
+		"tra_da_used_this_turn": tra_da_used_this_turn,
+		"tra_da_extra_discard_pending": tra_da_extra_discard_pending,
+		"nhan_tran_used_this_phase": nhan_tran_used_this_phase,
+		"den_da_used_this_turn": den_da_used_this_turn,
+		"nau_da_used_phases": nau_da_used_phases.duplicate(),
+		"pair_used_this_turn": pair_used_this_turn,
+		"pair_used_phases": pair_used_phases.duplicate(),
+		"c2_used": c2_used,
+		"nuoc_voi_used_phases": nuoc_voi_used_phases.duplicate(),
+		"sam_dua_preserved_cards": sam_dua_preserved_cards.duplicate(),
+		"sam_dua_used": sam_dua_used,
+		"recyclable_spent_cards": recyclable_spent_cards.duplicate(),
+		"exhaustion_count": exhaustion_count,
+		"next_meld_id": _next_meld_id,
+		"turn_started_with_ten": _turn_started_with_ten,
+		"turn_committed_card_count": _turn_committed_card_count,
+		"expected_deal_card_ids": _expected_deal_card_ids.duplicate(),
+		"campaign_deck_cards": campaign_deck_cards.duplicate(),
+		"wallet_balance_vnd": wallet.balance_vnd,
+		"wallet_vnd_per_point": wallet.vnd_per_point,
+	}
+
+
+func restore_snapshot(snapshot: Dictionary) -> void:
+	if snapshot.is_empty():
+		return
+	deck.restore_snapshot(snapshot.get("deck", {}) as Dictionary)
+	_restore_card_array(hand, snapshot.get("hand", []))
+	_restore_meld_array(snapshot.get("melds", []))
+	_restore_discard_array(snapshot.get("discard_history", []))
+	_restore_settlement_array(snapshot.get("settlements", []))
+	_restore_card_array(sam_dua_preserved_cards, snapshot.get("sam_dua_preserved_cards", []))
+	_restore_card_array(recyclable_spent_cards, snapshot.get("recyclable_spent_cards", []))
+	_restore_card_array(campaign_deck_cards, snapshot.get("campaign_deck_cards", []))
+	var metric_snapshot := snapshot.get("phase_metrics", {}) as Dictionary
+	phase_metrics.raw_gross = int(metric_snapshot.get("raw_gross", 0))
+	phase_metrics.deadwood_total = int(metric_snapshot.get("deadwood_total", 0))
+	phase_metrics.new_phom_count = int(metric_snapshot.get("new_phom_count", 0))
+	phase_metrics.extension_count = int(metric_snapshot.get("extension_count", 0))
+	phase_metrics.u = bool(metric_snapshot.get("u", false))
+	phase_metrics.u_bonus_paid = bool(metric_snapshot.get("u_bonus_paid", false))
+	phase_metrics.u_khan_count = int(metric_snapshot.get("u_khan_count", 0))
+	phase_metrics.missed_discards = int(metric_snapshot.get("missed_discards", 0))
+	current_phase = int(snapshot.get("current_phase", 1))
+	discard_count = int(snapshot.get("discard_count", 0))
+	phase_earnings_points = int(snapshot.get("phase_earnings_points", 0))
+	phase_new_meld_count = int(snapshot.get("phase_new_meld_count", 0))
+	state = String(snapshot.get("state", STATE_ACTIVE))
+	last_phase_resolution = (snapshot.get("last_phase_resolution", {}) as Dictionary).duplicate(true)
+	current_drink_id = String(snapshot.get("current_drink_id", DrinkCatalog.NONE))
+	tra_da_used_this_turn = bool(snapshot.get("tra_da_used_this_turn", false))
+	tra_da_extra_discard_pending = bool(snapshot.get("tra_da_extra_discard_pending", false))
+	nhan_tran_used_this_phase = bool(snapshot.get("nhan_tran_used_this_phase", false))
+	den_da_used_this_turn = bool(snapshot.get("den_da_used_this_turn", false))
+	nau_da_used_phases = (snapshot.get("nau_da_used_phases", {}) as Dictionary).duplicate()
+	pair_used_this_turn = bool(snapshot.get("pair_used_this_turn", false))
+	pair_used_phases = (snapshot.get("pair_used_phases", {}) as Dictionary).duplicate()
+	c2_used = bool(snapshot.get("c2_used", false))
+	nuoc_voi_used_phases = (snapshot.get("nuoc_voi_used_phases", {}) as Dictionary).duplicate()
+	sam_dua_used = bool(snapshot.get("sam_dua_used", false))
+	exhaustion_count = int(snapshot.get("exhaustion_count", 0))
+	_next_meld_id = int(snapshot.get("next_meld_id", 1))
+	_turn_started_with_ten = bool(snapshot.get("turn_started_with_ten", false))
+	_turn_committed_card_count = int(snapshot.get("turn_committed_card_count", 0))
+	_expected_deal_card_ids = (snapshot.get("expected_deal_card_ids", {}) as Dictionary).duplicate()
+	wallet.vnd_per_point = int(snapshot.get("wallet_vnd_per_point", VndWallet.VND_PER_POINT))
+	wallet.reset(int(snapshot.get("wallet_balance_vnd", 0)))
+
+
 func set_current_drink(drink_id: String) -> Dictionary:
 	if not DrinkCatalog.is_known(drink_id):
 		return _failure("Unknown Drink ID: %s" % drink_id)
@@ -523,15 +617,27 @@ func discard_card(card: CardData) -> Dictionary:
 		discard_history.append(DiscardRecord.new(card, current_phase, discard_count, DiscardRecord.KIND_MANDATORY))
 		if current_drink_id == DrinkCatalog.TRA_DA and not hand.is_empty():
 			tra_da_extra_discard_pending = true
-	if completed_u:
+	var u_triggered_now := completed_u and not phase_metrics.u
+	if u_triggered_now:
 		phase_metrics.u = true
-		u_triggered.emit({"phase": current_phase, "card": card})
+		var u_bonus := phase_metrics.raw_gross
+		if not phase_metrics.u_bonus_paid:
+			wallet.apply_points(u_bonus, "u_bonus")
+			phase_metrics.u_bonus_paid = true
+		phase_earnings_points = phase_metrics.raw_gross * gross_payout_multiplier() - phase_metrics.deadwood_total
+		u_triggered.emit({
+			"phase": current_phase,
+			"card": card,
+			"payout": u_bonus,
+			"raw_gross": phase_metrics.raw_gross,
+			"gross_multiplier": gross_payout_multiplier(),
+		})
 	var result := {
 		"ok": true,
 		"action": "discard",
 		"card": card,
 		"drawn": [] as Array[CardData],
-		"u_triggered": completed_u,
+		"u_triggered": u_triggered_now,
 		"discard_kind": DiscardRecord.KIND_DRINK_EXTRA if is_tra_da_extra else DiscardRecord.KIND_MANDATORY,
 	}
 	if tra_da_extra_discard_pending:
@@ -540,6 +646,7 @@ func discard_card(card: CardData) -> Dictionary:
 		state = STATE_FINAL_COMMIT_WINDOW
 		result["final_commit_window"] = true
 	else:
+		result["turn_resolution"] = _deduct_turn_deadwood()
 		result["drawn"] = _begin_active_turn()
 	state_changed.emit(result)
 	return result
@@ -558,6 +665,7 @@ func end_turn_without_tra_da_extra() -> Dictionary:
 		state = STATE_FINAL_COMMIT_WINDOW
 		result["final_commit_window"] = true
 	else:
+		result["turn_resolution"] = _deduct_turn_deadwood()
 		result["drawn"] = _begin_active_turn()
 	state_changed.emit(result)
 	return result
@@ -593,7 +701,7 @@ func choose_phase_two(keep_hand: bool) -> Dictionary:
 				dumped.append(card)
 		hand.clear()
 		hand.append_array(preserved)
-		move_to_recyclable_spent(dumped)
+		deck.discard_many(dumped)
 		for card in dumped:
 			discard_history.append(DiscardRecord.new(card, current_phase, discard_history.size() + 1, DiscardRecord.KIND_DUMP))
 	current_phase = 2
@@ -834,6 +942,10 @@ func deadwood_points() -> int:
 	return ScoringPipeline.deadwood_points(hand)
 
 
+func gross_payout_multiplier() -> int:
+	return 2 if phase_metrics.u else 1
+
+
 func discard_history_for_phase(phase: int) -> Array[DiscardRecord]:
 	var records: Array[DiscardRecord] = []
 	for record in discard_history:
@@ -895,17 +1007,26 @@ func _resolve_exhaustion(requested_count: int, drawn_count: int) -> Dictionary:
 			exhaustion_scoring_passes.append(scoring_pass)
 		meld_trigger_contexts.append(meld_context)
 		meld_exhaustion_triggered.emit(meld, meld_context)
+	var locked_ids := {}
+	for record in discard_history:
+		if record.kind == DiscardRecord.KIND_MANDATORY:
+			locked_ids[record.card.unique_id] = true
+	var locked_discards: Array[CardData] = []
 	var recycled_cards: Array[CardData] = []
-	recycled_cards.append_array(deck.discard_pile)
+	for card in deck.discard_pile:
+		if locked_ids.has(card.unique_id):
+			locked_discards.append(card)
+		else:
+			recycled_cards.append(card)
 	recycled_cards.append_array(recyclable_spent_cards)
 	for meld in melds:
 		recycled_cards.append_array(meld.cards)
 	var recycled_card_ids: Array[String] = []
 	for card in recycled_cards:
 		recycled_card_ids.append(card.unique_id)
-	deck.discard_pile.clear()
+	deck.discard_pile.assign(locked_discards)
 	recyclable_spent_cards.clear()
-	discard_history.clear()
+	discard_history = discard_history.filter(func(record: DiscardRecord) -> bool: return record.kind == DiscardRecord.KIND_MANDATORY)
 	melds.clear()
 	deck.replace_draw_pile(recycled_cards)
 	exhaustion_count = event_index
@@ -951,10 +1072,18 @@ func _begin_active_turn() -> Array[CardData]:
 			payout += card.score_value()
 		payout *= 10
 		phase_metrics.u_khan_count += 1
+		var gross_multiplier := gross_payout_multiplier()
 		_record_phase_points(payout, "u_khan")
 		var replaced: Array[CardData] = []
 		replaced.append_array(hand)
-		u_triggered.emit({"phase": current_phase, "u_khan": true, "payout": payout, "hand": replaced})
+		u_triggered.emit({
+			"phase": current_phase,
+			"u_khan": true,
+			"payout": payout * gross_multiplier,
+			"base_payout": payout,
+			"gross_multiplier": gross_multiplier,
+			"hand": replaced,
+		})
 		hand.clear()
 		move_to_recyclable_spent(replaced)
 		var replacement := deck.refill(hand, ACTIVE_HAND_TARGET)
@@ -985,9 +1114,11 @@ func _finish_phase() -> Dictionary:
 	phase_about_to_settle.emit(settle_context)
 	var raw_gross: int = settle_context.get("raw_gross", phase_metrics.raw_gross)
 	var gross_after_u: int = raw_gross * int(settle_context.get("gross_multiplier", 1))
-	var gross_adjustment := gross_after_u - phase_metrics.raw_gross
+	var u_bonus_paid_early := phase_metrics.u_bonus_paid
+	var gross_adjustment := gross_after_u - phase_metrics.raw_gross if phase_metrics.u and not u_bonus_paid_early else 0
 	if gross_adjustment != 0:
 		wallet.apply_points(gross_adjustment, "phase_gross_resolution")
+		phase_metrics.u_bonus_paid = true
 	var is_mom := phase_metrics.new_phom_count == 0
 	var deadwood_value_sum := deadwood_points()
 	var deadwood_multiplier := hand.size() if is_mom else 1
@@ -1000,21 +1131,25 @@ func _finish_phase() -> Dictionary:
 		"mom": is_mom,
 	}
 	deadwood_calculated.emit(deadwood_context)
-	var deadwood: int = maxi(int(deadwood_context.get("deadwood", 0)), 0)
-	if deadwood > 0:
-		wallet.apply_points(-deadwood, "deadwood")
+	var turn_deadwood: int = maxi(int(deadwood_context.get("deadwood", 0)), 0)
+	if turn_deadwood > 0:
+		wallet.apply_points(-turn_deadwood, "deadwood")
+	phase_metrics.deadwood_total += turn_deadwood
+	var deadwood_total := phase_metrics.deadwood_total
 	var settlement := PhaseSettlement.new()
 	settlement.phase = current_phase
 	settlement.raw_gross = raw_gross
 	settlement.gross_after_u = gross_after_u
 	settlement.deadwood_value_sum = maxi(int(deadwood_context.get("value_sum", deadwood_value_sum)), 0)
 	settlement.deadwood_multiplier = maxi(int(deadwood_context.get("multiplier", deadwood_multiplier)), 0)
-	settlement.deadwood = deadwood
-	settlement.net = gross_after_u - deadwood
+	settlement.deadwood = deadwood_total
+	settlement.turn_deadwood = turn_deadwood
+	settlement.net = gross_after_u - deadwood_total
 	settlement.new_phom_count = phase_metrics.new_phom_count
 	settlement.extension_count = phase_metrics.extension_count
 	settlement.mom = is_mom
 	settlement.u = phase_metrics.u
+	settlement.u_bonus_paid_early = u_bonus_paid_early
 	settlement.u_khan_count = phase_metrics.u_khan_count
 	settlement.remaining_hand.append_array(hand)
 	settlements.append(settlement)
@@ -1063,9 +1198,34 @@ func _card_actions_available() -> bool:
 
 func _record_phase_points(points: int, reason: String) -> void:
 	phase_metrics.raw_gross += points
-	phase_earnings_points = phase_metrics.raw_gross
 	if points != 0:
-		wallet.apply_points(points, reason)
+		wallet.apply_points(points * gross_payout_multiplier(), reason)
+	phase_earnings_points = phase_metrics.raw_gross * gross_payout_multiplier() - phase_metrics.deadwood_total
+
+
+func _deduct_turn_deadwood() -> Dictionary:
+	var value_sum := deadwood_points()
+	var context := {
+		"phase": current_phase,
+		"turn": discard_count,
+		"cards": hand.duplicate(),
+		"value_sum": value_sum,
+		"multiplier": 1,
+		"deadwood": value_sum,
+		"mom": false,
+	}
+	deadwood_calculated.emit(context)
+	var turn_deadwood := maxi(int(context.get("deadwood", value_sum)), 0)
+	var wallet_before_vnd := wallet.balance_vnd
+	if turn_deadwood > 0:
+		wallet.apply_points(-turn_deadwood, "deadwood")
+	phase_metrics.deadwood_total += turn_deadwood
+	phase_earnings_points = phase_metrics.raw_gross * gross_payout_multiplier() - phase_metrics.deadwood_total
+	context["deadwood"] = turn_deadwood
+	context["wallet_before_vnd"] = wallet_before_vnd
+	context["wallet_after_vnd"] = wallet.balance_vnd
+	context["deadwood_total"] = phase_metrics.deadwood_total
+	return context
 
 
 func _apply_scoring_passes(context: ScoringContext) -> void:
@@ -1077,6 +1237,42 @@ func _reset_exhaustion_state() -> void:
 	recyclable_spent_cards.clear()
 	exhaustion_count = 0
 	_expected_deal_card_ids.clear()
+
+
+func _restore_card_array(target: Array[CardData], values: Variant) -> void:
+	target.clear()
+	if not (values is Array):
+		return
+	for value in values:
+		if value is CardData:
+			target.append(value)
+
+
+func _restore_meld_array(values: Variant) -> void:
+	melds.clear()
+	if not (values is Array):
+		return
+	for value in values:
+		if value is MeldState:
+			melds.append(value)
+
+
+func _restore_discard_array(values: Variant) -> void:
+	discard_history.clear()
+	if not (values is Array):
+		return
+	for value in values:
+		if value is DiscardRecord:
+			discard_history.append(value)
+
+
+func _restore_settlement_array(values: Variant) -> void:
+	settlements.clear()
+	if not (values is Array):
+		return
+	for value in values:
+		if value is PhaseSettlement:
+			settlements.append(value)
 
 
 func _capture_expected_deal_card_ids() -> void:

@@ -24,6 +24,8 @@ static var _official_font: Font
 static func official_font() -> Font:
 	if _official_font == null:
 		_official_font = load(OFFICIAL_FONT_PATH) as Font
+		# Ship the engine font fallback too: browser exports have no system fonts.
+		_official_font.fallbacks = [ThemeDB.fallback_font]
 	return _official_font
 
 

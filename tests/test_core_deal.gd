@@ -244,6 +244,45 @@ func test_deadwood_is_a_single_simple_value_sum() -> void:
 	assert_eq(ScoringPipeline.deadwood_points(cards), 26)
 
 
+func test_deadwood_is_deducted_each_turn_and_final_turn_is_charged_once() -> void:
+	var deal := _fresh_deal(13)
+	deal.wallet.reset(1_000_000)
+	deal.phase_metrics.reset()
+	deal.phase_earnings_points = 0
+	deal.hand.clear()
+	for rank in ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J"]:
+		deal.hand.append(_card(rank, "Spades", "deadwood_turn"))
+	deal._turn_started_with_ten = true
+	deal._turn_committed_card_count = 0
+	var wallet_before := deal.wallet.balance_vnd
+	var expected_total := 0
+	for turn in range(DealState.DISCARDS_PER_PHASE):
+		var loose_before_discard := deal.hand.duplicate()
+		var discarded: CardData = loose_before_discard[0]
+		loose_before_discard.erase(discarded)
+		var turn_sum := ScoringPipeline.deadwood_points(loose_before_discard)
+		var result := deal.discard_card(discarded)
+		assert_true(result["ok"])
+		if turn < DealState.DISCARDS_PER_PHASE - 1:
+			assert_eq(result["turn_resolution"]["deadwood"], turn_sum)
+			expected_total += turn_sum
+			assert_eq(deal.phase_metrics.deadwood_total, expected_total)
+			assert_eq(deal.wallet.balance_vnd, wallet_before - VndWallet.points_to_vnd(expected_total))
+		else:
+			assert_true(result["final_commit_window"])
+			assert_false(result.has("turn_resolution"))
+			assert_eq(deal.phase_metrics.deadwood_total, expected_total)
+	var final_turn_sum := deal.deadwood_points()
+	var final_turn_deadwood := final_turn_sum * deal.hand.size()
+	var resolution: Dictionary = deal.settle_phase()["phase_resolution"]
+	expected_total += final_turn_deadwood
+	assert_true(resolution["mom"])
+	assert_eq(resolution["turn_deadwood"], final_turn_deadwood)
+	assert_eq(resolution["deadwood"], expected_total)
+	assert_eq(resolution["net"], -expected_total)
+	assert_eq(deal.wallet.balance_vnd, wallet_before - VndWallet.points_to_vnd(expected_total))
+
+
 func test_fourth_discard_enters_final_commit_window_without_settling() -> void:
 	var deal := _fresh_deal(11)
 	var final_result := _advance_to_last_call(deal)
@@ -284,6 +323,7 @@ func test_safe_phase_deadwood_remains_a_simple_value_sum() -> void:
 	var deal := _fresh_deal(14)
 	_advance_to_last_call(deal)
 	deal.wallet.reset()
+	deal.phase_metrics.deadwood_total = 0
 	deal.phase_metrics.raw_gross = 40
 	deal.phase_metrics.new_phom_count = 1
 	deal.phase_earnings_points = 40
@@ -297,6 +337,7 @@ func test_safe_phase_deadwood_remains_a_simple_value_sum() -> void:
 	assert_eq(resolution["deadwood_value_sum"], 18)
 	assert_eq(resolution["deadwood_multiplier"], 1)
 	assert_eq(resolution["deadwood"], 18)
+	assert_eq(resolution["turn_deadwood"], 18)
 	assert_eq(resolution["net"], 22)
 	assert_eq(deal.wallet.balance_vnd, VndWallet.points_to_vnd(22))
 
@@ -305,6 +346,7 @@ func test_mom_deadwood_uses_value_sum_times_loose_card_count() -> void:
 	var deal := _fresh_deal(15)
 	_advance_to_last_call(deal)
 	deal.wallet.reset()
+	deal.phase_metrics.deadwood_total = 0
 	deal.phase_metrics.raw_gross = 57
 	deal.phase_earnings_points = 57
 	deal.wallet.apply_points(57, "extension_score")
@@ -315,6 +357,7 @@ func test_mom_deadwood_uses_value_sum_times_loose_card_count() -> void:
 	assert_eq(resolution["deadwood_value_sum"], 18)
 	assert_eq(resolution["deadwood_multiplier"], 3)
 	assert_eq(resolution["deadwood"], 54)
+	assert_eq(resolution["turn_deadwood"], 54)
 	assert_eq(resolution["net"], 3)
 	assert_eq(resolution["deadwood"], ScoringPipeline.meld_value(resolution["remaining_hand"]))
 	assert_eq(deal.wallet.balance_vnd, VndWallet.points_to_vnd(3))
@@ -324,6 +367,8 @@ func test_empty_mom_hand_has_a_zero_deadwood_equation() -> void:
 	var deal := DealState.new()
 	deal.start_deal(151, true)
 	_advance_to_last_call(deal)
+	deal.wallet.reset()
+	deal.phase_metrics.deadwood_total = 0
 	deal.hand.clear()
 	var resolution: Dictionary = deal.settle_phase()["phase_resolution"]
 	assert_true(resolution["mom"])
@@ -391,7 +436,7 @@ func test_discard_history_keeps_phase_and_number_provenance() -> void:
 	assert_eq(deal.discard_history[-1].discard_number, 1)
 
 
-func test_u_is_phase_scoped_and_doubles_gross_before_deadwood() -> void:
+func test_u_can_trigger_on_the_first_turn_and_doubles_phase_gross_immediately() -> void:
 	var deal := _fresh_deal(20)
 	deal.hand.clear()
 	var set_a: Array[CardData] = [_card("2", "Spades", "a"), _card("2", "Hearts", "a"), _card("2", "Diamonds", "a")]
@@ -399,22 +444,50 @@ func test_u_is_phase_scoped_and_doubles_gross_before_deadwood() -> void:
 	var set_c: Array[CardData] = [_card("9", "Spades", "c"), _card("9", "Hearts", "c"), _card("9", "Diamonds", "c")]
 	deal.hand.append_array(set_a + set_b + set_c)
 	deal.hand.append(_card("K", "Clubs", "discard"))
+	deal.deck.draw_pile.clear()
+	deal.deck.draw_pile.append_array([
+		_card("2", "Clubs", "next_a"), _card("2", "Diamonds", "next_b"),
+		_card("4", "Hearts", "next_4"), _card("6", "Clubs", "next_6"),
+		_card("8", "Hearts", "next_8"), _card("10", "Clubs", "next_10"),
+		_card("Q", "Hearts", "next_q"), _card("A", "Clubs", "next_a2"),
+		_card("3", "Diamonds", "next_3"), _card("7", "Spades", "next_7"),
+	])
 	deal.wallet.reset()
 	deal.phase_metrics.reset()
 	deal.phase_earnings_points = 0
 	deal.phase_new_meld_count = 0
+	var u_events: Array[Dictionary] = []
+	deal.u_triggered.connect(func(context: Dictionary) -> void:
+		if not bool(context.get("u_khan", false)):
+			u_events.append(context)
+	)
 	assert_true(deal.create_meld(set_a)["ok"])
 	assert_true(deal.create_meld(set_b)["ok"])
 	assert_true(deal.create_meld(set_c)["ok"])
+	var raw_gross := deal.phase_metrics.raw_gross
 	var first_discard := deal.discard_card(deal.hand[0])
 	assert_true(first_discard["u_triggered"])
-	for _turn in range(3):
-		deal.discard_card(deal.hand[0])
+	assert_eq(deal.discard_count, 1)
+	assert_eq(deal.gross_payout_multiplier(), 2)
+	assert_eq(deal.wallet.balance_vnd, VndWallet.points_to_vnd(raw_gross * 2))
+	assert_eq(deal.phase_earnings_points, raw_gross * 2)
+	assert_eq(first_discard["turn_resolution"]["deadwood"], 0)
+	assert_eq(u_events.size(), 1)
+	assert_eq(u_events[0]["payout"], raw_gross)
+	deal._record_phase_points(7, "test_after_u")
+	assert_eq(deal.wallet.balance_vnd, VndWallet.points_to_vnd((raw_gross + 7) * 2))
+	assert_eq(deal.phase_earnings_points, (raw_gross + 7) * 2)
+	var wallet_before_settle := deal.wallet.balance_vnd
+	deal.state = DealState.STATE_FINAL_COMMIT_WINDOW
+	deal.discard_count = DealState.DISCARDS_PER_PHASE
 	deal.hand.clear()
 	var resolution: Dictionary = deal.settle_phase()["phase_resolution"]
 	assert_true(resolution["u"])
-	assert_eq(resolution["gross_after_u"], resolution["raw_gross"] * 2)
+	assert_true(resolution["u_bonus_paid_early"])
+	assert_eq(resolution["gross_after_u"], (raw_gross + 7) * 2)
+	assert_eq(resolution["deadwood"], 0)
 	assert_eq(resolution["net"], resolution["gross_after_u"])
+	assert_eq(deal.wallet.balance_vnd, wallet_before_settle)
 
 
 func test_u_khan_uses_the_prototype_near_meld_rule_and_replaces_hand() -> void:
@@ -567,7 +640,7 @@ func test_empty_stock_actions_do_not_trigger_until_a_draw_is_requested() -> void
 	assert_eq(deal.exhaustion_count, 0)
 
 
-func test_dumped_cards_wait_in_spent_until_a_refill_requests_exhaustion() -> void:
+func test_dumped_cards_enter_the_discard_pile_without_counting_as_mandatory_discards() -> void:
 	var deal := _fresh_deal(310, DrinkCatalog.SAM_DUA)
 	_advance_to_last_call(deal)
 	assert_true(deal.settle_phase()["ok"])
@@ -576,7 +649,9 @@ func test_dumped_cards_wait_in_spent_until_a_refill_requests_exhaustion() -> voi
 	assert_true(result["ok"])
 	assert_eq(result["dumped"].size(), dumped_hand.size())
 	for card in result["dumped"]:
-		assert_true(deal.recyclable_spent_cards.has(card) or deal.deck.draw_pile.has(card) or deal.hand.has(card))
+		assert_true(deal.deck.discard_pile.has(card))
+		assert_false(deal.recyclable_spent_cards.has(card))
+	assert_eq(deal.discard_history_for_phase(1).size(), DealState.DISCARDS_PER_PHASE)
 	assert_true(deal.physical_card_accounting_is_valid())
 
 func test_basic_drinks_do_not_modify_new_meld_or_extension_scoring() -> void:
@@ -874,7 +949,9 @@ func test_sam_dua_preserves_up_to_three_selected_loose_cards_only_on_dump() -> v
 		assert_false(deal.recyclable_spent_cards.has(card))
 	for card in result["dumped"]:
 		assert_false(deal.hand.has(card))
-		assert_true(deal.recyclable_spent_cards.has(card))
+		assert_true(deal.deck.discard_pile.has(card))
+		assert_false(deal.recyclable_spent_cards.has(card))
+	assert_eq(deal.discard_history_for_phase(1).size(), DealState.DISCARDS_PER_PHASE)
 	assert_true(deal.physical_card_accounting_is_valid())
 
 
@@ -882,6 +959,7 @@ func test_sam_dua_does_not_change_mom_deadwood() -> void:
 	var deal := _fresh_deal(22, DrinkCatalog.SAM_DUA)
 	_advance_to_last_call(deal)
 	deal.wallet.reset()
+	deal.phase_metrics.deadwood_total = 0
 	deal.hand.clear()
 	deal.hand.append_array([_card("A", "Spades"), _card("4", "Hearts"), _card("K", "Clubs")])
 	var resolution: Dictionary = deal.settle_phase()["phase_resolution"]
@@ -889,6 +967,7 @@ func test_sam_dua_does_not_change_mom_deadwood() -> void:
 	assert_eq(resolution["deadwood_value_sum"], 18)
 	assert_eq(resolution["deadwood_multiplier"], 3)
 	assert_eq(resolution["deadwood"], 54)
+	assert_eq(resolution["turn_deadwood"], 54)
 	assert_eq(deal.wallet.balance_vnd, VndWallet.points_to_vnd(-54))
 
 
@@ -902,6 +981,8 @@ func test_advanced_drink_taxonomy_exists_without_invented_effects() -> void:
 func test_deadwood_resolution_hook_can_modify_the_controlled_pipeline() -> void:
 	var deal := _fresh_deal(23)
 	_advance_to_last_call(deal)
+	deal.wallet.reset()
+	deal.phase_metrics.deadwood_total = 0
 	deal.hand.clear()
 	deal.hand.append(_card("K", "Spades"))
 	deal.deadwood_calculated.connect(func(context: Dictionary) -> void: context["deadwood"] = 0)
@@ -1181,3 +1262,77 @@ func _hand_has_id(hand: Array[CardData], unique_id: String) -> bool:
 		if card.unique_id == unique_id:
 			return true
 	return false
+
+
+func test_exhaustion_keeps_eight_mandatory_discards_and_recycles_other_discards() -> void:
+	var deal := _controlled_deal(0, 3, 930)
+	var locked: Array[CardData] = []
+	for index in 8:
+		var card := deal.deck.discard_pile[index]
+		locked.append(card)
+		deal.discard_history.append(DiscardRecord.new(card, 1 if index < 4 else 2, index % 4 + 1))
+	var extra := deal.deck.discard_pile[8]
+	deal.discard_history.append(DiscardRecord.new(extra, 2, 4, DiscardRecord.KIND_DRINK_EXTRA))
+	var result := deal._resolve_exhaustion(1, 0)
+	assert_eq(deal.deck.discard_pile, locked)
+	assert_eq(deal.discard_history.size(), 8)
+	assert_eq(deal.discard_history_for_phase(1).size(), 4)
+	assert_eq(deal.discard_history_for_phase(2).size(), 4)
+	assert_true(deal.deck.draw_pile.has(extra))
+	for card in locked:
+		assert_false(result["exhaustion"]["recycled_card_ids"].has(card.unique_id))
+		assert_false(deal.deck.draw_pile.has(card))
+	assert_true(deal.physical_card_accounting_is_valid())
+
+func test_perfected_run_completed_by_extend_retriggers_full_meld() -> void:
+	var cards: Array[CardData] = []
+	for rank in DeckManager.RANKS:
+		cards.append(_card(rank, "Hearts", "complete_extend"))
+	var context := ScoringPipeline.new().preview_extension(cards, MeldRules.TYPE_RUN, 936, 1, [cards[-1]])
+	assert_eq(context.final_points, 2366)
+	assert_eq(context.scoring_passes.size(), 2)
+	assert_eq(context.trigger_reason, ScoringPipeline.TRIGGER_PERFECTED_RUN)
+	for scoring_pass: ScoringContext in context.scoring_passes:
+		assert_eq(scoring_pass.final_points, 1183)
+		assert_eq(scoring_pass.presentation_hits.size(), 13)
+		var displayed_total := 0
+		for hit in scoring_pass.presentation_hits:
+			displayed_total += int(hit["points"])
+		assert_eq(displayed_total, 1183)
+
+
+func test_legal_mixed_suit_perfected_runs_retrigger_on_creation_and_exhaustion() -> void:
+	var cards: Array[CardData] = []
+	for index in DeckManager.RANKS.size():
+		cards.append(_card(DeckManager.RANKS[index], DeckManager.SUITS[index % 4], "complete_mixed"))
+	assert_true(MeldRules.is_compatible_run(cards, "any"))
+	assert_false(MeldRules.is_run(cards))
+	assert_true(ScoringPipeline.is_perfected_run(cards, MeldRules.TYPE_RUN))
+	var pipeline := ScoringPipeline.new()
+	assert_eq(pipeline.preview_new_meld(cards, MeldRules.TYPE_RUN, 1).final_points, 2366)
+	var exhausted := pipeline.score_meld_trigger(cards, MeldRules.TYPE_RUN, 1)
+	assert_eq(exhausted.final_points, 2366)
+	assert_eq(exhausted.scoring_passes.size(), 2)
+	# Thirteen cards alone do not qualify: ranks must cover A through K once.
+	cards[-1] = _card("Q", "Hearts", "duplicate_q")
+	assert_false(ScoringPipeline.is_perfected_run(cards, MeldRules.TYPE_RUN))
+
+
+func test_drink_compatible_run_completion_pays_wallet_once_per_scoring_pass() -> void:
+	var deal := _fresh_deal(941)
+	var cards: Array[CardData] = []
+	for index in 12:
+		cards.append(_card(DeckManager.RANKS[index], DeckManager.SUITS[index % 4], "drink_complete"))
+	var meld := MeldState.new(81, MeldRules.TYPE_RUN, cards)
+	meld.run_compatibility = "any"
+	meld.scored_points = 936
+	deal.melds.append(meld)
+	var king := _card("K", "Hearts", "last_king")
+	deal.hand.assign([king, _card("2", "Clubs", "spare")])
+	var before := deal.wallet.balance_vnd
+	var result := deal.extend_meld(81, [king])
+	assert_true(result["ok"])
+	assert_eq(result["context"].retrigger_count, 1)
+	assert_eq(result["scoring_passes"].size(), 2)
+	assert_eq(deal.wallet.balance_vnd - before, 2366000)
+	assert_eq(meld.scored_points, 1183)

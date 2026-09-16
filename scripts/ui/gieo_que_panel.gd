@@ -19,16 +19,20 @@ enum PresentationState {
 }
 
 const SLOT_TEXTURE := preload("res://assets/ui/gieo_que/slot_machine.png")
-const LEVER_TEXTURE := preload("res://assets/ui/gieo_que/lever.png")
+const LEVER_FRAMES := [
+	preload("res://assets/ui/gieo_que/lever_1.png"),
+	preload("res://assets/ui/gieo_que/lever_2.png"),
+	preload("res://assets/ui/gieo_que/lever_3.png"),
+	preload("res://assets/ui/gieo_que/lever_4.png"),
+	preload("res://assets/ui/gieo_que/lever_5.png"),
+]
 const CARD_THUMB_SIZE := Vector2(54, 75)
 const STAGE_SIZE := Vector2(840, 600)
-const LEVER_COLUMNS := 4
-const LEVER_ROWS := 2
-const LEVER_FRAME_SIZE := Vector2(543, 362)
-const LEVER_DRAW_SIZE := Vector2(326, 246)
-# The painted bases drift inside the atlas cells; compensate at the mount.
-const LEVER_FRAME_OFFSETS := [Vector2(0, 0), Vector2(12, 0), Vector2(24, 0), Vector2(35, 0), Vector2(0, 6), Vector2(12, 6), Vector2(24, 6), Vector2(35, 6)]
-const REEL_Y := [104.0, 153.0, 201.0, 258.0, 304.0, 352.0]
+# Coordinates share the cabinet's native 1182 x 1331 canvas, scaled by 0.45.
+const MACHINE_SCALE := 0.45
+const MACHINE_ORIGIN := Vector2(260, 0)
+const REEL_Y := [110.0, 159.0, 207.0, 268.0, 315.0, 364.0]
+const REEL_PITCH := 42.0
 
 var service: GieoQueService
 var presentation_state: PresentationState = PresentationState.IDLE
@@ -44,7 +48,6 @@ var _upper_label: Label
 var _lower_label: Label
 var _upper_detail: Label
 var _lower_detail: Label
-var _active_oracle_panel: PanelContainer
 var _result_parts: Array[Control] = []
 var _decision_row: Control
 
@@ -121,19 +124,19 @@ func _build_machine(lines: Array, is_ready: bool) -> void:
 
 	var machine_art := TextureRect.new()
 	machine_art.name = "SlotMachineArt"
-	machine_art.position = Vector2(220, 0)
-	machine_art.size = Vector2(600, 580)
+	machine_art.position = MACHINE_ORIGIN
+	machine_art.size = SLOT_TEXTURE.get_size() * MACHINE_SCALE
 	machine_art.texture = SLOT_TEXTURE
 	machine_art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	machine_art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	machine_art.stretch_mode = TextureRect.STRETCH_SCALE
 	machine_art.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	machine_art.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_stage.add_child(machine_art)
 
 	var title := _label(tr("GIEO_TITLE"), 30, Color("#fff0bd"), HORIZONTAL_ALIGNMENT_CENTER)
 	title.name = "OracleTitle"
-	title.position = Vector2(395, 15)
-	title.size = Vector2(250, 44)
+	title.position = Vector2(391, 24)
+	title.size = Vector2(242, 44)
 	title.add_theme_color_override("font_shadow_color", Color(0.08, 0.03, 0.01, 0.95))
 	title.add_theme_constant_override("shadow_offset_x", 2)
 	title.add_theme_constant_override("shadow_offset_y", 3)
@@ -149,52 +152,40 @@ func _build_machine(lines: Array, is_ready: bool) -> void:
 	if is_ready:
 		var pull_hint := _label("%s\n%s" % [tr("GIEO_PULL_LEVER"), VndWallet.format_vnd(service.current_pull_cost())], 16, PresentationTheme.GOLD, HORIZONTAL_ALIGNMENT_CENTER)
 		pull_hint.name = "OraclePullCost"
-		pull_hint.position = Vector2(340, 430)
-		pull_hint.size = Vector2(320, 75)
+		pull_hint.position = Vector2(340, 447)
+		pull_hint.size = Vector2(350, 62)
 		_stage.add_child(pull_hint)
 
 
 func _build_reel(index: int, value: String) -> void:
 	var reel := Control.new()
 	reel.name = "OracleReel%d" % (index + 1)
-	reel.position = Vector2(394, REEL_Y[index])
-	reel.size = Vector2(230, 42)
-	reel.pivot_offset = reel.size * 0.5
+	reel.position = Vector2(411, REEL_Y[index])
+	reel.size = Vector2(198, 38)
+	reel.clip_contents = true
 	reel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_stage.add_child(reel)
-
-	var content := Control.new()
-	content.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	content.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	reel.add_child(content)
-	var left := ColorRect.new()
-	left.name = "LineLeft"
-	left.color = Color("#24170c")
-	left.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	content.add_child(left)
-	var right := ColorRect.new()
-	right.name = "LineRight"
-	right.color = Color("#24170c")
-	right.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	content.add_child(right)
-
-	var value_label := _label("", 12, Color("#d7e6f5"), HORIZONTAL_ALIGNMENT_RIGHT)
-	value_label.position = Vector2(0, 5)
-	value_label.size = Vector2(62, 30)
-	content.add_child(value_label)
-
-	_reels.append({"panel": reel, "left": left, "right": right, "label": value_label, "value": ""})
+	var symbols: Array[Control] = []
+	for slot in range(5):
+		var symbol := Control.new()
+		symbol.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		reel.add_child(symbol)
+		for part in range(2):
+			var bar := ColorRect.new()
+			bar.color = Color("#24170c")
+			bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			symbol.add_child(bar)
+		symbols.append(symbol)
+	_reels.append({"panel": reel, "symbols": symbols, "value": "", "travel": 0.0})
 	_set_reel_value(index, value)
-	if value.is_empty():
-		reel.modulate.a = 0.0
-
 
 func _build_lever(is_ready: bool) -> void:
 	_lever_button = Button.new()
 	_lever_button.name = "OracleLever"
-	_lever_button.position = Vector2(675, 160)
-	_lever_button.size = Vector2(155, 250)
+	_lever_button.position = Vector2(676, 165)
+	_lever_button.size = Vector2(110, 259)
 	_lever_button.flat = true
+	_lever_button.z_index = 5
 	_lever_button.clip_contents = false
 	_lever_button.focus_mode = Control.FOCUS_ALL
 	_lever_button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
@@ -204,8 +195,8 @@ func _build_lever(is_ready: bool) -> void:
 	_stage.add_child(_lever_button)
 
 	_lever_image = TextureRect.new()
-	_lever_image.position = Vector2(-110, 2)
-	_lever_image.size = LEVER_DRAW_SIZE
+	_lever_image.position = Vector2.ZERO
+	_lever_image.size = Vector2(297, 359) * 0.72
 	_lever_image.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	_lever_image.stretch_mode = TextureRect.STRETCH_SCALE
 	_lever_image.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
@@ -223,7 +214,6 @@ func _build_oracle_panels(is_ready: bool) -> void:
 	_lower_panel = lower["panel"] as PanelContainer
 	_lower_label = lower["label"] as Label
 	_lower_detail = lower["detail"] as Label
-	_active_oracle_panel = _upper_panel
 	_upper_panel.modulate.a = 1.0
 	_lower_panel.modulate.a = 1.0
 	if not is_ready:
@@ -258,33 +248,30 @@ func _create_oracle_frame(node_name: String, position_value: Vector2, title_text
 func _set_reel_value(index: int, value: String) -> void:
 	if index < 0 or index >= _reels.size():
 		return
-	var reel: Dictionary = _reels[index]
-	var left := reel["left"] as ColorRect
-	var right := reel["right"] as ColorRect
-	var label := reel["label"] as Label
-	if value == GieoQueService.LINE_DUONG:
-		left.position = Vector2(65, 16)
-		left.size = Vector2(140, 9)
-		right.visible = false
-		label.text = tr("GIEO_DUONG")
-		label.add_theme_color_override("font_color", Color("#57350e"))
-	elif value == GieoQueService.LINE_AM:
-		left.position = Vector2(65, 16)
-		left.size = Vector2(60, 9)
-		right.position = Vector2(145, 16)
-		right.size = Vector2(60, 9)
-		right.visible = true
-		label.text = tr("GIEO_AM")
-		label.add_theme_color_override("font_color", Color("#163e60"))
-	else:
-		left.position = Vector2(105, 18)
-		left.size = Vector2(80, 5)
-		right.visible = false
-		label.text = ""
-		label.add_theme_color_override("font_color", PresentationTheme.MUTED)
-	reel["value"] = value
-	_reels[index] = reel
+	_reels[index]["value"] = value
+	_set_reel_travel(0.0, index)
 
+
+func _set_reel_travel(distance: float, index: int) -> void:
+	var reel: Dictionary = _reels[index]
+	reel["travel"] = distance
+	var symbols: Array = reel["symbols"]
+	var offset := fposmod(distance, REEL_PITCH * 2.0)
+	for slot in range(symbols.size()):
+		var symbol := symbols[slot] as Control
+		var row := slot - 2
+		symbol.position = Vector2(0, row * REEL_PITCH + offset)
+		var solid := String(reel["value"]) != GieoQueService.LINE_AM
+		if posmod(row, 2) != 0:
+			solid = not solid
+		var left := symbol.get_child(0) as ColorRect
+		var right := symbol.get_child(1) as ColorRect
+		left.position = Vector2(29, 15)
+		left.size = Vector2(140 if solid else 60, 8)
+		right.position = Vector2(109, 15)
+		right.size = Vector2(60, 8)
+		right.visible = not solid
+		symbol.modulate.a = 0.32 if String(reel["value"]).is_empty() else 1.0
 
 func _on_cast_pressed(is_reroll: bool) -> void:
 	if _busy or service == null:
@@ -305,108 +292,53 @@ func _on_cast_pressed(is_reroll: bool) -> void:
 
 func _play_cast_animation() -> void:
 	impact_requested.emit(&"lever")
-	for frame in [1, 2, 3]:
+	for frame in [1, 2, 3, 4]:
 		_set_lever_frame(frame)
-		await get_tree().create_timer(0.09).timeout
-	_set_lever_frame(4)
+		await get_tree().create_timer(0.045).timeout
 	impact_requested.emit(&"lever_clunk")
 	_set_presentation_state(PresentationState.SPINNING)
-	for frame in [5, 6, 7, 0]:
-		await get_tree().create_timer(0.085).timeout
+	var final_lines := service.current_result.get("lines", []) as Array
+	var last_spin: Tween
+	# Every reel begins together. Each strip travels whole revolutions so its
+	# charged result lands exactly at the center, without swapping on the stop.
+	for index in range(_reels.size()):
+		_set_reel_value(index, String(final_lines[index]))
+		var spin := create_tween()
+		last_spin = spin
+		spin.tween_method(_set_reel_travel.bind(index), 0.0, REEL_PITCH * 2.0, 0.12).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+		spin.tween_method(_set_reel_travel.bind(index), REEL_PITCH * 2.0, REEL_PITCH * 2.0 * (10 + index) + 3.0, 0.85 + index * 0.16).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+		spin.tween_method(_set_reel_travel.bind(index), REEL_PITCH * 2.0 * (10 + index) + 3.0, REEL_PITCH * 2.0 * (10 + index), 0.09).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+		spin.tween_callback(_on_reel_stopped.bind(index))
+	for frame in [3, 2, 1, 0]:
+		await get_tree().create_timer(0.045).timeout
 		_set_lever_frame(frame)
-	await get_tree().create_timer(0.72).timeout
-
-	await _activate_oracle_group(true, false)
-	for index in range(3):
-		await _reveal_line(index)
-	_set_presentation_state(PresentationState.REVEALING_UPPER)
-	impact_requested.emit(&"upper_reveal")
-	await get_tree().create_timer(0.62).timeout
-
-	await _activate_oracle_group(false, true)
-	for index in range(3, 6):
-		await _reveal_line(index)
-	_set_presentation_state(PresentationState.REVEALING_LOWER)
-	impact_requested.emit(&"lower_reveal")
-	await get_tree().create_timer(0.68).timeout
-	await _settle_all_lines()
-	await _fade_oracle_text()
-
+	while last_spin.is_running():
+		await get_tree().process_frame
 	_set_presentation_state(PresentationState.SHOWING_RESULT)
 	_add_result_panel(true)
 	_add_decisions(true)
 	await _animate_result_reveal()
 	_busy = false
+	if _decision_row != null:
+		(_decision_row.get_child(0) as Button).grab_focus()
 	commitment_changed.emit(true)
 
 
-func _reveal_line(index: int) -> void:
-	var final_lines := service.current_result.get("lines", []) as Array
-	if index >= final_lines.size():
-		return
-	_set_reel_value(index, String(final_lines[index]))
-	var line := _reels[index]["panel"] as Control
-	line.modulate = Color(1.35, 1.16, 0.72, 0.0)
-	line.scale = Vector2(0.97, 1.0)
-	var reveal := create_tween().set_parallel(true)
-	reveal.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-	reveal.tween_property(line, "modulate", Color.WHITE, 0.34)
-	reveal.tween_property(line, "scale", Vector2.ONE, 0.34)
-	await reveal.finished
+func _on_reel_stopped(index: int) -> void:
+	_set_reel_travel(0.0, index)
 	impact_requested.emit(&"reel_stop")
-	await _pulse_oracle_phase()
-	await get_tree().create_timer(0.42).timeout
-	var soften := create_tween()
-	soften.tween_property(line, "modulate:a", 0.2, 0.26).set_trans(Tween.TRANS_SINE)
-	await soften.finished
-	await get_tree().create_timer(0.12).timeout
-
-
-func _activate_oracle_group(upper: bool, transition: bool) -> void:
-	if _upper_panel == null or _lower_panel == null:
-		return
-	_active_oracle_panel = _upper_panel if upper else _lower_panel
-	var active_labels: Array[Label] = []
-	active_labels.assign([_upper_label, _upper_detail] if upper else [_lower_label, _lower_detail])
-	var resting_labels: Array[Label] = []
-	resting_labels.assign([_lower_label, _lower_detail] if upper else [_upper_label, _upper_detail])
-	if transition:
-		var fade_out := create_tween()
-		fade_out.set_parallel(true)
-		for label in resting_labels:
-			fade_out.tween_property(label, "modulate:a", 0.38, 0.22)
-		await fade_out.finished
-	var fade_in := create_tween().set_parallel(true)
-	for label in active_labels:
-		fade_in.tween_property(label, "modulate:a", 1.0, 0.28)
-	await fade_in.finished
-
-
-func _pulse_oracle_phase() -> void:
-	if _active_oracle_panel == null:
-		return
-	var pulse := create_tween()
-	pulse.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-	pulse.tween_property(_active_oracle_panel, "scale", Vector2(1.045, 1.045), 0.15)
-	pulse.tween_property(_active_oracle_panel, "scale", Vector2.ONE, 0.22)
-	await pulse.finished
-
-
-func _settle_all_lines() -> void:
-	var settle := create_tween().set_parallel(true)
-	for reel in _reels:
-		settle.tween_property(reel["panel"] as Control, "modulate", Color.WHITE, 0.32)
-	await settle.finished
-
-
-func _fade_oracle_text() -> void:
-	if _upper_label == null or _lower_label == null:
-		return
-	var fade := create_tween().set_parallel(true)
-	for label in [_upper_label, _upper_detail, _lower_label, _lower_detail]:
-		fade.tween_property(label, "modulate:a", 0.0, 0.32)
-	await fade.finished
-
+	var reel := _reels[index]["panel"] as Control
+	reel.modulate = Color(1.45, 1.22, 0.72)
+	var settle := create_tween()
+	settle.tween_property(reel, "modulate", Color.WHITE, 0.16)
+	if index == 2 or index == 5:
+		var upper := index == 2
+		_set_presentation_state(PresentationState.REVEALING_UPPER if upper else PresentationState.REVEALING_LOWER)
+		impact_requested.emit(&"upper_reveal" if upper else &"lower_reveal")
+		var panel := _upper_panel if upper else _lower_panel
+		panel.modulate = Color(1.3, 1.15, 0.8)
+		var pulse := create_tween()
+		pulse.tween_property(panel, "modulate", Color.WHITE, 0.2)
 
 func _add_result_panel(animated: bool) -> void:
 	if _upper_panel == null or _lower_panel == null:
@@ -441,21 +373,21 @@ func _result_value_block(caption: String, value: String, color: Color) -> Contro
 
 
 func _add_decisions(animated: bool) -> void:
-	var decisions := VBoxContainer.new()
+	var decisions := HBoxContainer.new()
 	decisions.name = "OracleDecisions"
-	decisions.position = Vector2(49, 420)
-	decisions.size = Vector2(186, 174)
+	decisions.position = Vector2(316, 449)
+	decisions.size = Vector2(418, 66)
 	decisions.alignment = BoxContainer.ALIGNMENT_CENTER
 	decisions.add_theme_constant_override("separation", 7)
 	_stage.add_child(decisions)
-	var accept := _button(tr("GIEO_ACCEPT"), "tea", Vector2(186, 48))
+	var accept := _button(tr("GIEO_ACCEPT"), "tea", Vector2(120, 62))
 	accept.pressed.connect(_on_accept_pressed)
 	decisions.add_child(accept)
-	var reroll := _button(_trf("GIEO_REROLL", VndWallet.format_vnd(service.current_pull_cost())), "gold", Vector2(186, 54))
+	var reroll := _button(_trf("GIEO_REROLL", VndWallet.format_vnd(service.current_pull_cost())), "gold", Vector2(160, 62))
 	reroll.disabled = not service.can_afford_pull()
 	reroll.pressed.connect(_on_cast_pressed.bind(true))
 	decisions.add_child(reroll)
-	var refuse := _button(tr("GIEO_REFUSE"), "danger", Vector2(186, 48))
+	var refuse := _button(tr("GIEO_REFUSE"), "danger", Vector2(120, 62))
 	refuse.pressed.connect(_on_refuse_pressed)
 	decisions.add_child(refuse)
 	_decision_row = decisions
@@ -544,30 +476,20 @@ func _build_flow_shell(title_text: String) -> VBoxContainer:
 	stage.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	stage.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	add_child(stage)
-	var lacquer := ColorRect.new()
-	lacquer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	lacquer.color = Color("#071a2ded")
-	lacquer.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	stage.add_child(lacquer)
-	var art := TextureRect.new()
-	art.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	art.texture = SLOT_TEXTURE
-	art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-	art.modulate = Color(0.35, 0.45, 0.58, 0.22)
-	art.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	stage.add_child(art)
-	var panel := PanelContainer.new()
-	panel.position = Vector2(24, 18)
-	panel.size = STAGE_SIZE - Vector2(48, 36)
-	panel.add_theme_stylebox_override("panel", PresentationTheme.panel_style(Color("#08192bf2"), PresentationTheme.GOLD, 2, 9, 6))
-	stage.add_child(panel)
+	var backing := Panel.new()
+	backing.position = Vector2(12, 8)
+	backing.size = STAGE_SIZE - Vector2(24, 24)
+	backing.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	backing.add_theme_stylebox_override("panel", PresentationTheme.panel_style(Color("#071a2df5"), Color("#b9822f"), 2, 12, 8))
+	stage.add_child(backing)
 	var margin := MarginContainer.new()
+	margin.position = Vector2(24, 18)
+	margin.size = STAGE_SIZE - Vector2(48, 36)
 	margin.add_theme_constant_override("margin_left", 18)
 	margin.add_theme_constant_override("margin_top", 12)
 	margin.add_theme_constant_override("margin_right", 18)
 	margin.add_theme_constant_override("margin_bottom", 12)
-	panel.add_child(margin)
+	stage.add_child(margin)
 	var scroll := ScrollContainer.new()
 	scroll.name = "OracleFlowScroll"
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -807,21 +729,8 @@ func _on_refuse_pressed() -> void:
 
 
 func _set_lever_frame(frame: int) -> void:
-	if _lever_image == null:
-		return
-	var column := posmod(frame, LEVER_COLUMNS)
-	var row := clampi(floori(float(frame) / float(LEVER_COLUMNS)), 0, LEVER_ROWS - 1)
-	var frame_index := row * LEVER_COLUMNS + column
-	_lever_image.position = Vector2(-110, 2) + LEVER_FRAME_OFFSETS[frame_index] * LEVER_DRAW_SIZE / LEVER_FRAME_SIZE
-	_lever_image.texture = _atlas_region(LEVER_TEXTURE, Rect2(Vector2(column, row) * LEVER_FRAME_SIZE, LEVER_FRAME_SIZE))
-
-
-func _atlas_region(texture: Texture2D, region: Rect2) -> AtlasTexture:
-	var atlas := AtlasTexture.new()
-	atlas.atlas = texture
-	atlas.region = region
-	return atlas
-
+	if _lever_image != null:
+		_lever_image.texture = LEVER_FRAMES[clampi(frame, 0, LEVER_FRAMES.size() - 1)]
 
 func _label(text_value: String, font_size: int, color: Color, horizontal_alignment_value: HorizontalAlignment) -> Label:
 	var label := Label.new()
@@ -888,7 +797,6 @@ func _clear() -> void:
 	_lower_label = null
 	_upper_detail = null
 	_lower_detail = null
-	_active_oracle_panel = null
 	_result_parts.clear()
 	_decision_row = null
 	_reels.clear()

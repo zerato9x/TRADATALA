@@ -18,7 +18,15 @@ static func register_initial_npcs(event_manager: EventManager) -> void:
 		"mandatory": true,
 		"slots": [EventManager.EventSlot.STARTER, EventManager.EventSlot.NOON],
 	})
+	if DemoBuild.enabled():
+		auntie.eligible_event_slots = [EventManager.EventSlot.STARTER, EventManager.EventSlot.MORNING, EventManager.EventSlot.NOON, EventManager.EventSlot.AFTERNOON]
+		auntie.interaction_specs.append({
+			"id": "choose_drink", "action_type": "choose_drink", "mandatory": false,
+			"slots": [EventManager.EventSlot.MORNING, EventManager.EventSlot.AFTERNOON],
+		})
 	event_manager.register_npc(auntie)
+	if DemoBuild.enabled():
+		return
 	var fortune_teller := NPCDefinition.new(
 		THAY_BOI,
 		"NPC_THAY_BOI",

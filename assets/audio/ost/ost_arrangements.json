@@ -1,6 +1,10 @@
 {
+  "policy": "manual_section_arrangement",
   "schema": "tradatala.ost_arrangements.v1",
   "source_loop_catalog": "res://assets/audio/ost/ost_loops.json",
-  "policy": "manual_section_arrangement",
-  "tracks": {}
+  "tracks": {
+    "rooster_1": {
+      "sections": []
+    }
+  }
 }

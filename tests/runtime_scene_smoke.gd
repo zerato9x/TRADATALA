@@ -100,8 +100,8 @@ func _run() -> void:
 	var has_u_rule := false
 	var has_u_khan_rule := false
 	for special_label in special_labels:
-		has_mom_rule = has_mom_rule or (special_label.text.contains("0 Phỏm MỚI") and special_label.text.contains("Tổng × Số lá") and special_label.text.contains("mỗi Giai đoạn"))
-		has_u_rule = has_u_rule or (special_label.text.contains("dùng đúng 9") and special_label.text.contains("Gross ×2"))
+		has_mom_rule = has_mom_rule or (special_label.text.contains("0 Phỏm MỚI") and special_label.text.contains("Tổng × Số lá") and special_label.text.contains("mỗi lượt") and special_label.text.contains("mỗi Giai đoạn"))
+		has_u_rule = has_u_rule or (special_label.text.contains("bất kỳ lượt nào") and special_label.text.contains("dùng đúng 9") and special_label.text.contains("Gross ×2"))
 		has_u_khan_rule = has_u_khan_rule or (special_label.text.contains("cách nhau 1–2 số") and special_label.text.contains("×10"))
 	_check(special_page.visible and has_mom_rule and has_u_rule and has_u_khan_rule, "Special Outcomes explains multiplied Móm deadwood, Ù, and the ×10 Ù Khan authority")
 	scene.how_to_play_back_button.pressed.emit()
@@ -206,9 +206,21 @@ func _run() -> void:
 	_check(scene.current_campaign_event.participants.size() == 1 and scene.current_campaign_event.participants[0].id == CampaignNpcCatalog.TRA_DA_AUNTIE, "Cô Trà Đá is the guaranteed Starter Event participant")
 	_check(not scene.current_campaign_event.can_exit and scene.campaign_continue_button.disabled, "mandatory Drink selection blocks Event exit")
 	_check(scene.event_table.table_state == EventTableController.TABLE_STATE_EVENT, "event-table controller owns the active presentation state")
+	_check(scene.event_table.event_deck.visible and scene.event_table.event_deck.position.x < 350.0 and scene.event_table.event_deck_count.text.contains(str(scene.campaign.gieo_que.persistent_deck.size())), "Event overview puts the persistent Deck on the left side of the table with its exact count")
+	var lotto_selector := scene.event_table.get_node("LottoSelect") as Button
+	var right_focus := scene.event_table._sprite_focus_position(&"right", Vector2(300, 590))
+	var lotto_focus := scene.event_table._sprite_focus_position(&"top_right", Vector2(300, 590))
+	_check(lotto_selector.position.x >= 850.0 and lotto_selector.position.y == 0.0, "top-right NPC is selected from the top-right NPC area rather than the top chair")
+	_check(lotto_focus.is_equal_approx(right_focus), "top-right NPC focused sprite uses the same right-side presentation position as a right NPC")
+	scene.event_table.focus_deck()
 	await create_timer(EventTableController.TRANSITION_SECONDS + 0.05).timeout
 	var starter_left_overlay := scene.event_table.get_node("DanhGiayOverlay") as TextureRect
 	var starter_right_overlay := scene.event_table.get_node("TraDaAuntieOverlay") as TextureRect
+	_check(scene.event_table.deck_focused and scene.event_table.day_label.get_parent().position.y < 20.0, "selecting the Event Deck uses the standard focus transition and moves the money header to the top")
+	_check(starter_left_overlay.modulate.a < 0.5 and starter_right_overlay.modulate.a < 0.5, "selecting the Event Deck dims the other Event participants")
+	_check(scene.event_table.content_panel.visible and scene.campaign_participants.get_child_count() > 1 and not scene.discard_archive_overlay.visible, "Deck contents render inside the Event table instead of opening the gameplay archive modal")
+	scene.event_table.unfocus_npc()
+	await create_timer(EventTableController.TRANSITION_SECONDS + 0.05).timeout
 	_check(starter_left_overlay.visible and starter_right_overlay.visible, "Starter Event composes Đánh Giày at left and Cô Trà Đá at right from frame-registered overlays")
 	var starter_tea_selector := scene.event_table.get_node("TraDaAuntieSelect") as Button
 	_check(not starter_tea_selector.disabled, "the visible Cô Trà Đá overlay exposes a focused click target")
@@ -293,7 +305,7 @@ func _run() -> void:
 	_check(scene.score_overlay.mouse_filter == Control.MOUSE_FILTER_IGNORE and scene.score_panel.size.x <= 460.0, "floating resolve feedback cannot consume table input")
 	scene.money_presentation._position_score_stage(scene.meld_scroll)
 	_check(absf(scene.score_panel.get_global_rect().get_center().x - scene.meld_scroll.get_global_rect().get_center().x) < 12.0, "resolve text anchors horizontally over its Meld source")
-	_check(is_equal_approx(MoneyPresentation.MONEY_FLIGHT_DURATION, 0.48), "all money resolutions use the shared flight duration")
+	_check(is_equal_approx(MoneyPresentation.MONEY_FLIGHT_DURATION, 0.30), "all money resolutions use the shared flight duration")
 	_check(wallet_pile == scene.wallet_pile_anchor and wallet_pile.get_child_count() == 1, "zero wallet renders an empty cash state without fake banknotes")
 	scene.money_presentation.sync_wallet(45_000)
 	var wallet_bill := wallet_pile.get_child(0) as Control
@@ -330,10 +342,7 @@ func _run() -> void:
 	_check(relic_area != null and loose_hand != null, "removing the Drink panel preserves the passive Relic rail and hand surface")
 	_check(scene.get_node_or_null("GameLayer/ActionDock/MarginContainer/HBoxContainer/ContextDivider") != null and scene.get_node_or_null("GameLayer/ActionDock/MarginContainer/HBoxContainer/ActionDivider") != null, "bottom dock visibly separates context, utility, and core actions")
 	_check(scene.get_node_or_null("GameLayer/TableSurface/DrinkProps/ActiveDrink") == scene.drink_table_button, "active Drink has a clickable in-world table prop")
-	_check(scene.get_node_or_null("GameLayer/TableSurface/DrinkProps/EmptyDrinkProp") == scene.empty_drink_prop, "the morning empty-glass prop exists for the noon handoff")
 	_check(scene.drink_table_texture != null and scene.drink_table_texture.texture != null and scene.drink_table_texture.texture.resource_path == "res://assets/drinks/tra_da_full.png", "unused starter Drink shows its full sprite")
-	_check(scene.empty_drink_prop != null and scene.empty_drink_prop.texture != null and scene.empty_drink_prop.texture.resource_path == "res://assets/drinks/glass_empty.png", "noon handoff uses the shared empty-glass sprite")
-	_check(not scene.empty_drink_prop.visible, "morning starts with one active Drink and no phantom empty glass")
 	_check(scene.drink_table_button.position == MatchUI.DRINK_TABLE_MORNING_POSITION, "morning Drink occupies the former HUD position to the right of the hand")
 	_check(scene.drink_table_button.size == MatchUI.DRINK_TABLE_PROP_SIZE and scene.drink_table_texture.size == MatchUI.DRINK_TABLE_SPRITE_SIZE, "the clickable Drink uses the sprite plus its separate nameplate footprint")
 	_check(scene.drink_charge_outline.get_parent() == scene.drink_table_button and scene.drink_charge_outline.size == MatchUI.DRINK_TABLE_SPRITE_SIZE, "the blue charge outline wraps the Drink sprite itself")
@@ -346,9 +355,7 @@ func _run() -> void:
 	scene._sync_drink_table_visual()
 	scene.drink_manager.afternoon_drink_id = DrinkCatalog.SAM_DUA
 	scene._sync_drink_table_visual()
-	_check(scene.empty_drink_prop.visible, "selecting the noon Drink turns the remembered morning Drink into an empty glass")
-	_check(scene.empty_drink_prop.position == MatchUI.DRINK_TABLE_EMPTY_POSITION and scene.drink_table_button.position == MatchUI.DRINK_TABLE_NOON_POSITION and scene.empty_drink_prop.position.x == scene.drink_table_button.position.x and scene.empty_drink_prop.position.y + scene.empty_drink_prop.size.y <= scene.drink_table_button.position.y, "the remembered empty glass stacks above the active Drink without entering the hand")
-	_check(scene.empty_drink_prop.size == MatchUI.DRINK_TABLE_SPRITE_SIZE, "the remembered empty glass preserves the original physical sprite scale")
+	_check(scene.get_node_or_null("GameLayer/TableSurface/DrinkProps/EmptyDrinkProp") == null, "retired cup prop is entirely removed")
 	scene.drink_manager.afternoon_drink_id = DrinkCatalog.NONE
 	scene._sync_drink_table_visual()
 	_check(scene.drink_name_label != null and scene.drink_name_label.text == "TRÀ ĐÁ", "free Trà đá is the visible starter Drink")

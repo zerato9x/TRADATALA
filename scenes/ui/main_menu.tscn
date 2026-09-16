@@ -23,7 +23,6 @@
 [ext_resource type="Texture2D" path="res://cards/two_of_hearts.png" id="21_cc4y2"]
 [ext_resource type="Texture2D" path="res://cards/two_of_diamonds.png" id="22_iglv2"]
 [ext_resource type="Texture2D" path="res://cards/five_of_clubs.png" id="23_c68a3"]
-[ext_resource type="StyleBox" path="res://assets/ui/frames/universal_frame.tres" id="24_frame"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_it7fd"]
 bg_color = Color(0.6039216, 0.39215687, 0.12156863, 1)
@@ -1288,7 +1287,7 @@ metadata/match_node_key_dictionary_value = "MENU_OPTIONS"
 [node name="MusicPlayer" type="PanelContainer" parent="MenuCenter/MenuContent/HomePanel"]
 custom_minimum_size = Vector2(500, 282)
 layout_mode = 2
-theme_override_styles/panel = ExtResource("24_frame")
+theme_override_styles/panel = SubResource("StyleBoxFlat_28e1x")
 metadata/match_binding = "music_player_panel"
 
 [node name="Margin" type="MarginContainer" parent="MenuCenter/MenuContent/HomePanel/MusicPlayer"]
@@ -1467,7 +1466,7 @@ visible = false
 custom_minimum_size = Vector2(940, 450)
 layout_mode = 2
 size_flags_horizontal = 4
-theme_override_styles/panel = ExtResource("24_frame")
+theme_override_styles/panel = SubResource("StyleBoxFlat_28e1x")
 metadata/match_binding = "how_to_play_panel"
 
 [node name="MarginContainer" type="MarginContainer" parent="MenuCenter/MenuContent/HowToPlayPanel" unique_id=274577659]
@@ -2761,7 +2760,7 @@ visible = false
 custom_minimum_size = Vector2(620, 330)
 layout_mode = 2
 size_flags_horizontal = 4
-theme_override_styles/panel = ExtResource("24_frame")
+theme_override_styles/panel = SubResource("StyleBoxFlat_28e1x")
 metadata/match_binding = "options_panel"
 
 [node name="MarginContainer" type="MarginContainer" parent="MenuCenter/MenuContent/OptionsPanel" unique_id=1869712460]

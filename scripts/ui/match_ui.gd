@@ -38,7 +38,6 @@ const TIME_PERIOD_REGIONS := {
 	"afternoon": Rect2(96, 0, 48, 48),
 	"evening": Rect2(0, 48, 48, 48),
 }
-const EMPTY_DRINK_TEXTURE := preload("res://assets/drinks/glass_empty.png")
 const DRINK_FULL_TEXTURES := {
 	DrinkCatalog.TRA_DA: preload("res://assets/drinks/tra_da_full.png"),
 	DrinkCatalog.NUOC_VOI: preload("res://assets/drinks/nuoc_voi_full.png"),
@@ -54,7 +53,6 @@ const DRINK_HALF_TEXTURES := {
 const DRINK_TABLE_PROP_SIZE := Vector2(112, 178)
 const DRINK_TABLE_SPRITE_SIZE := Vector2(112, 144)
 const DRINK_TABLE_MORNING_POSITION := Vector2(1033, 398)
-const DRINK_TABLE_EMPTY_POSITION := Vector2(1033, 254)
 const DRINK_TABLE_NOON_POSITION := Vector2(1033, 398)
 const DROP_TARGET_NONE := &"none"
 const DROP_TARGET_HAND := &"hand"
@@ -96,11 +94,13 @@ var selected_card_ids: Dictionary = {}
 var selected_meld_id: int = -1
 var hand_views: Dictionary = {}
 var displayed_wallet_vnd: int = 0
+var pending_u_presentations: Array[Dictionary] = []
 var pending_u_khan_presentations: Array[Dictionary] = []
 var pending_exhaustion_presentations: Array[Dictionary] = []
 var money_jobs: Array[Dictionary] = []
 var completed_money_jobs: Dictionary = {}
 var money_queue_running: bool = false
+var money_queue_generation := 0
 var next_money_job_id: int = 1
 var money_queue_wallet_vnd: int = 0
 var interaction_locked: bool = false
@@ -150,6 +150,8 @@ var menu_localized_controls: Dictionary = {}
 var tutorial_active: bool = false
 var tutorial_step: StringName = &""
 var tutorial_wallet_before: int = 0
+var tutorial_deal_snapshot: Dictionary = {}
+var tutorial_return_to_gameplay: bool = false
 var tutorial_meld_id: int = -1
 var tutorial_outcome_visible: bool = false
 var tutorial_coach: PanelContainer
@@ -174,7 +176,8 @@ var drink_name_label: Label
 var drink_charge_outline: Control
 var drink_table_button: Button
 var drink_table_texture: TextureRect
-var empty_drink_prop: TextureRect
+var pending_drink_unlocks: Array[String] = []
+var unlock_notice_playing := false
 var drink_targeting_active: bool = false
 var drink_hover_active: bool = false
 var pending_drink_card_ids: Dictionary = {}
@@ -270,10 +273,18 @@ var campaign_participants: VBoxContainer
 var campaign_continue_button: Button
 var event_table: EventTableController
 var pending_deal_presentation_unlock: bool = false
+var wallet_spiral: Control
+var wallet_click_times: Array[int] = []
 
 
 func _ready() -> void:
+	theme = PresentationTheme.create_game_theme()
 	_bind_editor_interface()
+	for pile in [draw_pile_visual, discard_pile_visual]:
+		for face in pile.find_children("*", "TextureRect", true, false):
+			face.add_child(preload("res://scripts/ui/passive_card_sway.gd").new())
+	if DemoBuild.enabled():
+		relic_title_label.get_parent().hide()
 	money_presentation.configure(wallet_value, wallet_pile_anchor)
 	_setup_event_table_presentation()
 	_connect_editor_interface_signals()
@@ -297,6 +308,10 @@ func _ready() -> void:
 	event_manager = EventManager.new()
 	CampaignNpcCatalog.register_initial_npcs(event_manager)
 	drink_manager = DrinkManager.new(deal.wallet)
+	if DemoBuild.enabled():
+		drink_manager.progress = DrinkProgress.new()
+		drink_manager.progress.drink_unlocked.connect(_on_drink_unlocked)
+		deal.state_changed.connect(_on_demo_progress_action)
 	campaign = CampaignManager.new(deal.wallet, event_manager, drink_manager)
 	campaign.campaign_started.connect(_on_campaign_started)
 	campaign.day_started.connect(_on_campaign_day_started)
@@ -305,6 +320,8 @@ func _ready() -> void:
 	campaign.requirement_passed.connect(_on_campaign_requirement_passed)
 	campaign.campaign_won.connect(_on_campaign_won)
 	campaign.campaign_lost.connect(_on_campaign_lost)
+	if DemoBuild.enabled():
+		campaign.deal_finished.connect(_on_demo_deal_finished)
 	_sync_all(result, true)
 	_set_hand_interaction_enabled(false)
 	_park_game_layer()
@@ -412,6 +429,7 @@ func _setup_event_table_presentation() -> void:
 	campaign_continue_button = event_table.continue_button
 	_connect_signal_once(event_table.npc_focused, _on_event_table_npc_focused)
 	_connect_signal_once(event_table.deal_presentation_ready, _on_event_table_deal_ready)
+	_connect_signal_once(event_table.deck_inspect_requested, _on_event_deck_inspect_requested)
 
 
 func _connect_editor_interface_signals() -> void:
@@ -781,6 +799,9 @@ func _refresh_logo_pivots() -> void:
 
 
 func _on_music_band_pulse(band_index: int, strength: float) -> void:
+	if is_instance_valid(wallet_spiral):
+		wallet_spiral.pulse(band_index, strength)
+		return
 	if band_index < 0 or band_index >= MUSIC_BAND_COUNT:
 		return
 	if menu_layer != null and menu_layer.visible:
@@ -791,10 +812,13 @@ func _on_music_band_pulse(band_index: int, strength: float) -> void:
 	var hand_assignments: Array = reactive_hand_cards_by_band.get(band_index, [])
 	for assignment_index in range(hand_assignments.size()):
 		var hand_view = hand_assignments[assignment_index]
-		hand_view.play_beat_pulse(strength)
+		if is_instance_valid(hand_view):
+			hand_view.play_beat_pulse(strength)
 	var meld_assignments: Array = reactive_meld_cards_by_band.get(band_index, [])
 	for assignment_index in range(meld_assignments.size()):
 		var assignment: Dictionary = meld_assignments[assignment_index]
+		if not is_instance_valid(assignment.get("view")):
+			continue
 		var meld_view := assignment.get("view") as MeldView
 		if meld_view != null:
 			meld_view.play_card_beat_pulse(String(assignment.get("card_id", "")), strength)
@@ -873,6 +897,7 @@ func _on_play_pressed() -> void:
 func _on_tutorial_pressed() -> void:
 	if menu_transitioning:
 		return
+	var return_to_gameplay := game_started
 	menu_transitioning = true
 	tutorial_button.disabled = true
 	menu_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -895,13 +920,17 @@ func _on_tutorial_pressed() -> void:
 	game_started = true
 	menu_transitioning = false
 	tutorial_button.disabled = false
-	_start_tutorial_deal()
+	_start_tutorial_deal(return_to_gameplay)
 
 
-func _start_tutorial_deal() -> void:
+func _start_tutorial_deal(return_to_gameplay: bool = false) -> void:
 	if tutorial_active:
 		_deactivate_tutorial(true)
+	tutorial_deal_snapshot.clear()
+	tutorial_return_to_gameplay = return_to_gameplay
 	tutorial_wallet_before = deal.wallet.balance_vnd
+	if tutorial_return_to_gameplay:
+		tutorial_deal_snapshot = deal.snapshot_state()
 	tutorial_active = true
 	tutorial_step = TUTORIAL_SELECT_RUN
 	interaction_locked = true
@@ -961,8 +990,13 @@ func _reset_tutorial_ui_state() -> void:
 	if discard_archive_overlay != null and discard_archive_overlay.visible:
 		_hide_discard_archive()
 	pending_deal_presentation_unlock = false
+	pending_u_presentations.clear()
 	pending_u_khan_presentations.clear()
 	pending_exhaustion_presentations.clear()
+	for snapshot in meld_row.get_children():
+		if snapshot.get_meta("exhaustion_snapshot", false):
+			snapshot.queue_free()
+	money_queue_generation += 1
 	money_jobs.clear()
 	completed_money_jobs.clear()
 	money_queue_running = false
@@ -981,12 +1015,22 @@ func _on_tutorial_exit_pressed() -> void:
 			_set_tutorial_step(TUTORIAL_COMPLETE)
 			return
 	var completed := tutorial_step == TUTORIAL_COMPLETE
+	var resume_gameplay := tutorial_return_to_gameplay and not completed and not tutorial_deal_snapshot.is_empty()
+	var resume_snapshot := tutorial_deal_snapshot.duplicate(false)
 	_deactivate_tutorial(true)
 	interaction_locked = false
 	if completed:
+		tutorial_deal_snapshot.clear()
+		tutorial_return_to_gameplay = false
 		_start_campaign()
+	elif resume_gameplay:
+		_restore_interrupted_deal(resume_snapshot)
+		tutorial_deal_snapshot.clear()
+		tutorial_return_to_gameplay = false
 	else:
 		_start_new_deal()
+		tutorial_deal_snapshot.clear()
+		tutorial_return_to_gameplay = false
 		_on_menu_pressed()
 
 
@@ -1193,6 +1237,53 @@ func _show_discard_archive() -> void:
 	discard_archive_close.grab_focus()
 
 
+func _on_event_deck_inspect_requested() -> void:
+	if current_campaign_event == null or event_table == null or not event_table.visible:
+		return
+	_clear_campaign_participants()
+	_restore_event_content_frame()
+	event_table.content_panel.position = Vector2(250, 120)
+	event_table.content_panel.size = Vector2(950, 520)
+	event_table.continue_button.visible = true
+	_build_event_deck_inspector()
+
+
+func _build_event_deck_inspector() -> void:
+	var deck_cards: Array[CardData] = campaign.gieo_que.persistent_deck
+	var heading := Label.new()
+	heading.text = "%s  ·  %s" % [tr("ARCHIVE_DRAW_TITLE"), tr("ARCHIVE_COUNT") % deck_cards.size()]
+	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	heading.add_theme_font_size_override("font_size", 23)
+	heading.add_theme_color_override("font_color", PresentationTheme.GOLD)
+	campaign_participants.add_child(heading)
+	var scroll := ScrollContainer.new()
+	scroll.custom_minimum_size = Vector2(880, 430)
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	campaign_participants.add_child(scroll)
+	var rows := VBoxContainer.new()
+	rows.add_theme_constant_override("separation", 8)
+	scroll.add_child(rows)
+	for suit in DeckManager.SUITS:
+		var suit_row := HBoxContainer.new()
+		suit_row.add_theme_constant_override("separation", 5)
+		rows.add_child(suit_row)
+		var suit_label := Label.new()
+		suit_label.custom_minimum_size = Vector2(92, 75)
+		suit_label.text = _discard_suit_title(suit)
+		suit_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		suit_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		suit_label.add_theme_font_size_override("font_size", 14)
+		suit_label.add_theme_color_override("font_color", PresentationTheme.MUTED)
+		suit_row.add_child(suit_label)
+		var suit_cards: Array[CardData] = []
+		for card in deck_cards:
+			if card.suit == suit:
+				suit_cards.append(card)
+		suit_cards.sort_custom(_discard_card_less)
+		for card in suit_cards:
+			suit_row.add_child(_build_discard_archive_card(card))
+
+
 func _hide_discard_archive() -> void:
 	discard_archive_overlay.visible = false
 	discard_archive_close.release_focus()
@@ -1272,6 +1363,7 @@ func _build_discard_archive_card(card: CardData) -> Control:
 	texture.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	texture.texture = load(card.texture_path()) as Texture2D
 	GieoCardFX.attach_texture(texture, card)
+	texture.add_child(preload("res://scripts/ui/passive_card_sway.gd").new())
 	texture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	texture.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	texture.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
@@ -1318,13 +1410,16 @@ func _show_campaign_event(event: EventInstance) -> void:
 		event.slot,
 		tr(String(day.get("name_key", ""))),
 		tr(EventManager.slot_name_key(event.slot)),
-		_event_money_text(deal.wallet.balance_vnd)
+		_event_money_text(deal.wallet.balance_vnd),
+		campaign.gieo_que.persistent_deck.size()
 	)
 	event_table.set_continue_enabled(event.can_exit)
 	_refresh_stats()
 
 
 func _on_event_table_npc_focused(npc_id: String) -> void:
+	if DemoBuild.enabled() and npc_id != EventTableController.NPC_TRA_DA:
+		return
 	_clear_campaign_participants()
 	_restore_event_content_frame()
 	event_table.continue_button.visible = true
@@ -1374,7 +1469,7 @@ func _build_gieo_que_service() -> void:
 func _restore_event_content_frame() -> void:
 	if event_table == null or event_table.content_panel == null:
 		return
-	var style := PresentationTheme.universal_frame_style()
+	var style := PresentationTheme.panel_style(Color("#19130ff0"), Color("#8d5b30"), 2, 2, 4)
 	style.content_margin_left = 22
 	style.content_margin_top = 18
 	style.content_margin_right = 22
@@ -1494,7 +1589,7 @@ func _clear_campaign_participants() -> void:
 
 func _build_campaign_participant(participant: NPCDefinition, event: EventInstance) -> void:
 	if participant.id == EventTableController.NPC_TRA_DA:
-		event_table.content_panel.position = Vector2(145, 270)
+		event_table.content_panel.position = Vector2(145, 245 if DemoBuild.enabled() else 270)
 		event_table.content_panel.size = Vector2(730, 355)
 		event_table.content_panel.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
 		for interaction in event.interactions:
@@ -1590,8 +1685,6 @@ func _sync_drink_table_visual() -> void:
 	if drink_table_button == null or drink_table_texture == null:
 		return
 	var has_previous_drink := drink_manager != null and drink_manager.morning_drink_id != DrinkCatalog.NONE and drink_manager.afternoon_drink_id != DrinkCatalog.NONE
-	empty_drink_prop.visible = has_previous_drink
-	empty_drink_prop.position = DRINK_TABLE_EMPTY_POSITION
 	drink_table_button.position = DRINK_TABLE_NOON_POSITION if has_previous_drink else DRINK_TABLE_MORNING_POSITION
 	var spent: bool = _drink_is_spent_in_current_window()
 	var textures: Dictionary = DRINK_HALF_TEXTURES if spent else DRINK_FULL_TEXTURES
@@ -1612,16 +1705,18 @@ func _sync_hand(animated_cards: Array[CardData]) -> void:
 		animated_ids[card.unique_id] = true
 	for card in deal.hand:
 		active_ids[card.unique_id] = true
-		if not hand_views.has(card.unique_id):
-			var view := PlayingCardView.new()
+		var view := hand_views.get(card.unique_id) as PlayingCardView
+		var is_new := view == null
+		if is_new:
+			view = PlayingCardView.new()
 			hand_layer.add_child(view)
-			view.set_card(card)
 			view.card_pressed.connect(_on_card_pressed)
 			view.card_drag_started.connect(_on_card_drag_started.bind(view))
 			hand_views[card.unique_id] = view
-			if animated_ids.has(card.unique_id):
-				var origin := draw_pile_visual.get_global_rect().get_center() - hand_layer.global_position
-				view.spawn_from(origin)
+		view.set_card(card)
+		if is_new and animated_ids.has(card.unique_id):
+			var origin := draw_pile_visual.get_global_rect().get_center() - hand_layer.global_position
+			view.spawn_from(origin)
 	for existing_id in hand_views.keys():
 		if not active_ids.has(existing_id):
 			var old_view: PlayingCardView = hand_views[existing_id]
@@ -1738,7 +1833,7 @@ func _sync_music_reactive_cards() -> void:
 
 	var table_meld_ids: Dictionary = targets.get("melds", {})
 	for meld in deal.melds:
-		if not table_meld_ids.has(meld.meld_id):
+		if not table_meld_ids.has(meld.meld_id) and meld.cards.size() < (13 if meld.meld_type == MeldRules.TYPE_RUN else 12):
 			continue
 		var view := meld_views.get(meld.meld_id) as MeldView
 		if view == null:
@@ -1875,8 +1970,6 @@ func _sync_discard_history() -> void:
 		return
 	for phase_number in [1, 2]:
 		var records := deal.discard_history_for_phase(phase_number)
-		if deal.current_drink_id == DrinkCatalog.DEN_DA:
-			records = deal.live_discard_records().filter(func(record: DiscardRecord) -> bool: return record.phase == phase_number)
 		if records.is_empty():
 			continue
 		var phase_label := Label.new()
@@ -1909,6 +2002,7 @@ func _build_discard_thumbnail(record: DiscardRecord) -> Control:
 	texture.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	texture.texture = load(record.card.texture_path()) as Texture2D
 	GieoCardFX.attach_texture(texture, record.card)
+	texture.add_child(preload("res://scripts/ui/passive_card_sway.gd").new())
 	texture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	texture.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	texture.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
@@ -2158,6 +2252,27 @@ func _drink_target_status() -> String:
 
 
 func _input(event: InputEvent) -> void:
+	if is_instance_valid(wallet_spiral):
+		if (event is InputEventKey and event.is_action_pressed(&"ui_cancel")) or (event is InputEventMouseButton and event.pressed):
+			wallet_spiral.dismiss()
+		get_viewport().set_input_as_handled()
+		return
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+		if game_started and not interaction_locked and not money_queue_running and not menu_layer.visible and not modal_overlay.visible and not score_overlay.visible and not discard_archive_overlay.visible and deal.wallet.balance_vnd > 0:
+			var wallet_panel := wallet_pile_anchor.get_parent().get_parent().get_parent() as Control
+			if Rect2(Vector2.ZERO, wallet_panel.size).has_point(wallet_panel.get_global_transform_with_canvas().affine_inverse() * event.position):
+				var now := Time.get_ticks_msec()
+				wallet_click_times = wallet_click_times.filter(func(t: int) -> bool: return now - t <= 650)
+				wallet_click_times.append(now)
+				if wallet_click_times.size() >= 3:
+					wallet_click_times.clear()
+					wallet_spiral = preload("res://scripts/ui/wallet_spiral.gd").new()
+					add_child(wallet_spiral)
+					wallet_spiral.begin(money_presentation, deal.wallet.balance_vnd, game_layer)
+					get_viewport().set_input_as_handled()
+					return
+			else:
+				wallet_click_times.clear()
 	if active_drag_payload == null:
 		return
 	if event is InputEventKey and event.is_action_pressed(&"ui_cancel"):
@@ -2723,6 +2838,9 @@ func _finish_drink_use(result: Dictionary) -> void:
 	selected_drink_discard_key = ""
 	interaction_locked = false
 	_sync_all(result)
+	if result.has("context") and result["context"] is ScoringContext:
+		selected_meld_id = int(result.get("meld_id", -1))
+		_queue_scoring(result["context"] as ScoringContext, meld_scroll)
 	var banner_key: String = {
 		DrinkCatalog.TRA_DA: "BANNER_DRINK_TRA_DA",
 		DrinkCatalog.NHAN_TRAN: "BANNER_DRINK_NHAN_TRAN",
@@ -2836,6 +2954,9 @@ func _on_discard_pressed() -> void:
 	_play_card_sfx(CARD_SFX_PLACE)
 	selected_card_ids.clear()
 	_sync_all(result)
+	await _drain_pending_u_presentations()
+	if result.has("turn_resolution"):
+		await _show_turn_deadwood(result["turn_resolution"])
 	_drain_pending_exhaustion_presentations()
 	await _drain_pending_u_khan_presentations()
 	if result.get("extra_discard_pending", false):
@@ -2869,6 +2990,8 @@ func _on_settle_pressed() -> void:
 			_reject_action(turn_result.get("message", "Ending the turn failed."))
 			return
 		_sync_all(turn_result)
+		if turn_result.has("turn_resolution"):
+			await _show_turn_deadwood(turn_result["turn_resolution"])
 		_drain_pending_exhaustion_presentations()
 		if turn_result.get("final_commit_window", false):
 			_show_banner(tr("BANNER_LAST_CALL"))
@@ -2954,43 +3077,56 @@ func _show_scoring(context: ScoringContext, source_override: Control = null) -> 
 
 func _queue_scoring(context: ScoringContext, source_override: Control = null, recycle_visual: Dictionary = {}) -> int:
 	var passes: Array = context.scoring_passes if not context.scoring_passes.is_empty() else [context]
-	var last_job_id := -1
-	for index in passes.size():
-		var scoring_pass := passes[index] as ScoringContext
-		last_job_id = _queue_scoring_pass(
-			scoring_pass,
-			source_override,
-			recycle_visual if index == passes.size() - 1 else {}
-		)
-	return last_job_id
-
-
-func _queue_scoring_pass(context: ScoringContext, source_override: Control = null, recycle_visual: Dictionary = {}) -> int:
-	var amount_vnd := _points_to_vnd(context.final_points)
+	var gross_multiplier := deal.gross_payout_multiplier()
+	var hits: Array[Dictionary] = []
+	for scoring_pass: ScoringContext in passes:
+		if scoring_pass.trigger_index > 0:
+			var replay: Dictionary = {}
+			for source_hit in scoring_pass.presentation_hits:
+				if source_hit["card_id"] == scoring_pass.retrigger_source_id:
+					replay = source_hit.duplicate(true)
+					break
+			replay.merge({
+				"kind": "meld_retrigger", "card_id": scoring_pass.retrigger_source_id,
+				"property": scoring_pass.retrigger_property, "points": 0,
+				"pass": scoring_pass.trigger_index + 1,
+			}, true)
+			hits.append(replay)
+		for hit in scoring_pass.presentation_hits:
+			var receipt := hit.duplicate(true)
+			receipt["amount_vnd"] = _points_to_vnd(int(hit["points"]) * gross_multiplier)
+			receipt["pass"] = scoring_pass.trigger_index + 1
+			hits.append(receipt)
+	var amount_vnd := _points_to_vnd(context.final_points * gross_multiplier)
 	var start_wallet := money_queue_wallet_vnd
-	var target_wallet := start_wallet + amount_vnd
-	money_queue_wallet_vnd = target_wallet
-	var source := source_override if source_override != null else meld_views.get(selected_meld_id) as Control
+	money_queue_wallet_vnd += amount_vnd
 	var event := {
-		"direction": "gain" if amount_vnd >= 0 else "loss",
-		"amount_vnd": absi(amount_vnd),
-		"start_wallet_vnd": start_wallet,
-		"target_wallet_vnd": target_wallet,
-		"source_control": source if source != null else meld_scroll,
-		"destination_control": wallet_pile_anchor,
-		"intensity": 0.72 if context.action_type == "extension" else clampf(0.9 + float(context.final_points) / 180.0, 0.9, 1.45),
-		"title": tr("EXTEND_ACTION") if context.action_type == "extension" else "%s!" % tr("MELD_ACTION"),
-		"steps": [
-			"%d → %d" % [context.old_meld_score, context.theoretical_score] if context.action_type == "extension" else context.value_equation(),
-			"%d  ×%d" % [context.card_value_sum, context.local_mult],
-		],
-		"payout": VndWallet.format_vnd(amount_vnd, true),
-		"reason": context.action_type,
+		"hits": hits, "amount_vnd": amount_vnd,
+		"start_wallet_vnd": start_wallet, "target_wallet_vnd": money_queue_wallet_vnd,
+		"source_control": source_override if is_instance_valid(source_override) else meld_scroll,
+		"card_locator": _scoring_card_control, "reveal_card": _reveal_scoring_card,
+		"title": tr("EXTEND_ACTION") if context.action_type == "extension" else tr("MELD_ACTION"),
 	}
-	if context.action_type == "extension":
-		event["steps"] = [event["steps"][0]]
-	return _enqueue_money_job("transaction", event, recycle_visual)
+	return _enqueue_money_job("scoring", event, recycle_visual)
 
+
+func _scoring_card_control(card_id: String) -> Control:
+	# Resolve at playback time; rapid input can rebuild meld views while queued.
+	for view: MeldView in meld_views.values():
+		if is_instance_valid(view):
+			var face := view.get_scoring_card_control(card_id)
+			if face != null:
+				return face
+	for snapshot in meld_row.get_children():
+		if not snapshot.get_meta("exhaustion_snapshot", false):
+			continue
+		for child in snapshot.get_children():
+			if child is Control and String(child.get_meta("scoring_card_id", "")) == card_id:
+				return child as Control
+	for child in particle_layer.get_children():
+		if child is Control and String(child.get_meta("scoring_card_id", "")) == card_id:
+			return child as Control
+	return null
 
 func _show_phase_resolution(resolution: Dictionary) -> void:
 	var target_wallet := deal.wallet.balance_vnd
@@ -3003,14 +3139,44 @@ func _show_phase_resolution(resolution: Dictionary) -> void:
 		"gross_vnd": _points_to_vnd(int(resolution.get("gross_after_u", 0))),
 		"deadwood_value_sum": int(resolution.get("deadwood_value_sum", 0)),
 		"deadwood_multiplier": int(resolution.get("deadwood_multiplier", 1)),
-		"deadwood_vnd": _points_to_vnd(int(resolution.get("deadwood_points", 0))),
+		"deadwood_vnd": _points_to_vnd(int(resolution.get("turn_deadwood", resolution.get("deadwood_points", 0)))),
+		"deadwood_total_vnd": _points_to_vnd(int(resolution.get("deadwood_points", 0))),
 		"net_vnd": _points_to_vnd(int(resolution.get("net", 0))),
+		"u_bonus_paid_early": bool(resolution.get("u_bonus_paid_early", false)),
 		"start_wallet_vnd": money_queue_wallet_vnd,
 		"target_wallet_vnd": target_wallet,
 		"source_control": hand_layer,
 	}
 	money_queue_wallet_vnd = target_wallet
 	var job_id := _enqueue_money_job("phase", event)
+	await _wait_for_money_job(job_id)
+
+
+func _show_turn_deadwood(resolution: Dictionary) -> void:
+	var deadwood_points := maxi(int(resolution.get("deadwood", 0)), 0)
+	var amount_vnd := _points_to_vnd(deadwood_points)
+	if amount_vnd <= 0:
+		return
+	var start_wallet := money_queue_wallet_vnd
+	var target_wallet := start_wallet - amount_vnd
+	var event := {
+		"direction": "loss",
+		"amount_vnd": amount_vnd,
+		"start_wallet_vnd": start_wallet,
+		"target_wallet_vnd": target_wallet,
+		"source_control": hand_layer,
+		"destination_control": hand_layer,
+		"intensity": 1.05,
+		"title": tr("TURN_DEADWOOD_TITLE") % int(resolution.get("turn", deal.discard_count)),
+		"steps": [
+			str(int(resolution.get("value_sum", deadwood_points))),
+			"× %d" % maxi(int(resolution.get("multiplier", 1)), 1),
+		],
+		"payout": VndWallet.format_vnd(-amount_vnd, true),
+		"reason": "deadwood",
+	}
+	money_queue_wallet_vnd = target_wallet
+	var job_id := _enqueue_money_job("transaction", event)
 	await _wait_for_money_job(job_id)
 
 
@@ -3030,18 +3196,25 @@ func _enqueue_money_job(kind: String, event: Dictionary, recycle_visual: Diction
 
 
 func _drain_money_jobs() -> void:
+	var generation := money_queue_generation
 	while not money_jobs.is_empty():
 		var job: Dictionary = money_jobs.pop_front()
 		var event: Dictionary = job["event"]
-		if String(job["kind"]) == "phase":
+		if String(job["kind"]) == "scoring":
+			await money_presentation.present_scoring(event)
+		elif String(job["kind"]) == "phase":
 			await money_presentation.present_phase(event)
 		else:
 			await money_presentation.present_transaction(event)
+		if generation != money_queue_generation:
+			return
 		displayed_wallet_vnd = int(event.get("target_wallet_vnd", displayed_wallet_vnd))
 		_refresh_stats()
 		var recycle_visual: Dictionary = job.get("recycle_visual", {})
 		if not recycle_visual.is_empty():
 			await _return_exhaustion_visual(recycle_visual)
+			if generation != money_queue_generation:
+				return
 		var job_id := int(job["id"])
 		completed_money_jobs[job_id] = true
 		money_job_completed.emit(job_id)
@@ -3049,8 +3222,9 @@ func _drain_money_jobs() -> void:
 
 
 func _wait_for_money_job(job_id: int) -> void:
-	while not completed_money_jobs.has(job_id):
-		await money_job_completed
+	var generation := money_queue_generation
+	while not completed_money_jobs.has(job_id) and generation == money_queue_generation:
+		await get_tree().process_frame
 	completed_money_jobs.erase(job_id)
 
 
@@ -3163,8 +3337,12 @@ func _start_campaign() -> void:
 	selected_card_ids.clear()
 	selected_meld_id = -1
 	displayed_wallet_vnd = 0
+	pending_u_presentations.clear()
 	pending_u_khan_presentations.clear()
 	pending_exhaustion_presentations.clear()
+	for snapshot in meld_row.get_children():
+		if snapshot.get_meta("exhaustion_snapshot", false):
+			snapshot.queue_free()
 	money_queue_wallet_vnd = displayed_wallet_vnd
 	campaign.start_campaign(true)
 	_refresh_stats()
@@ -3201,6 +3379,8 @@ func _on_campaign_day_started(_day: Dictionary) -> void:
 
 
 func _on_campaign_deal_requested(day: Dictionary, period: String, drink_id: String) -> void:
+	if DemoBuild.enabled() and drink_manager.progress != null:
+		drink_manager.progress.begin_deal()
 	_sync_music_player()
 	current_campaign_event = null
 	interaction_locked = true
@@ -3230,14 +3410,40 @@ func _on_deal_new_phom_scored(_context: ScoringContext) -> void:
 
 
 func _on_deal_u_triggered(context: Dictionary) -> void:
-	if not bool(context.get("u_khan", false)):
-		return
 	var queued := context.duplicate(true)
+	if not bool(context.get("u_khan", false)):
+		pending_u_presentations.append(queued)
+		return
 	var amount_vnd := _points_to_vnd(int(context.get("payout", 0)))
 	queued["amount_vnd"] = amount_vnd
 	queued["target_wallet_vnd"] = deal.wallet.balance_vnd
 	queued["start_wallet_vnd"] = deal.wallet.balance_vnd - amount_vnd
 	pending_u_khan_presentations.append(queued)
+
+
+func _drain_pending_u_presentations() -> void:
+	while not pending_u_presentations.is_empty():
+		var context: Dictionary = pending_u_presentations.pop_front()
+		var amount_vnd := _points_to_vnd(int(context.get("payout", 0)))
+		var raw_gross_vnd := _points_to_vnd(int(context.get("raw_gross", context.get("payout", 0))))
+		var start_wallet := money_queue_wallet_vnd
+		var target_wallet := start_wallet + amount_vnd
+		var event := {
+			"direction": "gain",
+			"amount_vnd": amount_vnd,
+			"start_wallet_vnd": start_wallet,
+			"target_wallet_vnd": target_wallet,
+			"source_control": hand_layer,
+			"destination_control": wallet_pile_anchor,
+			"intensity": 1.8,
+			"title": "%s!" % tr("HOW_U_TITLE"),
+			"steps": [VndWallet.format_vnd(raw_gross_vnd, true), "×2"],
+			"payout": VndWallet.format_vnd(amount_vnd, true),
+			"reason": "u",
+		}
+		money_queue_wallet_vnd = target_wallet
+		var job_id := _enqueue_money_job("transaction", event)
+		await _wait_for_money_job(job_id)
 
 
 func _drain_pending_u_khan_presentations() -> void:
@@ -3257,7 +3463,7 @@ func _drain_pending_u_khan_presentations() -> void:
 			"destination_control": wallet_pile_anchor,
 			"intensity": 2.0,
 			"title": "%s!" % tr("HOW_U_KHAN_TITLE"),
-			"steps": [str(hand_sum), "×10"],
+			"steps": [str(hand_sum), "×10" if int(context.get("gross_multiplier", 1)) == 1 else "×10  •  Ù ×2"],
 			"payout": VndWallet.format_vnd(int(context.get("amount_vnd", 0)), true),
 			"reason": "u_khan",
 		}
@@ -3280,25 +3486,30 @@ func _capture_exhaustion_visual(meld: MeldState, view: MeldView) -> Dictionary:
 		return {}
 	var anchor := Control.new()
 	anchor.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	anchor.position = view.global_position - particle_layer.global_position
+	anchor.set_meta("exhaustion_snapshot", true)
 	anchor.size = view.size
-	particle_layer.add_child(anchor)
+	anchor.custom_minimum_size = view.size
+	anchor.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	anchor.position = view.position
+	meld_row.add_child(anchor)
+	meld_row.move_child(anchor, view.get_index())
 	var ghosts: Array[Control] = []
 	for card in meld.cards:
 		var card_rect := view.card_global_rect(card.unique_id)
 		if card_rect.size == Vector2.ZERO:
 			continue
 		var ghost := TextureRect.new()
+		ghost.set_meta("scoring_card_id", card.unique_id)
 		ghost.texture = load(card.texture_path()) as Texture2D
 		GieoCardFX.attach_texture(ghost, card)
 		ghost.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		ghost.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		ghost.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		ghost.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		ghost.position = card_rect.position - particle_layer.global_position
+		ghost.position = card_rect.position - view.global_position
 		ghost.size = card_rect.size
 		ghost.pivot_offset = ghost.size * 0.5
-		particle_layer.add_child(ghost)
+		anchor.add_child(ghost)
 		ghosts.append(ghost)
 	view.modulate.a = 0.0
 	return {"anchor": anchor, "cards": ghosts}
@@ -3306,21 +3517,30 @@ func _capture_exhaustion_visual(meld: MeldState, view: MeldView) -> Dictionary:
 
 func _return_exhaustion_visual(visual: Dictionary) -> void:
 	var target := draw_pile_visual.get_global_rect().get_center() - particle_layer.global_position
-	for card_value in visual.get("cards", []):
+	var last_tween: Tween
+	var cards: Array = visual.get("cards", [])
+	var gap := minf(0.035, 0.35 / maxf(cards.size(), 1))
+	for card_value in cards:
 		var card := card_value as Control
 		if card == null or not is_instance_valid(card):
 			continue
-		var tween := create_tween().set_parallel(true)
+		await _reveal_scoring_card(card)
+		if not is_instance_valid(card):
+			continue
+		card.reparent(particle_layer, true)
+		var tween := card.create_tween().set_parallel(true)
 		tween.tween_property(card, "position", target - card.size * 0.5, 0.18).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 		tween.tween_property(card, "rotation", card.rotation + 0.12, 0.18)
 		tween.tween_property(card, "scale", Vector2(0.72, 0.72), 0.18)
 		tween.tween_property(card, "modulate:a", 0.0, 0.07).set_delay(0.12)
-		await tween.finished
-		card.queue_free()
+		tween.chain().tween_callback(card.queue_free)
+		last_tween = tween
+		await get_tree().create_timer(gap).timeout
+	if last_tween != null and last_tween.is_running():
+		await last_tween.finished
 	var anchor := visual.get("anchor") as Control
 	if anchor != null and is_instance_valid(anchor):
 		anchor.queue_free()
-
 
 func _on_deal_exhaustion_triggered(context: Dictionary) -> void:
 	selected_meld_id = -1
@@ -3389,6 +3609,8 @@ func _on_campaign_continue_pressed() -> void:
 	campaign.complete_current_event()
 
 func _on_campaign_requirement_passed(day: Dictionary) -> void:
+	if DemoBuild.enabled() and drink_manager.progress != null and day.get("id") == "monday":
+		drink_manager.progress.add_progress("mondays")
 	_show_banner(tr("CAMPAIGN_REQUIREMENT_PASSED") % [
 		tr(String(day.get("name_key", ""))),
 		VndWallet.format_vnd(int(day.get("required_vnd", 0))),
@@ -3450,6 +3672,8 @@ func _start_new_deal() -> void:
 		return
 	if tutorial_active:
 		_deactivate_tutorial(true)
+		tutorial_deal_snapshot.clear()
+		tutorial_return_to_gameplay = false
 	interaction_locked = true
 	modal_overlay.visible = false
 	_set_hand_interaction_enabled(true)
@@ -3464,6 +3688,22 @@ func _start_new_deal() -> void:
 	_refresh_actions()
 
 
+func _restore_interrupted_deal(snapshot: Dictionary) -> void:
+	interaction_locked = true
+	_set_hand_interaction_enabled(false)
+	deal.restore_snapshot(snapshot)
+	displayed_wallet_vnd = deal.wallet.balance_vnd
+	money_queue_wallet_vnd = displayed_wallet_vnd
+	_sync_all()
+	_set_hand_interaction_enabled(true)
+	interaction_locked = false
+	menu_layer.visible = false
+	menu_layer.modulate = Color.WHITE
+	menu_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	menu_transitioning = false
+	_refresh_actions()
+
+
 func _fly_cards(cards: Array[CardData], target_global: Vector2) -> void:
 	if cards.is_empty():
 		return
@@ -3475,6 +3715,7 @@ func _fly_cards(cards: Array[CardData], target_global: Vector2) -> void:
 			continue
 		var source: PlayingCardView = hand_views[card.unique_id]
 		var ghost := TextureRect.new()
+		ghost.set_meta("scoring_card_id", card.unique_id)
 		ghost.texture = load(card.texture_path()) as Texture2D
 		GieoCardFX.attach_texture(ghost, card)
 		ghost.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
@@ -3629,3 +3870,46 @@ func _unhandled_key_input(event: InputEvent) -> void:
 			selected_card_ids.clear()
 			selected_meld_id = -1
 			_sync_all()
+
+
+func _on_demo_progress_action(result: Dictionary) -> void:
+	if tutorial_active or campaign == null or drink_manager.progress == null:
+		return
+	if not CampaignManager.DEAL_PHASE_TO_PERIOD.has(campaign.current_phase):
+		return
+	drink_manager.progress.record_action(deal, result)
+
+
+func _on_demo_deal_finished(result: Dictionary) -> void:
+	if not tutorial_active and drink_manager.progress != null and result.get("period") == "morning":
+		drink_manager.progress.add_progress("morning_deals")
+
+
+func _on_drink_unlocked(drink_id: String) -> void:
+	pending_drink_unlocks.append(drink_id)
+	if unlock_notice_playing:
+		return
+	unlock_notice_playing = true
+	# Let deal/day banners finish before displaying the unlock notices.
+	await get_tree().create_timer(1.8).timeout
+	while not pending_drink_unlocks.is_empty():
+		_show_banner(tr("DRINK_UNLOCK_NOTICE") % DrinkCatalog.display_name(pending_drink_unlocks.pop_front()))
+		await get_tree().create_timer(1.8).timeout
+	unlock_notice_playing = false
+
+
+func _reveal_scoring_card(card_control: Control) -> void:
+	if not is_instance_valid(card_control) or not meld_scroll.is_ancestor_of(card_control):
+		return
+	var viewport_rect := meld_scroll.get_global_rect()
+	var card_rect := card_control.get_global_rect()
+	if viewport_rect.encloses(card_rect):
+		return
+	var offset := 0.0
+	if card_rect.position.x < viewport_rect.position.x:
+		offset = card_rect.position.x - viewport_rect.position.x - 18.0
+	elif card_rect.end.x > viewport_rect.end.x:
+		offset = card_rect.end.x - viewport_rect.end.x + 18.0
+	var tween := create_tween()
+	tween.tween_property(meld_scroll, "scroll_horizontal", maxi(0, meld_scroll.scroll_horizontal + roundi(offset)), 0.18).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN_OUT)
+	await tween.finished

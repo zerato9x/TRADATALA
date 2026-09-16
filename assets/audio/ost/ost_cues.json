@@ -1458,128 +1458,140 @@
     "rooster_1": {
       "decisions": {
         "rooster_1_bars_001_002": {
-          "cue_name": "",
+          "cue_name": "STARTER_EVENT",
           "notes": "",
           "status": "approved",
-          "updated_at_utc": "2026-09-09T05:27:22"
+          "updated_at_utc": "2026-09-15T14:29:56"
         },
         "rooster_1_bars_003_004": {
-          "cue_name": "",
+          "cue_name": "MORNING_DEAL_1",
           "notes": "",
           "status": "approved",
-          "updated_at_utc": "2026-09-09T05:27:39"
+          "updated_at_utc": "2026-09-15T14:51:08"
         },
         "rooster_1_bars_005_006": {
-          "cue_name": "",
+          "cue_name": "MORNING_DEAL_1_SUS",
+          "notes": "",
+          "status": "rejected",
+          "updated_at_utc": "2026-09-15T14:43:16"
+        },
+        "rooster_1_bars_005_008": {
+          "cue_name": "MORNING_DEAL_2_SUS",
           "notes": "",
           "status": "approved",
-          "updated_at_utc": "2026-09-09T05:27:55"
+          "updated_at_utc": "2026-09-15T14:47:31"
         },
         "rooster_1_bars_006_009": {
-          "cue_name": "",
+          "cue_name": "MORNING_DEAL_2",
           "notes": "",
-          "status": "approved",
-          "updated_at_utc": "2026-09-09T05:28:53"
+          "status": "rejected",
+          "updated_at_utc": "2026-09-15T14:43:20"
         },
         "rooster_1_bars_012_013": {
-          "cue_name": "",
+          "cue_name": "MORNING_DEAL_2",
           "notes": "",
           "status": "approved",
-          "updated_at_utc": "2026-09-09T05:29:31"
+          "updated_at_utc": "2026-09-15T14:47:35"
         },
         "rooster_1_bars_012_015": {
           "cue_name": "",
           "notes": "",
-          "status": "approved",
-          "updated_at_utc": "2026-09-09T05:30:02"
+          "status": "rejected",
+          "updated_at_utc": "2026-09-15T14:45:44"
         },
         "rooster_1_bars_014_017": {
-          "cue_name": "",
+          "cue_name": "MORNING_EVENT",
           "notes": "",
           "status": "approved",
-          "updated_at_utc": "2026-09-09T05:30:44"
+          "updated_at_utc": "2026-09-15T14:47:47"
         },
         "rooster_1_bars_028_029": {
-          "cue_name": "",
+          "cue_name": "NOON_DEAL_SUS",
           "notes": "",
           "status": "approved",
-          "updated_at_utc": "2026-09-09T05:34:21"
+          "updated_at_utc": "2026-09-15T14:50:40"
         },
         "rooster_1_bars_035_036": {
-          "cue_name": "",
+          "cue_name": "NOON_DEAL_SUS",
           "notes": "",
           "status": "approved",
-          "updated_at_utc": "2026-09-09T05:35:24"
+          "updated_at_utc": "2026-09-15T14:50:36"
         },
         "rooster_1_bars_040_041": {
-          "cue_name": "",
+          "cue_name": "NOON_DEAL_SUS",
           "notes": "",
           "status": "approved",
-          "updated_at_utc": "2026-09-09T05:36:10"
+          "updated_at_utc": "2026-09-15T14:50:33"
         },
         "rooster_1_bars_043_044": {
-          "cue_name": "",
+          "cue_name": "NOON_DEAL_2",
           "notes": "",
-          "status": "approved",
-          "updated_at_utc": "2026-09-09T05:36:48"
+          "status": "rejected",
+          "updated_at_utc": "2026-09-15T14:49:54"
         },
         "rooster_1_bars_047_048": {
-          "cue_name": "",
+          "cue_name": "NOON_DEAL_HOLD",
           "notes": "",
           "status": "approved",
-          "updated_at_utc": "2026-09-09T05:37:19"
+          "updated_at_utc": "2026-09-15T14:59:28"
         },
         "rooster_1_bars_050_051": {
-          "cue_name": "",
+          "cue_name": "NOON_DEAL_FINAL",
           "notes": "",
           "status": "approved",
-          "updated_at_utc": "2026-09-09T05:37:44"
+          "updated_at_utc": "2026-09-15T14:50:28"
         }
       }
     },
     "rooster_2": {
       "decisions": {
         "rooster_2_bars_001_002": {
-          "cue_name": "",
+          "cue_name": "STARTER_EVENT",
+          "notes": "",
+          "status": "rejected",
+          "updated_at_utc": "2026-09-15T14:57:47"
+        },
+        "rooster_2_bars_001_004": {
+          "cue_name": "NOON_EVENT",
           "notes": "",
           "status": "approved",
-          "updated_at_utc": "2026-09-09T05:38:41"
+          "updated_at_utc": "2026-09-15T15:00:58"
         },
         "rooster_2_bars_003_004": {
           "cue_name": "",
           "notes": "",
-          "status": "approved",
-          "updated_at_utc": "2026-09-09T05:38:56"
+          "status": "rejected",
+          "updated_at_utc": "2026-09-15T14:57:33"
         },
         "rooster_2_bars_005_006": {
           "cue_name": "",
           "notes": "",
-          "status": "approved",
-          "updated_at_utc": "2026-09-09T05:39:14"
+          "status": "rejected",
+          "updated_at_utc": "2026-09-15T14:58:27"
         },
         "rooster_2_bars_006_007": {
-          "cue_name": "",
+          "cue_name": "AFTERNOON_DEAL_1_SUS",
           "notes": "",
           "status": "approved",
-          "updated_at_utc": "2026-09-09T05:39:51"
+          "updated_at_utc": "2026-09-15T15:01:56"
         },
         "rooster_2_bars_007_008": {
           "cue_name": "",
           "notes": "",
-          "status": "approved",
-          "updated_at_utc": "2026-09-09T05:40:05"
+          "status": "rejected",
+          "updated_at_utc": "2026-09-15T14:59:01"
         },
         "rooster_2_bars_009_012": {
-          "cue_name": "",
+          "cue_name": "AFTERNOON_DEAL_HOLD",
           "notes": "",
-          "status": "approved",
-          "updated_at_utc": "2026-09-09T05:41:04"
+          "status": "rejected",
+          "updated_at_utc": "2026-09-15T15:00:50"
         },
         "rooster_2_bars_009_016": {
-          "cue_name": "",
+          "cue_name": "AFTERNOON_DEAL_1",
           "notes": "",
           "status": "approved",
-          "updated_at_utc": "2026-09-09T05:41:57"
+          "updated_at_utc": "2026-09-15T15:01:48"
         },
         "rooster_2_bars_018_019": {
           "cue_name": "",
@@ -1588,16 +1600,16 @@
           "updated_at_utc": "2026-09-09T05:44:04"
         },
         "rooster_2_bars_018_021": {
-          "cue_name": "",
+          "cue_name": "AFTERNOON_DEAL_2_SUS",
           "notes": "",
           "status": "approved",
-          "updated_at_utc": "2026-09-09T05:44:15"
+          "updated_at_utc": "2026-09-15T15:02:05"
         },
         "rooster_2_bars_025_032": {
-          "cue_name": "",
+          "cue_name": "AFTERNOON_DEAL_2",
           "notes": "",
           "status": "approved",
-          "updated_at_utc": "2026-09-09T05:45:41"
+          "updated_at_utc": "2026-09-15T15:02:28"
         },
         "rooster_2_bars_033_034": {
           "cue_name": "",
@@ -1606,16 +1618,16 @@
           "updated_at_utc": "2026-09-09T05:46:40"
         },
         "rooster_2_bars_034_035": {
-          "cue_name": "",
+          "cue_name": "AFTERNOON_EVENT",
           "notes": "",
           "status": "approved",
-          "updated_at_utc": "2026-09-09T05:46:38"
+          "updated_at_utc": "2026-09-15T15:03:24"
         },
         "rooster_2_bars_038_039": {
-          "cue_name": "",
+          "cue_name": "EVENING_DEAL_SUS",
           "notes": "",
           "status": "approved",
-          "updated_at_utc": "2026-09-09T05:47:31"
+          "updated_at_utc": "2026-09-15T15:03:43"
         },
         "rooster_2_bars_041_044": {
           "cue_name": "",
@@ -1624,46 +1636,46 @@
           "updated_at_utc": "2026-09-09T05:49:44"
         },
         "rooster_2_bars_041_048": {
-          "cue_name": "",
+          "cue_name": "EVENING_DEAL_HOLD",
           "notes": "",
           "status": "approved",
-          "updated_at_utc": "2026-09-09T05:49:42"
+          "updated_at_utc": "2026-09-15T15:03:55"
         },
         "rooster_2_bars_050_051": {
-          "cue_name": "",
+          "cue_name": "EVENING_DEAL_SUS",
           "notes": "",
           "status": "approved",
-          "updated_at_utc": "2026-09-09T05:50:04"
+          "updated_at_utc": "2026-09-15T15:04:05"
         },
         "rooster_2_bars_054_055": {
-          "cue_name": "",
+          "cue_name": "EVENING_DEAL_SUS",
           "notes": "",
           "status": "approved",
-          "updated_at_utc": "2026-09-09T05:50:32"
+          "updated_at_utc": "2026-09-15T15:04:44"
         },
         "rooster_2_bars_057_058": {
-          "cue_name": "",
+          "cue_name": "EVENING_DEAL_SUS",
           "notes": "",
-          "status": "approved",
-          "updated_at_utc": "2026-09-09T05:50:54"
+          "status": "rejected",
+          "updated_at_utc": "2026-09-15T15:05:01"
         },
         "rooster_2_bars_059_060": {
-          "cue_name": "",
+          "cue_name": "EVENING_DEAL_SUS",
           "notes": "",
-          "status": "approved",
-          "updated_at_utc": "2026-09-09T05:51:23"
+          "status": "rejected",
+          "updated_at_utc": "2026-09-15T15:06:10"
         },
         "rooster_2_bars_059_062": {
-          "cue_name": "",
+          "cue_name": "EVENING_DEAL_SUS",
           "notes": "",
           "status": "approved",
-          "updated_at_utc": "2026-09-09T05:53:59"
+          "updated_at_utc": "2026-09-15T15:05:45"
         },
         "rooster_2_bars_064_065": {
-          "cue_name": "",
+          "cue_name": "EVENING_DEAL_FINAL",
           "notes": "",
           "status": "approved",
-          "updated_at_utc": "2026-09-09T05:54:49"
+          "updated_at_utc": "2026-09-15T15:05:54"
         }
       }
     }

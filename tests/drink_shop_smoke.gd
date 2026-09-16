@@ -14,12 +14,31 @@ func _run() -> void:
 	root.add_child(scene)
 	current_scene = scene
 	await process_frame
+	await _click(scene.how_to_play_button)
+	_check(scene.menu_page == &"how_to_play", "viewport click opens How to Play")
+	await _click(scene.how_to_play_back_button)
+	_check(scene.menu_page == &"home", "viewport click activates How to Play Back")
+	await _click(scene.options_button)
+	_check(scene.menu_page == &"options", "viewport click opens Options")
+	await _click(scene.options_back_button)
+	_check(scene.menu_page == &"home", "viewport click activates Options Back")
 	await scene._on_play_pressed()
 	await create_timer(0.5).timeout
 	scene.event_table.focus_npc(EventTableController.NPC_TRA_DA)
 	await create_timer(0.5).timeout
 	var shop := scene.campaign_participants.get_child(0) as DrinkShop
 	_check(shop != null and shop._buttons.size() == 12 and shop.shelf.get_child_count() == 4, "Starter groups twelve Drinks into four classes")
+	await _click(shop._buttons[DrinkCatalog.TRA_DA] as Control)
+	_check(shop.selected_id == DrinkCatalog.TRA_DA, "viewport click selects Tra Da beneath the left NPC hit area")
+	await _click(shop._buttons[DrinkCatalog.STING] as Control)
+	_check(shop.selected_id == DrinkCatalog.STING, "viewport click selects Sting beneath the left NPC hit area")
+	await _click(scene.event_table.back_button)
+	_check(scene.event_table.focused_npc_id.is_empty(), "viewport click activates Back beneath the left NPC hit area")
+	await create_timer(0.5).timeout
+	scene.event_table.focus_npc(EventTableController.NPC_TRA_DA)
+	await create_timer(0.5).timeout
+	shop = scene.campaign_participants.get_child(0) as DrinkShop
+	_check(shop != null, "returning to the NPC reopens the Drink shop")
 	_check(scene.event_table.conversation.get_rect().end.y <= 270, "first opening never expands speech over the table")
 	for locale_name in ["vi", "en"]:
 		TranslationServer.set_locale(locale_name)
@@ -88,7 +107,10 @@ func _run() -> void:
 		_check(scene.pending_drink_card_ids.has(card.unique_id), "viewport click selects Drink card " + card.unique_id)
 		_check(view.selected and not view.drag_enabled, "Drink selection lifts the card and prevents swallowed drag clicks")
 	_check(not scene.ha_button.disabled, "valid Pair enables explicit Use Drink")
+	var money_job_before_pair := scene.next_money_job_id
 	scene._on_ha_pressed()
+	_check(scene.next_money_job_id == money_job_before_pair + 1, "Drink-created Pair queues the same money animation as a normal Phom")
+	await scene._wait_for_money_job(money_job_before_pair)
 	_check(scene.deal.melds.size() == 1 and scene.deal.melds[0].pair_created, "Drink confirmation creates the Pair Phỏm")
 	_check(scene.drink_table_texture.texture.resource_path.ends_with("_half.png"), "spent testing Drink visibly changes its fill")
 	scene.interaction_locked = false
@@ -107,9 +129,12 @@ func _run() -> void:
 		scene.deal.discard_history = [record]
 		scene.deal.deck.discard_pile.clear()
 		scene.deal.recyclable_spent_cards.clear()
-		if kind == DiscardRecord.KIND_DUMP: scene.deal.recyclable_spent_cards.append(incoming)
-		else: scene.deal.deck.discard_pile.append(incoming)
+		scene.deal.deck.discard_pile.append(incoming)
+
 		scene._sync_all()
+		if kind == DiscardRecord.KIND_DUMP:
+			var history_cards := scene.discard_history_row.get_children().filter(func(child: Node) -> bool: return child.has_meta("action_target_card_id"))
+			_check(history_cards.is_empty(), "Den Da DUMP target stays out of the mandatory discard history")
 		scene._on_drink_pressed()
 		await _click(scene.hand_views[outgoing.unique_id])
 		_check(scene.discard_archive_overlay.visible, "hand selection opens a readable swap picker for " + drink_id)
@@ -171,7 +196,13 @@ func _run() -> void:
 	await create_timer(0.8).timeout
 	_check(scene.deal.current_phase == 2 and not scene.modal_overlay.visible, "normal transition automatically DUMPs without KEEP UI")
 	for card_id in discarded_ids:
-		_check(scene.deal.recyclable_spent_cards.any(func(card: CardData) -> bool: return card.unique_id == card_id), "normal loose cards enter DUMP state")
+		_check(scene.deal.deck.discard_pile.any(func(card: CardData) -> bool: return card.unique_id == card_id), "normal loose cards enter the discard pile")
+		_check(not scene.deal.recyclable_spent_cards.any(func(card: CardData) -> bool: return card.unique_id == card_id), "phase DUMPs do not enter recyclable spent cards")
+	scene.deal.set_current_drink(DrinkCatalog.DEN_DA)
+	scene._sync_all()
+	var mandatory_history_count := scene.deal.discard_history_for_phase(1).size() + scene.deal.discard_history_for_phase(2).size()
+	var visible_history_cards := scene.discard_history_row.get_children().filter(func(child: Node) -> bool: return child.has_meta("action_target_card_id"))
+	_check(visible_history_cards.size() == mandatory_history_count, "Den Da keeps between-phase DUMPs out of the four-per-phase history strip")
 	scene.queue_free()
 	await process_frame
 	if failures.is_empty(): print("DRINK_SHOP_SMOKE: PASS twelve-drinks inspect-order bilingual targets layouts")
@@ -213,24 +244,24 @@ func _check_moving_card_input() -> void:
 
 func _click(control: Control) -> void:
 	await create_timer(0.25).timeout
-	var point := control.get_global_transform() * (control.size * 0.5)
+	var point := control.get_global_transform_with_canvas() * (control.size * 0.5)
 	var motion := InputEventMouseMotion.new()
 	motion.position = point
-	root.push_input(motion)
+	root.push_input(motion, true)
 	await create_timer(0.25).timeout
-	point = control.get_global_transform() * (control.size * 0.5)
+	point = control.get_global_transform_with_canvas() * (control.size * 0.5)
 	var press := InputEventMouseButton.new()
 	press.position = point
 	press.button_index = MOUSE_BUTTON_LEFT
 	press.pressed = true
-	root.push_input(press)
+	root.push_input(press, true)
 	# A small hand movement must still select while targeting a Drink.
 	motion = InputEventMouseMotion.new()
 	motion.position = point + Vector2(10, 0)
 	motion.button_mask = MOUSE_BUTTON_MASK_LEFT
-	root.push_input(motion)
+	root.push_input(motion, true)
 	var release := InputEventMouseButton.new()
 	release.position = motion.position
 	release.button_index = MOUSE_BUTTON_LEFT
-	root.push_input(release)
+	root.push_input(release, true)
 	await process_frame

@@ -97,7 +97,7 @@ func test_slot_machine_panel_preserves_authoritative_result_and_locks_pending_ch
 	assert_eq(panel.displayed_reel_values(), lines)
 	assert_true(panel.find_child("ResolvedOracleUpperPanel", true, false) is PanelContainer)
 	assert_true(panel.find_child("ResolvedOracleLowerPanel", true, false) is PanelContainer)
-	assert_true(panel.find_child("OracleDecisions", true, false) is VBoxContainer)
+	assert_true(panel.find_child("OracleDecisions", true, false) is HBoxContainer)
 
 	var authoritative_result := service.current_result.duplicate(true)
 	for tick in range(20):

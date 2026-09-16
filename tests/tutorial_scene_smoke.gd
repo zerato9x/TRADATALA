@@ -26,6 +26,8 @@ func _run() -> void:
 	_check(scene.tutorial_coach.visible and scene.tutorial_progress_label.text == "GĐ 1 • LƯỢT 1\n1 / 10", "tutorial coach presents Phase, Turn, and full lesson progress")
 	_check(scene.tutorial_spotlight.visible and scene.tutorial_spotlight.targets.size() == 3, "tutorial shadows the table except for the three target Run cards")
 	_check(scene.deal.hand.size() == DealState.ACTIVE_HAND_TARGET, "tutorial starts with ten deterministic cards")
+	var first_tutorial_target := scene.hand_views.get(String(MatchUI.TUTORIAL_RUN_IDS[0])) as PlayingCardView
+	_check(first_tutorial_target != null and first_tutorial_target.modulate.is_equal_approx(Color.WHITE), "tutorial target cards remain at full brightness under the spotlight")
 	_check(InputMap.has_action(&"game_keep") and InputMap.has_action(&"game_redraw") and InputMap.has_action(&"game_new_deal") and InputMap.has_action(&"game_meld") and InputMap.has_action(&"game_extend") and InputMap.has_action(&"game_discard") and InputMap.has_action(&"game_settle") and InputMap.has_action(&"game_sort") and InputMap.has_action(&"game_hint"), "gameplay shortcuts are declared in the InputMap")
 
 	scene._on_card_pressed(_card_by_id(scene, String(MatchUI.TUTORIAL_RUN_IDS[0])))
@@ -41,6 +43,16 @@ func _run() -> void:
 	_check(not scene.tutorial_active and scene.tutorial_step == &"" and scene.selected_card_ids.is_empty() and scene.selected_meld_id == -1, "leaving a tutorial clears lesson selection state")
 	_check(not scene.drink_targeting_active and scene.pending_drink_card_ids.is_empty() and scene.selected_drink_meld_id == -1 and scene.selected_drink_meld_card_id.is_empty() and scene.selected_drink_discard_key.is_empty(), "leaving a tutorial clears Drink targeting state")
 	_check(scene.modal_mode.is_empty() and not scene.modal_overlay.visible and not scene.score_overlay.visible and not scene.tutorial_coach.visible and scene.tutorial_spotlight.targets.is_empty(), "leaving a tutorial clears transient overlays and spotlight targets")
+	scene.deal.start_deal(17, false)
+	scene.deal.set_current_drink(DrinkCatalog.TRA_DA)
+	var resumed_hand_ids := _card_ids(scene.deal.hand)
+	var resumed_draw_ids := _card_ids(scene.deal.deck.draw_pile)
+	scene._start_tutorial_deal(true)
+	_check(scene.deal.current_drink_id == DrinkCatalog.NONE, "tutorial uses an isolated temporary Drink state")
+	scene._on_tutorial_exit_pressed()
+	_check(not scene.tutorial_active and not scene.menu_layer.visible and not scene.interaction_locked, "exiting a mid-game tutorial returns directly to the active deal")
+	_check(scene.deal.current_drink_id == DrinkCatalog.TRA_DA, "exiting a mid-game tutorial restores the active Drink")
+	_check(_card_ids(scene.deal.hand) == resumed_hand_ids and _card_ids(scene.deal.deck.draw_pile) == resumed_draw_ids, "exiting a mid-game tutorial restores the complete deal state")
 	scene._start_tutorial_deal()
 	_check(scene.tutorial_active and scene.tutorial_step == MatchUI.TUTORIAL_SELECT_RUN and scene.selected_card_ids.is_empty(), "tutorial can restart from a clean UI state")
 
@@ -118,6 +130,13 @@ func _card_by_id(scene: MatchUI, card_id: String) -> CardData:
 		if card.unique_id == card_id:
 			return card
 	return null
+
+
+func _card_ids(cards: Array[CardData]) -> Array[String]:
+	var ids: Array[String] = []
+	for card in cards:
+		ids.append(card.unique_id)
+	return ids
 
 
 func _send_escape(scene: MatchUI) -> void:

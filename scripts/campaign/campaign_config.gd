@@ -16,8 +16,11 @@ const DAYS := [
 
 static func day_definitions() -> Array[Dictionary]:
 	var definitions: Array[Dictionary] = []
-	for day: Dictionary in DAYS:
-		definitions.append(day.duplicate(true))
+	for index in range(DAYS.size()):
+		var day: Dictionary = DAYS[index].duplicate(true)
+		if DemoBuild.enabled():
+			day["required_vnd"] = 250_000 * (1 << index)
+		definitions.append(day)
 	return definitions
 
 

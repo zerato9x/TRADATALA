@@ -1,7 +1,8 @@
 class_name TutorialSpotlight
 extends Control
 
-const DIM_COLOR := Color("#020302b5")
+const DIM_COLOR := Color("#02030270")
+const TARGET_FILL_COLOR := Color("#fff0ad12")
 const BORDER_COLOR := Color("#f5bf42")
 
 var target_rect := Rect2()
@@ -52,4 +53,4 @@ func _draw() -> void:
 	draw_rect(Rect2(0, bottom_y, full.size.x, maxf(full.size.y - bottom_y, 0.0)), DIM_COLOR)
 	draw_rect(Rect2(0, target_rect.position.y, maxf(target_rect.position.x, 0.0), target_rect.size.y), DIM_COLOR)
 	draw_rect(Rect2(target_rect.end.x, target_rect.position.y, maxf(full.size.x - target_rect.end.x, 0.0), target_rect.size.y), DIM_COLOR)
-	draw_style_box(PresentationTheme.panel_style(Color.TRANSPARENT, BORDER_COLOR, 3, 8, 4), target_rect)
+	draw_style_box(PresentationTheme.panel_style(TARGET_FILL_COLOR, BORDER_COLOR, 3, 8, 4), target_rect)

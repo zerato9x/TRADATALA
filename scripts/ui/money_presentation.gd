@@ -18,11 +18,11 @@ const DENOMINATION_TEXTURES := {
 const MAX_TRANSACTION_OBJECTS := 8
 const MAX_WALLET_OBJECTS := 9
 const MONEY_REVEAL_GAP := 0.025
-const MONEY_REVEAL_LEAD_IN := 0.14
-const MONEY_FLIGHT_DURATION := 0.48
-const MONEY_BILL_STAGGER := 0.04
+const MONEY_REVEAL_LEAD_IN := 0.06
+const MONEY_FLIGHT_DURATION := 0.30
+const MONEY_BILL_STAGGER := 0.02
 const MONEY_BILL_FADE_DURATION := 0.08
-const MONEY_SETTLE_DELAY := 0.16
+const MONEY_SETTLE_DELAY := 0.08
 const MONEY_CEREMONY_FADE_DURATION := 0.14
 var ceremony: Control
 var score_panel: Control
@@ -38,6 +38,12 @@ var presentation_active := false
 var peak_transaction_object_count := 0
 
 var _rng := RandomNumberGenerator.new()
+var _scoring_generation := 0
+var _scoring_layout: Array[Vector2] = []
+var _scoring_face: TextureRect
+var _scoring_fade: Tween
+var _scoring_shakes: Dictionary = {}
+var _stacked_gain := 0
 
 
 func _ready() -> void:
@@ -57,6 +63,210 @@ func sync_wallet(balance_vnd: int) -> void:
 		wallet_label.text = VndWallet.format_vnd(balance_vnd)
 	_rebuild_wallet_pile(balance_vnd)
 
+
+
+# Acceleration depends only on cards already triggered in this resolution.
+# Keep the opening three hits deliberate, including when a huge chain is queued.
+static func scoring_hit_interval(triggered_cards: int) -> float:
+	return maxf(0.045, 0.36 * pow(0.91, maxi(triggered_cards - 2, 0)))
+
+func present_scoring(event: Dictionary) -> void:
+	_scoring_generation += 1
+	var generation := _scoring_generation
+	presentation_active = true
+	ceremony.visible = true
+	_reset_ceremony()
+	var source: Control = event.get("source_control") if is_instance_valid(event.get("source_control")) else null
+	_position_score_stage(source)
+	# Compact receipt above the table; no backdrop or input-catching surface.
+	var labels := [title_label, line_a_label, line_b_label, payout_label]
+	var old_positions: Array[Vector2] = []
+	for label: Label in labels:
+		old_positions.append(label.position)
+		label.position.x += 32.0
+		label.scale = Vector2.ONE * 0.78
+	title_label.position.y = 0.0
+	line_a_label.position.y = 22.0
+	line_b_label.position.y = 53.0
+	payout_label.position.y = 83.0
+	var face := TextureRect.new()
+	face.position = Vector2(20, 22)
+	face.size = Vector2(63, 88)
+	face.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	face.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	face.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	score_panel.add_child(face)
+	_scoring_layout = old_positions
+	_scoring_face = face
+	var hits: Array = event.get("hits", [])
+	var triggered_cards := 0
+	_stacked_gain = 0
+	var running_wallet := int(event.get("start_wallet_vnd", 0))
+	var running_gain := 0
+	var locator: Callable = event.get("card_locator", Callable())
+
+	for index in hits.size():
+		var hit: Dictionary = hits[index]
+		var card_id := String(hit.get("card_id", ""))
+		var card_control: Control = locator.call(card_id) if locator.is_valid() and not card_id.is_empty() else null
+		var reveal: Callable = event.get("reveal_card", Callable())
+		if reveal.is_valid() and is_instance_valid(card_control):
+			await reveal.call(card_control)
+			if generation != _scoring_generation:
+				return
+			card_control = locator.call(card_id) if locator.is_valid() else null
+			if is_instance_valid(card_control):
+				_position_score_stage(card_control)
+		var property_id := String(hit.get("property", ""))
+		var replay := String(hit.get("kind", "")) == "meld_retrigger"
+		var card_trigger := String(hit.get("kind", "")) in ["card", "card_retrigger"]
+		var interval := scoring_hit_interval(triggered_cards)
+		if replay:
+			interval = maxf(0.18, interval * 1.25)
+		var flow := property_id.contains("EXTEND") or property_id.contains("RUN")
+		var accent := Color("#79d9cf") if flow else Color("#f5bf42")
+		if is_instance_valid(card_control):
+			_shake_scoring_card(card_control, accent, interval)
+		var texture_path := String(hit.get("texture_path", ""))
+		if not texture_path.is_empty():
+			face.texture = load(texture_path) as Texture2D
+			GieoCardFX.apply_properties(face, hit.get("properties", []))
+		if not is_instance_valid(card_control) and (card_trigger or (replay and not card_id.is_empty())):
+			_shake_scoring_card(face, accent, interval)
+		var pass_number := int(hit.get("pass", 1))
+		_set_label_text(title_label, "%s  ·  %d" % [String(event.get("title", "")), pass_number], accent)
+		var cue := String(hit.get("label", ""))
+		if replay:
+			cue = tr("SCORE_MELD_REPLAY") if property_id.is_empty() else (tr("SCORE_FLOW_REPLAY") if flow else tr("SCORE_ECHO_REPLAY"))
+		elif not property_id.is_empty():
+			cue += "  ·  " + (tr("SCORE_FLOW") if flow else tr("SCORE_ECHO"))
+		elif String(hit.get("kind", "")) == "meld_delta":
+			cue = tr("SCORE_MELD_DELTA")
+		elif String(hit.get("kind", "")) == "modifier":
+			cue = tr("SCORE_ADJUSTMENT")
+		_set_label_text(line_a_label, cue, accent if replay or not property_id.is_empty() else Color("#f8edd0"))
+		var amount := int(hit.get("amount_vnd", 0))
+		running_wallet += amount
+		running_gain += amount
+		_set_label_text(line_b_label, VndWallet.format_vnd(amount, true) if not replay else "↻", accent)
+		_set_label_text(payout_label, VndWallet.format_vnd(running_gain, true), Color("#79d94c"))
+		for label: Label in labels:
+			label.modulate = Color.WHITE
+		# The displayed wallet receives this resolution only when its stack lands.
+		# Cap concurrent bills and audio. Every hit still contributes to the receipt.
+		if amount != 0:
+			_launch_scoring_bill(amount, card_control if is_instance_valid(card_control) else source)
+		if index == 0 or replay or index % maxi(1, ceili(0.09 / interval)) == 0:
+			impact_requested.emit(0.65 if not replay else 1.0, amount >= 0)
+		if card_trigger:
+			triggered_cards += 1
+		# Wait from this actual hit, never catch up by skipping visible card beats.
+		if not await _wait_scoring_tail(interval, generation):
+			return
+	_fly_scoring_stack()
+	if not await _wait_scoring_tail(MONEY_FLIGHT_DURATION, generation):
+		return
+	_scoring_fade = create_tween()
+	_scoring_fade.tween_property(score_panel, "modulate:a", 0.0, 0.10)
+	if not await _wait_scoring_tail(0.10, generation):
+		return
+	_restore_scoring_layout()
+	ceremony.visible = false
+	sync_wallet(int(event.get("target_wallet_vnd", running_wallet)))
+	presentation_active = false
+
+
+func _wait_scoring_tail(seconds: float, generation: int) -> bool:
+	var deadline := Time.get_ticks_msec() + roundi(seconds * 1000.0)
+	while Time.get_ticks_msec() < deadline:
+		await get_tree().process_frame
+		if generation != _scoring_generation:
+			return false
+	return generation == _scoring_generation
+
+
+func _restore_scoring_layout() -> void:
+	for card_id in _scoring_shakes.keys():
+		_finish_scoring_shake(card_id)
+	for tween: Tween in [_scoring_fade]:
+		if tween != null and tween.is_valid():
+			tween.kill()
+	_scoring_fade = null
+	if is_instance_valid(_scoring_face):
+		_scoring_face.queue_free()
+	_scoring_face = null
+	var labels := [title_label, line_a_label, line_b_label, payout_label]
+	for index in _scoring_layout.size():
+		labels[index].position = _scoring_layout[index]
+	_scoring_layout.clear()
+
+
+func _shake_scoring_card(face: Control, accent: Color, interval: float) -> void:
+	var card_id := face.get_instance_id()
+	_finish_scoring_shake(card_id)
+	var baseline_rotation := face.rotation
+	var baseline_color := face.modulate
+	var baseline_pivot := face.pivot_offset
+	face.pivot_offset = face.size * 0.5
+	face.modulate = baseline_color.lerp(accent, 0.40)
+	var duration := minf(0.27, interval * 0.85)
+	var angle := deg_to_rad(7.0)
+	var tween := face.create_tween()
+	_scoring_shakes[card_id] = {
+		"face": face, "rotation": baseline_rotation, "pivot": baseline_pivot,
+		"color": baseline_color, "tween": tween,
+	}
+	# Rotation leaves layout and the music-driven scale pulse independent.
+	face.rotation = baseline_rotation - angle
+	tween.tween_property(face, "rotation", baseline_rotation + angle, duration * 0.25)
+	tween.tween_property(face, "rotation", baseline_rotation - angle * 0.55, duration * 0.25)
+	tween.tween_property(face, "rotation", baseline_rotation + angle * 0.25, duration * 0.25)
+	tween.tween_property(face, "rotation", baseline_rotation, duration * 0.25)
+	tween.tween_callback(_finish_scoring_shake.bind(card_id))
+
+
+func _finish_scoring_shake(card_id: int) -> void:
+	if not _scoring_shakes.has(card_id):
+		return
+	var state: Dictionary = _scoring_shakes[card_id]
+	_scoring_shakes.erase(card_id)
+	var tween: Tween = state["tween"]
+	if tween != null and tween.is_valid():
+		tween.kill()
+	var face: Control = state["face"] if is_instance_valid(state["face"]) else null
+	if face != null:
+		face.rotation = state["rotation"]
+		face.pivot_offset = state["pivot"]
+		face.modulate = state["color"]
+
+func _launch_scoring_bill(amount: int, _source: Control) -> void:
+	_stacked_gain += amount
+	# Rebuild a bounded, denomination-correct stack from the accumulated receipt.
+	for child in bill_layer.get_children():
+		bill_layer.remove_child(child)
+		child.queue_free()
+	var breakdown := denomination_breakdown(absi(_stacked_gain))
+	for index in mini(breakdown.size(), MAX_TRANSACTION_OBJECTS):
+		var entry: Dictionary = breakdown[index]
+		var bill := _new_bill_stack(int(entry["denomination"]), int(entry["count"]), Vector2(68, 30))
+		bill_layer.add_child(bill)
+		bill.position = score_panel.position + Vector2(100 + index * 12, 124 - index * 3)
+	peak_transaction_object_count = maxi(peak_transaction_object_count, bill_layer.get_child_count())
+
+
+func _fly_scoring_stack() -> void:
+	for bill: Control in bill_layer.get_children():
+		var from := bill.position
+		var to := _control_center(wallet_pile_anchor)
+		if _stacked_gain < 0:
+			to = from
+			from = _control_center(wallet_pile_anchor)
+		var control := (from + to) * 0.5 + Vector2(0, -65)
+		var flight := bill.create_tween().set_parallel(true)
+		flight.tween_method(_set_bill_curve_position.bind(bill, from, control, to), 0.0, 1.0, MONEY_FLIGHT_DURATION)
+		flight.tween_property(bill, "scale", Vector2.ONE * 0.5, MONEY_FLIGHT_DURATION)
+		flight.tween_property(bill, "modulate:a", 0.0, 0.08).set_delay(MONEY_FLIGHT_DURATION - 0.08)
+		flight.chain().tween_callback(bill.queue_free)
 
 func present_transaction(event: Dictionary) -> void:
 	presentation_active = true
@@ -134,7 +344,7 @@ func present_phase(event: Dictionary) -> void:
 			_set_label_text(line_a_label, VndWallet.format_vnd(gross_vnd, true), Color("#79d94c"))
 			await _replace_label(line_a_label, 0.12, 1.22)
 			var u_adjustment_vnd := maxi(gross_vnd - raw_gross_vnd, 0)
-			if u_adjustment_vnd > 0:
+			if u_adjustment_vnd > 0 and not bool(event.get("u_bonus_paid_early", false)):
 				var u_target := running_wallet + u_adjustment_vnd
 				_nudge_score_panel(1.55)
 				impact_requested.emit(1.55, true)
@@ -167,6 +377,8 @@ func show_static(title: String, line_a: String, line_b: String, payout: String, 
 
 
 func hide_ceremony() -> void:
+	_scoring_generation += 1
+	_restore_scoring_layout()
 	ceremony.visible = false
 	presentation_active = false
 
@@ -231,6 +443,7 @@ func _new_stage_label(label_name: String, label_position: Vector2, label_size: V
 	label.pivot_offset = label_size * 0.5
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	label.add_theme_font_size_override("font_size", font_size)
 	label.add_theme_color_override("font_outline_color", Color(0.02, 0.02, 0.03, 0.96))
@@ -441,6 +654,7 @@ func _new_bill_stack(denomination: int, logical_count: int, bill_size: Vector2) 
 		count_label.size = Vector2(34, 17)
 		count_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		count_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		count_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		count_label.add_theme_font_size_override("font_size", 10)
 		count_label.add_theme_color_override("font_color", Color.WHITE)
 		count_label.add_theme_color_override("font_outline_color", Color(0.02, 0.02, 0.03, 1))

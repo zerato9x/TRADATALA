@@ -12,7 +12,7 @@ The top-right `?` opens the shared action-word legend. HẠ/MELD is green, EXTEN
 
 `DrinkManager.TEST_ALL_DRINKS_AVAILABLE` defaults to true. Its instance override can be disabled to retain the existing Basic shop path. The zero test price is explicitly provisional. Tier/category/charge metadata stays in DrinkCatalog; Caffeine entries have no parent relationships.
 
-Every Drink effect is optional. Trà đá's extra discard can be skipped with **End Turn**. Ordinary Phase transitions automatically DUMP the loose hand and refill toward ten after settlement. **KEEP is available only with Sâm dứa or Bạc xỉu**; their optional preservation applies when DUMP is chosen. Preservation selections count as deadwood before either choice.
+Every Drink effect is optional. Trà đá's extra discard can be skipped with **End Turn**. Ordinary Phase transitions automatically DUMP the loose hand into the discard pile and refill toward ten after settlement; these cards stay separate from the four mandatory discards in either Phase. **KEEP is available only with Sâm dứa or Bạc xỉu**; their optional preservation applies when DUMP is chosen. Preservation selections count as deadwood before either choice.
 
 | Drink | Tier / category | Effect and charge |
 |---|---|---|

@@ -4,10 +4,13 @@ extends Control
 signal npc_focused(npc_id: String)
 signal focus_cleared()
 signal deal_presentation_ready()
+signal deck_inspect_requested()
 
 const TABLE_STATE_DEAL := &"deal"
 const TABLE_STATE_EVENT := &"event"
 const TRANSITION_SECONDS := 0.34
+const EVENT_DECK_REST_POSITION := Vector2(292, 446)
+const EVENT_DECK_FOCUS_POSITION := Vector2(72, 272)
 
 const NPC_DANH_GIAY := "danh_giay"
 const NPC_TRA_DA := "tra_da_auntie"
@@ -48,7 +51,7 @@ const NPC_DATA := {
 	},
 	NPC_LOTTO: {
 		"name_key": "NPC_LOTTO",
-		"slot": &"top",
+		"slot": &"top_right",
 		"overlay": preload("res://assets/environment/npcs/lode_overlay.png"),
 		"sprite": preload("res://assets/environment/npcs/lode.png"),
 	},
@@ -56,6 +59,7 @@ const NPC_DATA := {
 
 var table_state: StringName = TABLE_STATE_DEAL
 var focused_npc_id: String = ""
+var deck_focused: bool = false
 var current_event_slot: int = -1
 var day_label: Label
 var period_label: Label
@@ -65,6 +69,8 @@ var continue_button: Button
 var back_button: Button
 var content_panel: PanelContainer
 var conversation: NpcConversation
+var event_deck: Control
+var event_deck_count: Label
 
 var _deal_nodes: Array[Control] = []
 var _deal_home: Dictionary = {}
@@ -81,6 +87,7 @@ func _ready() -> void:
 	_build_header()
 	_build_content()
 	_build_continue()
+	_build_event_deck()
 	_build_npc_layers()
 	conversation = preload("res://scenes/ui/npc_conversation.tscn").instantiate()
 	add_child(conversation)
@@ -104,18 +111,24 @@ func configure_deal_nodes(nodes: Array[Control]) -> void:
 		}
 
 
-func enter_event(event_slot: int, day_text: String, period_text: String, money_text: String) -> void:
+func enter_event(event_slot: int, day_text: String, period_text: String, money_text: String, deck_count: int = 0) -> void:
 	var already_showing := table_state == TABLE_STATE_EVENT and visible
 	current_event_slot = event_slot
 	day_label.text = day_text.to_upper()
 	period_label.text = period_text.to_upper()
 	money_label.text = money_text
+	set_event_deck_count(deck_count)
+	event_deck.visible = true
+	event_deck.position = EVENT_DECK_REST_POSITION
+	event_deck.scale = Vector2.ONE
+	event_deck.modulate = Color.WHITE
 	continue_button.text = tr("EVENT_CONTINUE")
 	continue_button.visible = true
 	if already_showing:
 		return
 	table_state = TABLE_STATE_EVENT
 	focused_npc_id = ""
+	deck_focused = false
 	visible = true
 	modulate = Color.WHITE
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -135,10 +148,14 @@ func enter_deal() -> void:
 	_stop_money_pulse()
 	_clear_content()
 	focused_npc_id = ""
+	deck_focused = false
+	event_deck.visible = false
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	for npc_id in _npc_layers:
 		var layer: Dictionary = _npc_layers[npc_id]
-		(layer["button"] as Button).disabled = true
+		var button := layer["button"] as Button
+		button.disabled = true
+		button.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	if _transition != null and _transition.is_valid():
 		_transition.kill()
 	_transition = create_tween().set_parallel(true)
@@ -167,11 +184,15 @@ func refresh_localized_ui() -> void:
 
 
 func focus_npc(npc_id: String) -> void:
+	if DemoBuild.enabled() and npc_id != NPC_TRA_DA:
+		return
 	if table_state != TABLE_STATE_EVENT or not _npc_layers.has(npc_id) or focused_npc_id == npc_id:
 		return
 	focused_npc_id = npc_id
+	deck_focused = false
 	_set_header_focused(true)
 	content_panel.visible = true
+	event_deck.visible = false
 	back_button.visible = true
 	var tween := create_tween().set_parallel(true)
 	tween.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
@@ -182,7 +203,8 @@ func focus_npc(npc_id: String) -> void:
 		var name_tag := layer["name_tag"] as Label
 		var sprite := layer["sprite"] as TextureRect
 		button.disabled = true
-		name_tag.visible = candidate_id == npc_id
+		button.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		name_tag.visible = candidate_id == npc_id and npc_id != NPC_THAY_BOI
 		if candidate_id == npc_id:
 			tween.tween_property(overlay, "modulate:a", 0.0, 0.18)
 			sprite.visible = true
@@ -196,16 +218,44 @@ func focus_npc(npc_id: String) -> void:
 	npc_focused.emit(npc_id)
 
 
+func focus_deck() -> void:
+	if table_state != TABLE_STATE_EVENT or deck_focused or not focused_npc_id.is_empty():
+		return
+	deck_focused = true
+	_set_header_focused(true)
+	content_panel.visible = true
+	back_button.visible = true
+	var tween := create_tween().set_parallel(true)
+	tween.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tween.tween_property(event_deck, "position", EVENT_DECK_FOCUS_POSITION, TRANSITION_SECONDS)
+	tween.tween_property(event_deck, "scale", Vector2(1.18, 1.18), TRANSITION_SECONDS)
+	for npc_id in _npc_layers:
+		var layer: Dictionary = _npc_layers[npc_id]
+		var overlay := layer["overlay"] as TextureRect
+		var button := layer["button"] as Button
+		button.disabled = true
+		button.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		if overlay.visible:
+			tween.tween_property(overlay, "modulate", Color(0.42, 0.46, 0.5, 0.38), 0.22)
+	deck_inspect_requested.emit()
+
+
 func unfocus_npc() -> void:
-	if focused_npc_id.is_empty():
+	if focused_npc_id.is_empty() and not deck_focused:
 		return
 	var previous := focused_npc_id
+	var was_deck_focused := deck_focused
 	focused_npc_id = ""
+	deck_focused = false
 	continue_button.visible = true
+	event_deck.visible = true
 	_clear_content()
 	_set_header_focused(false)
 	var tween := create_tween().set_parallel(true)
 	tween.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	if was_deck_focused:
+		tween.tween_property(event_deck, "position", EVENT_DECK_REST_POSITION, TRANSITION_SECONDS)
+		tween.tween_property(event_deck, "scale", Vector2.ONE, TRANSITION_SECONDS)
 	for npc_id in _npc_layers:
 		var layer: Dictionary = _npc_layers[npc_id]
 		var overlay := layer["overlay"] as TextureRect
@@ -220,6 +270,7 @@ func unfocus_npc() -> void:
 		if overlay.visible:
 			tween.tween_property(overlay, "modulate", Color.WHITE, 0.24)
 			button.disabled = false
+			button.mouse_filter = Control.MOUSE_FILTER_STOP
 	focus_cleared.emit()
 
 
@@ -235,7 +286,9 @@ func show_outcome(kicker: String, title: String, wallet_text: String) -> void:
 	table_state = TABLE_STATE_EVENT
 	current_event_slot = -1
 	focused_npc_id = ""
+	deck_focused = false
 	visible = true
+	event_deck.visible = false
 	modulate = Color.WHITE
 	_hide_all_npcs()
 	_clear_content()
@@ -330,7 +383,7 @@ func _build_content() -> void:
 	content_panel.size = Vector2(580, 360)
 	content_panel.visible = false
 	content_panel.mouse_filter = Control.MOUSE_FILTER_STOP
-	var style := PresentationTheme.universal_frame_style()
+	var style := PresentationTheme.panel_style(Color("#19130ff0"), Color("#8d5b30"), 2, 2, 4)
 	style.content_margin_left = 22
 	style.content_margin_top = 18
 	style.content_margin_right = 22
@@ -370,6 +423,46 @@ func _build_continue() -> void:
 	add_child(continue_button)
 
 
+func _build_event_deck() -> void:
+	event_deck = Control.new()
+	event_deck.name = "EventDeck"
+	event_deck.position = EVENT_DECK_REST_POSITION
+	event_deck.size = Vector2(112, 174)
+	event_deck.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	add_child(event_deck)
+	var back := TextureRect.new()
+	back.position = Vector2(13, 4)
+	back.size = Vector2(86, 119)
+	back.texture = preload("res://cards/red_backing.png")
+	back.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	back.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	back.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	back.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	event_deck.add_child(back)
+	event_deck_count = Label.new()
+	event_deck_count.position = Vector2(0, 126)
+	event_deck_count.size = Vector2(112, 42)
+	event_deck_count.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	event_deck_count.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	event_deck_count.add_theme_font_size_override("font_size", 13)
+	event_deck_count.add_theme_color_override("font_color", Color("#fff0bd"))
+	event_deck_count.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	event_deck.add_child(event_deck_count)
+	var inspect := Button.new()
+	inspect.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	inspect.flat = true
+	inspect.focus_mode = Control.FOCUS_NONE
+	inspect.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	inspect.tooltip_text = tr("PILE_DRAW_TOOLTIP")
+	inspect.pressed.connect(focus_deck)
+	event_deck.add_child(inspect)
+
+
+func set_event_deck_count(count: int) -> void:
+	if event_deck_count != null:
+		event_deck_count.text = "%s · %s" % [tr("PILE_COUNT") % count, tr("PILE_DRAW")]
+
+
 func _build_npc_layers() -> void:
 	for npc_id in NPC_DATA:
 		var data: Dictionary = NPC_DATA[npc_id]
@@ -388,7 +481,7 @@ func _build_npc_layers() -> void:
 		var sprite_texture := data["sprite"] as Texture2D
 		var sprite := TextureRect.new()
 		sprite.name = "%sFocused" % npc_id.to_pascal_case()
-		var target_height := 650.0 if slot != &"top" else 590.0
+		var target_height := 650.0 if slot != &"top_right" else 590.0
 		if npc_id == NPC_THAY_BOI:
 			target_height = 600.0
 		var ratio := target_height / sprite_texture.get_height()
@@ -436,7 +529,10 @@ func _build_npc_layers() -> void:
 
 func _show_roster(event_slot: int) -> void:
 	_hide_all_npcs()
-	for npc_id in EVENT_ROSTERS.get(event_slot, []):
+	var roster: Array = [NPC_TRA_DA] if DemoBuild.enabled() else EVENT_ROSTERS.get(event_slot, [])
+	for npc_id in roster:
+		if DemoBuild.enabled() and npc_id != NPC_TRA_DA:
+			continue
 		var layer: Dictionary = _npc_layers[npc_id]
 		var overlay := layer["overlay"] as TextureRect
 		var button := layer["button"] as Button
@@ -445,6 +541,7 @@ func _show_roster(event_slot: int) -> void:
 		overlay.position = _overlay_out_offset(StringName(layer["slot"]))
 		button.visible = true
 		button.disabled = true
+		button.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 
 func _hide_all_npcs() -> void:
@@ -475,6 +572,7 @@ func _enable_roster_buttons() -> void:
 		var layer: Dictionary = _npc_layers[npc_id]
 		var button := layer["button"] as Button
 		button.disabled = not (layer["overlay"] as TextureRect).visible
+		button.mouse_filter = Control.MOUSE_FILTER_IGNORE if button.disabled else Control.MOUSE_FILTER_STOP
 
 
 func _animate_deal_out() -> void:
@@ -554,10 +652,10 @@ func _clear_content() -> void:
 func say(line: String) -> void:
 	if focused_npc_id.is_empty():
 		return
-	conversation.position = Vector2(20, 115) if focused_npc_id == NPC_THAY_BOI else Vector2(165, 140)
+	conversation.position = Vector2(20, 510) if focused_npc_id == NPC_THAY_BOI else Vector2(165, 140)
 	conversation.say(npc_display_name(focused_npc_id), line)
 	conversation.show_responses(focused_npc_id != NPC_TRA_DA, not back_button.disabled)
-	var speech_size := Vector2(330, 160) if focused_npc_id == NPC_THAY_BOI else Vector2(710, 124 if focused_npc_id == NPC_TRA_DA else 160)
+	var speech_size := Vector2(340, 176) if focused_npc_id == NPC_THAY_BOI else Vector2(710, 124 if focused_npc_id == NPC_TRA_DA else 160)
 	conversation.set_deferred("size", speech_size)
 
 
@@ -590,6 +688,8 @@ func _slot_hit_rect(slot: StringName) -> Rect2:
 			return Rect2(0, 72, 280, 570)
 		&"right":
 			return Rect2(1000, 72, 280, 570)
+		&"top_right":
+			return Rect2(850, 0, 430, 270)
 		_:
 			return Rect2(430, 0, 420, 190)
 
@@ -600,6 +700,8 @@ func _slot_name_position(slot: StringName) -> Vector2:
 			return Vector2(22, 612)
 		&"right":
 			return Vector2(1048, 612)
+		&"top_right":
+			return Vector2(1038, 220)
 		_:
 			return Vector2(535, 18)
 
@@ -610,6 +712,8 @@ func _overlay_out_offset(slot: StringName) -> Vector2:
 			return Vector2(-90, 0)
 		&"right":
 			return Vector2(90, 0)
+		&"top_right":
+			return Vector2(90, -45)
 		_:
 			return Vector2(0, -90)
 
@@ -618,7 +722,7 @@ func _sprite_focus_position(slot: StringName, sprite_size: Vector2) -> Vector2:
 	match slot:
 		&"left":
 			return Vector2(-sprite_size.x * 0.10, 70)
-		&"right":
+		&"right", &"top_right":
 			return Vector2(1280 - sprite_size.x * 0.90, 70)
 		_:
 			return Vector2(640 - sprite_size.x * 0.5, -55)
@@ -629,7 +733,7 @@ func _sprite_out_position(slot: StringName, sprite_size: Vector2) -> Vector2:
 	match slot:
 		&"left":
 			return focus + Vector2(-180, 35)
-		&"right":
+		&"right", &"top_right":
 			return focus + Vector2(180, 35)
 		_:
 			return focus + Vector2(0, -180)

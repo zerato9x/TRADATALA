@@ -7,6 +7,7 @@ signal meld_pressed(meld_id: int)
 signal meld_card_pressed(meld_id: int, card: CardData)
 
 var meld_id: int = -1
+var groove := 0.0
 var _title: Label
 var _cards_row: HBoxContainer
 var _score: Label
@@ -38,6 +39,7 @@ func set_meld(
 	drink_returns_whole_meld: bool = false
 ) -> void:
 	meld_id = meld.meld_id
+	groove = clampf(float(meld.cards.size() - 3) / (10.0 if meld.meld_type == MeldRules.TYPE_RUN else 9.0), 0.0, 1.0)
 	if _title == null:
 		return
 	_title.text = "%s  %02d" % [tr("MELD_RUN") if meld.meld_type == MeldRules.TYPE_RUN else tr("MELD_SET"), meld.meld_id]
@@ -68,7 +70,7 @@ func play_card_beat_pulse(card_id: String, strength: float) -> void:
 	texture.scale = Vector2.ONE
 	var peak := Vector2(
 		1.0 + lerpf(0.025, 0.065, pulse_strength),
-		1.0 + lerpf(0.055, 0.13, pulse_strength)
+		1.0 + lerpf(0.055, 0.13 + groove * 0.16, pulse_strength)
 	)
 	var tween := create_tween()
 	_card_beat_tweens[card_id] = tween
@@ -81,6 +83,10 @@ func pulse_drink_targets(strength: float = 0.6) -> void:
 		var outline: Control = _card_drink_outlines.get(card_id)
 		if outline != null:
 			outline.play_target_pulse(strength)
+
+
+func get_scoring_card_control(card_id: String) -> Control:
+	return _card_views.get(card_id) as Control
 
 
 func card_global_rect(card_id: String) -> Rect2:
@@ -135,7 +141,19 @@ func _sync_cards(
 		var texture_path := card.texture_path()
 		if texture.texture == null or texture.texture.resource_path != texture_path:
 			texture.texture = load(texture_path) as Texture2D
-		GieoCardFX.attach_texture(texture, card)
+		var sway_face := texture.get_node_or_null("SwayFace") as TextureRect
+		if sway_face == null:
+			sway_face = TextureRect.new()
+			sway_face.name = "SwayFace"
+			sway_face.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+			sway_face.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			sway_face.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			sway_face.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			texture.add_child(sway_face)
+			texture.move_child(sway_face, 0)
+		sway_face.texture = texture.texture
+		texture.self_modulate.a = 0.0
+		GieoCardFX.attach_texture(sway_face, card)
 		if texture.get_index() != index:
 			_cards_row.move_child(texture, index)
 		texture.mouse_filter = Control.MOUSE_FILTER_STOP if drink_selection_enabled else Control.MOUSE_FILTER_IGNORE
@@ -198,3 +216,14 @@ func _on_card_gui_input(event: InputEvent, card: CardData) -> void:
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
 		accept_event()
 		meld_card_pressed.emit(meld_id, card)
+
+
+func _process(_delta: float) -> void:
+	for card_id in _card_views:
+		var texture: TextureRect = _card_views[card_id]
+		var face := texture.get_node_or_null("SwayFace") as TextureRect
+		if face == null:
+			continue
+		var phase := float(absi(String(card_id).hash()) % 10000) * 0.01
+		face.pivot_offset = texture.size * 0.5
+		face.rotation = deg_to_rad(lerpf(0.8, 9.0, groove)) * sin(Time.get_ticks_msec() * 0.001 * (0.8 + fmod(phase, 0.5)) + phase)

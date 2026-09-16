@@ -82,7 +82,7 @@ func _init(
 func start_campaign(reset_wallet: bool = true) -> void:
 	if reset_wallet:
 		wallet.reset()
-	drink_manager.clear_day()
+	drink_manager.reset_run()
 	gieo_que.reset_campaign()
 	current_day_index = 0
 	campaign_complete = false
@@ -130,6 +130,7 @@ func complete_current_event() -> bool:
 
 func _begin_current_day() -> void:
 	_set_phase(CampaignPhase.DAY_START)
+	drink_manager.day_target_vnd = daily_requirement()
 	gieo_que.begin_day(current_day_index)
 	day_started.emit(current_day())
 	_enter_phase(CampaignPhase.STARTER_EVENT)
@@ -138,6 +139,7 @@ func _begin_current_day() -> void:
 func _enter_phase(phase: int) -> void:
 	_set_phase(phase)
 	if EVENT_PHASE_TO_SLOT.has(phase):
+		drink_manager.begin_event(int(EVENT_PHASE_TO_SLOT[phase]))
 		var event := event_manager.build_event(int(EVENT_PHASE_TO_SLOT[phase]), {
 			"day": current_day().duplicate(true),
 			"day_index": current_day_index,

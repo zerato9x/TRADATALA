@@ -47,6 +47,13 @@ func _ready() -> void:
 	_apply_card_texture()
 
 
+func _process(_delta: float) -> void:
+	if _texture != null and card != null:
+		var phase := float(absi(card.unique_id.hash()) % 10000) * 0.01
+		_texture.pivot_offset = CARD_SIZE * 0.5
+		_texture.rotation = deg_to_rad(0.8) * sin(Time.get_ticks_msec() * 0.001 * (0.7 + fmod(phase, 0.6)) + phase)
+
+
 func set_card(value: CardData) -> void:
 	card = value
 	_refresh_tooltip()

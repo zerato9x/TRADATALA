@@ -15,6 +15,27 @@ func reset(shuffle_seed: int = -1) -> void:
 	reset_from_campaign_cards(build_standard_deck(), shuffle_seed)
 
 
+func snapshot_state() -> Dictionary:
+	return {
+		"draw_pile": draw_pile.duplicate(),
+		"discard_pile": discard_pile.duplicate(),
+		"rng_state": _rng.state,
+	}
+
+
+func restore_snapshot(snapshot: Dictionary) -> void:
+	draw_pile.clear()
+	for card in snapshot.get("draw_pile", []):
+		if card is CardData:
+			draw_pile.append(card)
+	discard_pile.clear()
+	for card in snapshot.get("discard_pile", []):
+		if card is CardData:
+			discard_pile.append(card)
+	if snapshot.has("rng_state"):
+		_rng.state = int(snapshot["rng_state"])
+
+
 func reset_from_campaign_cards(cards: Array[CardData], shuffle_seed: int = -1) -> void:
 	draw_pile.clear()
 	for card in cards:
