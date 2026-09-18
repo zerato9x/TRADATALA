@@ -5,7 +5,7 @@ signal card_pressed(card: CardData)
 signal card_drag_started(card: CardData, global_position: Vector2)
 
 const CARD_SIZE := Vector2(86, 119)
-const DRAG_THRESHOLD := 8.0
+const DRAG_THRESHOLD := 12.0
 const CardActionOutlineScript := preload("res://scripts/ui/card_action_outline.gd")
 
 var card: CardData
@@ -65,7 +65,7 @@ func set_meld_chance(probability: float, is_ready: bool, target_label: String, n
 		return
 	var percent := clampi(int(round(probability * 100.0)), 0, 100)
 	if is_ready:
-		_meld_chance_badge.text = "✓"
+		_meld_chance_badge.text = "�"
 		_meld_chance_badge.add_theme_color_override("font_color", Color.WHITE)
 		_meld_chance_badge.add_theme_stylebox_override("normal", PresentationTheme.panel_style(Color("#3d702df2"), PresentationTheme.TEA, 1, 2, 2))
 		_chance_tooltip = tr("PROBABILITY_READY") % target_label
@@ -238,9 +238,11 @@ func _refresh_tooltip() -> void:
 		tooltip_text = ""
 		return
 	tooltip_text = tr("CARD_POINTS") % [card.short_label(), card.score_value()]
+	if card.shiny:
+		tooltip_text += "\n" + tr("CARD_SHINY_DESC")
 	var gieo_descriptions := card.gieo_property_descriptions()
 	if not gieo_descriptions.is_empty():
-		tooltip_text += "\n\nGIEO QUẺ\n" + "\n".join(gieo_descriptions)
+		tooltip_text += "\n\nGIEO QU?\n" + "\n".join(gieo_descriptions)
 	if not _chance_tooltip.is_empty():
 		tooltip_text += "\n" + _chance_tooltip
 

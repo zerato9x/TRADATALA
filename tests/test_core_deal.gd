@@ -111,7 +111,7 @@ func test_base_new_phom_scoring_uses_value_sum_times_card_count() -> void:
 
 func test_gieo_making_phom_retrigger_doubles_only_its_card_contribution() -> void:
 	var cards: Array[CardData] = [_card("K", "Spades"), _card("K", "Hearts"), _card("K", "Diamonds")]
-	cards[0].add_gieo_property(GieoQueService.PROPERTY_MAKING_PHOM_RETRIGGER)
+	cards[0].add_gieo_property(GieoQueService.PROPERTY_GOLD_MAKING_PHOM)
 	var context := ScoringPipeline.new().score_new_meld(cards, MeldRules.TYPE_SET, 1)
 	assert_eq(context.card_value_sum, 52)
 	assert_eq(context.theoretical_score, 156)
@@ -123,7 +123,7 @@ func test_gieo_extend_retrigger_doubles_only_newly_committed_card_contribution()
 	var cards: Array[CardData] = [
 		_card("4", "Hearts"), _card("5", "Hearts"), _card("6", "Hearts"), _card("7", "Hearts"),
 	]
-	cards[-1].add_gieo_property(GieoQueService.PROPERTY_EXTEND_RETRIGGER)
+	cards[-1].add_gieo_property(GieoQueService.PROPERTY_GOLD_EXTEND)
 	var context := ScoringPipeline.new().score_extension(cards, MeldRules.TYPE_RUN, 45, 1, [cards[-1]])
 	assert_eq(context.card_value_sum, 29)
 	assert_eq(context.theoretical_score, 116)
@@ -132,8 +132,8 @@ func test_gieo_extend_retrigger_doubles_only_newly_committed_card_contribution()
 
 func test_gieo_set_retrigger_cards_add_full_non_recursive_scoring_passes() -> void:
 	var cards := _kings(3)
-	cards[0].add_gieo_property(GieoQueService.PROPERTY_SET_RETRIGGER)
-	cards[1].add_gieo_property(GieoQueService.PROPERTY_SET_RETRIGGER)
+	cards[0].add_gieo_property(GieoQueService.PROPERTY_MELD_RETRIGGER)
+	cards[1].add_gieo_property(GieoQueService.PROPERTY_MELD_RETRIGGER)
 	var context := ScoringPipeline.new().score_new_meld(cards, MeldRules.TYPE_SET, 1)
 	assert_eq(context.theoretical_score, 117)
 	assert_eq(context.final_points, 351)
@@ -148,7 +148,7 @@ func test_gieo_run_retrigger_adds_full_pass_after_extension_delta() -> void:
 	var cards: Array[CardData] = [
 		_card("4", "Clubs"), _card("5", "Clubs"), _card("6", "Clubs"), _card("7", "Clubs"),
 	]
-	cards[0].add_gieo_property(GieoQueService.PROPERTY_RUN_RETRIGGER)
+	cards[0].add_gieo_property(GieoQueService.PROPERTY_MELD_RETRIGGER)
 	var context := ScoringPipeline.new().score_extension(cards, MeldRules.TYPE_RUN, 45, 1, [cards[-1]])
 	assert_eq(context.theoretical_score, 88)
 	assert_eq(context.base_extension_score, 43)
@@ -175,34 +175,51 @@ func test_set_native_retrigger_only_occurs_at_exact_four_card_multiples() -> voi
 		assert_eq(context.scoring_passes.size(), expected_retriggers + 1)
 
 
-func test_king_set_milestones_override_extension_delta_with_two_full_passes() -> void:
+func test_set_extensions_pay_delta_then_retrigger_at_four_card_multiples() -> void:
 	var pipeline := ScoringPipeline.new()
 	var emitted_passes: Array[ScoringContext] = []
 	pipeline.context_scored.connect(func(scoring_pass: ScoringContext) -> void: emitted_passes.append(scoring_pass))
-	var four := pipeline.score_new_meld(_kings(4), MeldRules.TYPE_SET, 1)
-	assert_eq(four.theoretical_score, 208)
-	assert_eq(four.final_points, 416)
-	assert_eq(four.scoring_passes.size(), 2)
-	assert_eq((four.scoring_passes[0] as ScoringContext).final_points, 208)
-	assert_eq((four.scoring_passes[1] as ScoringContext).final_points, 208)
+	var new_four := pipeline.score_new_meld(_kings(4), MeldRules.TYPE_SET, 1)
+	assert_eq(new_four.theoretical_score, 208)
+	assert_eq(new_four.final_points, 416)
+	assert_eq(new_four.scoring_passes.size(), 2)
+	assert_eq((new_four.scoring_passes[0] as ScoringContext).final_points, 208)
+	assert_eq((new_four.scoring_passes[1] as ScoringContext).final_points, 208)
 	assert_eq(emitted_passes.size(), 2)
 	assert_eq(emitted_passes[0].trigger_origin, ScoringPipeline.TRIGGER_ORIGINATING)
 	assert_eq(emitted_passes[1].trigger_origin, ScoringPipeline.TRIGGER_NATIVE_RETRIGGER)
 	emitted_passes.clear()
+	var four_cards := _kings(4)
+	var four := pipeline.score_extension(four_cards, MeldRules.TYPE_SET, 117, 1, [four_cards[-1]])
+	assert_eq(four.base_extension_score, 91)
+	assert_eq(four.final_points, 299)
+	assert_eq(four.scoring_passes.size(), 2)
+	assert_eq((four.scoring_passes[0] as ScoringContext).final_points, 91)
+	assert_eq((four.scoring_passes[1] as ScoringContext).final_points, 208)
+	assert_eq((four.scoring_passes[0] as ScoringContext).trigger_origin, ScoringPipeline.TRIGGER_ORIGINATING)
+	assert_eq((four.scoring_passes[1] as ScoringContext).trigger_origin, ScoringPipeline.TRIGGER_NATIVE_RETRIGGER)
+	assert_eq(emitted_passes.size(), 2)
 	var five := pipeline.score_extension(_kings(5), MeldRules.TYPE_SET, 208, 1)
 	var six := pipeline.score_extension(_kings(6), MeldRules.TYPE_SET, 325, 1)
 	var seven := pipeline.score_extension(_kings(7), MeldRules.TYPE_SET, 468, 1)
 	var eight := pipeline.score_extension(_kings(8), MeldRules.TYPE_SET, 637, 1)
 	var twelve := pipeline.score_extension(_kings(12), MeldRules.TYPE_SET, 1573, 1)
 	assert_eq(five.final_points, 117)
+	assert_eq(five.retrigger_count, 0)
 	assert_eq(six.final_points, 143)
+	assert_eq(six.retrigger_count, 0)
 	assert_eq(seven.final_points, 169)
-	assert_eq(eight.final_points, 1664)
+	assert_eq(seven.retrigger_count, 0)
+	assert_eq(eight.final_points, 1027)
 	assert_eq(eight.retrigger_count, 1)
 	assert_eq(eight.scoring_passes.size(), 2)
-	assert_eq(twelve.final_points, 3744)
+	assert_eq((eight.scoring_passes[0] as ScoringContext).final_points, 195)
+	assert_eq((eight.scoring_passes[1] as ScoringContext).final_points, 832)
+	assert_eq(twelve.final_points, 2171)
 	assert_eq(twelve.retrigger_count, 1)
 	assert_eq(twelve.scoring_passes.size(), 2)
+	assert_eq((twelve.scoring_passes[0] as ScoringContext).final_points, 299)
+	assert_eq((twelve.scoring_passes[1] as ScoringContext).final_points, 1872)
 
 
 func test_exhaustion_meld_trigger_uses_current_set_milestone_without_recursion() -> void:
@@ -436,7 +453,7 @@ func test_discard_history_keeps_phase_and_number_provenance() -> void:
 	assert_eq(deal.discard_history[-1].discard_number, 1)
 
 
-func test_u_can_trigger_on_the_first_turn_and_doubles_phase_gross_immediately() -> void:
+func test_u_immediately_doubles_current_earnings_without_multiplying_future_income() -> void:
 	var deal := _fresh_deal(20)
 	deal.hand.clear()
 	var set_a: Array[CardData] = [_card("2", "Spades", "a"), _card("2", "Hearts", "a"), _card("2", "Diamonds", "a")]
@@ -468,15 +485,15 @@ func test_u_can_trigger_on_the_first_turn_and_doubles_phase_gross_immediately() 
 	var first_discard := deal.discard_card(deal.hand[0])
 	assert_true(first_discard["u_triggered"])
 	assert_eq(deal.discard_count, 1)
-	assert_eq(deal.gross_payout_multiplier(), 2)
+	assert_eq(deal.gross_payout_multiplier(), 1)
 	assert_eq(deal.wallet.balance_vnd, VndWallet.points_to_vnd(raw_gross * 2))
 	assert_eq(deal.phase_earnings_points, raw_gross * 2)
 	assert_eq(first_discard["turn_resolution"]["deadwood"], 0)
 	assert_eq(u_events.size(), 1)
 	assert_eq(u_events[0]["payout"], raw_gross)
 	deal._record_phase_points(7, "test_after_u")
-	assert_eq(deal.wallet.balance_vnd, VndWallet.points_to_vnd((raw_gross + 7) * 2))
-	assert_eq(deal.phase_earnings_points, (raw_gross + 7) * 2)
+	assert_eq(deal.wallet.balance_vnd, VndWallet.points_to_vnd(raw_gross * 2 + 7))
+	assert_eq(deal.phase_earnings_points, raw_gross * 2 + 7)
 	var wallet_before_settle := deal.wallet.balance_vnd
 	deal.state = DealState.STATE_FINAL_COMMIT_WINDOW
 	deal.discard_count = DealState.DISCARDS_PER_PHASE
@@ -484,7 +501,7 @@ func test_u_can_trigger_on_the_first_turn_and_doubles_phase_gross_immediately() 
 	var resolution: Dictionary = deal.settle_phase()["phase_resolution"]
 	assert_true(resolution["u"])
 	assert_true(resolution["u_bonus_paid_early"])
-	assert_eq(resolution["gross_after_u"], (raw_gross + 7) * 2)
+	assert_eq(resolution["gross_after_u"], raw_gross * 2 + 7)
 	assert_eq(resolution["deadwood"], 0)
 	assert_eq(resolution["net"], resolution["gross_after_u"])
 	assert_eq(deal.wallet.balance_vnd, wallet_before_settle)
@@ -1289,16 +1306,19 @@ func test_perfected_run_completed_by_extend_retriggers_full_meld() -> void:
 	for rank in DeckManager.RANKS:
 		cards.append(_card(rank, "Hearts", "complete_extend"))
 	var context := ScoringPipeline.new().preview_extension(cards, MeldRules.TYPE_RUN, 936, 1, [cards[-1]])
-	assert_eq(context.final_points, 2366)
+	assert_eq(context.base_extension_score, 247)
+	assert_eq(context.final_points, 1430)
 	assert_eq(context.scoring_passes.size(), 2)
 	assert_eq(context.trigger_reason, ScoringPipeline.TRIGGER_PERFECTED_RUN)
+	assert_eq((context.scoring_passes[0] as ScoringContext).final_points, 247)
+	assert_eq((context.scoring_passes[1] as ScoringContext).final_points, 1183)
+	assert_eq((context.scoring_passes[0] as ScoringContext).presentation_hits.size(), 2)
+	assert_eq((context.scoring_passes[1] as ScoringContext).presentation_hits.size(), 13)
 	for scoring_pass: ScoringContext in context.scoring_passes:
-		assert_eq(scoring_pass.final_points, 1183)
-		assert_eq(scoring_pass.presentation_hits.size(), 13)
 		var displayed_total := 0
 		for hit in scoring_pass.presentation_hits:
 			displayed_total += int(hit["points"])
-		assert_eq(displayed_total, 1183)
+		assert_eq(displayed_total, scoring_pass.final_points)
 
 
 func test_legal_mixed_suit_perfected_runs_retrigger_on_creation_and_exhaustion() -> void:
@@ -1334,5 +1354,50 @@ func test_drink_compatible_run_completion_pays_wallet_once_per_scoring_pass() ->
 	assert_true(result["ok"])
 	assert_eq(result["context"].retrigger_count, 1)
 	assert_eq(result["scoring_passes"].size(), 2)
-	assert_eq(deal.wallet.balance_vnd - before, 2366000)
+	assert_eq(result["scoring_passes"][0].final_points, 247)
+	assert_eq(result["scoring_passes"][1].final_points, 1183)
+	assert_eq(deal.wallet.balance_vnd - before, 1430000)
 	assert_eq(meld.scored_points, 1183)
+
+
+func test_u_earnings_include_previous_phase_and_deducted_deadwood_not_wallet() -> void:
+	var deal := _fresh_deal(207)
+	deal.phase_metrics.reset()
+	deal.current_phase = 2
+	var prior := PhaseSettlement.new()
+	prior.phase = 1
+	prior.net = 80
+	deal.settlements.append(prior)
+	deal._record_phase_points(50, "test")
+	deal.phase_metrics.deadwood_total = 20
+	deal.wallet.reset(9000000)
+	assert_eq(deal.current_deal_earnings_points(), 110)
+	for expected_bonus in [110, 220]:
+		deal.state = DealState.STATE_ACTIVE
+		deal.discard_count = 0
+		deal._turn_started_with_ten = true
+		deal._turn_committed_card_count = 9
+		deal.hand.clear()
+		deal.hand.append(_card("K", "Clubs", "u_repeat"))
+		# Avoid refill so the assertion isolates the trigger payout.
+		deal.discard_count = DealState.DISCARDS_PER_PHASE - 1
+		var before := deal.wallet.balance_vnd
+		var result := deal.discard_card(deal.hand[0])
+		assert_true(result["u_triggered"])
+		assert_eq(deal.wallet.balance_vnd - before, VndWallet.points_to_vnd(expected_bonus))
+		assert_eq(deal.current_deal_earnings_points(), expected_bonus * 2)
+
+
+func test_u_doubles_the_signed_current_deal_earning_exactly() -> void:
+	var deal := _fresh_deal(209)
+	deal.phase_metrics.reset()
+	deal.phase_metrics.deadwood_total = 20
+	deal._turn_started_with_ten = true
+	deal._turn_committed_card_count = 9
+	deal.hand.clear()
+	deal.hand.append(_card("K", "Clubs", "signed_u"))
+	deal.discard_count = DealState.DISCARDS_PER_PHASE - 1
+	var before := deal.wallet.balance_vnd
+	assert_true(deal.discard_card(deal.hand[0])["u_triggered"])
+	assert_eq(deal.current_deal_earnings_points(), -40)
+	assert_eq(deal.wallet.balance_vnd - before, VndWallet.points_to_vnd(-20))

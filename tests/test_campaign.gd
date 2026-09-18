@@ -70,8 +70,8 @@ func test_events_support_empty_multiple_and_mandatory_interactions() -> void:
 	})
 	manager.register_npc(visitor)
 	var event := manager.build_event(EventManager.EventSlot.STARTER)
-	assert_eq(event.participants.size(), 2)
-	assert_eq(event.interactions.size(), 2)
+	assert_eq(event.participants.size(), 3)
+	assert_eq(event.interactions.size(), 3)
 	assert_false(event.can_exit)
 	assert_false(manager.finish_current_event())
 	assert_true(manager.complete_interaction("choose_drink"))
@@ -166,9 +166,11 @@ func test_campaign_completes_28_deals_and_28_event_slots_before_sunday_victory()
 				assert_true(events.complete_interaction("choose_drink"))
 			assert_true(campaign.complete_current_event())
 		elif CampaignManager.DEAL_PHASE_TO_PERIOD.has(campaign.current_phase):
-			wallet.apply_vnd(100_000, "campaign_test_deal")
+			wallet.apply_vnd(500_000, "campaign_test_deal")
 			deal_count += 1
 			assert_true(campaign.complete_deal())
+		elif campaign.current_phase == CampaignManager.CampaignPhase.MONEY_REQUIREMENT_CHECK:
+			assert_true(campaign.collect_day_debt())
 		else:
 			break
 	assert_true(campaign.campaign_complete)
@@ -176,7 +178,7 @@ func test_campaign_completes_28_deals_and_28_event_slots_before_sunday_victory()
 	assert_eq(campaign.current_phase, CampaignManager.CampaignPhase.CAMPAIGN_VICTORY)
 	assert_eq(deal_count, 28)
 	assert_eq(event_count, 28)
-	assert_eq(wallet.balance_vnd, 2_800_000)
+	assert_eq(wallet.balance_vnd, 14_000_000 - 3_900_000)
 
 
 func test_campaign_failure_stops_after_evening_deal_without_deducting_requirement() -> void:
@@ -197,6 +199,8 @@ func test_campaign_failure_stops_after_evening_deal_without_deducting_requiremen
 		elif CampaignManager.DEAL_PHASE_TO_PERIOD.has(campaign.current_phase):
 			deals += 1
 			campaign.complete_deal()
+		elif campaign.current_phase == CampaignManager.CampaignPhase.MONEY_REQUIREMENT_CHECK:
+			assert_true(campaign.collect_day_debt())
 		else:
 			break
 	assert_true(campaign.run_failed)

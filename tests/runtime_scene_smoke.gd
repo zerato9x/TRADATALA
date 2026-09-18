@@ -101,7 +101,7 @@ func _run() -> void:
 	var has_u_khan_rule := false
 	for special_label in special_labels:
 		has_mom_rule = has_mom_rule or (special_label.text.contains("0 Phỏm MỚI") and special_label.text.contains("Tổng × Số lá") and special_label.text.contains("mỗi lượt") and special_label.text.contains("mỗi Giai đoạn"))
-		has_u_rule = has_u_rule or (special_label.text.contains("bất kỳ lượt nào") and special_label.text.contains("dùng đúng 9") and special_label.text.contains("Gross ×2"))
+		has_u_rule = has_u_rule or (special_label.text.contains("bất kỳ lượt nào") and special_label.text.contains("dùng đúng 9") and special_label.text.contains("ván này ×2 ngay"))
 		has_u_khan_rule = has_u_khan_rule or (special_label.text.contains("cách nhau 1–2 số") and special_label.text.contains("×10"))
 	_check(special_page.visible and has_mom_rule and has_u_rule and has_u_khan_rule, "Special Outcomes explains multiplied Móm deadwood, Ù, and the ×10 Ù Khan authority")
 	scene.how_to_play_back_button.pressed.emit()
@@ -230,13 +230,13 @@ func _run() -> void:
 	_check(scene.event_table.content_panel.visible and scene.event_table.day_label.get_parent().position.y < 20.0, "NPC focus moves the wallet header upward and opens table content")
 	var starter_drink_button := scene.campaign_overlay.find_child("Drink_tra_da", true, false) as Button
 	_check(starter_drink_button != null and not starter_drink_button.disabled, "free Trà đá is purchasable in the Starter Event")
-	starter_drink_button.pressed.emit()
+	starter_drink_button.mouse_entered.emit()
 	await process_frame
 	_check(not scene.current_campaign_event.can_exit, "inspecting a Drink does not silently purchase it")
 	_check(scene.event_table.conversation.speech.text.contains("Trà đá"), "Cô Trà Đá explains the inspected Drink")
 	var order_button := scene.campaign_overlay.find_child("Confirm", true, false) as Button
 	_check(order_button != null and not order_button.disabled, "inspected Drink exposes an explicit order response")
-	order_button.pressed.emit()
+	starter_drink_button.pressed.emit()
 	await process_frame
 	_check(scene.current_campaign_event.can_exit and not scene.campaign_continue_button.disabled, "selecting a Drink completes Cô Trà Đá's mandatory interaction")
 	_check(scene.drink_manager.morning_drink_id == DrinkCatalog.TRA_DA and scene.deal.wallet.balance_vnd == 0, "Starter Drink is assigned to Morning/Noon without inventing a charge for free Trà đá")
@@ -305,7 +305,7 @@ func _run() -> void:
 	_check(scene.score_overlay.mouse_filter == Control.MOUSE_FILTER_IGNORE and scene.score_panel.size.x <= 460.0, "floating resolve feedback cannot consume table input")
 	scene.money_presentation._position_score_stage(scene.meld_scroll)
 	_check(absf(scene.score_panel.get_global_rect().get_center().x - scene.meld_scroll.get_global_rect().get_center().x) < 12.0, "resolve text anchors horizontally over its Meld source")
-	_check(is_equal_approx(MoneyPresentation.MONEY_FLIGHT_DURATION, 0.30), "all money resolutions use the shared flight duration")
+	_check(is_equal_approx(MoneyPresentation.MONEY_FLIGHT_DURATION, 0.48), "all money resolutions use the shared flight duration")
 	_check(wallet_pile == scene.wallet_pile_anchor and wallet_pile.get_child_count() == 1, "zero wallet renders an empty cash state without fake banknotes")
 	scene.money_presentation.sync_wallet(45_000)
 	var wallet_bill := wallet_pile.get_child(0) as Control
@@ -445,7 +445,7 @@ func _run() -> void:
 	_check(action_outline.cue_mode() == (CardActionOutlineScript.CUE_MELD | CardActionOutlineScript.CUE_DRINK), "green and blue eligibility coexist without covering the card face")
 	action_outline.scale = Vector2.ONE
 	action_outline.play_target_pulse(1.0)
-	_check(action_outline._pulse_tween != null and action_outline._pulse_tween.is_valid(), "the reusable eligibility visual exposes a live target pulse tween")
+	_check(action_outline._pulse_tween == null and action_outline.scale == Vector2.ONE, "eligibility outlines never bounce independently of their cards")
 	first_view.set_drink_preserved(false)
 	_check(action_outline.cue_mode() == CardActionOutlineScript.CUE_MELD, "clearing a Drink cue preserves the card's green action state")
 	first_view.set_action_cues(false, false)
@@ -538,7 +538,7 @@ func _run() -> void:
 	_check(tra_mandatory.get("extra_discard_pending", false), "Trà đá keeps the turn open after its mandatory discard")
 	_check(scene.deal.tra_da_extra_discard_pending and scene.deal.state == DealState.STATE_ACTIVE, "Trà đá records that one extra discard is still owed")
 	_check(scene.drink_cue_play_count == tra_cue_count + 1 and scene.drink_cue_player.playing, "the first Trà đá discard plays exactly one glass-clink cue")
-	_check(scene.drink_cue_player.stream.resource_path.begins_with("res://assets/audio/sfx/glass_clink"), "the reactive cue uses one of the supplied glass-clink assets")
+	_check(scene.drink_cue_player.stream.resource_path == "res://assets/audio/sfx/drinks/tra_da.wav", "the reactive cue uses the supplied Objects recording for this drink")
 	_check(scene.drink_charge_outline.visible, "the active Trà đá opportunity also receives the blue Drink outline")
 	scene._sync_all()
 	_check(scene.drink_cue_play_count == tra_cue_count + 1, "repeated UI synchronization does not replay an already-active cue")
@@ -575,6 +575,10 @@ func _run() -> void:
 	_check(scene.meld_views[stable_meld.meld_id].get_instance_id() == stable_view_id, "extending a Meld updates its existing panel")
 	_check(stable_view._card_views["smoke_3_spades"].get_instance_id() == stable_face_id, "extending a Meld preserves its existing card-face instances")
 	_check(stable_view._cards_row.get_child_count() == 4, "extending a Meld adds only the new card face")
+	scene.deal.set_current_drink(DrinkCatalog.NAU_DA)
+	scene._sync_all()
+	var idle_nau_outline := stable_view._card_drink_outlines.get(stable_meld.cards[0].unique_id) as Control
+	_check(idle_nau_outline != null and idle_nau_outline.visible and not scene.drink_targeting_active and not scene.drink_hover_active, "unused caffeine highlights table targets without hovering or arming the Drink")
 	var nuoc_cue_count := scene.drink_cue_play_count
 	var previous_cue_stream_index := scene.drink_cue_stream_index
 	scene.deal.set_current_drink(DrinkCatalog.NUOC_VOI)
@@ -582,6 +586,8 @@ func _run() -> void:
 	scene._sync_all()
 	_check(scene.drink_cue_play_count == nuoc_cue_count + 1 and scene.drink_cue_stream_index != previous_cue_stream_index, "Nước vối's removable Meld card triggers the next non-repeating glass cue")
 	_check(scene.drink_table_button.tooltip_text.contains(DrinkCatalog.effect_text(DrinkCatalog.NUOC_VOI)), "switching Drinks refreshes the clickable sprite tooltip")
+	var idle_nuoc_outline := stable_view._card_drink_outlines.get(stable_meld.cards[0].unique_id) as Control
+	_check(idle_nuoc_outline != null and idle_nuoc_outline.visible, "unused Nuoc voi highlights legal table targets without Drink hover or targeting")
 	var removable_endpoint: CardData = stable_meld.cards[0]
 	scene._on_meld_card_pressed(stable_meld.meld_id, removable_endpoint)
 	_check(scene.selected_drink_meld_card_id.is_empty(), "Nước vối ignores table-card targeting until the Drink is clicked first")
@@ -617,7 +623,7 @@ func _run() -> void:
 	var pre_arm_card: CardData = scene.deal.hand[0]
 	scene._on_card_pressed(pre_arm_card)
 	var pre_arm_outline := (scene.hand_views.get(pre_arm_card.unique_id) as PlayingCardView).get_node_or_null("BeatVisual/ActionOutline") as Control
-	_check((pre_arm_outline.cue_mode() & CardActionOutlineScript.CUE_DRINK) == 0 and scene.pending_drink_card_ids.is_empty(), "ordinary card clicks do not become Drink targets before Sâm dứa is armed")
+	_check((pre_arm_outline.cue_mode() & CardActionOutlineScript.CUE_DRINK) != 0 and scene.pending_drink_card_ids.is_empty(), "unused Sam dua keeps eligible cards blue while ordinary clicks leave Drink targeting unarmed")
 	scene.selected_card_ids.clear()
 	scene._sync_all()
 	scene.drink_table_button.pressed.emit()

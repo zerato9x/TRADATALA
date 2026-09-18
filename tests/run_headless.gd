@@ -11,12 +11,15 @@ const MusicAntiFatigueTestSuiteScript := preload("res://tests/test_music_anti_fa
 func _initialize() -> void:
 	var runner := McpTestRunner.new()
 	var result := runner.run_suites([
+		preload("res://tests/test_resolve_accounting.gd").new(),
 		TestSuiteScript.new(),
 		DrinkRosterSuiteScript.new(),
 		CampaignTestSuiteScript.new(),
 		MoneyPresentationTestSuiteScript.new(),
 		GieoQueTestSuiteScript.new(),
+		preload("res://tests/test_misc_npc.gd").new(),
 		MusicAntiFatigueTestSuiteScript.new(),
+		preload("res://tests/test_relics.gd").new(),
 	], "", "", {}, true)
 	print("TRADATALA_TESTS total=%d passed=%d failed=%d skipped=%d" % [
 		result["total"], result["passed"], result["failed"], result["skipped"]

@@ -398,6 +398,8 @@ func _add_decisions(animated: bool) -> void:
 
 func _animate_result_reveal() -> void:
 	impact_requested.emit(&"result_reveal")
+	if not String(service.current_result.get("jackpot", "")).is_empty():
+		impact_requested.emit(&"jackpot")
 	for part in _result_parts:
 		var tween := create_tween()
 		tween.tween_property(part, "modulate:a", 1.0, 0.12)
@@ -514,10 +516,6 @@ func _build_compact_result(parent: VBoxContainer) -> void:
 
 func _effect_text() -> String:
 	var text := tr(service.effect_label_key())
-	if service.current_result.has("resolved_rank"):
-		text += " · " + String(service.current_result["resolved_rank"])
-	elif service.current_result.has("resolved_suit"):
-		text += " · " + _suit_label(String(service.current_result["resolved_suit"]))
 	return text
 
 
@@ -543,7 +541,7 @@ func _build_transformation_row(parent: VBoxContainer, transformation: Dictionary
 
 func _snapshot_card(snapshot: Dictionary, caption: String) -> Control:
 	var panel := PanelContainer.new()
-	panel.custom_minimum_size = Vector2(250, 88)
+	panel.custom_minimum_size = Vector2(300, 176)
 	panel.add_theme_stylebox_override("panel", PresentationTheme.panel_style(Color("#f4ead8f2"), PresentationTheme.GOLD, 2, 6, 3))
 	var row := HBoxContainer.new()
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -555,7 +553,7 @@ func _snapshot_card(snapshot: Dictionary, caption: String) -> Control:
 	card_art.name = "SnapshotCardArt"
 	var texture_path := _snapshot_texture_path(rank, suit)
 	panel.set_meta("card_texture_path", texture_path)
-	card_art.custom_minimum_size = Vector2(48, 67)
+	card_art.custom_minimum_size = Vector2(114, 158)
 	card_art.texture = load(texture_path) as Texture2D
 	GieoCardFX.apply_properties(card_art, snapshot.get("gieo_properties", []))
 	card_art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
@@ -569,8 +567,9 @@ func _snapshot_card(snapshot: Dictionary, caption: String) -> Control:
 	var readable_properties: Array[String] = []
 	for property_id in properties:
 		readable_properties.append(_property_label(String(property_id)))
-	text.text = "%s\n%s · %s%s" % [caption, rank, _suit_label(suit), "\n" + " · ".join(readable_properties) if not readable_properties.is_empty() else ""]
+	text.text = "%s\n%s · %s%s" % [caption, rank, _suit_label(suit), "\n" + "\n".join(readable_properties) if not readable_properties.is_empty() else ""]
 	text.custom_minimum_size.x = 172
+	text.add_theme_font_size_override("font_size", 13)
 	text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	text.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -753,16 +752,8 @@ func _trf(key: String, values: Variant) -> String:
 
 
 func _property_label(property_id: String) -> String:
-	match property_id:
-		GieoQueService.PROPERTY_SET_RETRIGGER:
-			return tr("GIEO_PROPERTY_SET")
-		GieoQueService.PROPERTY_MAKING_PHOM_RETRIGGER:
-			return tr("GIEO_PROPERTY_MAKING")
-		GieoQueService.PROPERTY_EXTEND_RETRIGGER:
-			return tr("GIEO_PROPERTY_EXTEND")
-		GieoQueService.PROPERTY_RUN_RETRIGGER:
-			return tr("GIEO_PROPERTY_RUN")
-	return property_id.replace("_", " ")
+	var key := CardData.gieo_property_label_key(property_id)
+	return tr(key) if not key.is_empty() else property_id.replace("_", " ")
 
 
 func _suit_label(suit: String) -> String:

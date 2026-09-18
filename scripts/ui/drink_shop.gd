@@ -20,6 +20,14 @@ func configure(manager: DrinkManager, completed: bool) -> void:
 	_manager = manager
 	_completed = completed
 	confirm.text = tr("DRINK_ORDER")
+	var hint := Label.new()
+	hint.name = "QuickOrderHint"
+	hint.text = tr("DRINK_SHOP_QUICK_HINT")
+	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hint.add_theme_font_size_override("font_size", 12)
+	hint.add_theme_color_override("font_color", PresentationTheme.MUTED)
+	add_child(hint)
+	move_child(hint, 0)
 	price.text = tr("DRINK_TEST_PRICE") if manager.test_all_drinks_available else ""
 	confirm.pressed.connect(_order)
 	var group := ButtonGroup.new()
@@ -46,7 +54,7 @@ func configure(manager: DrinkManager, completed: bool) -> void:
 		button.custom_minimum_size = Vector2(80, 112)
 		button.toggle_mode = true
 		button.button_group = group
-		button.tooltip_text = DrinkCatalog.display_name(drink_id)
+		button.tooltip_text = DrinkCatalog.display_name(drink_id) + "\n" + tr("DRINK_SHOP_QUICK_HINT")
 		if DemoBuild.enabled() and manager.progress != null:
 			button.tooltip_text += "\n" + manager.progress.goal_text(drink_id)
 		button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
@@ -98,6 +106,10 @@ func configure(manager: DrinkManager, completed: bool) -> void:
 		label.add_theme_constant_override("shadow_offset_y", 2)
 		label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		column.add_child(label)
+		button.mouse_entered.connect(preview_drink.bind(drink_id))
+		button.focus_entered.connect(preview_drink.bind(drink_id))
+		# A drink tile only selects/inspects the drink. Buying requires the
+		# explicit Order button below the shelf.
 		button.pressed.connect(inspect_drink.bind(drink_id))
 		(category_rows[DrinkCatalog.category(drink_id)] as HBoxContainer).add_child(button)
 		_buttons[drink_id] = button
@@ -122,10 +134,20 @@ func configure(manager: DrinkManager, completed: bool) -> void:
 func inspect_drink(drink_id: String) -> void:
 	selected_id = drink_id
 	(_buttons[drink_id] as Button).button_pressed = true
-	confirm.disabled = _completed or not _manager.can_order(drink_id)
+	_update_drink_details(drink_id, true)
+
+
+func preview_drink(drink_id: String) -> void:
+	_update_drink_details(drink_id, false)
+
+
+func _update_drink_details(drink_id: String, update_order_state: bool) -> void:
+	if update_order_state:
+		confirm.disabled = _completed or not _manager.can_order(drink_id)
 	if _goal_label != null:
 		_goal_label.text = _manager.progress.goal_text(drink_id) if _manager.progress != null else ""
-		confirm.text = tr("DRINK_ORDER") if _manager.is_unlocked(drink_id) else tr("DRINK_LOCKED")
+		if update_order_state:
+			confirm.text = tr("DRINK_ORDER") if _manager.is_unlocked(drink_id) else tr("DRINK_LOCKED")
 	if not _manager.test_all_drinks_available:
 		price.text = VndWallet.format_vnd(_manager.price_for(drink_id))
 	drink_inspected.emit(drink_id)
@@ -135,4 +157,5 @@ func _order() -> void:
 	if _completed or selected_id.is_empty() or not _manager.can_order(selected_id):
 		return
 	confirm.disabled = true
+	_completed = true
 	order_requested.emit(selected_id)

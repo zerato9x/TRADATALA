@@ -3,7 +3,8 @@
 Implemented: scoring remains authoritative in ScoringPipeline and VndWallet. Each scoring pass now carries value snapshots in presentation_hits; MatchUI converts those point receipts at the current payout multiplier and VND rate. Presentation never applies a wallet transaction.
 
 - Physical card hits include ID, face, printed properties and points after the local multiplier.
-- Making/Extend echoes immediately follow the same card. Whole Set/Run replays identify their source card and remain finite. Native milestone passes retain their existing behavior.
+- Making/Extend echoes immediately follow the same card. Whole Set/Run replays identify their source card and remain finite. New Melds at SET sizes 4/8/12/... and perfected A–K RUNs retain one native full-meld retrigger.
+- Every Extension pays its intrinsic delta first. If the resulting SET reaches 4/8/12/... or the RUN becomes a perfected A–K sequence at 13 cards, one complete-meld retrigger follows that delta; Gieo full-meld retriggers follow it as additional finite passes.
 - Ordinary extensions show committed-card hits followed by an explicit meld-delta adjustment. Other modifier/clamping differences are explicit signed adjustments. Hit totals exactly reconcile to each existing pass total.
 - Exhaustion uses the same receipt and then overlapping card returns. It does not reapply Making echoes or duplicate payout.
 - The compact receipt and its labels ignore pointer input. Existing ordinary gameplay remains unlocked.

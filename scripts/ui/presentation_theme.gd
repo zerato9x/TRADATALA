@@ -33,6 +33,14 @@ static func create_game_theme() -> Theme:
 	var game_theme := Theme.new()
 	game_theme.default_font = official_font()
 	game_theme.default_font_size = 14
+	var tooltip_style := panel_style(PANEL_SOLID, GOLD_DARK, 1, 3, 3)
+	tooltip_style.content_margin_left = 12
+	tooltip_style.content_margin_right = 12
+	tooltip_style.content_margin_top = 8
+	tooltip_style.content_margin_bottom = 8
+	game_theme.set_stylebox("panel", "TooltipPanel", tooltip_style)
+	game_theme.set_color("font_color", "TooltipLabel", INK)
+	game_theme.set_font_size("font_size", "TooltipLabel", 14)
 	return game_theme
 
 

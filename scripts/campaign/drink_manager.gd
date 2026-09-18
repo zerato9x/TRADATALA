@@ -5,7 +5,7 @@ signal drink_selected(drink_id: String, period: String, price_vnd: int)
 signal drink_cleared()
 
 # Mechanics test override; zero is provisional, not a balanced final price.
-const TEST_ALL_DRINKS_AVAILABLE := true
+const TEST_ALL_DRINKS_AVAILABLE := false
 const TEST_PRICE_VND := 0
 var test_all_drinks_available: bool = TEST_ALL_DRINKS_AVAILABLE and not DemoBuild.enabled()
 
@@ -37,16 +37,16 @@ func available_drink_ids() -> Array[String]:
 		return DrinkCatalog.all_ids()
 	if test_all_drinks_available:
 		return DrinkCatalog.all_ids()
-	return DrinkCatalog.basic_ids()
+	return DrinkCatalog.all_ids()
 
 
 func price_for(drink_id: String) -> int:
 	if DemoBuild.enabled():
 		var percent := int(DrinkProgress.GOALS.get(drink_id, ["", 0, 0])[2])
-		return int(round(float(day_target_vnd) * percent / 50_000.0)) * 500
+		return wallet.scaled_cost(int(round(float(day_target_vnd) * percent / 50_000.0)) * 500)
 	if test_all_drinks_available:
 		return TEST_PRICE_VND
-	return int(PRICES_VND.get(drink_id, 0))
+	return wallet.scaled_cost(int(PRICES_VND.get(drink_id, 25_000)))
 
 
 func is_unlocked(drink_id: String) -> bool:

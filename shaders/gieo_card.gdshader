@@ -1,16 +1,15 @@
 shader_type canvas_item;
+// Literal clear polish, independent of permanent Gieo printing.
+uniform bool polished = false;
 render_mode unshaded;
 
-// Permanent printing: liquid ground, gilded cuts, vermilion seal, spectral frame.
+// Permanent printing: legendary liquid ground and six conditional gold engravings.
 // Geometry owns each lane. Combinations are occluded in print order, never added.
-uniform vec4 strengths = vec4(0.0); // Making, Set, Extend, Run
+uniform vec4 strengths = vec4(0.0); // Gold: Making, Set, Extend, Run
+uniform vec3 accents = vec3(0.0); // Gold: Big, Last Call; legendary Liquid
 uniform float material_amount : hint_range(0.0, 1.0) = 1.0;
 uniform float motion_speed : hint_range(0.0, 1.5) = 0.65;
-uniform float seal_radius : hint_range(0.18, 0.4) = 0.29;
-uniform float frame_width : hint_range(0.035, 0.15) = 0.085;
-uniform float cut_width : hint_range(0.018, 0.09) = 0.055;
 uniform float liquid_contrast : hint_range(0.0, 1.0) = 1.0;
-uniform vec4 vermilion : source_color = vec4(0.86, 0.16, 0.20, 1.0);
 uniform vec4 gold : source_color = vec4(1.0, 0.67, 0.15, 1.0);
 uniform vec4 jade : source_color = vec4(0.18, 0.84, 0.79, 1.0);
 uniform vec4 amethyst : source_color = vec4(0.66, 0.32, 0.88, 1.0);
@@ -44,52 +43,53 @@ void fragment() {
  float caustic = pow(0.5 + 0.5 * sin(river * 1.65 - t * 0.45), 9.0);
  vec3 liquid = mix(vec3(0.96, 0.98, 1.0), spectral(river * 0.6 + t * 0.3), 0.57 + 0.34 * ripple);
  liquid = mix(liquid, vec3(1.0, 0.97, 0.86), caustic * 0.65);
- paper = mix(paper, liquid, w.w * liquid_contrast * interior);
+ paper = mix(paper, liquid, accents.z * liquid_contrast * interior);
 
- // EXTEND: two permanent diagonal incisions; specular light runs ALONG each cut.
- float diagonal = p.x + p.y * 0.52;
- float cuts = max(stripe(diagonal + 0.19, cut_width, aa), stripe(diagonal - 0.20, cut_width, aa));
- float cut_core = max(stripe(diagonal + 0.19, cut_width * 0.32, aa), stripe(diagonal - 0.20, cut_width * 0.32, aa));
- float cut_light = pow(0.5 + 0.5 * sin(p.y * 8.0 - t * 3.4), 3.0);
- vec3 metal = mix(gold.rgb * vec3(0.79, 0.60, 0.43), gold.rgb, 0.45 + 0.5 * cut_light);
- metal = mix(metal, vec3(1.0, 0.98, 0.77), cut_core * (0.55 + 0.45 * cut_light));
- paper = mix(paper, metal, cuts * w.z * interior);
-
- // MAKING: a vermilion seal with a gilded double rim and turning engraved spokes.
+ // One metal family; independent geometric lanes prevent additive shader soup.
  float radius = length(p);
  float angle = atan(p.y, p.x + 0.00001);
- float seal = 1.0 - smoothstep(seal_radius - aa, seal_radius + aa, radius);
- float rim = max(stripe(radius - seal_radius + 0.018, 0.009, aa), stripe(radius - seal_radius + 0.057, 0.007, aa));
- float rays = pow(0.5 + 0.5 * cos(angle * 12.0), 7.0);
- float rays_region = smoothstep(seal_radius * 0.60, seal_radius * 0.73, radius);
- float seal_glint = 0.5 + 0.5 * cos(angle - t * 1.5);
- float seal_band = smoothstep(seal_radius * 0.67 - aa, seal_radius * 0.67 + aa, radius);
- float engraved = stripe(radius - seal_radius * 0.43, 0.006, aa);
- vec3 seal_ink = mix(vec3(1.0, 0.91, 0.65), vermilion.rgb, seal_band);
- seal_ink = mix(seal_ink, gold.rgb, rays * rays_region * 0.65);
- seal_ink = mix(seal_ink, vermilion.rgb, engraved * 0.65);
- seal_ink = mix(seal_ink, mix(gold.rgb, vec3(1.0, 0.96, 0.72), seal_glint), rim);
- paper = mix(paper, seal_ink, seal * w.x);
-
- // SET: a cut-gem foil frame, with faceted reflections chasing its perimeter.
- float frame = (1.0 - smoothstep(frame_width - aa, frame_width + aa, edge)) * smoothstep(0.018, 0.035, edge);
- float perimeter = angle * 2.0 + t * 1.45;
- float facet = 0.5 + 0.5 * sin(angle * 14.0 + edge * 44.0);
- float frame_glint = pow(0.5 + 0.5 * sin(perimeter), 5.0);
- vec3 gemstone = spectral(angle * 1.7 - t * 0.65) * (0.62 + 0.38 * facet);
- gemstone = mix(gemstone, vec3(0.97, 1.0, 0.97), frame_glint * 0.8);
- float bevel = stripe(edge - frame_width + 0.007, 0.005, aa);
- gemstone = mix(gemstone, vec3(0.93, 0.90, 1.0), bevel * 0.65);
- paper = mix(paper, gemstone, frame * w.y);
-
- // A simple seal hallmark survives busy court-card art in the quiet upper-right.
- vec2 mark_p = (UV - vec2(0.79, 0.14)) * vec2(1.0, 1.386);
- float mark_r = length(mark_p);
- float mark = 1.0 - smoothstep(0.074 - aa, 0.074 + aa, mark_r);
- float mark_ring = stripe(mark_r - 0.055, 0.008, aa);
- float mark_center = 1.0 - smoothstep(0.031, 0.039, mark_r);
- vec3 mark_ink = mix(mix(vermilion.rgb, gold.rgb, mark_ring), vec3(1.0, 0.94, 0.70), mark_center);
- paper = mix(paper, mark_ink, mark * w.x);
+ float gleam = pow(0.5 + 0.5 * sin(p.x * 8.0 + p.y * 5.0 - t * 2.3), 4.0);
+ vec3 metal = mix(vec3(0.64, 0.34, 0.065), gold.rgb, 0.5 + 0.5 * gleam);
+ metal = mix(metal, vec3(1.0, 0.97, 0.73), gleam * 0.7);
+ // MAKING: double sun-ring, engraved spokes. Open centre preserves the art.
+ float ring = max(stripe(radius - 0.245, 0.008, aa), stripe(radius - 0.275, 0.005, aa));
+ float spokes = pow(0.5 + 0.5 * cos(angle * 16.0), 12.0) * stripe(radius - 0.26, 0.035, aa);
+ float making = max(ring, spokes);
+ // SET: linked square facets inside a rectangular frame.
+ float frame = stripe(edge - 0.055, 0.009, aa);
+ float facet = stripe(abs(fract((UV.x + UV.y) * 18.0) - 0.5) - 0.23, 0.10, aa);
+ float set_mark = max(frame, stripe(edge - 0.08, 0.009, aa) * facet);
+ // EXTEND: two ascending, segmented diagonal gold cuts.
+ float diagonal = p.x + p.y * 0.52;
+ float cuts = max(stripe(diagonal + 0.20, 0.014, aa), stripe(diagonal - 0.20, 0.014, aa));
+ float extend_mark = cuts * (0.55 + 0.45 * smoothstep(-0.5, 0.7, sin(p.y * 32.0 - t * 2.0)));
+ // RUN: parallel flowing rails, thin and gold; distinct from Liquid's broad ground.
+ float wave = sin(p.y * 10.0 - t * 1.2) * 0.023;
+ float run_mark = max(stripe(abs(p.x) - 0.32 - wave, 0.009, aa), stripe(abs(p.x) - 0.35 - wave, 0.005, aa));
+ // BIG: four nested angular brackets pointing toward the expanded centre.
+ vec2 q = abs(p);
+ float bracket = max(stripe(q.x - 0.395, 0.011, aa) * step(0.34, q.y) * step(q.y, 0.49), stripe(q.y - 0.49, 0.011, aa) * step(0.27, q.x) * step(q.x, 0.395));
+ // LAST CALL: hourglass lattice in the upper/lower interior, with travelling sparks.
+ vec2 h = vec2(p.x, abs(p.y) - 0.51);
+ float hourglass = stripe(abs(h.x) - abs(h.y) * 0.9, 0.009, aa) * step(abs(h.y), 0.085);
+ hourglass = max(hourglass, stripe(abs(h.y) - 0.085, 0.008, aa) * step(abs(h.x), 0.077));
+ float gold_mask = max(max(making * w.x, set_mark * w.y), max(extend_mark * w.z, run_mark * w.w));
+ gold_mask = max(gold_mask, max(bracket * accents.x, hourglass * accents.y)) * interior;
+ paper = mix(paper, metal, gold_mask);
+ // Six fixed hallmark positions in the quiet upper-right identify stacked properties.
+ // Each enabled mark has its own silhouette; no colour coding required.
+ for (int i = 0; i < 6; i++) {
+  float active = i < 4 ? w[i] : accents[i - 4];
+  vec2 m = (UV - vec2(0.73 + float(i % 2) * 0.12, 0.105 + float(i / 2) * 0.072)) * vec2(1.0, 1.386);
+  float mark = 0.0;
+  if (i == 0) mark = stripe(length(m) - 0.022, 0.006, aa);
+  if (i == 1) mark = stripe(max(abs(m.x), abs(m.y)) - 0.021, 0.006, aa);
+  if (i == 2) mark = stripe(m.x + m.y * 0.7, 0.007, aa) * step(abs(m.y), 0.026);
+  if (i == 3) mark = stripe(m.x - sin(m.y * 90.0) * 0.015, 0.006, aa) * step(abs(m.y), 0.028);
+  if (i == 4) mark = stripe(abs(m.x) + abs(m.y) - 0.029, 0.006, aa);
+  if (i == 5) mark = stripe(abs(m.x) - abs(m.y) * 0.8, 0.006, aa) * step(abs(m.y), 0.028);
+  paper = mix(paper, metal, mark * active);
+ }
 
  // Reserve BOTH rank corners. Never displace or recolor printed ink.
  float corner_a = (1.0 - smoothstep(0.16, 0.27, UV.x)) * (1.0 - smoothstep(0.23, 0.35, UV.y));
@@ -104,7 +104,19 @@ void fragment() {
  vec3 nearest_ink = min(min(n1, n2), min(n3, n4));
  float keyline = 1.0 - smoothstep(0.60, 0.85, min(nearest_ink.r, min(nearest_ink.g, nearest_ink.b)));
  paper = mix(paper, vec3(1.0, 0.98, 0.93), keyline * 0.72);
- float enabled = step(0.5, dot(w, vec4(1.0)));
+ float enabled = step(0.5, dot(w, vec4(1.0)) + dot(accents, vec3(1.0)));
  vec3 result = mix(art.rgb, art.rgb * clamp(paper, vec3(0.0), vec3(1.0)), blank_paper * material_amount * enabled);
+ if (polished) {
+  float sweep_position = mod(TIME * 0.28, 2.5) - 0.6;
+  float sweep = 1.0 - smoothstep(0.0, 0.10, abs(UV.x + UV.y * 0.38 - sweep_position));
+  float clean_paper = smoothstep(0.6, 0.95, min(art.r, min(art.g, art.b)));
+  result = mix(result, vec3(1.0, 0.995, 0.97), clean_paper * 0.16);
+  result = mix(result, vec3(1.0), sweep * (0.12 + clean_paper * 0.22));
+  vec2 sparkle_uv = (UV - vec2(0.85, 0.14)) * vec2(1.0, 1.386);
+  float sparkle = max((1.0 - smoothstep(0.0, 0.004, abs(sparkle_uv.x))) * (1.0 - smoothstep(0.0, 0.038, abs(sparkle_uv.y))),
+                      (1.0 - smoothstep(0.0, 0.004, abs(sparkle_uv.y))) * (1.0 - smoothstep(0.0, 0.028, abs(sparkle_uv.x))));
+  // A tiny silver-blue cleaning glint stays readable on white paper.
+  result = mix(result, vec3(0.38, 0.59, 0.65), sparkle * (0.75 + 0.15 * sin(TIME * 2.0)));
+ }
  COLOR = vec4(result, art.a) * vertex_tint;
 }

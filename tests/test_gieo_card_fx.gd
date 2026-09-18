@@ -21,8 +21,8 @@ func test_material_is_per_face_reused_and_normal_card_restores_original() -> voi
 	assert_eq(a.material, original)
 	GieoCardFX.apply_properties(a, GieoCardFX.PROPERTIES)
 	var first := a.material
-	GieoCardFX.apply_properties(a, ["RUN_RETRIGGER"])
-	GieoCardFX.apply_properties(b, ["RUN_RETRIGGER"])
+	GieoCardFX.apply_properties(a, ["GOLD_RUN"])
+	GieoCardFX.apply_properties(b, ["GOLD_RUN"])
 	assert_eq(a.material, first)
 	assert_true(a.material != b.material)
 	assert_eq((a.material as ShaderMaterial).shader, (b.material as ShaderMaterial).shader)
@@ -32,7 +32,7 @@ func test_material_is_per_face_reused_and_normal_card_restores_original() -> voi
 	a.free()
 	b.free()
 
-func test_hand_keeps_face_input_dimensions_and_all_four_without_extra_layers() -> void:
+func test_hand_keeps_face_input_dimensions_and_all_seven_without_extra_layers() -> void:
 	var view := PlayingCardView.new()
 	var data := CardData.new("fx", "A", 1, "Spades", 1)
 	data.gieo_properties.assign(GieoCardFX.PROPERTIES)
@@ -50,22 +50,22 @@ func test_hand_keeps_face_input_dimensions_and_all_four_without_extra_layers() -
 
 func test_meld_keeps_existing_texture_and_drink_outline() -> void:
 	var data := CardData.new("table_fx", "A", 1, "Spades", 1)
-	data.add_gieo_property("SET_RETRIGGER")
+	data.add_gieo_property("GOLD_SET")
 	var view := MeldView.new()
 	Engine.get_main_loop().root.add_child(view)
 	view.set_meld(MeldState.new(1, MeldRules.TYPE_SET, [data]), false, false)
 	var face: TextureRect = view._card_views[data.unique_id]
 	assert_eq(face.custom_minimum_size, Vector2(49, 68))
 	assert_eq(face.mouse_filter, Control.MOUSE_FILTER_IGNORE)
-	assert_eq(face.material.get_shader_parameter("strengths"), Vector4(0, 1, 0, 0))
-	assert_eq(face.get_child_count(), 1)
+	assert_eq(face.get_node("SwayFace").material.get_shader_parameter("strengths"), Vector4(0, 1, 0, 0))
+	assert_eq(face.get_child_count(), 2)
 	assert_true(face.get_node("ActionOutline").material == null)
 	view.free()
 
 func test_gieo_snapshot_and_picker_show_persistent_material_without_changing_targets() -> void:
 	var panel := GieoQuePanel.new()
 	var data := CardData.new("picker_fx", "A", 1, "Spades", 1)
-	data.add_gieo_property("MAKING_PHOM_RETRIGGER")
+	data.add_gieo_property("GOLD_MAKING_PHOM")
 	var snapshot := panel._snapshot_card(data.permanent_snapshot(), "AFTER")
 	var art: TextureRect = snapshot.get_meta("card_art")
 	assert_eq(art.material.get_shader_parameter("strengths"), Vector4(1, 0, 0, 0))
@@ -80,3 +80,24 @@ func test_gieo_snapshot_and_picker_show_persistent_material_without_changing_tar
 	parent.free()
 	snapshot.free()
 	panel.free()
+
+
+func test_all_property_combinations_have_independent_shader_channels() -> void:
+	var face := TextureRect.new()
+	for bits in 128:
+		var properties: Array[String] = []
+		for index in 7:
+			if bits & (1 << index):
+				properties.append(GieoCardFX.PROPERTIES[index])
+		GieoCardFX.apply_properties(face, properties)
+		if bits == 0:
+			assert_true(face.material == null)
+			continue
+		var strengths: Vector4 = face.material.get_shader_parameter("strengths")
+		var accents: Vector3 = face.material.get_shader_parameter("accents")
+		for index in 7:
+			var strength: float = strengths[index] if index < 4 else accents[index - 4]
+			assert_eq(strength, 1.0 if bits & (1 << index) else 0.0)
+	GieoCardFX.apply_properties(face, [])
+	assert_true(face.material == null)
+	face.free()

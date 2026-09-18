@@ -1,8 +1,8 @@
 extends Control
 
 # Every subset, grouped as normal/singles, pairs, triples, all four.
-const COMBINATION_BITS := [0, 1, 2, 4, 8, 3, 5, 9, 6, 10, 12, 7, 11, 13, 14, 15]
-const SHORT_NAMES := ["M", "S", "E", "R"]
+const COMBINATION_BITS := [0, 1, 2, 4, 8, 16, 32, 64, 3, 12, 48, 63, 65, 76, 112, 127]
+const SHORT_NAMES := ["SUN", "FACETS", "CUTS", "RIBBON", "CROWN", "HOURGLASS", "LIQUID"]
 var faces: Array[TextureRect] = []
 var cards: Array[PlayingCardView] = []
 var freeze_button: CheckButton
@@ -19,7 +19,7 @@ func _ready() -> void:
 	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(background)
 	_label("GIEO QUẺ / PERMANENT MARKS", Vector2(24, 14), 22, Color("f1dbab"))
-	_label("M  SEAL     S  FRAME     E  CUTS     R  LIQUID", Vector2(530, 20), 15, Color("bed4e1"))
+	_label("GOLD / SIX ENGRAVINGS     LIQUID / LEGENDARY", Vector2(530, 20), 15, Color("bed4e1"))
 	_build_controls()
 	for index in 16:
 		var bits: int = COMBINATION_BITS[index]
@@ -86,24 +86,26 @@ func _build_controls() -> void:
 			card.set_selected(value))
 	controls.add_child(selected)
 	var note := Label.new()
-	note.text = "48 cards / all 16 states / click a heading to enlarge"
+	note.text = "48 cards / 16 curated states / click a heading to enlarge"
 	note.add_theme_font_size_override("font_size", 12)
 	controls.add_child(note)
 
 func _combination_name(bits: int) -> String:
 	if bits == 0:
 		return "ORDINARY"
-	if bits == 15:
-		return "ALL FOUR / M + S + E + R"
+	if bits == 63:
+		return "ALL SIX GOLD"
+	if bits == 127:
+		return "ALL GOLD + LIQUID"
 	var names: Array[String] = []
-	for i in 4:
+	for i in 7:
 		if bits & (1 << i):
 			names.append(SHORT_NAMES[i])
 	return " + ".join(names)
 
 func _data(bits: int, rank: String, value: int, suit: String) -> CardData:
 	var card := CardData.new("mark_%s_%d" % [rank, bits], rank, value, suit, value)
-	for i in 4:
+	for i in 7:
 		if bits & (1 << i):
 			card.add_gieo_property(GieoCardFX.PROPERTIES[i])
 	return card

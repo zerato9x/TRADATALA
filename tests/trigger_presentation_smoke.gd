@@ -20,8 +20,8 @@ func _run() -> void:
 	var cards: Array[CardData] = []
 	for suit in ["Clubs", "Hearts", "Spades"]:
 		cards.append(CardData.new("receipt_" + suit, "K", 13, suit, 13))
-	cards[0].add_gieo_property(GieoQueService.PROPERTY_MAKING_PHOM_RETRIGGER)
-	cards[0].add_gieo_property(GieoQueService.PROPERTY_SET_RETRIGGER)
+	cards[0].add_gieo_property(GieoQueService.PROPERTY_GOLD_MAKING_PHOM)
+	cards[0].add_gieo_property(GieoQueService.PROPERTY_MELD_RETRIGGER)
 	scene.deal.melds.append(MeldState.new(81, MeldRules.TYPE_SET, cards))
 	scene._sync_all()
 	await process_frame
@@ -35,7 +35,20 @@ func _run() -> void:
 	var triggered_face: Control = scene.meld_views[81].get_scoring_card_control(cards[0].unique_id)
 	await create_timer(0.03).timeout
 	_check(absf(triggered_face.rotation) > 0.01, "physical scoring card visibly shakes")
-	_check(is_zero_approx(scene.money_presentation._scoring_face.rotation), "receipt remains still when the table card shakes")
+	var duplicate_card_visible := false
+	for child in scene.money_presentation.score_panel.get_children():
+		if child is TextureRect:
+			duplicate_card_visible = true
+	_check(not duplicate_card_visible, "receipt does not spawn a duplicate floating card")
+	_check(scene.money_presentation.line_a_label.text.is_empty(), "receipt omits the redundant card rank and suit")
+	if "--capture-money-stack" in OS.get_cmdline_user_args():
+		await process_frame
+		await process_frame
+		var viewport_texture := root.get_texture()
+		if viewport_texture != null:
+			viewport_texture.get_image().save_png("res://.godot/money_stack_receipt.png")
+		else:
+			print("TRADATALA_MONEY_STACK_CAPTURE skipped: renderer has no viewport texture")
 	var next_face: Control = scene.meld_views[81].get_scoring_card_control(cards[1].unique_id)
 	_check(is_zero_approx(next_face.rotation), "other cards stay still until their trigger")
 	_check(scene.money_presentation.line_b_label.scale == Vector2.ONE * 0.78, "score text stays steady during the card shake")
@@ -93,6 +106,25 @@ func _run() -> void:
 	_check(replay_seen, "completed mixed-suit RUN visibly plays its second scoring pass")
 	_check(not scene.money_queue_running, "perfected RUN replay completes")
 	_check(scene.deal.wallet.balance_vnd == wallet_before, "perfected RUN presentation does not pay twice")
+	# Every Liquid card must visibly announce its own numbered full replay.
+	for card in cards:
+		card.add_gieo_property(GieoQueService.PROPERTY_MELD_RETRIGGER)
+	scene.deal.melds.append(MeldState.new(82, MeldRules.TYPE_SET, cards))
+	scene._sync_all()
+	await process_frame
+	var liquid_context := scene.deal.scoring.preview_new_meld(cards, MeldRules.TYPE_SET, 1)
+	scene._queue_scoring(liquid_context, scene.meld_views[82])
+	var echoes_seen: Array[String] = []
+	deadline = Time.get_ticks_msec() + 7000
+	while scene.money_queue_running and Time.get_ticks_msec() < deadline:
+		var cue := scene.money_presentation.line_a_label.text
+		for echo in range(1, 4):
+			if cue == tr("SCORE_LIQUID_ECHO") % echo and not echoes_seen.has(cue):
+				echoes_seen.append(cue)
+		await process_frame
+	_check(echoes_seen.size() == 3, "three Liquid cards visibly announce three distinct numbered ECHOs")
+	_check(not scene.money_queue_running, "three Liquid ECHOs finish within seven seconds")
+	_check(scene.deal.wallet.balance_vnd == wallet_before, "multiple Liquid presentation never repays authority wallet")
 	scene.music_controller._stop_all_mix_players()
 	scene.music_controller.music_director.stop()
 	await create_timer(0.2).timeout

@@ -16,14 +16,14 @@ const STATE_TARGET_REVEAL := &"target_reveal"
 const STATE_TRANSFORM := &"transform"
 const STATE_COMPLETE := &"complete"
 
-const EFFECT_ADD_SET_RETRIGGER := "add_set_retrigger"
+const EFFECT_ADD_GOLD_SET := "add_gold_set"
 const EFFECT_CHOOSE_RANK := "choose_rank"
-const EFFECT_ADD_MAKING_PHOM_RETRIGGER := "add_making_phom_retrigger"
-const EFFECT_RANDOM_RANK := "random_rank"
-const EFFECT_RANDOM_SUIT := "random_suit"
-const EFFECT_ADD_EXTEND_RETRIGGER := "add_extend_retrigger"
+const EFFECT_ADD_GOLD_MAKING_PHOM := "add_gold_making_phom"
+const EFFECT_ADD_GOLD_BIG_PHOM := "add_gold_big_phom"
+const EFFECT_ADD_GOLD_LAST_CALL := "add_gold_last_call"
+const EFFECT_ADD_GOLD_EXTEND := "add_gold_extend"
 const EFFECT_CHOOSE_SUIT := "choose_suit"
-const EFFECT_ADD_RUN_RETRIGGER := "add_run_retrigger"
+const EFFECT_ADD_GOLD_RUN := "add_gold_run"
 
 const TARGET_RANDOM_SAME_SUIT_3 := "random_same_suit_3"
 const TARGET_RANDOM_SAME_SUIT_2 := "random_same_suit_2"
@@ -35,10 +35,15 @@ const TARGET_CONSECUTIVE_3 := "consecutive_3"
 const JACKPOT_THUAN_DUONG := "thuan_duong"
 const JACKPOT_THUAN_AM := "thuan_am"
 
-const PROPERTY_SET_RETRIGGER := "SET_RETRIGGER"
-const PROPERTY_MAKING_PHOM_RETRIGGER := "MAKING_PHOM_RETRIGGER"
-const PROPERTY_EXTEND_RETRIGGER := "EXTEND_RETRIGGER"
-const PROPERTY_RUN_RETRIGGER := "RUN_RETRIGGER"
+const PROPERTY_GOLD_SET := "GOLD_SET"
+const PROPERTY_GOLD_MAKING_PHOM := "GOLD_MAKING_PHOM"
+const PROPERTY_GOLD_EXTEND := "GOLD_EXTEND"
+const PROPERTY_GOLD_RUN := "GOLD_RUN"
+
+const PROPERTY_GOLD_BIG_PHOM := "GOLD_BIG_PHOM"
+const PROPERTY_GOLD_LAST_CALL := "GOLD_LAST_CALL"
+const PROPERTY_MELD_RETRIGGER := "MELD_RETRIGGER"
+const GOLD_PROPERTIES := [PROPERTY_GOLD_MAKING_PHOM, PROPERTY_GOLD_EXTEND, PROPERTY_GOLD_SET, PROPERTY_GOLD_RUN, PROPERTY_GOLD_BIG_PHOM, PROPERTY_GOLD_LAST_CALL]
 
 # First-pass tuning lives in one place until final campaign balance is authored.
 const BASE_COST_VND := 10_000
@@ -46,14 +51,14 @@ const DAY_LINEAR_STEP_VND := 5_000
 const PAID_GROWTH_FACTOR := 2
 
 const FIRST_TRIGRAM_EFFECTS := {
-	"DDD": EFFECT_ADD_SET_RETRIGGER,
+	"DDD": EFFECT_ADD_GOLD_SET,
 	"DDA": EFFECT_CHOOSE_RANK,
-	"DAD": EFFECT_ADD_MAKING_PHOM_RETRIGGER,
-	"DAA": EFFECT_RANDOM_RANK,
-	"ADD": EFFECT_RANDOM_SUIT,
-	"ADA": EFFECT_ADD_EXTEND_RETRIGGER,
+	"DAD": EFFECT_ADD_GOLD_MAKING_PHOM,
+	"DAA": EFFECT_ADD_GOLD_BIG_PHOM,
+	"ADD": EFFECT_ADD_GOLD_LAST_CALL,
+	"ADA": EFFECT_ADD_GOLD_EXTEND,
 	"AAD": EFFECT_CHOOSE_SUIT,
-	"AAA": EFFECT_ADD_RUN_RETRIGGER,
+	"AAA": EFFECT_ADD_GOLD_RUN,
 }
 
 const SECOND_TRIGRAM_TARGETS := {
@@ -68,14 +73,14 @@ const SECOND_TRIGRAM_TARGETS := {
 }
 
 const EFFECT_LABELS := {
-	EFFECT_ADD_SET_RETRIGGER: "ADD SET RETRIGGER PROPERTY",
+	EFFECT_ADD_GOLD_SET: "ADD SET GOLD",
 	EFFECT_CHOOSE_RANK: "CHOOSE RANK",
-	EFFECT_ADD_MAKING_PHOM_RETRIGGER: "ADD MAKING-PHỎM RETRIGGER PROPERTY",
-	EFFECT_RANDOM_RANK: "RANDOM RANK",
-	EFFECT_RANDOM_SUIT: "RANDOM SUIT",
-	EFFECT_ADD_EXTEND_RETRIGGER: "ADD EXTEND RETRIGGER PROPERTY",
+	EFFECT_ADD_GOLD_MAKING_PHOM: "ADD MAKING-PHỎM GOLD",
+	EFFECT_ADD_GOLD_BIG_PHOM: "ADD BIG PHỎM GOLD",
+	EFFECT_ADD_GOLD_LAST_CALL: "ADD LAST CALL GOLD",
+	EFFECT_ADD_GOLD_EXTEND: "ADD EXTEND GOLD",
 	EFFECT_CHOOSE_SUIT: "CHOOSE SUIT",
-	EFFECT_ADD_RUN_RETRIGGER: "ADD RUN RETRIGGER PROPERTY",
+	EFFECT_ADD_GOLD_RUN: "ADD RUN GOLD",
 }
 
 const TARGET_LABELS := {
@@ -88,14 +93,14 @@ const TARGET_LABELS := {
 }
 
 const EFFECT_LABEL_KEYS := {
-	EFFECT_ADD_SET_RETRIGGER: "GIEO_EFFECT_SET_RETRIGGER",
+	EFFECT_ADD_GOLD_SET: "GIEO_EFFECT_GOLD_SET",
 	EFFECT_CHOOSE_RANK: "GIEO_EFFECT_CHOOSE_RANK",
-	EFFECT_ADD_MAKING_PHOM_RETRIGGER: "GIEO_EFFECT_MAKING_PHOM_RETRIGGER",
-	EFFECT_RANDOM_RANK: "GIEO_EFFECT_RANDOM_RANK",
-	EFFECT_RANDOM_SUIT: "GIEO_EFFECT_RANDOM_SUIT",
-	EFFECT_ADD_EXTEND_RETRIGGER: "GIEO_EFFECT_EXTEND_RETRIGGER",
+	EFFECT_ADD_GOLD_MAKING_PHOM: "GIEO_EFFECT_GOLD_MAKING_PHOM",
+	EFFECT_ADD_GOLD_BIG_PHOM: "GIEO_EFFECT_ADD_GOLD_BIG_PHOM",
+	EFFECT_ADD_GOLD_LAST_CALL: "GIEO_EFFECT_ADD_GOLD_LAST_CALL",
+	EFFECT_ADD_GOLD_EXTEND: "GIEO_EFFECT_GOLD_EXTEND",
 	EFFECT_CHOOSE_SUIT: "GIEO_EFFECT_CHOOSE_SUIT",
-	EFFECT_ADD_RUN_RETRIGGER: "GIEO_EFFECT_RUN_RETRIGGER",
+	EFFECT_ADD_GOLD_RUN: "GIEO_EFFECT_GOLD_RUN",
 }
 
 const TARGET_LABEL_KEYS := {
@@ -154,7 +159,7 @@ func daily_base_cost() -> int:
 func current_pull_cost() -> int:
 	if not free_cast_used_today:
 		return 0
-	return daily_base_cost() * int(pow(PAID_GROWTH_FACTOR, paid_cast_count_today))
+	return wallet.scaled_cost(daily_base_cost() * int(pow(PAID_GROWTH_FACTOR, paid_cast_count_today)), 5)
 
 
 func can_afford_pull() -> bool:
@@ -198,10 +203,6 @@ func cast(forced_lines: Array[String] = []) -> Dictionary:
 		"price_vnd": price,
 		"free_pull": free_pull,
 	}
-	if String(current_result["effect"]) == EFFECT_RANDOM_RANK:
-		current_result["resolved_rank"] = DeckManager.RANKS[_rng.randi_range(0, DeckManager.RANKS.size() - 1)]
-	elif String(current_result["effect"]) == EFFECT_RANDOM_SUIT:
-		current_result["resolved_suit"] = DeckManager.SUITS[_rng.randi_range(0, DeckManager.SUITS.size() - 1)]
 	resolved_destination = ""
 	resolved_targets.clear()
 	last_transformations.clear()
@@ -231,10 +232,6 @@ func accept() -> Dictionary:
 	if jackpot != "" or effect in [EFFECT_CHOOSE_RANK, EFFECT_CHOOSE_SUIT]:
 		_set_state(STATE_DESTINATION_SELECTION, current_result)
 		return {"ok": true, "state": state}
-	if effect == EFFECT_RANDOM_RANK:
-		resolved_destination = String(current_result["resolved_rank"])
-	elif effect == EFFECT_RANDOM_SUIT:
-		resolved_destination = String(current_result["resolved_suit"])
 	return _resolve_targeting_after_accept()
 
 
@@ -300,9 +297,9 @@ func return_to_ready() -> void:
 func effect_label() -> String:
 	var jackpot := String(current_result.get("jackpot", ""))
 	if jackpot == JACKPOT_THUAN_DUONG:
-		return "THUẦN DƯƠNG · PERFECT SET CARD"
+		return "THUẦN DƯƠNG · CHOOSE RANK + LIQUID"
 	if jackpot == JACKPOT_THUAN_AM:
-		return "THUẦN ÂM · PERFECT RUN CARD"
+		return "THUẦN ÂM · CHOOSE SUIT + LIQUID"
 	return String(EFFECT_LABELS.get(String(current_result.get("effect", "")), ""))
 
 
@@ -362,27 +359,29 @@ func _apply_effect(card: CardData) -> void:
 	var jackpot := String(current_result.get("jackpot", ""))
 	if jackpot == JACKPOT_THUAN_DUONG:
 		_apply_rank(card, resolved_destination)
-		card.add_gieo_property(PROPERTY_SET_RETRIGGER)
-		card.add_gieo_property(PROPERTY_MAKING_PHOM_RETRIGGER)
+		card.add_gieo_property(PROPERTY_MELD_RETRIGGER)
 		return
 	if jackpot == JACKPOT_THUAN_AM:
 		card.apply_suit(resolved_destination)
-		card.add_gieo_property(PROPERTY_RUN_RETRIGGER)
-		card.add_gieo_property(PROPERTY_EXTEND_RETRIGGER)
+		card.add_gieo_property(PROPERTY_MELD_RETRIGGER)
 		return
 	match String(current_result.get("effect", "")):
-		EFFECT_CHOOSE_RANK, EFFECT_RANDOM_RANK:
+		EFFECT_CHOOSE_RANK:
 			_apply_rank(card, resolved_destination)
-		EFFECT_CHOOSE_SUIT, EFFECT_RANDOM_SUIT:
+		EFFECT_CHOOSE_SUIT:
 			card.apply_suit(resolved_destination)
-		EFFECT_ADD_SET_RETRIGGER:
-			card.add_gieo_property(PROPERTY_SET_RETRIGGER)
-		EFFECT_ADD_MAKING_PHOM_RETRIGGER:
-			card.add_gieo_property(PROPERTY_MAKING_PHOM_RETRIGGER)
-		EFFECT_ADD_EXTEND_RETRIGGER:
-			card.add_gieo_property(PROPERTY_EXTEND_RETRIGGER)
-		EFFECT_ADD_RUN_RETRIGGER:
-			card.add_gieo_property(PROPERTY_RUN_RETRIGGER)
+		EFFECT_ADD_GOLD_BIG_PHOM:
+			card.add_gieo_property(PROPERTY_GOLD_BIG_PHOM)
+		EFFECT_ADD_GOLD_LAST_CALL:
+			card.add_gieo_property(PROPERTY_GOLD_LAST_CALL)
+		EFFECT_ADD_GOLD_SET:
+			card.add_gieo_property(PROPERTY_GOLD_SET)
+		EFFECT_ADD_GOLD_MAKING_PHOM:
+			card.add_gieo_property(PROPERTY_GOLD_MAKING_PHOM)
+		EFFECT_ADD_GOLD_EXTEND:
+			card.add_gieo_property(PROPERTY_GOLD_EXTEND)
+		EFFECT_ADD_GOLD_RUN:
+			card.add_gieo_property(PROPERTY_GOLD_RUN)
 
 
 func _apply_rank(card: CardData, rank: String) -> void:

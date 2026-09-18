@@ -47,17 +47,9 @@ func set_emphasized(value: bool) -> void:
 	queue_redraw()
 
 
-func play_target_pulse(strength: float = 0.6) -> void:
-	if _cue_mode == CUE_NONE or not is_visible_in_tree():
-		return
-	if _pulse_tween != null and _pulse_tween.is_valid():
-		_pulse_tween.kill()
-	var amount := lerpf(0.025, 0.065, clampf(strength, 0.0, 1.0))
-	pivot_offset = size * 0.5
-	scale = Vector2.ONE
-	_pulse_tween = create_tween()
-	_pulse_tween.tween_property(self, "scale", Vector2.ONE * (1.0 + amount), 0.08).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	_pulse_tween.tween_property(self, "scale", Vector2.ONE, 0.2).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+func play_target_pulse(_strength: float = 0.6) -> void:
+	# The outline inherits its card's motion; never scale it independently.
+	queue_redraw()
 
 
 func cue_mode() -> int:

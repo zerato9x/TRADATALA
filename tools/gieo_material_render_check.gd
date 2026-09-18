@@ -6,7 +6,7 @@ var changed_pixel_counts: Array[int] = []
 ## await load("res://tools/gieo_material_render_check.gd").new().run(get_tree().current_scene)
 func run(parent: Node) -> Dictionary:
 	var viewport := SubViewport.new()
-	viewport.size = Vector2i(912, 237)
+	viewport.size = Vector2i(7296, 237)
 	viewport.transparent_bg = true
 	viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	parent.add_child(viewport)
@@ -16,14 +16,14 @@ func run(parent: Node) -> Dictionary:
 		var path: String = ["res://cards/ace_of_spades.png", "res://cards/seven_of_hearts.png", "res://cards/king_of_clubs.png"][row]
 		var texture := load(path) as Texture2D
 		originals.append(texture.get_image())
-		for column in 16:
+		for column in 128:
 			var face := TextureRect.new()
 			face.texture = texture
 			face.position = Vector2(column * 57, row * 79)
 			face.size = Vector2(57, 79)
 			face.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 			var properties: Array[String] = []
-			for index in 4:
+			for index in 7:
 				if column & (1 << index):
 					properties.append(GieoCardFX.PROPERTIES[index])
 			GieoCardFX.apply_properties(face, properties)
@@ -39,7 +39,7 @@ func run(parent: Node) -> Dictionary:
 	var normal_errors := 0
 	var ink_samples := 0
 	for row in 3:
-		for column in 16:
+		for column in 128:
 			for y in 79:
 				for x in 57:
 					var source := originals[row].get_pixel(x, y)
@@ -62,7 +62,7 @@ func run(parent: Node) -> Dictionary:
 	await RenderingServer.frame_post_draw
 	var later := viewport.get_texture().get_image()
 	var moving_variants := 0
-	for column in range(1, 16):
+	for column in range(1, 128):
 		var changes := 0
 		for y in 79:
 			for x in 57:
@@ -70,12 +70,12 @@ func run(parent: Node) -> Dictionary:
 					changes += 1
 		if changes > 20:
 			moving_variants += 1
-	var result := {"alpha_errors": alpha_errors, "ink_errors": ink_errors, "normal_errors": normal_errors, "ink_samples": ink_samples, "moving_variants": moving_variants, "variants": 48}
+	var result := {"alpha_errors": alpha_errors, "ink_errors": ink_errors, "normal_errors": normal_errors, "ink_samples": ink_samples, "moving_variants": moving_variants, "variants": 384}
 	# Each ingredient must leave visible pixels even inside every larger combination.
 	var visible_ingredients := 0
 	for row in 3:
-		for bits in range(1, 16):
-			for ingredient in 4:
+		for bits in range(1, 128):
+			for ingredient in 7:
 				if not (bits & (1 << ingredient)):
 					continue
 				var without := bits & ~(1 << ingredient)
@@ -113,14 +113,14 @@ func run(parent: Node) -> Dictionary:
 	var frozen_changes := _changed_variants(frozen_first, frozen_later)
 	result["automatic_variants"] = automatic_variants
 	result["frozen_changes"] = frozen_changes
-	result["passed"] = alpha_errors == 0 and ink_errors == 0 and normal_errors == 0 and moving_variants == 15 and automatic_variants == 15 and frozen_changes == 0 and visible_ingredients == 96
+	result["passed"] = alpha_errors == 0 and ink_errors == 0 and normal_errors == 0 and moving_variants == 127 and automatic_variants == 127 and frozen_changes == 0 and visible_ingredients == 1344
 	viewport.queue_free()
 	return result
 
 func _changed_variants(first: Image, later: Image) -> int:
 	var changed := 0
 	changed_pixel_counts.clear()
-	for column in range(1, 16):
+	for column in range(1, 128):
 		var pixels := 0
 		for y in 79:
 			for x in 57:

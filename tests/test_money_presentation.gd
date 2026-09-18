@@ -43,7 +43,7 @@ func test_negative_and_zero_wallets_create_no_cash_objects() -> void:
 
 
 func test_money_resolution_uses_one_shared_flight_speed() -> void:
-	assert_eq(MoneyPresentation.MONEY_FLIGHT_DURATION, 0.30)
+	assert_eq(MoneyPresentation.MONEY_FLIGHT_DURATION, 0.48)
 	assert_true(MoneyPresentation.MONEY_FLIGHT_DURATION > 0.20)
 
 
@@ -53,9 +53,9 @@ func test_card_echo_precedes_next_physical_card_and_receipts_conserve_score() ->
 		CardData.new("king_b", "K", 13, "Clubs", 13),
 		CardData.new("king_c", "K", 13, "Spades", 13),
 	]
-	cards[0].add_gieo_property(GieoQueService.PROPERTY_MAKING_PHOM_RETRIGGER)
-	cards[0].add_gieo_property(GieoQueService.PROPERTY_SET_RETRIGGER)
-	cards[1].add_gieo_property(GieoQueService.PROPERTY_SET_RETRIGGER)
+	cards[0].add_gieo_property(GieoQueService.PROPERTY_GOLD_MAKING_PHOM)
+	cards[0].add_gieo_property(GieoQueService.PROPERTY_MELD_RETRIGGER)
+	cards[1].add_gieo_property(GieoQueService.PROPERTY_MELD_RETRIGGER)
 	var context := ScoringPipeline.new().preview_new_meld(cards, MeldRules.TYPE_SET, 1)
 	assert_eq(context.final_points, 468)
 	assert_eq(context.scoring_passes.size(), 3)
@@ -78,8 +78,8 @@ func test_extension_flow_is_card_scoped_then_full_run_replay() -> void:
 	var cards: Array[CardData] = []
 	for rank in range(4, 8):
 		cards.append(CardData.new("run_%d" % rank, str(rank), rank, "Clubs", rank))
-	cards[-1].add_gieo_property(GieoQueService.PROPERTY_EXTEND_RETRIGGER)
-	cards[0].add_gieo_property(GieoQueService.PROPERTY_RUN_RETRIGGER)
+	cards[-1].add_gieo_property(GieoQueService.PROPERTY_GOLD_EXTEND)
+	cards[0].add_gieo_property(GieoQueService.PROPERTY_MELD_RETRIGGER)
 	var context := ScoringPipeline.new().preview_extension(cards, MeldRules.TYPE_RUN, 45, 1, [cards[-1]])
 	assert_eq(context.final_points, 187)
 	assert_eq(context.scoring_passes.size(), 2)
@@ -87,7 +87,7 @@ func test_extension_flow_is_card_scoped_then_full_run_replay() -> void:
 	assert_eq(hits.size(), 3)
 	assert_eq(hits[0]["card_id"], "run_7")
 	assert_eq(hits[1]["card_id"], "run_7")
-	assert_eq(hits[1]["property"], GieoQueService.PROPERTY_EXTEND_RETRIGGER)
+	assert_eq(hits[1]["property"], GieoQueService.PROPERTY_GOLD_EXTEND)
 	assert_eq(hits[2]["kind"], "meld_delta")
 	assert_eq(hits[2]["points"], 15)
 	assert_eq(context.scoring_passes[1].presentation_hits.size(), 5)
@@ -100,8 +100,8 @@ func test_exhaustion_native_and_gieo_passes_do_not_reapply_making_echo() -> void
 	var cards: Array[CardData] = []
 	for suit in ["Clubs", "Hearts", "Spades", "Diamonds"]:
 		cards.append(CardData.new(suit, "K", 13, suit, 13))
-	cards[0].add_gieo_property(GieoQueService.PROPERTY_MAKING_PHOM_RETRIGGER)
-	cards[0].add_gieo_property(GieoQueService.PROPERTY_SET_RETRIGGER)
+	cards[0].add_gieo_property(GieoQueService.PROPERTY_GOLD_MAKING_PHOM)
+	cards[0].add_gieo_property(GieoQueService.PROPERTY_MELD_RETRIGGER)
 	var context := ScoringPipeline.new().score_meld_trigger(cards, MeldRules.TYPE_SET, 1)
 	assert_eq(context.final_points, 624)
 	assert_eq(context.scoring_passes.size(), 3)

@@ -2,6 +2,7 @@ class_name MoneyPresentation
 extends Control
 
 signal impact_requested(intensity: float, positive: bool)
+signal transfer_requested
 
 const DENOMINATIONS: Array[int] = [500_000, 200_000, 100_000, 50_000, 20_000, 10_000, 5_000, 2_000, 1_000]
 const DENOMINATION_TEXTURES := {
@@ -18,11 +19,11 @@ const DENOMINATION_TEXTURES := {
 const MAX_TRANSACTION_OBJECTS := 8
 const MAX_WALLET_OBJECTS := 9
 const MONEY_REVEAL_GAP := 0.025
-const MONEY_REVEAL_LEAD_IN := 0.06
-const MONEY_FLIGHT_DURATION := 0.30
-const MONEY_BILL_STAGGER := 0.02
+const MONEY_REVEAL_LEAD_IN := 0.14
+const MONEY_FLIGHT_DURATION := 0.48
+const MONEY_BILL_STAGGER := 0.04
 const MONEY_BILL_FADE_DURATION := 0.08
-const MONEY_SETTLE_DELAY := 0.08
+const MONEY_SETTLE_DELAY := 0.16
 const MONEY_CEREMONY_FADE_DURATION := 0.14
 var ceremony: Control
 var score_panel: Control
@@ -44,6 +45,8 @@ var _scoring_face: TextureRect
 var _scoring_fade: Tween
 var _scoring_shakes: Dictionary = {}
 var _stacked_gain := 0
+var _major_tweens: Array[Tween] = []
+var _major_nodes: Array[Node] = []
 
 
 func _ready() -> void:
@@ -64,12 +67,6 @@ func sync_wallet(balance_vnd: int) -> void:
 	_rebuild_wallet_pile(balance_vnd)
 
 
-
-# Acceleration depends only on cards already triggered in this resolution.
-# Keep the opening three hits deliberate, including when a huge chain is queued.
-static func scoring_hit_interval(triggered_cards: int) -> float:
-	return maxf(0.045, 0.36 * pow(0.91, maxi(triggered_cards - 2, 0)))
-
 func present_scoring(event: Dictionary) -> void:
 	_scoring_generation += 1
 	var generation := _scoring_generation
@@ -77,25 +74,24 @@ func present_scoring(event: Dictionary) -> void:
 	ceremony.visible = true
 	_reset_ceremony()
 	var source: Control = event.get("source_control") if is_instance_valid(event.get("source_control")) else null
-	_position_score_stage(source)
+	_position_score_stage(source, 0.90)
 	# Compact receipt above the table; no backdrop or input-catching surface.
 	var labels := [title_label, line_a_label, line_b_label, payout_label]
 	var old_positions: Array[Vector2] = []
 	for label: Label in labels:
 		old_positions.append(label.position)
-		label.position.x += 32.0
 		label.scale = Vector2.ONE * 0.78
 	title_label.position.y = 0.0
 	line_a_label.position.y = 22.0
-	line_b_label.position.y = 53.0
-	payout_label.position.y = 83.0
+	line_b_label.position.y = 45.0
+	payout_label.position.y = 69.0
 	var face := TextureRect.new()
 	face.position = Vector2(20, 22)
 	face.size = Vector2(63, 88)
 	face.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	face.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	face.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	score_panel.add_child(face)
+	face.visible = false
 	_scoring_layout = old_positions
 	_scoring_face = face
 	var hits: Array = event.get("hits", [])
@@ -116,46 +112,59 @@ func present_scoring(event: Dictionary) -> void:
 				return
 			card_control = locator.call(card_id) if locator.is_valid() else null
 			if is_instance_valid(card_control):
-				_position_score_stage(card_control)
+				_position_score_stage(card_control, 0.90)
 		var property_id := String(hit.get("property", ""))
+		var relic_hit := String(hit.get("kind", "")) == "relic"
+		if relic_hit:
+			var relic_cue: Callable = event.get("relic_cue", Callable())
+			if relic_cue.is_valid():
+				relic_cue.call(String(hit.relic_id))
 		var replay := String(hit.get("kind", "")) == "meld_retrigger"
 		var card_trigger := String(hit.get("kind", "")) in ["card", "card_retrigger"]
-		var interval := scoring_hit_interval(triggered_cards)
+		var interval := 0.65 if relic_hit else scoring_hit_interval(triggered_cards)
 		if replay:
-			interval = maxf(0.18, interval * 1.25)
-		var flow := property_id.contains("EXTEND") or property_id.contains("RUN")
+			interval = maxf(0.14, 0.30 - float(hit.get("echo", 0)) * 0.025)
+		var flow := property_id == GieoQueService.PROPERTY_MELD_RETRIGGER
 		var accent := Color("#79d9cf") if flow else Color("#f5bf42")
 		if is_instance_valid(card_control):
 			_shake_scoring_card(card_control, accent, interval)
 		var texture_path := String(hit.get("texture_path", ""))
 		if not texture_path.is_empty():
 			face.texture = load(texture_path) as Texture2D
-			GieoCardFX.apply_properties(face, hit.get("properties", []))
+			GieoCardFX.apply_properties(face, hit.get("properties", []), bool(hit.get("shiny", false)))
 		if not is_instance_valid(card_control) and (card_trigger or (replay and not card_id.is_empty())):
+			if face.get_parent() == null:
+				score_panel.add_child(face)
+			face.show()
 			_shake_scoring_card(face, accent, interval)
 		var pass_number := int(hit.get("pass", 1))
-		_set_label_text(title_label, "%s  ·  %d" % [String(event.get("title", "")), pass_number], accent)
+		var heading := String(event.get("title", ""))
+		if pass_number > 1:
+			heading += "  /  " + tr("SCORE_PASS") % pass_number
+		_set_label_text(title_label, heading, PresentationTheme.MUTED)
 		var cue := String(hit.get("label", ""))
 		if replay:
-			cue = tr("SCORE_MELD_REPLAY") if property_id.is_empty() else (tr("SCORE_FLOW_REPLAY") if flow else tr("SCORE_ECHO_REPLAY"))
+			cue = tr("SCORE_MELD_REPLAY") if not flow else tr("SCORE_LIQUID_ECHO") % int(hit.get("echo", 1))
 		elif not property_id.is_empty():
-			cue += "  ·  " + (tr("SCORE_FLOW") if flow else tr("SCORE_ECHO"))
+			cue = tr(CardData.gieo_property_label_key(property_id)) + " · " + tr("SCORE_GOLD_AGAIN")
 		elif String(hit.get("kind", "")) == "meld_delta":
 			cue = tr("SCORE_MELD_DELTA")
 		elif String(hit.get("kind", "")) == "modifier":
 			cue = tr("SCORE_ADJUSTMENT")
-		_set_label_text(line_a_label, cue, accent if replay or not property_id.is_empty() else Color("#f8edd0"))
+		if relic_hit:
+			cue = tr("RELIC_BONUS_RECEIPT") % [hit.label, int(hit.points)]
+		_set_label_text(line_a_label, cue if relic_hit or replay or not property_id.is_empty() else "", accent if relic_hit or replay or not property_id.is_empty() else Color("#f8edd0"))
 		var amount := int(hit.get("amount_vnd", 0))
 		running_wallet += amount
 		running_gain += amount
-		_set_label_text(line_b_label, VndWallet.format_vnd(amount, true) if not replay else "↻", accent)
-		_set_label_text(payout_label, VndWallet.format_vnd(running_gain, true), Color("#79d94c"))
+		_set_label_text(line_b_label, VndWallet.format_vnd(amount, true) if not replay else "", accent)
+		_set_label_text(payout_label, VndWallet.format_vnd(running_gain, true), PresentationTheme.TEA)
 		for label: Label in labels:
 			label.modulate = Color.WHITE
 		# The displayed wallet receives this resolution only when its stack lands.
 		# Cap concurrent bills and audio. Every hit still contributes to the receipt.
 		if amount != 0:
-			_launch_scoring_bill(amount, card_control if is_instance_valid(card_control) else source)
+			_launch_scoring_bill(amount)
 		if index == 0 or replay or index % maxi(1, ceili(0.09 / interval)) == 0:
 			impact_requested.emit(0.65 if not replay else 1.0, amount >= 0)
 		if card_trigger:
@@ -239,7 +248,7 @@ func _finish_scoring_shake(card_id: int) -> void:
 		face.pivot_offset = state["pivot"]
 		face.modulate = state["color"]
 
-func _launch_scoring_bill(amount: int, _source: Control) -> void:
+func _launch_scoring_bill(amount: int) -> void:
 	_stacked_gain += amount
 	# Rebuild a bounded, denomination-correct stack from the accumulated receipt.
 	for child in bill_layer.get_children():
@@ -248,13 +257,15 @@ func _launch_scoring_bill(amount: int, _source: Control) -> void:
 	var breakdown := denomination_breakdown(absi(_stacked_gain))
 	for index in mini(breakdown.size(), MAX_TRANSACTION_OBJECTS):
 		var entry: Dictionary = breakdown[index]
-		var bill := _new_bill_stack(int(entry["denomination"]), int(entry["count"]), Vector2(68, 30))
+		var bill := _new_bill_stack(int(entry["denomination"]), int(entry["count"]), Vector2(48, 21))
 		bill_layer.add_child(bill)
-		bill.position = score_panel.position + Vector2(100 + index * 12, 124 - index * 3)
+		bill.position = score_panel.position + Vector2(185 + index * 8, 132 - index * 2)
 	peak_transaction_object_count = maxi(peak_transaction_object_count, bill_layer.get_child_count())
 
 
 func _fly_scoring_stack() -> void:
+	if bill_layer.get_child_count() > 0:
+		transfer_requested.emit()
 	for bill: Control in bill_layer.get_children():
 		var from := bill.position
 		var to := _control_center(wallet_pile_anchor)
@@ -269,6 +280,9 @@ func _fly_scoring_stack() -> void:
 		flight.chain().tween_callback(bill.queue_free)
 
 func present_transaction(event: Dictionary) -> void:
+	if String(event.get("reason", "")) in ["u", "u_khan", "exhaustion"]:
+		await present_major_event(event)
+		return
 	presentation_active = true
 	ceremony.visible = true
 	_position_score_stage(event.get("source_control") as Control)
@@ -293,7 +307,7 @@ func present_transaction(event: Dictionary) -> void:
 	if steps.size() > 1:
 		_set_label_text(line_b_label, String(steps[1]), Color("#f5bf42"))
 		await _pop_label(line_b_label, 0.11, 1.06 + 0.06 * intensity)
-	_set_label_text(payout_label, payout, Color("#79d94c") if positive else Color("#ff625e"))
+	_set_label_text(payout_label, payout, PresentationTheme.TEA if positive else PresentationTheme.RED)
 	await _pop_label(payout_label, 0.14, 1.12 + 0.08 * intensity)
 	_nudge_score_panel(intensity)
 	impact_requested.emit(intensity, positive)
@@ -311,6 +325,7 @@ func present_phase(event: Dictionary) -> void:
 	_reset_ceremony()
 	var is_mom := bool(event.get("mom", false))
 	var has_u := bool(event.get("u", false))
+	var u_bonus_paid_early := bool(event.get("u_bonus_paid_early", false))
 	var start_wallet_vnd := int(event.get("start_wallet_vnd", 0))
 	var target_wallet_vnd := int(event.get("target_wallet_vnd", start_wallet_vnd))
 	var raw_gross_vnd := int(event.get("raw_gross_vnd", 0))
@@ -321,42 +336,43 @@ func present_phase(event: Dictionary) -> void:
 	var phase := int(event.get("phase", 1))
 	var title := String(event.get("title", "MÓM!" if is_mom else "P%d" % phase))
 
-	_set_label_text(title_label, title, Color("#ff625e") if is_mom else Color("#f5bf42"))
+	_set_label_text(title_label, title, PresentationTheme.RED if is_mom else Color("#f5bf42"))
 	await _pop_label(title_label, 0.10, 1.1 if is_mom else 1.04)
 	if is_mom:
 		_set_label_text(line_a_label, str(int(event.get("deadwood_value_sum", 0))), Color("#f8edd0"))
 		await _pop_label(line_a_label, 0.14, 1.12)
 		_set_label_text(line_b_label, "× %d" % int(event.get("deadwood_multiplier", 1)), Color("#ff9f43"))
 		await _pop_label(line_b_label, 0.14, 1.18)
-		_set_label_text(payout_label, VndWallet.format_vnd(-deadwood_vnd), Color("#ff625e"))
+		_set_label_text(payout_label, VndWallet.format_vnd(-deadwood_vnd), PresentationTheme.RED)
 		await _pop_label(payout_label, 0.17, 1.28)
 		_nudge_score_panel(1.65)
 		impact_requested.emit(1.65, false)
 		await _move_money(deadwood_vnd, false, source, source, start_wallet_vnd, target_wallet_vnd, 1.65)
 	else:
-		var shown_gross_vnd := raw_gross_vnd if has_u else gross_vnd
-		_set_label_text(line_a_label, VndWallet.format_vnd(shown_gross_vnd, true), Color("#79d94c"))
+		var show_u_multiplier := has_u and not u_bonus_paid_early
+		var shown_gross_vnd := raw_gross_vnd if show_u_multiplier else gross_vnd
+		_set_label_text(line_a_label, VndWallet.format_vnd(shown_gross_vnd, true), PresentationTheme.TEA)
 		await _pop_label(line_a_label, 0.12, 1.08)
 		var running_wallet := start_wallet_vnd
-		if has_u:
+		if show_u_multiplier:
 			_set_label_text(line_b_label, "Ù  ×2", Color("#f5bf42"))
 			await _pop_label(line_b_label, 0.16, 1.28)
-			_set_label_text(line_a_label, VndWallet.format_vnd(gross_vnd, true), Color("#79d94c"))
+			_set_label_text(line_a_label, VndWallet.format_vnd(gross_vnd, true), PresentationTheme.TEA)
 			await _replace_label(line_a_label, 0.12, 1.22)
 			var u_adjustment_vnd := maxi(gross_vnd - raw_gross_vnd, 0)
-			if u_adjustment_vnd > 0 and not bool(event.get("u_bonus_paid_early", false)):
+			if u_adjustment_vnd > 0:
 				var u_target := running_wallet + u_adjustment_vnd
 				_nudge_score_panel(1.55)
 				impact_requested.emit(1.55, true)
 				await _move_money(u_adjustment_vnd, true, source, wallet_pile_anchor, running_wallet, u_target, 1.55)
 				running_wallet = u_target
 		if deadwood_vnd > 0:
-			_set_label_text(line_b_label, VndWallet.format_vnd(-deadwood_vnd), Color("#ff625e"))
+			_set_label_text(line_b_label, VndWallet.format_vnd(-deadwood_vnd), PresentationTheme.RED)
 			await _replace_label(line_b_label, 0.11, 1.14)
 			_nudge_score_panel(1.0)
 			impact_requested.emit(1.0, false)
 			await _move_money(deadwood_vnd, false, source, source, running_wallet, target_wallet_vnd, 1.0)
-		_set_label_text(payout_label, "= %s" % VndWallet.format_vnd(net_vnd, true), Color("#79d94c") if net_vnd >= 0 else Color("#ff625e"))
+		_set_label_text(payout_label, "= %s" % VndWallet.format_vnd(net_vnd, true), PresentationTheme.TEA if net_vnd >= 0 else PresentationTheme.RED)
 		await _pop_label(payout_label, 0.16, 1.2)
 	await get_tree().create_timer(MONEY_SETTLE_DELAY if not is_mom else 0.24).timeout
 	await _fade_ceremony(MONEY_CEREMONY_FADE_DURATION)
@@ -367,10 +383,10 @@ func present_phase(event: Dictionary) -> void:
 func show_static(title: String, line_a: String, line_b: String, payout: String, negative := false) -> void:
 	ceremony.visible = true
 	_reset_ceremony()
-	_set_label_text(title_label, title, Color("#ff625e") if negative else Color("#f5bf42"))
+	_set_label_text(title_label, title, PresentationTheme.RED if negative else Color("#f5bf42"))
 	_set_label_text(line_a_label, line_a, Color("#f8edd0"))
 	_set_label_text(line_b_label, line_b, Color("#f5bf42"))
-	_set_label_text(payout_label, payout, Color("#ff625e") if negative else Color("#79d94c"))
+	_set_label_text(payout_label, payout, PresentationTheme.RED if negative else PresentationTheme.TEA)
 	for label in [title_label, line_a_label, line_b_label, payout_label]:
 		label.modulate = Color.WHITE
 		label.scale = Vector2.ONE
@@ -379,6 +395,7 @@ func show_static(title: String, line_a: String, line_b: String, payout: String, 
 func hide_ceremony() -> void:
 	_scoring_generation += 1
 	_restore_scoring_layout()
+	_clear_major_event()
 	ceremony.visible = false
 	presentation_active = false
 
@@ -427,7 +444,7 @@ func _build_runtime_ui() -> void:
 
 	title_label = _new_stage_label("ScoreTitle", Vector2(20, 0), Vector2(420, 34), 16)
 	title_label.set_meta("match_binding", "score_title")
-	line_a_label = _new_stage_label("ScoreLineA", Vector2(10, 31), Vector2(440, 48), 30)
+	line_a_label = _new_stage_label("ScoreLineA", Vector2(10, 31), Vector2(440, 48), 22)
 	line_a_label.set_meta("match_binding", "score_line_a")
 	line_b_label = _new_stage_label("ScoreLineB", Vector2(10, 74), Vector2(440, 44), 27)
 	line_b_label.set_meta("match_binding", "score_line_b")
@@ -445,9 +462,10 @@ func _new_stage_label(label_name: String, label_position: Vector2, label_size: V
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	label.add_theme_font_override("font", PresentationTheme.official_font())
 	label.add_theme_font_size_override("font_size", font_size)
 	label.add_theme_color_override("font_outline_color", Color(0.02, 0.02, 0.03, 0.96))
-	label.add_theme_constant_override("outline_size", 8 if font_size >= 34 else 5)
+	label.add_theme_constant_override("outline_size", 3 if font_size >= 34 else 2)
 	score_panel.add_child(label)
 	return label
 
@@ -464,13 +482,13 @@ func _reset_ceremony() -> void:
 	score_panel.scale = Vector2.ONE
 
 
-func _position_score_stage(source: Control) -> void:
+func _position_score_stage(source: Control, clearance: float = 0.70) -> void:
 	var source_rect := Rect2(Vector2(size.x * 0.5 - 90.0, size.y * 0.42), Vector2(180, 120))
 	if source != null and is_instance_valid(source):
 		source_rect = source.get_global_rect()
 	var wanted := Vector2(
 		source_rect.get_center().x - score_panel.size.x * 0.5,
-		source_rect.position.y - score_panel.size.y * 0.70
+		source_rect.position.y - score_panel.size.y * clearance
 	) - global_position
 	score_panel.position = Vector2(
 		clampf(wanted.x, 12.0, maxf(12.0, size.x - score_panel.size.x - 12.0)),
@@ -597,7 +615,7 @@ func _wallet_impact(positive: bool, intensity: float) -> void:
 	tween.tween_property(target, "scale", original_scale * (1.0 + 0.12 * intensity), 0.07).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	tween.tween_property(target, "scale", original_scale, 0.15).set_trans(Tween.TRANS_QUAD)
 	if wallet_label != null:
-		wallet_label.add_theme_color_override("font_color", Color("#79d94c") if positive else Color("#ff625e"))
+		wallet_label.add_theme_color_override("font_color", PresentationTheme.TEA if positive else PresentationTheme.RED)
 		var color_tween := create_tween()
 		color_tween.tween_interval(0.16)
 		color_tween.tween_callback(wallet_label.remove_theme_color_override.bind("font_color"))
@@ -616,7 +634,7 @@ func _rebuild_wallet_pile(balance_vnd: int) -> void:
 		debt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		debt.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		debt.add_theme_font_size_override("font_size", 12)
-		debt.add_theme_color_override("font_color", Color("#ff625e") if balance_vnd < 0 else Color(0.55, 0.57, 0.62, 0.7))
+		debt.add_theme_color_override("font_color", PresentationTheme.RED if balance_vnd < 0 else Color(0.55, 0.57, 0.62, 0.7))
 		wallet_pile_anchor.add_child(debt)
 		return
 	var breakdown := denomination_breakdown(balance_vnd)
@@ -654,7 +672,6 @@ func _new_bill_stack(denomination: int, logical_count: int, bill_size: Vector2) 
 		count_label.size = Vector2(34, 17)
 		count_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		count_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		count_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		count_label.add_theme_font_size_override("font_size", 10)
 		count_label.add_theme_color_override("font_color", Color.WHITE)
 		count_label.add_theme_color_override("font_outline_color", Color(0.02, 0.02, 0.03, 1))
@@ -671,3 +688,112 @@ func _control_center(control: Control) -> Vector2:
 	if control == null or not is_instance_valid(control):
 		return Vector2.ZERO
 	return control.get_global_rect().get_center() - global_position
+
+
+# Decorative bills never apply economy changes; authority paid before this runs.
+func present_major_event(event: Dictionary) -> void:
+	_scoring_generation += 1
+	var generation := _scoring_generation
+	presentation_active = true
+	_reset_ceremony()
+	ceremony.show()
+	score_panel.position = (size - score_panel.size) * 0.5
+	var shade := ColorRect.new()
+	shade.name = "MajorEventShade"
+	shade.color = Color(0.015, 0.025, 0.025, 0.84)
+	shade.size = size
+	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	ceremony.add_child(shade)
+	ceremony.move_child(shade, 0)
+	var heading := Label.new()
+	heading.name = "MajorEventTitle"
+	heading.text = String(event.get("title", ""))
+	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	heading.position = Vector2(0, size.y * 0.5 - 125)
+	heading.size = Vector2(size.x, 90)
+	heading.pivot_offset = heading.size * 0.5
+	heading.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	heading.add_theme_font_size_override("font_size", 64)
+	heading.add_theme_color_override("font_color", Color("f5bf42"))
+	heading.add_theme_color_override("font_outline_color", Color("172524"))
+	heading.add_theme_font_override("font", PresentationTheme.official_font())
+	heading.add_theme_constant_override("outline_size", 4)
+	ceremony.add_child(heading)
+	_major_nodes.append_array([heading, shade])
+	var steps: Array = event.get("steps", [])
+	_set_label_text(line_b_label, "  ·  ".join(steps), Color("f8edd0"))
+	var positive := int(event.get("amount_vnd", 0)) >= 0
+	_set_label_text(payout_label, String(event.get("payout", "")), Color("79d94c") if positive else Color("ff625e"))
+	line_b_label.modulate = Color.WHITE
+	payout_label.modulate = Color.WHITE
+	line_b_label.scale = Vector2.ONE
+	payout_label.scale = Vector2.ONE
+	line_b_label.position.y = 60
+	payout_label.position.y = 104
+	var pop := create_tween()
+	_major_tweens.append(pop)
+	heading.scale = Vector2.ONE * 0.45
+	pop.tween_property(heading, "scale", Vector2.ONE, 0.25).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	impact_requested.emit(1.9, positive)
+	var center := size * 0.5
+	var target := _control_center(wallet_pile_anchor)
+	var amount := absi(int(event.get("amount_vnd", 0)))
+	var notes := denomination_breakdown(amount)
+	if not notes.is_empty():
+		for index in 36:
+			var note := _new_bill_stack(int(notes[index % notes.size()]["denomination"]), 1, Vector2(180, 80))
+			note.name = "BurstBill"
+			note.position = center - note.size * 0.5
+			note.scale = Vector2.ONE * 0.15
+			note.modulate.a = 0.0
+			bill_layer.add_child(note)
+			var angle := TAU * float(index) / 13.0
+			var spread := center + Vector2(cos(angle) * size.x * 0.40, sin(angle) * size.y * 0.37) - note.size * 0.5
+			var delay := float(index) * 0.025
+			var burst := note.create_tween().set_parallel(true)
+			_major_tweens.append(burst)
+			burst.tween_property(note, "modulate:a", 1.0, 0.08).set_delay(delay)
+			burst.tween_property(note, "position", spread, 0.42).set_delay(delay).set_trans(Tween.TRANS_QUART).set_ease(Tween.EASE_OUT)
+			burst.tween_property(note, "scale", Vector2.ONE * 1.2, 0.42).set_delay(delay)
+			burst.tween_property(note, "rotation", angle + PI, 0.65).set_delay(delay)
+			burst.tween_property(note, "position", target - note.size * 0.5, 0.55).set_delay(delay + 0.80).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
+			burst.tween_property(note, "scale", Vector2.ONE * 0.25, 0.55).set_delay(delay + 0.80)
+			burst.tween_property(note, "modulate:a", 0.0, 0.12).set_delay(delay + 1.23)
+			burst.chain().tween_callback(note.queue_free)
+	var wallet_tween := create_tween()
+	wallet_tween.tween_method(_set_wallet_number, float(event.get("start_wallet_vnd", 0)), float(event.get("target_wallet_vnd", 0)), 1.0).set_delay(0.95)
+	_major_tweens.append(wallet_tween)
+	if not await _wait_scoring_tail(2.3, generation):
+		return
+	var fade := create_tween().set_parallel(true)
+	_major_tweens.append(fade)
+	fade.tween_property(score_panel, "modulate:a", 0.0, 0.18)
+	fade.tween_property(heading, "modulate:a", 0.0, 0.18)
+	fade.tween_property(shade, "modulate:a", 0.0, 0.18)
+	if not await _wait_scoring_tail(0.18, generation):
+		return
+	_clear_major_event()
+	ceremony.hide()
+	line_b_label.position.y = 74
+	payout_label.position.y = 113
+	sync_wallet(int(event.get("target_wallet_vnd", 0)))
+	presentation_active = false
+
+
+static func scoring_hit_interval(triggered_cards: int) -> float:
+	return maxf(0.045, 0.36 * pow(0.91, maxi(triggered_cards - 2, 0)))
+
+
+func _clear_major_event() -> void:
+	for tween in _major_tweens:
+		if tween != null and tween.is_valid():
+			tween.kill()
+	_major_tweens.clear()
+	for node in _major_nodes:
+		if is_instance_valid(node):
+			node.queue_free()
+	_major_nodes.clear()
+	for bill in bill_layer.get_children():
+		bill.queue_free()
+	line_b_label.position.y = 74
+	payout_label.position.y = 113

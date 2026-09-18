@@ -25,6 +25,8 @@ var base_value: int
 var value_modifiers: Array[int] = []
 var enhancements: Array[String] = []
 var gieo_properties: Array[String] = []
+# Separate day-scoped polish; excluded from permanent snapshots.
+var shiny: bool = false
 
 
 func _init(
@@ -82,21 +84,16 @@ func permanent_snapshot() -> Dictionary:
 func copy_for_deal() -> CardData:
 	var deal_copy := CardData.new(unique_id, rank, rank_index, suit, base_value)
 	deal_copy.gieo_properties.append_array(gieo_properties)
+	deal_copy.shiny = shiny
 	return deal_copy
 
 
 func gieo_property_descriptions() -> Array[String]:
 	var descriptions: Array[String] = []
 	for property_id in gieo_properties:
-		match property_id:
-			"SET_RETRIGGER":
-				descriptions.append(TranslationServer.translate("GIEO_PROPERTY_SET_DESC"))
-			"MAKING_PHOM_RETRIGGER":
-				descriptions.append(TranslationServer.translate("GIEO_PROPERTY_MAKING_DESC"))
-			"EXTEND_RETRIGGER":
-				descriptions.append(TranslationServer.translate("GIEO_PROPERTY_EXTEND_DESC"))
-			"RUN_RETRIGGER":
-				descriptions.append(TranslationServer.translate("GIEO_PROPERTY_RUN_DESC"))
+		var key := gieo_property_label_key(property_id)
+		if not key.is_empty():
+			descriptions.append(TranslationServer.translate(key + "_DESC"))
 	return descriptions
 
 
@@ -113,3 +110,16 @@ func short_label() -> String:
 		"Clubs": "♣",
 	}
 	return "%s%s" % [rank, SUIT_SYMBOLS.get(suit, "?")]
+
+
+static func gieo_property_label_key(property_id: String) -> String:
+	match property_id:
+		"GOLD_MAKING_PHOM": return "GIEO_PROPERTY_MAKING"
+		"GOLD_EXTEND": return "GIEO_PROPERTY_EXTEND"
+		"GOLD_SET": return "GIEO_PROPERTY_SET"
+		"GOLD_RUN": return "GIEO_PROPERTY_RUN"
+		"GOLD_BIG_PHOM": return "GIEO_PROPERTY_BIG"
+		"GOLD_LAST_CALL": return "GIEO_PROPERTY_LAST_CALL"
+		"MELD_RETRIGGER": return "GIEO_PROPERTY_LIQUID"
+		"SHINY": return "CARD_SHINY"
+	return ""

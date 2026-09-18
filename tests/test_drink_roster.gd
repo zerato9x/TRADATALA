@@ -33,16 +33,18 @@ func test_all_twelve_metadata_and_both_test_shops() -> void:
 		assert_true(DrinkCatalog.is_effect_implemented(ids[index]))
 		for slot in [EventManager.EventSlot.STARTER, EventManager.EventSlot.NOON]:
 			var manager := DrinkManager.new()
+			manager.test_all_drinks_available = true
 			assert_eq(manager.available_drink_ids().size(), 12)
 			assert_true(manager.select_for_event(slot, ids[index])["ok"])
 			assert_eq(manager.active_drink_id, ids[index])
 			assert_eq(manager.price_for(ids[index]), DrinkManager.TEST_PRICE_VND)
 	var manager := DrinkManager.new()
+	manager.test_all_drinks_available = true
 	manager.select_for_event(EventManager.EventSlot.STARTER, DrinkCatalog.C2_ICED_TEA)
 	manager.select_for_event(EventManager.EventSlot.NOON, DrinkCatalog.BO_HUC)
 	assert_eq(manager.active_drink_id, DrinkCatalog.BO_HUC)
 	manager.test_all_drinks_available = false
-	assert_eq(manager.available_drink_ids(), DrinkCatalog.basic_ids())
+	assert_eq(manager.available_drink_ids(), DrinkCatalog.all_ids())
 
 func test_nhan_tran_turn_reset_and_last_call_do_not_grant_bonus_charge() -> void:
 	var deal := DealState.new()
@@ -269,8 +271,8 @@ func test_all_drinks_keep_ordinary_scoring_without_drink_multiplier() -> void:
 func test_pair_uses_existing_gieo_making_phom_and_set_hooks() -> void:
 	var deal := _deal(DrinkCatalog.STING)
 	var cards: Array[CardData] = [_card(9), _card(9, "Hearts")]
-	cards[0].add_gieo_property(GieoQueService.PROPERTY_MAKING_PHOM_RETRIGGER)
-	cards[1].add_gieo_property(GieoQueService.PROPERTY_SET_RETRIGGER)
+	cards[0].add_gieo_property(GieoQueService.PROPERTY_GOLD_MAKING_PHOM)
+	cards[1].add_gieo_property(GieoQueService.PROPERTY_MELD_RETRIGGER)
 	deal.hand = cards.duplicate()
 	var expected := ScoringPipeline.new().preview_new_meld(cards, MeldRules.TYPE_SET, 1, 0)
 	var result := deal.create_meld(cards, true)

@@ -8,14 +8,14 @@ func suite_name() -> String:
 
 func test_exact_trigram_tables_and_duplicate_target_meanings() -> void:
 	assert_eq(GieoQueService.FIRST_TRIGRAM_EFFECTS, {
-		"DDD": GieoQueService.EFFECT_ADD_SET_RETRIGGER,
+		"DDD": GieoQueService.EFFECT_ADD_GOLD_SET,
 		"DDA": GieoQueService.EFFECT_CHOOSE_RANK,
-		"DAD": GieoQueService.EFFECT_ADD_MAKING_PHOM_RETRIGGER,
-		"DAA": GieoQueService.EFFECT_RANDOM_RANK,
-		"ADD": GieoQueService.EFFECT_RANDOM_SUIT,
-		"ADA": GieoQueService.EFFECT_ADD_EXTEND_RETRIGGER,
+		"DAD": GieoQueService.EFFECT_ADD_GOLD_MAKING_PHOM,
+		"DAA": GieoQueService.EFFECT_ADD_GOLD_BIG_PHOM,
+		"ADD": GieoQueService.EFFECT_ADD_GOLD_LAST_CALL,
+		"ADA": GieoQueService.EFFECT_ADD_GOLD_EXTEND,
 		"AAD": GieoQueService.EFFECT_CHOOSE_SUIT,
-		"AAA": GieoQueService.EFFECT_ADD_RUN_RETRIGGER,
+		"AAA": GieoQueService.EFFECT_ADD_GOLD_RUN,
 	})
 	assert_eq(GieoQueService.SECOND_TRIGRAM_TARGETS, {
 		"DDD": GieoQueService.TARGET_RANDOM_SAME_SUIT_3,
@@ -39,14 +39,14 @@ func test_campaign_deck_stays_52_and_deals_reuse_permanent_identity_state() -> v
 	var physical_id := transformed.unique_id
 	transformed.apply_rank("K", 13)
 	transformed.apply_suit("Hearts")
-	transformed.add_gieo_property(GieoQueService.PROPERTY_SET_RETRIGGER)
+	transformed.add_gieo_property(GieoQueService.PROPERTY_MELD_RETRIGGER)
 	var deal := DealState.new()
 	deal.set_campaign_deck(campaign.gieo_que.persistent_deck)
 	deal.start_deal(91)
 	var in_first_deal := _find_deal_card(deal, physical_id)
 	assert_eq(in_first_deal.rank, "K")
 	assert_eq(in_first_deal.suit, "Hearts")
-	assert_true(in_first_deal.has_gieo_property(GieoQueService.PROPERTY_SET_RETRIGGER))
+	assert_true(in_first_deal.has_gieo_property(GieoQueService.PROPERTY_MELD_RETRIGGER))
 	assert_eq(deal.physical_card_accounting()["total_cards"], 52)
 	in_first_deal.value_modifiers.append(99)
 	deal.start_deal(92)
@@ -106,19 +106,20 @@ func test_slot_machine_panel_preserves_authoritative_result_and_locks_pending_ch
 	panel.free()
 
 
-func test_random_destination_resolves_once_and_random_targets_wait_for_accept() -> void:
+func test_big_gold_preserves_rank_and_random_targets_wait_for_accept() -> void:
 	var service := GieoQueService.new()
 	service.set_seed_value(41)
 	assert_true(service.cast(["D", "A", "A", "D", "D", "A"])["ok"])
-	assert_true(service.current_result.has("resolved_rank"))
-	var one_rank := String(service.current_result["resolved_rank"])
+	assert_false(service.current_result.has("resolved_rank"))
+	assert_false(service.current_result.has("resolved_suit"))
 	assert_true(service.resolved_targets.is_empty())
 	assert_true(service.accept()["ok"])
 	assert_eq(service.state, GieoQueService.STATE_TARGET_REVEAL)
 	assert_eq(service.resolved_targets.size(), 2)
 	service.apply_resolved_targets()
 	for transformation in service.last_transformations:
-		assert_eq((transformation["after"] as Dictionary)["rank"], one_rank)
+		assert_eq(transformation["after"]["rank"], transformation["before"]["rank"])
+		assert_true(transformation["after"]["gieo_properties"].has(GieoQueService.PROPERTY_GOLD_BIG_PHOM))
 
 
 func test_offer_candidates_are_generated_only_after_accept_and_force_one_choice() -> void:
@@ -189,8 +190,8 @@ func test_jackpots_override_normal_composition_and_apply_exact_properties() -> v
 	var yang_card := yang.persistent_deck[0]
 	yang.choose_target(yang_card.unique_id)
 	assert_eq(yang_card.rank, "K")
-	assert_true(yang_card.has_gieo_property(GieoQueService.PROPERTY_SET_RETRIGGER))
-	assert_true(yang_card.has_gieo_property(GieoQueService.PROPERTY_MAKING_PHOM_RETRIGGER))
+	assert_true(yang_card.has_gieo_property(GieoQueService.PROPERTY_MELD_RETRIGGER))
+	assert_eq(yang_card.gieo_properties, [GieoQueService.PROPERTY_MELD_RETRIGGER])
 	assert_eq(yang.last_transformations.size(), 1)
 
 	var yin := GieoQueService.new()
@@ -201,8 +202,8 @@ func test_jackpots_override_normal_composition_and_apply_exact_properties() -> v
 	var yin_card := yin.persistent_deck[0]
 	yin.choose_target(yin_card.unique_id)
 	assert_eq(yin_card.suit, "Diamonds")
-	assert_true(yin_card.has_gieo_property(GieoQueService.PROPERTY_RUN_RETRIGGER))
-	assert_true(yin_card.has_gieo_property(GieoQueService.PROPERTY_EXTEND_RETRIGGER))
+	assert_true(yin_card.has_gieo_property(GieoQueService.PROPERTY_MELD_RETRIGGER))
+	assert_eq(yin_card.gieo_properties, [GieoQueService.PROPERTY_MELD_RETRIGGER])
 	assert_eq(yin.last_transformations.size(), 1)
 
 
@@ -267,3 +268,163 @@ func _find_card(cards: Array[CardData], card_id: String) -> CardData:
 		if card.unique_id == card_id:
 			return card
 	return null
+
+
+func _kings(count: int) -> Array[CardData]:
+	var cards: Array[CardData] = []
+	for i in count:
+		cards.append(CardData.new("gold_king_%d" % i, "K", 13, "Spades", 13))
+	return cards
+
+
+func test_gold_stack_uses_current_value_before_physical_count_without_extra_passes() -> void:
+	var cards := _kings(3)
+	cards[0].value_modifiers.append(2)
+	cards[0].gieo_properties.assign(["GOLD_MAKING_PHOM", "GOLD_SET", "GOLD_RUN", "GOLD_BIG_PHOM", "GOLD_EXTEND", "GOLD_LAST_CALL"])
+	var context := ScoringPipeline.new().preview_new_meld(cards, MeldRules.TYPE_SET, 1)
+	assert_eq(context.card_value_sum, 71) # 15 + 13 + 13 + 15 + 15
+	assert_eq(context.theoretical_score, 213)
+	assert_eq(context.local_mult, 3)
+	assert_eq(context.cards.size(), 3)
+	assert_eq(context.scoring_passes.size(), 1)
+	assert_eq(context.qualifying_gold(cards[0]), ["GOLD_MAKING_PHOM", "GOLD_SET"])
+	assert_eq(context.scoring_passes[0].presentation_hits.size(), 5)
+
+
+func test_big_gold_and_native_milestone_are_separate() -> void:
+	var cards := _kings(4)
+	cards[0].gieo_properties.assign(["GOLD_MAKING_PHOM", "GOLD_SET", "GOLD_BIG_PHOM"])
+	var context := ScoringPipeline.new().preview_new_meld(cards, MeldRules.TYPE_SET, 1)
+	assert_eq(context.card_value_sum, 91)
+	assert_eq(context.theoretical_score, 364)
+	assert_eq(context.scoring_passes.size(), 2) # Existing native four-card rule.
+	assert_eq(context.scoring_passes[1].trigger_origin, ScoringPipeline.TRIGGER_NATIVE_RETRIGGER)
+	assert_eq(context.final_points, 728)
+
+
+func test_extension_conditions_only_belong_to_new_card_and_use_delta() -> void:
+	var cards := _kings(5)
+	for card in [cards[0], cards[-1]]:
+		card.gieo_properties.assign(["GOLD_MAKING_PHOM", "GOLD_EXTEND", "GOLD_LAST_CALL"])
+	var scoring := ScoringPipeline.new()
+	var normal := scoring.preview_extension(cards, MeldRules.TYPE_SET, 208, 1, [cards[-1]])
+	assert_eq(normal.qualifying_gold(cards[0]), [])
+	assert_eq(normal.card_value_sum, 78)
+	assert_eq(normal.base_extension_score, 182) # (65 + 13) * 5 - 208
+	var last := scoring.preview_extension(cards, MeldRules.TYPE_SET, 208, 1, [cards[-1]], true)
+	assert_eq(last.qualifying_gold(cards[0]), [])
+	assert_eq(last.qualifying_gold(cards[-1]), ["GOLD_EXTEND", "GOLD_LAST_CALL"])
+	assert_eq(last.base_extension_score, 247)
+	assert_eq(last.scoring_passes.size(), 1)
+
+
+func test_set_run_and_big_gold_on_every_legitimate_scoring_event() -> void:
+	var cards: Array[CardData] = []
+	for rank in range(4, 8):
+		cards.append(CardData.new(str(rank), str(rank), rank, "Hearts", rank))
+	cards[0].gieo_properties.assign(GieoQueService.GOLD_PROPERTIES)
+	var scoring := ScoringPipeline.new()
+	var context := scoring.preview_extension(cards, MeldRules.TYPE_RUN, 45, 1, [cards[-1]], true)
+	assert_eq(context.qualifying_gold(cards[0]), ["GOLD_RUN", "GOLD_BIG_PHOM"])
+	assert_eq(context.theoretical_score, 120)
+	assert_eq(context.final_points, 75)
+	var exhausted := scoring.score_meld_trigger(cards, MeldRules.TYPE_RUN, 1)
+	assert_eq(exhausted.qualifying_gold(cards[0]), ["GOLD_RUN", "GOLD_BIG_PHOM"])
+	assert_eq(exhausted.final_points, 120)
+
+
+func test_liquid_scales_without_cap_and_includes_all_gold_without_recursion() -> void:
+	for count in range(6):
+		var cards := _kings(5)
+		cards[0].gieo_properties.assign(["GOLD_MAKING_PHOM", "GOLD_SET", "GOLD_BIG_PHOM"])
+		for i in count:
+			cards[i].add_gieo_property("MELD_RETRIGGER")
+		var context := ScoringPipeline.new().preview_new_meld(cards, MeldRules.TYPE_SET, 1)
+		assert_eq(context.theoretical_score, 520)
+		assert_eq(context.final_points, 520 * (count + 1))
+		assert_eq(context.scoring_passes.size(), count + 1)
+		for i in context.scoring_passes.size():
+			var scoring_pass: ScoringContext = context.scoring_passes[i]
+			assert_eq(scoring_pass.final_points, 520)
+			assert_eq(scoring_pass.retrigger_count, 0)
+			assert_true(scoring_pass.scoring_passes.is_empty())
+			if i > 0:
+				assert_eq(scoring_pass.retrigger_source_id, cards[i - 1].unique_id)
+
+
+func test_old_liquid_cards_remain_active_after_normal_extension() -> void:
+	var cards := _kings(5)
+	cards[0].gieo_properties.assign(["MELD_RETRIGGER", "GOLD_SET"])
+	cards[1].add_gieo_property("MELD_RETRIGGER")
+	var context := ScoringPipeline.new().preview_extension(cards, MeldRules.TYPE_SET, 208, 1, [cards[-1]])
+	assert_eq(context.scoring_passes.size(), 3)
+	assert_eq(context.scoring_passes[0].final_points, 182)
+	assert_eq(context.scoring_passes[1].final_points, 390)
+	assert_eq(context.scoring_passes[2].final_points, 390)
+	assert_eq(context.final_points, 962)
+	var gold_hits := 0
+	for hit in context.scoring_passes[0].presentation_hits:
+		if hit["card_id"] == cards[0].unique_id and hit["property"] == "GOLD_SET":
+			gold_hits += 1
+	assert_eq(gold_hits, 1)
+	for scoring_pass: ScoringContext in context.scoring_passes:
+		var receipt_sum := 0
+		for hit in scoring_pass.presentation_hits:
+			receipt_sum += int(hit["points"])
+		assert_eq(receipt_sum, scoring_pass.final_points)
+
+
+func test_every_ordinary_cast_cannot_grant_liquid_or_random_destination() -> void:
+	for first: String in GieoQueService.FIRST_TRIGRAM_EFFECTS:
+		for second: String in GieoQueService.SECOND_TRIGRAM_TARGETS:
+			if first == second and first in ["DDD", "AAA"]:
+				continue
+			var service := GieoQueService.new()
+			var lines: Array[String] = []
+			for letter in first + second:
+				lines.append(letter)
+			assert_true(service.cast(lines)["ok"])
+			assert_false(service.current_result.has("resolved_rank"))
+			assert_false(service.current_result.has("resolved_suit"))
+			assert_true(service.resolved_targets.is_empty())
+			service.accept()
+			if service.state == GieoQueService.STATE_DESTINATION_SELECTION:
+				service.choose_destination("K" if first == "DDA" else "Hearts")
+			if service.state == GieoQueService.STATE_TARGET_SELECTION:
+				var targets := service.resolved_targets if not service.resolved_targets.is_empty() else service.persistent_deck
+				service.choose_target(targets[0].unique_id)
+			else:
+				service.apply_resolved_targets()
+			assert_eq(service.state, GieoQueService.STATE_TRANSFORM)
+			assert_eq(service.persistent_deck.size(), 52)
+			for card in service.persistent_deck:
+				assert_false(card.has_gieo_property("MELD_RETRIGGER"))
+
+
+func test_all_seven_properties_survive_deal_copy_without_value_modifier_leak() -> void:
+	var original := _kings(1)[0]
+	original.gieo_properties.assign(GieoQueService.GOLD_PROPERTIES)
+	original.add_gieo_property("MELD_RETRIGGER")
+	assert_false(original.add_gieo_property("MELD_RETRIGGER"))
+	original.value_modifiers.append(12)
+	var copied := original.copy_for_deal()
+	assert_eq(copied.unique_id, original.unique_id)
+	assert_eq(copied.gieo_properties.size(), 7)
+	assert_eq(copied.score_value(), 13)
+	copied.gieo_properties.clear()
+	assert_eq(original.gieo_properties.size(), 7)
+
+
+func test_last_call_is_actual_commit_window_in_both_phases_and_preview() -> void:
+	for phase in [1, 2]:
+		var deal := DealState.new()
+		deal.start_deal(123)
+		deal.current_phase = phase
+		deal.state = DealState.STATE_FINAL_COMMIT_WINDOW
+		deal.hand = _kings(3)
+		deal.hand[0].add_gieo_property("GOLD_LAST_CALL")
+		assert_eq(deal.recommend_action()["estimated_points"], 156)
+		var result := deal.create_meld(deal.hand.duplicate())
+		assert_true(result["ok"])
+		assert_eq(result["context"].final_points, 156)
+		assert_true(result["context"].is_last_call)

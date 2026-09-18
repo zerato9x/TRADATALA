@@ -18,6 +18,12 @@ const NPC_THAY_BOI := "thay_boi"
 const NPC_HANG_RONG := "hang_rong"
 const NPC_LOTTO := "lotto"
 
+# Dialogue and service share a column beside the full focused character.
+const MISC_SERVICE_RECTS := {
+	NPC_DANH_GIAY: Rect2(460, 284, 700, 400),
+	NPC_LOTTO: Rect2(145, 284, 700, 400),
+}
+
 const EVENT_ROSTERS := {
 	0: [NPC_DANH_GIAY, NPC_TRA_DA],
 	1: [NPC_THAY_BOI, NPC_HANG_RONG, NPC_LOTTO],
@@ -204,7 +210,7 @@ func focus_npc(npc_id: String) -> void:
 		var sprite := layer["sprite"] as TextureRect
 		button.disabled = true
 		button.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		name_tag.visible = candidate_id == npc_id and npc_id != NPC_THAY_BOI
+		name_tag.visible = candidate_id == npc_id and npc_id not in [NPC_THAY_BOI, NPC_DANH_GIAY, NPC_LOTTO]
 		if candidate_id == npc_id:
 			tween.tween_property(overlay, "modulate:a", 0.0, 0.18)
 			sprite.visible = true
@@ -652,10 +658,18 @@ func _clear_content() -> void:
 func say(line: String) -> void:
 	if focused_npc_id.is_empty():
 		return
-	conversation.position = Vector2(20, 510) if focused_npc_id == NPC_THAY_BOI else Vector2(165, 140)
+	var misc_service := MISC_SERVICE_RECTS.has(focused_npc_id)
+	conversation.speech.custom_minimum_size.y = 40 if misc_service else 80
+	if misc_service:
+		var service_rect: Rect2 = MISC_SERVICE_RECTS[focused_npc_id]
+		conversation.position = Vector2(service_rect.position.x, 140)
+	else:
+		conversation.position = Vector2(20, 510) if focused_npc_id == NPC_THAY_BOI else Vector2(165, 140)
 	conversation.say(npc_display_name(focused_npc_id), line)
 	conversation.show_responses(focused_npc_id != NPC_TRA_DA, not back_button.disabled)
 	var speech_size := Vector2(340, 176) if focused_npc_id == NPC_THAY_BOI else Vector2(710, 124 if focused_npc_id == NPC_TRA_DA else 160)
+	if misc_service:
+		speech_size = Vector2(700, 124)
 	conversation.set_deferred("size", speech_size)
 
 

@@ -12,14 +12,15 @@ static func recommend(
 	scoring: ScoringPipeline = null,
 	phase: int = 1,
 	phase_new_phom_count: int = 0,
-	must_preserve_discard: bool = true
+	must_preserve_discard: bool = true,
+	is_last_call: bool = false
 ) -> Dictionary:
 	# Always prefer a new Meld: besides scoring, it is what prevents Móm.
 	var active_scoring := scoring if scoring != null else ScoringPipeline.new()
-	var new_meld := _best_new_meld(hand, active_scoring, phase, phase_new_phom_count, must_preserve_discard)
+	var new_meld := _best_new_meld(hand, active_scoring, phase, phase_new_phom_count, must_preserve_discard, is_last_call)
 	if not new_meld.is_empty():
 		return new_meld
-	var extension := _best_extension(hand, melds, active_scoring, phase, must_preserve_discard)
+	var extension := _best_extension(hand, melds, active_scoring, phase, must_preserve_discard, is_last_call)
 	if not extension.is_empty():
 		return extension
 	return {
@@ -33,20 +34,22 @@ static func estimate_new_meld_points(
 	cards: Array[CardData],
 	scoring: ScoringPipeline = null,
 	phase: int = 1,
-	phase_new_phom_count: int = 0
+	phase_new_phom_count: int = 0,
+	is_last_call: bool = false
 ) -> int:
 	var meld_type := MeldRules.classify(cards)
 	if meld_type == MeldRules.TYPE_INVALID:
 		return 0
 	var active_scoring := scoring if scoring != null else ScoringPipeline.new()
-	return active_scoring.preview_new_meld(cards, meld_type, phase, phase_new_phom_count).final_points
+	return active_scoring.preview_new_meld(cards, meld_type, phase, phase_new_phom_count, is_last_call).final_points
 
 
 static func estimate_extension_points(
 	meld: MeldState,
 	additions: Array[CardData],
 	scoring: ScoringPipeline = null,
-	phase: int = 1
+	phase: int = 1,
+	is_last_call: bool = false
 ) -> int:
 	if meld == null:
 		return 0
@@ -54,7 +57,7 @@ static func estimate_extension_points(
 	combined.append_array(meld.cards)
 	combined.append_array(additions)
 	var active_scoring := scoring if scoring != null else ScoringPipeline.new()
-	return active_scoring.preview_extension(combined, meld.meld_type, ScoringPipeline.meld_value(meld.cards), phase, additions).final_points
+	return active_scoring.preview_extension(combined, meld.meld_type, ScoringPipeline.meld_value(meld.cards), phase, additions, is_last_call).final_points
 
 
 static func _best_new_meld(
@@ -62,7 +65,8 @@ static func _best_new_meld(
 	scoring: ScoringPipeline,
 	phase: int,
 	phase_new_phom_count: int,
-	must_preserve_discard: bool
+	must_preserve_discard: bool,
+	is_last_call: bool
 ) -> Dictionary:
 	var best: Dictionary = {}
 	var best_points := -1
@@ -73,7 +77,7 @@ static func _best_new_meld(
 		var meld_type := MeldRules.classify(cards)
 		if meld_type == MeldRules.TYPE_INVALID:
 			continue
-		var points := estimate_new_meld_points(cards, scoring, phase, phase_new_phom_count)
+		var points := estimate_new_meld_points(cards, scoring, phase, phase_new_phom_count, is_last_call)
 		if points <= best_points:
 			continue
 		best_points = points
@@ -92,7 +96,8 @@ static func _best_extension(
 	melds: Array[MeldState],
 	scoring: ScoringPipeline,
 	phase: int,
-	must_preserve_discard: bool
+	must_preserve_discard: bool,
+	is_last_call: bool
 ) -> Dictionary:
 	var best: Dictionary = {}
 	var best_points := -1
@@ -101,7 +106,7 @@ static func _best_extension(
 			var cards := _cards_for_mask(hand, mask)
 			if (must_preserve_discard and cards.size() >= hand.size()) or not meld.can_extend(cards):
 				continue
-			var points := estimate_extension_points(meld, cards, scoring, phase)
+			var points := estimate_extension_points(meld, cards, scoring, phase, is_last_call)
 			if points <= best_points:
 				continue
 			best_points = points

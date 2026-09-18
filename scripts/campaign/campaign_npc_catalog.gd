@@ -39,3 +39,12 @@ static func register_initial_npcs(event_manager: EventManager) -> void:
 		"mandatory": false,
 	})
 	event_manager.register_npc(fortune_teller)
+	for spec in [
+		["danh_giay", "NPC_DANH_GIAY", [EventManager.EventSlot.STARTER], "polish"],
+		["lotto", "NPC_LOTTO", [EventManager.EventSlot.MORNING, EventManager.EventSlot.AFTERNOON], "lottery"],
+	]:
+		var slots: Array[int] = []
+		slots.assign(spec[2])
+		var npc := NPCDefinition.new(spec[0], spec[1], slots, true)
+		npc.interaction_specs.append({"id": spec[3], "action_type": spec[3], "mandatory": false})
+		event_manager.register_npc(npc)

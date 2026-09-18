@@ -67,6 +67,9 @@ func _input(event: InputEvent) -> void:
 		return
 	get_viewport().set_input_as_handled()
 	leaving = true
+	var feedback := owner.get_node_or_null("UIFeedback") as UIFeedback
+	if feedback != null:
+		feedback.play(&"transition")
 	var tween := create_tween()
 	tween.tween_property(self, "modulate:a", 0.0, 0.45).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
 	tween.tween_callback(queue_free)

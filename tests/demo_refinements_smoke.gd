@@ -114,6 +114,11 @@ func run() -> void:
 	if DisplayServer.get_name() != "headless":
 		await RenderingServer.frame_post_draw
 		root.get_texture().get_image().save_png("res://.godot/demo-refinements-table.png")
+	var spiral_balance := 288750000
+	scene.deal.wallet.reset(spiral_balance)
+	scene.displayed_wallet_vnd = spiral_balance
+	scene.money_queue_wallet_vnd = spiral_balance
+	scene._refresh_stats()
 	var point := scene.wallet_pile_anchor.get_global_transform_with_canvas() * (scene.wallet_pile_anchor.size * 0.5)
 	for index in 3:
 		click_at(point)
@@ -125,9 +130,30 @@ func run() -> void:
 		check(scene.get_node("ActionLegend/Toggle").modulate.a < 0.01, "spiral also fades the separate help HUD")
 		check(scene.wallet_spiral.notes.size() > 0, "wallet notes fly out")
 		var logical_value := 0
+		var directions := {"left": false, "right": false, "up": false, "down": false}
+		var overflow := {"left": false, "right": false, "up": false, "down": false}
+		var spiral_center := scene.wallet_spiral.get_global_rect().get_center()
+		var spiral_rect := scene.wallet_spiral.get_global_rect()
 		for note in scene.wallet_spiral.notes:
 			logical_value += int(note.get_meta("denomination_vnd")) * int(note.get_meta("logical_count"))
-		check(logical_value == balance - balance % 1000, "spiral represents all whole banknotes")
+			var note_rect: Rect2 = note.get_global_rect()
+			var note_center := note_rect.get_center()
+			directions["left"] = directions["left"] or note_center.x < spiral_center.x
+			directions["right"] = directions["right"] or note_center.x > spiral_center.x
+			directions["up"] = directions["up"] or note_center.y < spiral_center.y
+			directions["down"] = directions["down"] or note_center.y > spiral_center.y
+			overflow["left"] = overflow["left"] or note_rect.position.x < spiral_rect.position.x
+			overflow["right"] = overflow["right"] or note_rect.end.x > spiral_rect.end.x
+			overflow["up"] = overflow["up"] or note_rect.position.y < spiral_rect.position.y
+			overflow["down"] = overflow["down"] or note_rect.end.y > spiral_rect.end.y
+		check(logical_value == spiral_balance - spiral_balance % 1000, "spiral represents all whole banknotes")
+		check(directions.values().all(func(value: bool) -> bool: return value), "wallet spiral spreads in every direction")
+		check(overflow.values().all(func(value: bool) -> bool: return value), "wallet spiral overflows every viewport edge")
+		check(scene.wallet_spiral.dense_ring_count >= 5, "dense wallets separate into multiple circular lanes")
+		var lane_gap_ok := true
+		for ring in range(1, scene.wallet_spiral.dense_ring_radii.size()):
+			lane_gap_ok = lane_gap_ok and scene.wallet_spiral.dense_ring_radii[ring] - scene.wallet_spiral.dense_ring_radii[ring - 1] >= 100.0
+		check(lane_gap_ok, "dense circular lanes retain visible spacing")
 		scene._on_music_band_pulse(0, 1.0)
 		await create_timer(0.08).timeout
 		check(scene.wallet_spiral.notes[0].scale.y > 1.05, "wallet spiral uses the reactive bounce")
@@ -142,7 +168,7 @@ func run() -> void:
 		await create_timer(0.55).timeout
 		check(not is_instance_valid(scene.wallet_spiral), "Escape closes the easter egg")
 		check(is_equal_approx(scene.game_layer.modulate.a, 1.0), "HUD returns after exit")
-	check(scene.deal.wallet.balance_vnd == balance, "wallet easter egg preserves money")
+	check(scene.deal.wallet.balance_vnd == spiral_balance, "wallet easter egg preserves money")
 	scene.music_controller._stop_all_mix_players()
 	scene.music_controller.music_director.stop()
 	await create_timer(0.2).timeout

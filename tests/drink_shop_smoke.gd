@@ -14,6 +14,9 @@ func _run() -> void:
 	root.add_child(scene)
 	current_scene = scene
 	await process_frame
+	# Dismiss the opening title before testing menu pointer targets.
+	await _click(scene.get_node("TitleScreen/TitleDisc") as Control)
+	await create_timer(0.5).timeout
 	await _click(scene.how_to_play_button)
 	_check(scene.menu_page == &"how_to_play", "viewport click opens How to Play")
 	await _click(scene.how_to_play_back_button)
@@ -29,9 +32,14 @@ func _run() -> void:
 	var shop := scene.campaign_participants.get_child(0) as DrinkShop
 	_check(shop != null and shop._buttons.size() == 12 and shop.shelf.get_child_count() == 4, "Starter groups twelve Drinks into four classes")
 	await _click(shop._buttons[DrinkCatalog.TRA_DA] as Control)
-	_check(shop.selected_id == DrinkCatalog.TRA_DA, "viewport click selects Tra Da beneath the left NPC hit area")
+	_check(shop.selected_id == DrinkCatalog.TRA_DA, "clicking a drink tile selects Tra Da")
+	_check(scene.drink_manager.active_drink_id == DrinkCatalog.NONE and not scene.current_campaign_event.can_exit, "clicking a drink tile does not buy it or unlock continuation")
+	await _hover(shop._buttons[DrinkCatalog.STING] as Control)
+	_check(shop.selected_id == DrinkCatalog.TRA_DA, "hovering another drink does not replace the held selection")
+	_check((shop._buttons[DrinkCatalog.TRA_DA] as Button).button_pressed, "the held drink stays visibly selected after hover")
 	await _click(shop._buttons[DrinkCatalog.STING] as Control)
-	_check(shop.selected_id == DrinkCatalog.STING, "viewport click selects Sting beneath the left NPC hit area")
+	_check(shop.selected_id == DrinkCatalog.STING, "clicking a drink tile selects Sting")
+	_check(scene.drink_manager.active_drink_id == DrinkCatalog.NONE and not scene.current_campaign_event.can_exit, "clicking another drink tile still does not buy it")
 	await _click(scene.event_table.back_button)
 	_check(scene.event_table.focused_npc_id.is_empty(), "viewport click activates Back beneath the left NPC hit area")
 	await create_timer(0.5).timeout
@@ -60,6 +68,8 @@ func _run() -> void:
 	root.size = Vector2i(1280, 720)
 	TranslationServer.set_locale("vi")
 	shop.inspect_drink(DrinkCatalog.BAC_XIU)
+	await _hover(shop._buttons[DrinkCatalog.STING] as Control)
+	_check(shop.selected_id == DrinkCatalog.BAC_XIU, "hovering after selection keeps the held drink for the Order button")
 	scene.get_node("ActionLegend/Shade").visible = false
 	await create_timer(2.2).timeout
 	if DisplayServer.get_name() != "headless":
@@ -101,21 +111,20 @@ func _run() -> void:
 	_check(not scene.drink_targeting_active and scene.deal.current_drink_has_charge(), "Cancel leaves the charge available")
 	_check(scene.pending_drink_card_ids.is_empty(), "Cancel clears pending targets")
 	scene._on_drink_pressed()
-	for card in scene.deal.hand:
-		var view := scene.hand_views[card.unique_id] as PlayingCardView
-		await _click(view)
-		_check(scene.pending_drink_card_ids.has(card.unique_id), "viewport click selects Drink card " + card.unique_id)
-		_check(view.selected and not view.drag_enabled, "Drink selection lifts the card and prevents swallowed drag clicks")
-	_check(not scene.ha_button.disabled, "valid Pair enables explicit Use Drink")
+	var pair_cards: Array[CardData] = scene.deal.hand.duplicate()
 	var money_job_before_pair := scene.next_money_job_id
-	scene._on_ha_pressed()
-	_check(scene.next_money_job_id == money_job_before_pair + 1, "Drink-created Pair queues the same money animation as a normal Phom")
+	await _click(scene.hand_views[pair_cards[0].unique_id])
+	_check(scene.pending_drink_card_ids.has(pair_cards[0].unique_id), "first Pair card is selected")
+	_check((scene.hand_views[pair_cards[0].unique_id] as PlayingCardView).drag_enabled, "drink targeting retains dragging")
+	await _click(scene.hand_views[pair_cards[1].unique_id])
+	_check(scene.next_money_job_id == money_job_before_pair + 1, "second Pair click commits and queues exactly one payout")
 	await scene._wait_for_money_job(money_job_before_pair)
-	_check(scene.deal.melds.size() == 1 and scene.deal.melds[0].pair_created, "Drink confirmation creates the Pair Phỏm")
+	_check(scene.deal.melds.size() == 1 and scene.deal.melds[0].pair_created, "Pair commits without a second cup click")
 	_check(scene.drink_table_texture.texture.resource_path.ends_with("_half.png"), "spent testing Drink visibly changes its fill")
 	scene.interaction_locked = false
 	scene.deal.set_current_drink(DrinkCatalog.NAU_DA)
 	scene._sync_all()
+	scene.selected_meld_id = -1
 	scene._on_drink_pressed()
 	var recovered_view := scene.meld_views[scene.deal.melds[0].meld_id] as MeldView
 	await _click(recovered_view._card_views[scene.deal.melds[0].cards[0].unique_id])
@@ -264,4 +273,10 @@ func _click(control: Control) -> void:
 	release.position = motion.position
 	release.button_index = MOUSE_BUTTON_LEFT
 	root.push_input(release, true)
+	await process_frame
+
+func _hover(control: Control) -> void:
+	var motion := InputEventMouseMotion.new()
+	motion.position = control.get_global_transform_with_canvas() * (control.size * 0.5)
+	root.push_input(motion, true)
 	await process_frame

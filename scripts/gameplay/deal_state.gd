@@ -29,9 +29,14 @@ const STATE_FINAL_COMMIT_WINDOW := "final_commit_window"
 const STATE_PHASE_CHOICE := "phase_choice"
 const STATE_DEAL_OVER := "deal_over"
 
+var action_counts: Dictionary = {}
+var action_history: Array[Dictionary] = []
+var deal_journal_cursor := 0
+
 var deck := DeckManager.new()
 var scoring := ScoringPipeline.new()
 var wallet := VndWallet.new()
+var relics := RelicRuntime.new()
 var vnd_per_point: int:
 	get:
 		return wallet.vnd_per_point
@@ -72,12 +77,16 @@ var campaign_deck_cards: Array[CardData] = []
 
 
 func _init() -> void:
+	state_changed.connect(_count_action)
 	deck.draw_requested_while_empty.connect(_on_draw_requested_while_empty)
 
 
 func start_deal(shuffle_seed: int = -1, reset_wallet: bool = false) -> Dictionary:
 	if reset_wallet:
 		wallet.reset()
+	action_counts.clear()
+	action_history.clear()
+	deal_journal_cursor = wallet.journal.size()
 	if campaign_deck_cards.is_empty():
 		deck.reset(shuffle_seed)
 	else:
@@ -110,6 +119,9 @@ func start_deal(shuffle_seed: int = -1, reset_wallet: bool = false) -> Dictionar
 
 
 func start_tutorial_deal() -> Dictionary:
+	action_counts.clear()
+	action_history.clear()
+	deal_journal_cursor = wallet.journal.size()
 	deck.reset(0)
 	_reset_exhaustion_state()
 	_capture_expected_deal_card_ids()
@@ -155,7 +167,13 @@ func snapshot_state() -> Dictionary:
 		"missed_discards": phase_metrics.missed_discards,
 	}
 	return {
+		"action_counts": action_counts.duplicate(true),
+		"action_history": action_history.duplicate(true),
+		"deal_journal_cursor": deal_journal_cursor,
+		"wallet_journal": wallet.journal.duplicate(true),
+		"wallet_journal_opening": wallet.journal_opening_vnd,
 		"deck": deck.snapshot_state(),
+		"relics": relics.snapshot(),
 		"hand": hand.duplicate(),
 		"melds": melds.duplicate(),
 		"discard_history": discard_history.duplicate(),
@@ -195,6 +213,7 @@ func restore_snapshot(snapshot: Dictionary) -> void:
 	if snapshot.is_empty():
 		return
 	deck.restore_snapshot(snapshot.get("deck", {}) as Dictionary)
+	relics.restore(snapshot.get("relics", {}))
 	_restore_card_array(hand, snapshot.get("hand", []))
 	_restore_meld_array(snapshot.get("melds", []))
 	_restore_discard_array(snapshot.get("discard_history", []))
@@ -235,6 +254,11 @@ func restore_snapshot(snapshot: Dictionary) -> void:
 	_expected_deal_card_ids = (snapshot.get("expected_deal_card_ids", {}) as Dictionary).duplicate()
 	wallet.vnd_per_point = int(snapshot.get("wallet_vnd_per_point", VndWallet.VND_PER_POINT))
 	wallet.reset(int(snapshot.get("wallet_balance_vnd", 0)))
+	wallet.journal.assign(snapshot.get("wallet_journal", []))
+	wallet.journal_opening_vnd = int(snapshot.get("wallet_journal_opening", wallet.balance_vnd))
+	action_history.assign(snapshot.get("action_history", []))
+	action_counts = snapshot.get("action_counts", {}).duplicate(true)
+	deal_journal_cursor = int(snapshot.get("deal_journal_cursor", 0))
 
 
 func set_current_drink(drink_id: String) -> Dictionary:
@@ -544,7 +568,7 @@ func create_meld(selected_cards: Array[CardData], use_drink: bool = false) -> Di
 	if permission.get("c2", false):
 		c2_used = true
 	_next_meld_id += 1
-	var context := scoring.score_new_meld(meld.cards, meld.meld_type, current_phase, phase_metrics.new_phom_count)
+	var context := scoring.score_new_meld(meld.cards, meld.meld_type, current_phase, phase_metrics.new_phom_count, state == STATE_FINAL_COMMIT_WINDOW)
 	meld.scored_points = ScoringPipeline.meld_value(meld.cards)
 	melds.append(meld)
 	phase_metrics.new_phom_count += 1
@@ -552,6 +576,7 @@ func create_meld(selected_cards: Array[CardData], use_drink: bool = false) -> Di
 	if state == STATE_ACTIVE:
 		_turn_committed_card_count += selected_cards.size()
 	_apply_scoring_passes(context)
+	_apply_relic_bonuses(context, meld.meld_id)
 	new_phom_scored.emit(context)
 	var result := {
 		"ok": true,
@@ -583,10 +608,11 @@ func extend_meld(meld_id: int, selected_cards: Array[CardData]) -> Dictionary:
 	if meld.meld_type == MeldRules.TYPE_RUN and not meld.can_extend(selected_cards):
 		meld.run_compatibility = "red" if current_drink_id == DrinkCatalog.MIA_TAC else "black"
 	meld.extend(selected_cards)
-	var context := scoring.score_extension(meld.cards, meld.meld_type, old_score, current_phase, additions)
+	var context := scoring.score_extension(meld.cards, meld.meld_type, old_score, current_phase, additions, state == STATE_FINAL_COMMIT_WINDOW)
 	meld.scored_points = maxi(banked_score, context.theoretical_score)
 	phase_metrics.extension_count += 1
 	_apply_scoring_passes(context)
+	_apply_relic_bonuses(context, meld.meld_id)
 	extension_scored.emit(context)
 	var result := {
 		"ok": true,
@@ -617,19 +643,17 @@ func discard_card(card: CardData) -> Dictionary:
 		discard_history.append(DiscardRecord.new(card, current_phase, discard_count, DiscardRecord.KIND_MANDATORY))
 		if current_drink_id == DrinkCatalog.TRA_DA and not hand.is_empty():
 			tra_da_extra_discard_pending = true
-	var u_triggered_now := completed_u and not phase_metrics.u
+	var u_triggered_now := completed_u
 	if u_triggered_now:
 		phase_metrics.u = true
-		var u_bonus := phase_metrics.raw_gross
-		if not phase_metrics.u_bonus_paid:
-			wallet.apply_points(u_bonus, "u_bonus")
-			phase_metrics.u_bonus_paid = true
-		phase_earnings_points = phase_metrics.raw_gross * gross_payout_multiplier() - phase_metrics.deadwood_total
+		var u_bonus := current_deal_earnings_points()
+		_record_phase_points(u_bonus, "u_bonus")
+		phase_metrics.u_bonus_paid = true
 		u_triggered.emit({
 			"phase": current_phase,
 			"card": card,
 			"payout": u_bonus,
-			"raw_gross": phase_metrics.raw_gross,
+			"deal_earnings": u_bonus,
 			"gross_multiplier": gross_payout_multiplier(),
 		})
 	var result := {
@@ -907,14 +931,14 @@ func recommend_action() -> Dictionary:
 	for cards: Array[CardData] in candidates:
 		if can_create_meld(cards):
 			var kind: String = meld_creation_rule(cards)["type"]
-			var points := scoring.preview_new_meld(cards, kind, current_phase, phase_new_meld_count).final_points
+			var points := scoring.preview_new_meld(cards, kind, current_phase, phase_new_meld_count, state == STATE_FINAL_COMMIT_WINDOW).final_points
 			if points > int(best["estimated_points"]):
 				best = {"action": HandAdvisor.ACTION_NEW_MELD, "cards": cards, "meld_type": kind, "meld_id": -1, "estimated_points": points}
 	if best["action"] != HandAdvisor.ACTION_NONE: return best
 	for meld in melds:
 		for cards: Array[CardData] in candidates:
 			if can_extend_meld(meld.meld_id, cards):
-				var points := HandAdvisor.estimate_extension_points(meld, cards, scoring, current_phase)
+				var points := HandAdvisor.estimate_extension_points(meld, cards, scoring, current_phase, state == STATE_FINAL_COMMIT_WINDOW)
 				if points > int(best["estimated_points"]):
 					best = {"action": HandAdvisor.ACTION_EXTENSION, "cards": cards, "meld_type": meld.meld_type, "meld_id": meld.meld_id, "estimated_points": points}
 	return best
@@ -943,7 +967,15 @@ func deadwood_points() -> int:
 
 
 func gross_payout_multiplier() -> int:
-	return 2 if phase_metrics.u else 1
+	return 1
+
+
+func current_deal_earnings_points() -> int:
+	var total := phase_metrics.raw_gross - phase_metrics.deadwood_total
+	for settlement in settlements:
+		if settlement.phase < current_phase:
+			total += settlement.net
+	return total
 
 
 func discard_history_for_phase(phase: int) -> Array[DiscardRecord]:
@@ -1108,17 +1140,14 @@ func _finish_phase() -> Dictionary:
 	var settle_context := {
 		"phase": current_phase,
 		"raw_gross": phase_metrics.raw_gross,
-		"gross_multiplier": 2 if phase_metrics.u else 1,
+		"gross_multiplier": 1,
 		"hand": hand,
 	}
 	phase_about_to_settle.emit(settle_context)
 	var raw_gross: int = settle_context.get("raw_gross", phase_metrics.raw_gross)
-	var gross_after_u: int = raw_gross * int(settle_context.get("gross_multiplier", 1))
+	var gross_after_u: int = raw_gross
 	var u_bonus_paid_early := phase_metrics.u_bonus_paid
-	var gross_adjustment := gross_after_u - phase_metrics.raw_gross if phase_metrics.u and not u_bonus_paid_early else 0
-	if gross_adjustment != 0:
-		wallet.apply_points(gross_adjustment, "phase_gross_resolution")
-		phase_metrics.u_bonus_paid = true
+
 	var is_mom := phase_metrics.new_phom_count == 0
 	var deadwood_value_sum := deadwood_points()
 	var deadwood_multiplier := hand.size() if is_mom else 1
@@ -1230,7 +1259,17 @@ func _deduct_turn_deadwood() -> Dictionary:
 
 func _apply_scoring_passes(context: ScoringContext) -> void:
 	for scoring_pass: ScoringContext in context.scoring_passes:
-		_record_phase_points(scoring_pass.final_points, scoring_pass.action_type)
+		action_counts["card_triggers"] = int(action_counts.get("card_triggers", 0)) + scoring_pass.presentation_hits.size()
+		if scoring_pass.trigger_index > 0:
+			action_counts["retriggers"] = int(action_counts.get("retriggers", 0)) + 1
+		var reason := scoring_pass.action_type if scoring_pass.trigger_index == 0 else String(scoring_pass.trigger_origin)
+		_record_phase_points(scoring_pass.final_points, reason)
+
+
+func _apply_relic_bonuses(context: ScoringContext, meld_id: int) -> void:
+	context.relic_bonuses = relics.resolve(context, meld_id)
+	for bonus in context.relic_bonuses:
+		_record_phase_points(int(bonus.points), "relic:" + String(bonus.id))
 
 
 func _reset_exhaustion_state() -> void:
@@ -1306,6 +1345,7 @@ func _table_card_count() -> int:
 
 
 func _reset_phase_metrics() -> void:
+	relics.phase_started()
 	phase_metrics.reset()
 	phase_earnings_points = 0
 	phase_new_meld_count = 0
@@ -1364,3 +1404,43 @@ static func _has_near_meld(cards: Array[CardData]) -> bool:
 			if left.suit == right.suit and absi(left.rank_index - right.rank_index) in [1, 2]:
 				return true
 	return false
+
+
+func _count_action(result: Dictionary) -> void:
+	if not result.get("ok", false):
+		return
+	var action := String(result.get("action", ""))
+	if action in ["start_deal", "start_tutorial_deal"]:
+		action_counts["cards_drawn"] = hand.size()
+		return
+	action_counts["cards_drawn"] = int(action_counts.get("cards_drawn", 0)) + result.get("drawn", []).size()
+	action_counts[action] = int(action_counts.get(action, 0)) + 1
+	var event := {"action": action, "phase": current_phase, "turn": discard_count, "wallet_vnd": wallet.balance_vnd}
+	var context := result.get("context") as ScoringContext
+	if context != null:
+		event["points"] = context.final_points
+		event["hits"] = context.presentation_hits.duplicate(true)
+		event["relics"] = context.relic_bonuses.duplicate(true)
+		event["passes"] = []
+		for scoring_pass in context.scoring_passes:
+			event.passes.append({"origin": scoring_pass.trigger_origin, "points": scoring_pass.final_points, "hits": scoring_pass.presentation_hits.duplicate(true)})
+		for bonus in context.relic_bonuses:
+			action_counts["relic_triggers"] = int(action_counts.get("relic_triggers", 0)) + 1
+
+	action_history.append(event)
+
+
+func accounting_report() -> Dictionary:
+	var report := wallet.report(deal_journal_cursor)
+	report["counts"] = action_counts.duplicate(true)
+	report.counts["exhaustions"] = exhaustion_count
+	var phases: Array[Dictionary] = []
+	for settlement in settlements:
+		var phase := settlement.to_dictionary()
+		phase["net_vnd"] = VndWallet.points_to_vnd(settlement.net, vnd_per_point)
+		phases.append(phase)
+		for key in ["u", "u_khan_count", "mom"]:
+			report.counts[key] = int(report.counts.get(key, 0)) + int(phase.get(key, 0))
+	report["phases"] = phases
+	report["actions"] = action_history.duplicate(true)
+	return report

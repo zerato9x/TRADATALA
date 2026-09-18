@@ -1,6 +1,7 @@
 class_name CampaignManager
 extends RefCounted
 
+signal collection_requested(report: Dictionary)
 signal campaign_started()
 signal day_started(day: Dictionary)
 signal campaign_phase_changed(phase: int)
@@ -64,6 +65,16 @@ var drink_manager: DrinkManager
 var wallet: VndWallet
 var active_deal_wallet_before_vnd: int = 0
 var gieo_que: GieoQueService
+var lottery: LotteryService
+var shoe_shine: ShoeShineService
+var deal_cursor := 0
+var day_cursor := 0
+var deal_reports: Array[Dictionary] = []
+var day_reports: Array[Dictionary] = []
+var collection_report: Dictionary = {}
+var _collecting := false
+var activities: Array[Dictionary] = []
+var day_activity_cursor := 0
 
 
 func _init(
@@ -77,13 +88,36 @@ func _init(
 	drink_manager = p_drink_manager if p_drink_manager != null else DrinkManager.new(wallet)
 	campaign_days = CampaignConfig.day_definitions() if p_days.is_empty() else p_days.duplicate(true)
 	gieo_que = GieoQueService.new(wallet)
+	lottery = LotteryService.new(wallet)
+	shoe_shine = ShoeShineService.new(wallet, lottery)
+	gieo_que.pull_charged.connect(_record_cast)
+	gieo_que.transformation_completed.connect(_record_transformations)
+	drink_manager.drink_selected.connect(_record_drink)
+
+func _record_cast(price: int, free: bool) -> void:
+	activities.append({"action": "gieo_cast", "price_vnd": price, "free": free})
+
+func _record_transformations(changes: Array[Dictionary]) -> void:
+	activities.append({"action": "transformation", "changes": changes.duplicate(true)})
+
+func _record_drink(id: String, period: String, price: int) -> void:
+	activities.append({"action": "drink_selected", "id": id, "period": period, "price_vnd": price})
+
 
 
 func start_campaign(reset_wallet: bool = true) -> void:
 	if reset_wallet:
 		wallet.reset()
+	wallet.economy_scaling = true
+	activities.clear()
+	deal_reports.clear()
+	day_reports.clear()
+	collection_report.clear()
+	_collecting = false
 	drink_manager.reset_run()
 	gieo_que.reset_campaign()
+	lottery.reset_run()
+	shoe_shine.reset_run()
 	current_day_index = 0
 	campaign_complete = false
 	run_failed = false
@@ -112,6 +146,8 @@ func complete_deal(extra_result: Dictionary = {}) -> bool:
 		"wallet_after_vnd": wallet.balance_vnd,
 		"vnd_change": wallet.balance_vnd - active_deal_wallet_before_vnd,
 	}, true)
+	result["accounting"] = wallet.report(deal_cursor)
+	deal_reports.append(result.duplicate(true))
 	deal_finished.emit(result)
 	_advance_from_current_phase()
 	return true
@@ -123,15 +159,21 @@ func complete_current_event() -> bool:
 	var finished := event_manager.current_event
 	if not event_manager.finish_current_event():
 		return false
+	lottery.end_event()
+	shoe_shine.end_event()
 	event_finished.emit(finished)
 	_advance_from_current_phase()
 	return true
 
 
 func _begin_current_day() -> void:
+	day_cursor = wallet.journal.size()
+	day_activity_cursor = activities.size()
 	_set_phase(CampaignPhase.DAY_START)
 	drink_manager.day_target_vnd = daily_requirement()
 	gieo_que.begin_day(current_day_index)
+	lottery.begin_day(current_day_index)
+	shoe_shine.begin_day(current_day_index, gieo_que.persistent_deck)
 	day_started.emit(current_day())
 	_enter_phase(CampaignPhase.STARTER_EVENT)
 
@@ -140,6 +182,9 @@ func _enter_phase(phase: int) -> void:
 	_set_phase(phase)
 	if EVENT_PHASE_TO_SLOT.has(phase):
 		drink_manager.begin_event(int(EVENT_PHASE_TO_SLOT[phase]))
+		if not DemoBuild.enabled():
+			lottery.begin_event(int(EVENT_PHASE_TO_SLOT[phase]))
+			shoe_shine.begin_event(int(EVENT_PHASE_TO_SLOT[phase]))
 		var event := event_manager.build_event(int(EVENT_PHASE_TO_SLOT[phase]), {
 			"day": current_day().duplicate(true),
 			"day_index": current_day_index,
@@ -147,6 +192,7 @@ func _enter_phase(phase: int) -> void:
 		})
 		event_started.emit(event)
 	elif DEAL_PHASE_TO_PERIOD.has(phase):
+		deal_cursor = wallet.journal.size()
 		active_deal_wallet_before_vnd = wallet.balance_vnd
 		deal_requested.emit(
 			current_day().duplicate(true),
@@ -163,26 +209,63 @@ func _advance_from_current_phase() -> void:
 
 
 func _finish_day() -> void:
+	lottery.settle_day()
 	drink_manager.clear_day()
 	day_finished.emit(current_day())
 	_set_phase(CampaignPhase.MONEY_REQUIREMENT_CHECK)
-	if wallet.balance_vnd < daily_requirement():
+	collection_report = wallet.report(day_cursor)
+	collection_report["counts"] = day_counts()
+	collection_report["activities"] = activities.slice(day_activity_cursor).duplicate(true)
+	collection_report["due_vnd"] = daily_requirement()
+	collection_report["paid"] = false
+	collection_report["shortfall_vnd"] = maxi(daily_requirement() - wallet.balance_vnd, 0)
+	collection_requested.emit(collection_report.duplicate(true))
+
+
+func collect_day_debt() -> bool:
+	if current_phase != CampaignPhase.MONEY_REQUIREMENT_CHECK or _collecting:
+		return false
+	_collecting = true
+	var due := daily_requirement()
+	if wallet.balance_vnd < due:
 		run_failed = true
+		day_reports.append(collection_report.duplicate(true))
 		_set_phase(CampaignPhase.CAMPAIGN_FAILURE)
 		requirement_failed.emit(current_day())
 		campaign_lost.emit()
-		return
+		_collecting = false
+		return true
+	# Guard is set before the wallet signal: listeners cannot collect twice.
+	wallet.apply_vnd(-due, "daily_debt")
+	collection_report = wallet.report(day_cursor)
+	collection_report["counts"] = day_counts()
+	collection_report["due_vnd"] = due
+	collection_report["paid"] = true
+	collection_report["activities"] = activities.slice(day_activity_cursor).duplicate(true)
+	day_reports.append(collection_report.duplicate(true))
 	requirement_passed.emit(current_day())
 	_set_phase(CampaignPhase.DAY_COMPLETE)
 	if current_day_index == campaign_days.size() - 1:
 		campaign_complete = true
 		_set_phase(CampaignPhase.CAMPAIGN_VICTORY)
 		campaign_won.emit()
-		return
-	current_day_index += 1
-	_begin_current_day()
+	else:
+		current_day_index += 1
+		_begin_current_day()
+	_collecting = false
+	return true
 
 
 func _set_phase(phase: int) -> void:
 	current_phase = phase
 	campaign_phase_changed.emit(phase)
+
+
+func day_counts() -> Dictionary:
+	var counts: Dictionary = {}
+	for result in deal_reports:
+		if result.day_id != current_day().get("id", ""):
+			continue
+		for key in result.get("details", {}).get("counts", {}):
+			counts[key] = int(counts.get(key, 0)) + int(result.details.counts[key])
+	return counts
