@@ -54,19 +54,16 @@ func configure(manager: DrinkManager, completed: bool) -> void:
 		button.custom_minimum_size = Vector2(80, 112)
 		button.toggle_mode = true
 		button.button_group = group
-		button.tooltip_text = DrinkCatalog.display_name(drink_id) + "\n" + tr("DRINK_SHOP_QUICK_HINT")
-		if DemoBuild.enabled() and manager.progress != null:
-			button.tooltip_text += "\n" + manager.progress.goal_text(drink_id)
 		button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-		button.add_theme_stylebox_override("normal", StyleBoxEmpty.new())
-		var hover := StyleBoxFlat.new()
-		hover.bg_color = Color(0.6, 0.8, 1.0, 0.12)
-		hover.corner_radius_top_left = 12
-		hover.corner_radius_top_right = 12
-		hover.corner_radius_bottom_left = 12
-		hover.corner_radius_bottom_right = 12
-		button.add_theme_stylebox_override("hover", hover)
-		var selected := hover.duplicate() as StyleBoxFlat
+		var normal := StyleBoxFlat.new()
+		normal.bg_color = Color.TRANSPARENT
+		normal.corner_radius_top_left = 12
+		normal.corner_radius_top_right = 12
+		normal.corner_radius_bottom_left = 12
+		normal.corner_radius_bottom_right = 12
+		button.add_theme_stylebox_override("normal", normal)
+		button.add_theme_stylebox_override("hover", normal)
+		var selected := normal.duplicate() as StyleBoxFlat
 		selected.border_width_bottom = 3
 		selected.border_color = Color("8fe7ff")
 		button.add_theme_stylebox_override("pressed", selected)
@@ -106,10 +103,9 @@ func configure(manager: DrinkManager, completed: bool) -> void:
 		label.add_theme_constant_override("shadow_offset_y", 2)
 		label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		column.add_child(label)
-		button.mouse_entered.connect(preview_drink.bind(drink_id))
-		button.focus_entered.connect(preview_drink.bind(drink_id))
 		# A drink tile only selects/inspects the drink. Buying requires the
-		# explicit Order button below the shelf.
+		# explicit Order button below the shelf; pointer hover and focus do not
+		# change the current selection.
 		button.pressed.connect(inspect_drink.bind(drink_id))
 		(category_rows[DrinkCatalog.category(drink_id)] as HBoxContainer).add_child(button)
 		_buttons[drink_id] = button
@@ -135,10 +131,6 @@ func inspect_drink(drink_id: String) -> void:
 	selected_id = drink_id
 	(_buttons[drink_id] as Button).button_pressed = true
 	_update_drink_details(drink_id, true)
-
-
-func preview_drink(drink_id: String) -> void:
-	_update_drink_details(drink_id, false)
 
 
 func _update_drink_details(drink_id: String, update_order_state: bool) -> void:

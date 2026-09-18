@@ -4,7 +4,7 @@ Implemented in the current project. Drink rules, charge cadence, scoring, and ow
 
 ## Choosing a drink
 
-Hover or keyboard-focus a shelf drink to inspect it without spending. Click it once to order. The existing Order button remains a keyboard-friendly alternative. Locked/unaffordable drinks cannot be ordered; a completed order cannot fire twice. A visible hint explains the controls.
+Click a shelf drink to inspect and select it without spending. The explicit Order button commits the purchase. Locked/unaffordable drinks cannot be ordered; a completed order cannot fire twice. A visible hint explains the controls.
 
 ## Using all twelve drinks
 

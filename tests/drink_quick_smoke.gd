@@ -99,7 +99,7 @@ func _run() -> void:
 		var player: AudioStreamPlayer = scene.ui_feedback.players[cue]
 		check(player.stream.resource_path == "res://assets/audio/sfx/drinks/" + id + ".wav", id + " uses its own supplied recording")
 		check(player.stream.get_length() > 0.0 and player.bus == &"Sound", id + " valid Sound-bus stream")
-	# Every drink can be previewed without purchase and ordered once with a click.
+	# Hover is inert; clicking selects/inspects, and the explicit Order button buys once.
 	for id in DrinkCatalog.all_ids():
 		var manager := DrinkManager.new()
 		var shop := load("res://scenes/ui/drink_shop.tscn").instantiate() as DrinkShop
@@ -113,10 +113,12 @@ func _run() -> void:
 		await create_timer(0.12).timeout
 		motion(center(button))
 		await create_timer(0.12).timeout
-		check(shop.selected_id == id and orders.is_empty(), id + " hover only previews")
+		check(shop.selected_id.is_empty() and orders.is_empty(), id + " hover does not inspect")
 		await click(button)
-		await click(button)
-		check(orders == [id], id + " one click orders once")
+		check(shop.selected_id == id and orders.is_empty(), id + " click selects without buying")
+		await click(shop.confirm)
+		await click(shop.confirm)
+		check(orders == [id], id + " Order button commits once")
 		shop.queue_free()
 		await process_frame
 	# Selected groups use their cup with one click; no arming click clears them.

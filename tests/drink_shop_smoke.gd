@@ -31,12 +31,15 @@ func _run() -> void:
 	await create_timer(0.5).timeout
 	var shop := scene.campaign_participants.get_child(0) as DrinkShop
 	_check(shop != null and shop._buttons.size() == 12 and shop.shelf.get_child_count() == 4, "Starter groups twelve Drinks into four classes")
+	await _hover(shop._buttons[DrinkCatalog.STING] as Control)
+	_check(shop.selected_id.is_empty(), "hovering a drink does not inspect or select it")
+	_check(not (shop._buttons[DrinkCatalog.STING] as Button).button_pressed, "hovering a drink does not mark it selected")
 	await _click(shop._buttons[DrinkCatalog.TRA_DA] as Control)
 	_check(shop.selected_id == DrinkCatalog.TRA_DA, "clicking a drink tile selects Tra Da")
 	_check(scene.drink_manager.active_drink_id == DrinkCatalog.NONE and not scene.current_campaign_event.can_exit, "clicking a drink tile does not buy it or unlock continuation")
 	await _hover(shop._buttons[DrinkCatalog.STING] as Control)
-	_check(shop.selected_id == DrinkCatalog.TRA_DA, "hovering another drink does not replace the held selection")
-	_check((shop._buttons[DrinkCatalog.TRA_DA] as Button).button_pressed, "the held drink stays visibly selected after hover")
+	_check(shop.selected_id == DrinkCatalog.TRA_DA, "hovering another drink does not replace the selected drink")
+	_check((shop._buttons[DrinkCatalog.TRA_DA] as Button).button_pressed, "the selected drink stays visibly selected after hover")
 	await _click(shop._buttons[DrinkCatalog.STING] as Control)
 	_check(shop.selected_id == DrinkCatalog.STING, "clicking a drink tile selects Sting")
 	_check(scene.drink_manager.active_drink_id == DrinkCatalog.NONE and not scene.current_campaign_event.can_exit, "clicking another drink tile still does not buy it")
@@ -69,7 +72,7 @@ func _run() -> void:
 	TranslationServer.set_locale("vi")
 	shop.inspect_drink(DrinkCatalog.BAC_XIU)
 	await _hover(shop._buttons[DrinkCatalog.STING] as Control)
-	_check(shop.selected_id == DrinkCatalog.BAC_XIU, "hovering after selection keeps the held drink for the Order button")
+	_check(shop.selected_id == DrinkCatalog.BAC_XIU, "hovering after selection keeps the selected drink for the Order button")
 	scene.get_node("ActionLegend/Shade").visible = false
 	await create_timer(2.2).timeout
 	if DisplayServer.get_name() != "headless":
