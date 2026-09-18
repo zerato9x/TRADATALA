@@ -320,4 +320,4 @@ static func localized_label(candidate: Dictionary) -> String:
 
 
 static func _suit_symbol(suit: String) -> String:
-	return {"Spades": "♠", "Hearts": "♥", "Diamonds": "♦", "Clubs": "♣"}.get(suit, "?")
+	return {"Spades": "S", "Hearts": "H", "Diamonds": "D", "Clubs": "C"}.get(suit, "?")

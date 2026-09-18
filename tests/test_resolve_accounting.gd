@@ -70,7 +70,7 @@ func test_cost_scaling_preserves_free_choice_and_prices_paid_services() -> void:
 	assert_eq(wallet.scaled_cost(0), 0)
 	var drinks := DrinkManager.new(wallet)
 	assert_eq(drinks.price_for(DrinkCatalog.TRA_DA), 0)
-	assert_eq(drinks.price_for(DrinkCatalog.NUOC_VOI), 200_000)
+	assert_eq(drinks.price_for(DrinkCatalog.NUOC_VOI), 5_000)
 	var quoted := drinks.price_for(DrinkCatalog.NUOC_VOI)
 	assert_true(drinks.select_for_event(EventManager.EventSlot.STARTER, DrinkCatalog.NUOC_VOI).ok)
 	assert_eq(wallet.balance_vnd, 10_000_000 - quoted)

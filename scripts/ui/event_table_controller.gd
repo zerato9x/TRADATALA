@@ -5,6 +5,7 @@ signal npc_focused(npc_id: String)
 signal focus_cleared()
 signal deal_presentation_ready()
 signal deck_inspect_requested()
+signal cash_clicked()
 
 const TABLE_STATE_DEAL := &"deal"
 const TABLE_STATE_EVENT := &"event"
@@ -77,6 +78,7 @@ var content_panel: PanelContainer
 var conversation: NpcConversation
 var event_deck: Control
 var event_deck_count: Label
+var overview: Control
 
 var _deal_nodes: Array[Control] = []
 var _deal_home: Dictionary = {}
@@ -95,6 +97,10 @@ func _ready() -> void:
 	_build_continue()
 	_build_event_deck()
 	_build_npc_layers()
+	overview = preload("res://scripts/ui/event_table_overview.gd").new()
+	overview.name = "EventTableOverview"
+	add_child(overview)
+	overview.cash_clicked.connect(func() -> void: cash_clicked.emit())
 	conversation = preload("res://scenes/ui/npc_conversation.tscn").instantiate()
 	add_child(conversation)
 	conversation.position = Vector2(165, 140)
@@ -118,7 +124,7 @@ func configure_deal_nodes(nodes: Array[Control]) -> void:
 
 
 func enter_event(event_slot: int, day_text: String, period_text: String, money_text: String, deck_count: int = 0) -> void:
-	var already_showing := table_state == TABLE_STATE_EVENT and visible
+	var already_showing := table_state == TABLE_STATE_EVENT and visible and current_event_slot == event_slot
 	current_event_slot = event_slot
 	day_label.text = day_text.to_upper()
 	period_label.text = period_text.to_upper()
@@ -306,6 +312,7 @@ func show_outcome(kicker: String, title: String, wallet_text: String) -> void:
 	back_button.visible = false
 	_animate_deal_out()
 	_stop_money_pulse()
+	overview.hide()
 
 
 func clear_content() -> void:
@@ -466,7 +473,7 @@ func _build_event_deck() -> void:
 
 func set_event_deck_count(count: int) -> void:
 	if event_deck_count != null:
-		event_deck_count.text = "%s · %s" % [tr("PILE_COUNT") % count, tr("PILE_DRAW")]
+		event_deck_count.text = "%s\n%s" % [tr("PILE_COUNT") % count, tr("PILE_DRAW")]
 
 
 func _build_npc_layers() -> void:
@@ -632,6 +639,7 @@ func _finish_event_exit() -> void:
 
 
 func _set_header_focused(focused: bool, animate: bool = true) -> void:
+	overview.set_focused(focused)
 	var header := day_label.get_parent() as Control
 	var target_position := Vector2(380, -2) if focused else Vector2(380, 190)
 	var target_scale := Vector2(0.78, 0.78) if focused else Vector2.ONE

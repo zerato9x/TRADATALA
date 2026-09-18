@@ -1091,9 +1091,9 @@ func test_meld_probability_distinguishes_each_run_window() -> void:
 		_card("9", "Spades"), _card("9", "Hearts"), _card("K", "Clubs"), _card("A", "Diamonds"),
 	]
 	var analysis := MeldProbabilityAdvisor.analyze(hand, draw_pile, [] as Array[MeldState], 1)
-	var candidate := _candidate_named(analysis["candidates"], "SẢNH 7–9♠")
+	var candidate := _candidate_named(analysis["candidates"], "SẢNH 7–9S")
 	assert_false(candidate.is_empty())
-	assert_eq(candidate["needed_labels"], ["9♠"])
+	assert_eq(candidate["needed_labels"], ["9S"])
 	assert_true(absf(float(candidate["probability"]) - 0.25) < 0.00001)
 
 
@@ -1103,7 +1103,7 @@ func test_meld_probability_handles_two_distinct_missing_run_cards_without_replac
 		_card("8", "Spades"), _card("9", "Spades"), _card("K", "Clubs"), _card("A", "Diamonds"),
 	]
 	var analysis := MeldProbabilityAdvisor.analyze(hand, draw_pile, [] as Array[MeldState], 2)
-	var candidate := _candidate_named(analysis["candidates"], "SẢNH 7–9♠")
+	var candidate := _candidate_named(analysis["candidates"], "SẢNH 7–9S")
 	assert_true(absf(float(candidate["probability"]) - (1.0 / 6.0)) < 0.00001)
 
 
@@ -1130,7 +1130,7 @@ func test_meld_probability_marks_an_extension_ready_when_card_is_already_held() 
 		[meld] as Array[MeldState],
 		1
 	)
-	var candidate := _candidate_named(analysis["candidates"], "GHÉP #09  9♠")
+	var candidate := _candidate_named(analysis["candidates"], "GHÉP #09  9S")
 	assert_true(candidate["ready"])
 	assert_eq(candidate["owned_cards"], [held_extension])
 	assert_eq(candidate["probability"], 1.0)
@@ -1182,7 +1182,7 @@ func test_vnd_per_point_converts_positive_and_negative_point_changes() -> void:
 
 func test_point_to_vnd_conversion_uses_integer_thousands_by_default() -> void:
 	assert_eq(VndWallet.points_to_vnd(63), 63000)
-	assert_eq(VndWallet.format_vnd(1234567890), "₫1.234.567.890")
+	assert_eq(VndWallet.format_vnd(1234567890), "VNĐ1.234.567.890")
 
 
 func _controlled_deal(stock_count: int, spent_count: int, seed: int) -> DealState:

@@ -7,7 +7,6 @@ var hud_color := Color.WHITE
 var travel := 0.0
 var age := 0.0
 var radius := 100.0
-var turns := 3.6
 var closing := false
 var motion: Tween
 var pulses: Dictionary = {}
@@ -17,7 +16,7 @@ var dense_ring_radii: Array[float] = []
 var note_lanes: Array[Vector2] = []
 
 
-func begin(presentation: MoneyPresentation, balance: int, game_hud: Control) -> void:
+func begin(presentation: MoneyPresentation, balance: int, game_hud: Control, source: Control = null) -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	z_index = 1000
@@ -29,12 +28,10 @@ func begin(presentation: MoneyPresentation, balance: int, game_hud: Control) -> 
 		for item in legend.get_children():
 			if item is Control:
 				extra_hud[item] = item.modulate
-	origin = get_global_transform().affine_inverse() * presentation.wallet_pile_anchor.get_global_rect().get_center()
-	var wealth := log(1.0 + maxi(balance, 0) / 1000.0)
-	# Reach beyond the farthest corner so the celebration fills the whole screen,
-	# rather than stopping in a circle around the table's center.
-	radius = size.length() * 0.58 + 70.0
-	turns = clampf(3.8 + wealth * 0.16, 4.6, 6.2)
+	origin = get_global_transform().affine_inverse() * (source if source != null else presentation.wallet_pile_anchor).get_global_rect().get_center()
+	# Grow with wealth; a handful of notes stays close together.
+	var wealth := clampf(log(1.0 + maxi(balance, 0) / 250000.0) / log(1.0 + 288750000.0 / 250000.0), 0.0, 1.35)
+	radius = lerpf(65.0, size.length() * 0.58 + 70.0, wealth)
 	var breakdown := MoneyPresentation.denomination_breakdown(balance)
 	var logical_total := 0
 	for entry in breakdown:
@@ -71,13 +68,17 @@ func _build_note_lanes() -> void:
 	dense_ring_radii.clear()
 	dense_ring_count = 0
 	if notes.size() < 48:
+		# Equal angular spacing avoids huge gaps and accidental overlaps in a sparse coil.
+		var rings := maxi(1, ceili(float(notes.size()) / 12.0))
 		for index in notes.size():
-			var fraction := float(index + 1) / maxi(notes.size(), 1)
-			note_lanes.append(Vector2(radius * sqrt(fraction), fraction * TAU * turns))
+			var ring := index / 12
+			var ring_notes := mini(12, notes.size() - ring * 12)
+			var ring_radius := radius * float(ring + 1) / rings
+			note_lanes.append(Vector2(ring_radius, float(index % 12) / ring_notes * TAU + ring * 0.26))
 		return
-	# Large wallets become separate circular lanes instead of one compressed coil.
-	dense_ring_count = clampi(roundi(sqrt(float(notes.size()) / 5.0)), 4, 8)
-	var inner_radius := minf(size.x, size.y) * 0.12
+	# Keep ring spacing readable, even at moderate wealth.
+	var inner_radius := minf(86.0, radius * 0.3)
+	dense_ring_count = clampi(floori((radius - inner_radius) / 104.0) + 1, 2, 8)
 	var total_weight := 0.0
 	for ring in dense_ring_count:
 		var ring_radius := lerpf(inner_radius, radius, float(ring) / maxi(dense_ring_count - 1, 1))

@@ -49,7 +49,7 @@ static func format_vnd(amount_vnd: int, include_sign: bool = false) -> String:
 		grouped = "." + digits.right(3) + grouped
 		digits = digits.left(digits.length() - 3)
 	grouped = digits + grouped
-	return "%s₫%s" % [sign_text, grouped]
+	return "%sVNĐ%s" % [sign_text, grouped]
 
 
 # Every committed mutation is journaled before observers run. Summaries never pay.

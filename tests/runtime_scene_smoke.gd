@@ -128,7 +128,7 @@ func _run() -> void:
 	_check((scene.event_table.get_node("TraDaAuntieName") as Label).text == "ICED TEA AUNTIE", "English selection refreshes event-table NPC labels")
 	_check((scene.how_tab_buttons[&"cards"] as Button).text == "CARDS & MELDS" and (scene.how_tab_buttons[&"phases"] as Button).text == "PHASES & TURNS" and (scene.how_tab_buttons[&"scoring"] as Button).text == "SCORING", "English selection refreshes all How to Play tabs")
 	_check((scene.how_scoring_topic_buttons[&"basic"] as Button).text == "BASIC SCORING" and (scene.how_scoring_topic_buttons[&"special"] as Button).text == "SPECIAL OUTCOMES", "English selection refreshes both Scoring topics")
-	_check(scene.music_settings_label.text == "MUSIC" and scene.sound_settings_label.text == "SOUND" and scene.hint_button.text == "HINT  [G]" and (scene.header_caption_labels["VndPerPointStat"] as Label).text == "VND / POINT", "English selection refreshes Options, gameplay controls, and the VND-per-point caption")
+	_check(scene.music_settings_label.text == "MUSIC" and scene.sound_settings_label.text == "SOUND" and scene.hint_button.text == "HINT  [G]" and (scene.header_caption_labels["VndPerPointStat"] as Label).text == "VNĐ / POINT", "English selection refreshes Options, gameplay controls, and the VNĐ-per-point caption")
 	_check(how_intro != null and how_intro.text == "Pick cards. Meld or Extend. Then discard 1.", "English selection refreshes the visual tutorial copy while it is hidden")
 	scene.language_selector.item_selected.emit(0)
 	await process_frame
@@ -195,6 +195,12 @@ func _run() -> void:
 	_check(scene.logo_segments[0].scale.is_equal_approx(Vector2.ONE) and scene.logo_segments[1].scale.is_equal_approx(Vector2.ONE) and scene.logo_segments[3].scale.is_equal_approx(Vector2.ONE), "a TA-band pulse does not animate TRA, DA, or LA")
 	_check(game_layer != null and game_layer.position.x > 0.0, "game layer begins parked beyond the right screen edge")
 	scene.play_button.pressed.emit()
+	await process_frame
+	_check(is_instance_valid(scene._run_menu), "New Game opens the run selection menu")
+	if not is_instance_valid(scene._run_menu):
+		_finish()
+		return
+	scene._run_menu.new_run.emit("release-runtime-smoke")
 	await create_timer(0.82).timeout
 	_check(scene.game_started and not menu.visible, "play hides the menu after its exit transition")
 	_check(scene.music_controller.dj_mode and scene.music_controller.current_mix_path == "res://assets/audio/ost/cat_1.wav", "starting a CAT playtest hands playback to CAT_1")
@@ -203,7 +209,7 @@ func _run() -> void:
 	_check(background != null and background.global_position.is_equal_approx(background_position_before), "background remains fixed while UI layers transition")
 	_check(scene.campaign.current_phase == CampaignManager.CampaignPhase.STARTER_EVENT, "New Game starts the Monday Starter Event before any Deal")
 	_check(scene.campaign_overlay.visible and scene.current_campaign_event != null, "generic campaign Event UI opens above the existing Deal table")
-	_check(scene.current_campaign_event.participants.size() == 1 and scene.current_campaign_event.participants[0].id == CampaignNpcCatalog.TRA_DA_AUNTIE, "Cô Trà Đá is the guaranteed Starter Event participant")
+	_check(scene.current_campaign_event.participants.any(func(npc: NPCDefinition): return npc.id == CampaignNpcCatalog.TRA_DA_AUNTIE), "Cô Trà Đá is a guaranteed Starter Event participant alongside the optional services")
 	_check(not scene.current_campaign_event.can_exit and scene.campaign_continue_button.disabled, "mandatory Drink selection blocks Event exit")
 	_check(scene.event_table.table_state == EventTableController.TABLE_STATE_EVENT, "event-table controller owns the active presentation state")
 	_check(scene.event_table.event_deck.visible and scene.event_table.event_deck.position.x < 350.0 and scene.event_table.event_deck_count.text.contains(str(scene.campaign.gieo_que.persistent_deck.size())), "Event overview puts the persistent Deck on the left side of the table with its exact count")
@@ -230,13 +236,13 @@ func _run() -> void:
 	_check(scene.event_table.content_panel.visible and scene.event_table.day_label.get_parent().position.y < 20.0, "NPC focus moves the wallet header upward and opens table content")
 	var starter_drink_button := scene.campaign_overlay.find_child("Drink_tra_da", true, false) as Button
 	_check(starter_drink_button != null and not starter_drink_button.disabled, "free Trà đá is purchasable in the Starter Event")
-	starter_drink_button.mouse_entered.emit()
+	starter_drink_button.pressed.emit()
 	await process_frame
 	_check(not scene.current_campaign_event.can_exit, "inspecting a Drink does not silently purchase it")
 	_check(scene.event_table.conversation.speech.text.contains("Trà đá"), "Cô Trà Đá explains the inspected Drink")
 	var order_button := scene.campaign_overlay.find_child("Confirm", true, false) as Button
 	_check(order_button != null and not order_button.disabled, "inspected Drink exposes an explicit order response")
-	starter_drink_button.pressed.emit()
+	order_button.pressed.emit()
 	await process_frame
 	_check(scene.current_campaign_event.can_exit and not scene.campaign_continue_button.disabled, "selecting a Drink completes Cô Trà Đá's mandatory interaction")
 	_check(scene.drink_manager.morning_drink_id == DrinkCatalog.TRA_DA and scene.deal.wallet.balance_vnd == 0, "Starter Drink is assigned to Morning/Noon without inventing a charge for free Trà đá")
@@ -246,7 +252,7 @@ func _run() -> void:
 	var starter_shoe_selector := scene.event_table.get_node("DanhGiaySelect") as Button
 	starter_shoe_selector.pressed.emit()
 	await create_timer(EventTableController.TRANSITION_SECONDS + 0.05).timeout
-	_check(scene.event_table.focused_npc_id == EventTableController.NPC_DANH_GIAY and scene.campaign_participants.find_children("*", "Button", true, false).size() == 3, "unimplemented NPC mechanics use clickable table-object placeholders")
+	_check(scene.event_table.focused_npc_id == EventTableController.NPC_DANH_GIAY and scene.campaign_participants.get_child(0) is MiscNpcPanel, "shoe-shine focus opens the implemented service panel")
 	scene.event_table.back_button.pressed.emit()
 	await create_timer(EventTableController.TRANSITION_SECONDS + 0.05).timeout
 	scene.campaign_continue_button.pressed.emit()
@@ -391,12 +397,21 @@ func _run() -> void:
 	for suit in DeckManager.SUITS:
 		visible_draw_cards += scene.discard_archive_suit_grids[suit].get_child_count()
 	_check(visible_draw_cards == 42, "remaining-deck viewer renders every drawable card by suit")
+	var clubs_title := scene.discard_archive_suit_titles["Clubs"] as Control
+	var clubs_icon: TextureRect = null
+	if clubs_title != null:
+		clubs_icon = clubs_title.get_node_or_null("Icon") as TextureRect
+	_check(clubs_icon != null and clubs_icon.texture != null and clubs_icon.texture.resource_path == "res://cards/symbol_club.png", "archive suit headings use the supplied suit symbol assets")
 	scene.discard_archive_close.pressed.emit()
 	_check(not scene.discard_archive_overlay.visible, "remaining-deck viewer closes back to the table")
 	var first_card: CardData = scene.deal.hand[0]
 	var first_view: PlayingCardView = scene.hand_views[first_card.unique_id]
-	var chance_badge := first_view.get_node_or_null("MeldChance") as Label
+	var chance_badge := first_view.get_node_or_null("MeldChance") as Control
 	_check(chance_badge != null and not chance_badge.visible, "meld probability stays hidden until its card is hovered")
+	var meld_symbol: TextureRect = null
+	if chance_badge != null:
+		meld_symbol = chance_badge.get_node_or_null("Content/MeldSymbol") as TextureRect
+	_check(meld_symbol != null and meld_symbol.texture != null and meld_symbol.texture.resource_path == "res://cards/symbol_meld.png", "meld probability badge uses the supplied straw-hat symbol asset")
 	settings.set_locale("en")
 	await process_frame
 	var english_probability_copy := first_view.tooltip_text.contains("Need:") or first_view.tooltip_text.contains("Ready to Meld:")
@@ -404,11 +419,12 @@ func _run() -> void:
 	settings.set_locale("vi")
 	await process_frame
 	first_view._on_mouse_entered()
-	_check(chance_badge != null and chance_badge.visible and not chance_badge.text.is_empty(), "hover reveals the card's meld probability")
+	_check(chance_badge != null and chance_badge.visible and (meld_symbol.visible or not (chance_badge.get_node("Content/Value") as Label).text.is_empty()), "hover reveals the card's meld probability or ready icon")
+	await _capture("runtime-meld-badge")
 	var probability_discard_count := scene.deal.discard_count
 	scene.deal.discard_count = DealState.DISCARDS_PER_PHASE - 1
 	scene._sync_card_probability_badges()
-	_check(chance_badge != null and chance_badge.text != "0%", "last mandatory discard keeps a future-draw probability instead of forcing 0%")
+	_check(chance_badge != null and (chance_badge.get_node("Content/Value") as Label).text != "0%", "last mandatory discard keeps a future-draw probability instead of forcing 0%")
 	scene.deal.discard_count = probability_discard_count
 	scene._sync_card_probability_badges()
 	var choose_sfx_count := int(scene.card_sfx_play_counts[scene.CARD_SFX_CHOOSE])
@@ -426,7 +442,7 @@ func _run() -> void:
 	for card in scene.deal.hand:
 		_check(ResourceLoader.exists(card.texture_path()), "face texture exists for %s" % card.unique_id)
 		var card_view: PlayingCardView = scene.hand_views[card.unique_id]
-		var card_badge := card_view.get_node_or_null("MeldChance") as Label
+		var card_badge := card_view.get_node_or_null("MeldChance") as Control
 		_check(card_badge != null and not card_badge.visible, "non-hovered meld chance stays hidden for %s" % card.unique_id)
 	var action_outline := first_view.get_node_or_null("BeatVisual/ActionOutline")
 	_check(action_outline != null, "each loose card has an animated action outline")
@@ -799,9 +815,9 @@ func _run() -> void:
 	_check(int(scene.card_sfx_play_counts[scene.CARD_SFX_PLACE]) == place_sfx_count + 3 and scene.card_place_stream_index != second_place_index, "discarding advances to the third placement variant")
 	_check(int(scene.card_sfx_play_counts[scene.CARD_SFX_DRAW]) == draw_sfx_count + 1, "the post-discard refill plays card_draw once")
 	scene._show_campaign_outcome(true)
-	_check(scene.campaign_overlay.visible and scene.campaign_event_title.text == "CHIẾN THẮNG" and not scene.campaign_continue_button.disabled, "campaign victory uses the generic campaign overlay and offers a new run")
+	_check(scene.resolve_receipt.visible and scene.resolve_receipt.title_label.text == scene.tr("CAMPAIGN_VICTORY") and not scene.resolve_receipt.primary.disabled, "campaign victory opens the accounting receipt and offers a new run")
 	scene._show_campaign_outcome(false)
-	_check(scene.campaign_event_title.text == "CHƯA ĐỦ TIỀN" and scene.campaign_event_wallet.text.contains("Ví cuối"), "campaign failure reports the final wallet on the same outcome surface")
+	_check(scene.resolve_receipt.visible and scene.resolve_receipt.title_label.text == scene.tr("CAMPAIGN_FAILURE") and int(scene.resolve_receipt._report.get("closing_vnd", 0)) == scene.deal.wallet.balance_vnd, "campaign failure reports the final wallet on the accounting receipt")
 	settings.set_music_system(settings.MUSIC_SYSTEM_PLAYING_TRACKS)
 	scene._on_campaign_started()
 	_check(not scene.gameplay_music.active and not scene.music_controller.dj_mode, "starting a Playing Tracks run leaves gameplay cues inactive and returns authority to the jukebox")
@@ -848,6 +864,13 @@ func _wait_for_interaction_unlock(scene: MatchUI, timeout_msec: int = 2000) -> b
 func _check(condition: bool, message: String) -> void:
 	if not condition:
 		_failures.append(message)
+
+
+func _capture(file: String) -> void:
+	if DisplayServer.get_name() == "headless":
+		return
+	await RenderingServer.frame_post_draw
+	root.get_texture().get_image().save_png("res://.godot/" + file + ".png")
 
 
 func _finish() -> void:

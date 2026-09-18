@@ -104,10 +104,10 @@ func texture_path() -> String:
 
 func short_label() -> String:
 	const SUIT_SYMBOLS := {
-		"Spades": "♠",
-		"Hearts": "♥",
-		"Diamonds": "♦",
-		"Clubs": "♣",
+		"Spades": "S",
+		"Hearts": "H",
+		"Diamonds": "D",
+		"Clubs": "C",
 	}
 	return "%s%s" % [rank, SUIT_SYMBOLS.get(suit, "?")]
 

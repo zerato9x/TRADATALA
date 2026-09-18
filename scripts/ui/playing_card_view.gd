@@ -7,6 +7,7 @@ signal card_drag_started(card: CardData, global_position: Vector2)
 const CARD_SIZE := Vector2(86, 119)
 const DRAG_THRESHOLD := 12.0
 const CardActionOutlineScript := preload("res://scripts/ui/card_action_outline.gd")
+const CardSymbolArtScript := preload("res://scripts/ui/card_symbol_art.gd")
 
 var card: CardData
 var selected: bool = false
@@ -18,7 +19,9 @@ var _shadow: Panel
 var _action_outline: Control
 var _beat_visual: Control
 var _texture: TextureRect
-var _meld_chance_badge: Label
+var _meld_chance_badge: Panel
+var _meld_chance_value: Label
+var _meld_chance_icon: TextureRect
 var _motion_tween: Tween
 var _feedback_tween: Tween
 var _beat_tween: Tween
@@ -65,15 +68,16 @@ func set_meld_chance(probability: float, is_ready: bool, target_label: String, n
 		return
 	var percent := clampi(int(round(probability * 100.0)), 0, 100)
 	if is_ready:
-		_meld_chance_badge.text = "�"
-		_meld_chance_badge.add_theme_color_override("font_color", Color.WHITE)
-		_meld_chance_badge.add_theme_stylebox_override("normal", PresentationTheme.panel_style(Color("#3d702df2"), PresentationTheme.TEA, 1, 2, 2))
+		_meld_chance_value.text = ""
+		_meld_chance_icon.visible = true
+		_meld_chance_badge.add_theme_stylebox_override("panel", PresentationTheme.panel_style(Color("#3d702df2"), PresentationTheme.TEA, 1, 2, 2))
 		_chance_tooltip = tr("PROBABILITY_READY") % target_label
 	else:
-		_meld_chance_badge.text = "%d%%" % percent
+		_meld_chance_value.text = "%d%%" % percent
+		_meld_chance_icon.visible = false
 		var active := probability > 0.0
-		_meld_chance_badge.add_theme_color_override("font_color", Color("#fff1c5") if active else Color("#a99d88"))
-		_meld_chance_badge.add_theme_stylebox_override("normal", PresentationTheme.panel_style(
+		_meld_chance_value.add_theme_color_override("font_color", Color("#fff1c5") if active else Color("#a99d88"))
+		_meld_chance_badge.add_theme_stylebox_override("panel", PresentationTheme.panel_style(
 			Color("#9a641ff2") if active else Color("#26231fe8"),
 			PresentationTheme.GOLD if active else Color("#51483b"), 1, 2, 2
 		))
@@ -206,15 +210,29 @@ func _build_visuals() -> void:
 	_texture.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	_beat_visual.add_child(_texture)
 
-	_meld_chance_badge = Label.new()
+	_meld_chance_badge = Panel.new()
 	_meld_chance_badge.name = "MeldChance"
 	_meld_chance_badge.position = Vector2(48, 4)
-	_meld_chance_badge.size = Vector2(34, 17)
-	_meld_chance_badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_meld_chance_badge.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_meld_chance_badge.add_theme_font_size_override("font_size", 9)
+	_meld_chance_badge.size = Vector2(34, 19)
 	_meld_chance_badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_meld_chance_badge.visible = false
+	_meld_chance_badge.add_theme_stylebox_override("panel", PresentationTheme.panel_style(Color("#26231fe8"), Color("#51483b"), 1, 2, 2))
+	var chance_content := CenterContainer.new()
+	chance_content.name = "Content"
+	chance_content.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	chance_content.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_meld_chance_badge.add_child(chance_content)
+	_meld_chance_icon = CardSymbolArtScript.create_meld_icon(Vector2(15, 15), Color.WHITE)
+	_meld_chance_icon.name = "MeldSymbol"
+	_meld_chance_icon.visible = false
+	chance_content.add_child(_meld_chance_icon)
+	_meld_chance_value = Label.new()
+	_meld_chance_value.name = "Value"
+	_meld_chance_value.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_meld_chance_value.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_meld_chance_value.add_theme_font_size_override("font_size", 9)
+	_meld_chance_value.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	chance_content.add_child(_meld_chance_value)
 	add_child(_meld_chance_badge)
 
 	var sheen := ColorRect.new()
@@ -293,7 +311,7 @@ func _on_mouse_exited() -> void:
 
 func _refresh_probability_visibility() -> void:
 	if _meld_chance_badge != null:
-		_meld_chance_badge.visible = _hovered and _interaction_enabled and not _meld_chance_badge.text.is_empty()
+		_meld_chance_badge.visible = _hovered and _interaction_enabled and not _chance_tooltip.is_empty()
 
 
 func _refresh_action_outline() -> void:

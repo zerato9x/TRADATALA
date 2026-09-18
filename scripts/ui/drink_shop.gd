@@ -48,7 +48,8 @@ func configure(manager: DrinkManager, completed: bool) -> void:
 		section.add_child(row)
 		shelf.add_child(section)
 		category_rows[category] = row
-	for drink_id in manager.available_drink_ids():
+	var offered := manager.available_drink_ids()
+	for drink_id in offered:
 		var button := Button.new()
 		button.name = "Drink_" + drink_id
 		button.custom_minimum_size = Vector2(80, 112)
@@ -109,7 +110,9 @@ func configure(manager: DrinkManager, completed: bool) -> void:
 		button.pressed.connect(inspect_drink.bind(drink_id))
 		(category_rows[DrinkCatalog.category(drink_id)] as HBoxContainer).add_child(button)
 		_buttons[drink_id] = button
-	if DemoBuild.enabled():
+	for category: String in category_rows:
+		(category_rows[category] as HBoxContainer).get_parent().visible = (category_rows[category] as HBoxContainer).get_child_count() > 0
+	if manager.progress != null:
 		_goal_label = Label.new()
 		_goal_label.name = "UnlockProgress"
 		_goal_label.custom_minimum_size = Vector2(650, 32)
@@ -122,7 +125,8 @@ func configure(manager: DrinkManager, completed: bool) -> void:
 		confirm.custom_minimum_size.y = 32
 	if completed:
 		selected_id = manager.active_drink_id
-		(_buttons[selected_id] as Button).button_pressed = true
+		if _buttons.has(selected_id):
+			(_buttons[selected_id] as Button).button_pressed = true
 		confirm.text = tr("EVENT_INTERACT_DONE")
 		confirm.disabled = true
 

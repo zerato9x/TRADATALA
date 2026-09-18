@@ -55,6 +55,10 @@ const NEXT_PHASE := {
 	CampaignPhase.EVENING_DEAL: CampaignPhase.DAY_END,
 }
 
+var run_seed := ""
+var endless := false
+var relic_shop: RelicShop
+var _base_day_count := 7
 var current_day_index: int = -1
 var current_phase: int = CampaignPhase.DAY_START
 var campaign_complete: bool = false
@@ -87,6 +91,8 @@ func _init(
 	event_manager = p_event_manager if p_event_manager != null else EventManager.new()
 	drink_manager = p_drink_manager if p_drink_manager != null else DrinkManager.new(wallet)
 	campaign_days = CampaignConfig.day_definitions() if p_days.is_empty() else p_days.duplicate(true)
+	_base_day_count = campaign_days.size()
+	relic_shop = RelicShop.new(wallet, RelicRuntime.new())
 	gieo_que = GieoQueService.new(wallet)
 	lottery = LotteryService.new(wallet)
 	shoe_shine = ShoeShineService.new(wallet, lottery)
@@ -105,7 +111,20 @@ func _record_drink(id: String, period: String, price: int) -> void:
 
 
 
-func start_campaign(reset_wallet: bool = true) -> void:
+func start_campaign(reset_wallet: bool = true, seed_text: String = "") -> void:
+	run_seed = seed_text.strip_edges().left(64)
+	if run_seed.is_empty():
+		var random := RandomNumberGenerator.new()
+		random.randomize()
+		run_seed = "%08X" % random.randi()
+	endless = false
+	campaign_days.resize(_base_day_count)
+	relic_shop.visit_id = ""
+	relic_shop.offers.clear()
+	relic_shop.purchased = false
+	gieo_que.set_seed_value(seed_for("gieo"))
+	lottery.set_seed_value(seed_for("lottery"))
+	shoe_shine.set_seed_value(seed_for("polish"))
 	if reset_wallet:
 		wallet.reset()
 	wallet.economy_scaling = true
@@ -170,6 +189,7 @@ func _begin_current_day() -> void:
 	day_cursor = wallet.journal.size()
 	day_activity_cursor = activities.size()
 	_set_phase(CampaignPhase.DAY_START)
+	drink_manager.day_index = current_day_index
 	drink_manager.day_target_vnd = daily_requirement()
 	gieo_que.begin_day(current_day_index)
 	lottery.begin_day(current_day_index)
@@ -181,7 +201,10 @@ func _begin_current_day() -> void:
 func _enter_phase(phase: int) -> void:
 	_set_phase(phase)
 	if EVENT_PHASE_TO_SLOT.has(phase):
-		drink_manager.begin_event(int(EVENT_PHASE_TO_SLOT[phase]))
+		var slot := int(EVENT_PHASE_TO_SLOT[phase])
+		drink_manager.begin_event(slot)
+		if slot in [EventManager.EventSlot.MORNING, EventManager.EventSlot.AFTERNOON] and not DemoBuild.enabled():
+			relic_shop.begin_visit("%d:%d" % [current_day_index, slot], seed_for("relic", current_day_index * 4 + slot), daily_requirement())
 		if not DemoBuild.enabled():
 			lottery.begin_event(int(EVENT_PHASE_TO_SLOT[phase]))
 			shoe_shine.begin_event(int(EVENT_PHASE_TO_SLOT[phase]))
@@ -245,6 +268,8 @@ func collect_day_debt() -> bool:
 	day_reports.append(collection_report.duplicate(true))
 	requirement_passed.emit(current_day())
 	_set_phase(CampaignPhase.DAY_COMPLETE)
+	if endless and current_day_index == campaign_days.size() - 1:
+		_append_endless_day()
 	if current_day_index == campaign_days.size() - 1:
 		campaign_complete = true
 		_set_phase(CampaignPhase.CAMPAIGN_VICTORY)
@@ -269,3 +294,25 @@ func day_counts() -> Dictionary:
 		for key in result.get("details", {}).get("counts", {}):
 			counts[key] = int(counts.get(key, 0)) + int(result.details.counts[key])
 	return counts
+
+
+func seed_for(stream: String, ordinal: int = 0) -> int:
+	return ("tradatala-v1|%s|%s|%d" % [run_seed, stream, ordinal]).sha256_text().left(8).hex_to_int()
+
+
+func continue_endless() -> bool:
+	if not campaign_complete or run_failed or current_phase != CampaignPhase.CAMPAIGN_VICTORY:
+		return false
+	endless = true
+	campaign_complete = false
+	_append_endless_day()
+	current_day_index += 1
+	_begin_current_day()
+	return true
+
+
+func _append_endless_day() -> void:
+	var index := campaign_days.size()
+	# 50% daily growth after Sunday; saturate before integer overflow.
+	var goal := mini(4_000_000_000_000_000, int(ceil(float(campaign_days[-1].required_vnd) * 1.5 / 500.0)) * 500)
+	campaign_days.append({"id": "endless_%d" % (index + 1), "name_key": CampaignConfig.DAYS[index % 7].name_key, "required_vnd": goal})

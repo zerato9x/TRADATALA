@@ -16,6 +16,13 @@ func _pause(seconds: float) -> void:
 		await process_frame
 
 func _click(button: Button) -> void:
+	var parent := button.get_parent()
+	while parent != null:
+		if parent is ScrollContainer:
+			parent.ensure_control_visible(button)
+			await _pause(0.08)
+			break
+		parent = parent.get_parent()
 	var point := button.get_global_transform_with_canvas() * (button.size * 0.5)
 	var motion := InputEventMouseMotion.new()
 	motion.position = point
@@ -42,10 +49,14 @@ func _run() -> void:
 	var title := scene.get_node_or_null("TitleScreen")
 	if title != null:
 		title.queue_free()
+	scene.drink_manager.progress.save_path = ""
 	await scene._on_play_pressed()
 	scene.event_table.enter_deal()
 	await _pause(0.7)
-	scene.event_table.enter_event(EventManager.EventSlot.MORNING, "Thứ hai", "Buổi sáng", "0 VND", 52)
+	# This smoke exercises equipment and scoring with a pre-owned collection.
+	for id: String in RelicCatalog.DEFINITIONS:
+		scene.deal.relics.acquire(id)
+	scene.campaign._enter_phase(CampaignManager.CampaignPhase.MORNING_EVENT)
 	await _pause(0.7)
 	scene.event_table.focus_npc("hang_rong")
 	await _pause(0.7)
@@ -54,8 +65,8 @@ func _run() -> void:
 	if panel == null:
 		_finish()
 		return
-	_check(panel.buttons.size() == 10, "all ten relics available")
-	var scroll := panel.get_child(2) as ScrollContainer
+	_check(panel.buttons.size() == 10, "all ten owned relics available")
+	var scroll := panel.get_child(3) as ScrollContainer
 	for id: String in panel.buttons:
 		scroll.ensure_control_visible(panel.buttons[id])
 		await _pause(0.08)

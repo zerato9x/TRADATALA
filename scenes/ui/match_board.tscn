@@ -8,6 +8,10 @@
 [ext_resource type="Texture2D" path="res://assets/environment/time.png" id="6_time"]
 [ext_resource type="Script" path="res://scripts/ui/money_presentation.gd" id="7_money"]
 [ext_resource type="StyleBox" path="res://assets/ui/frames/universal_frame.tres" id="8_frame"]
+[ext_resource type="Texture2D" path="res://cards/symbol_spade.png" id="9_symbol_spade"]
+[ext_resource type="Texture2D" path="res://cards/symbol_heart.png" id="10_symbol_heart"]
+[ext_resource type="Texture2D" path="res://cards/symbol_diamond.png" id="11_symbol_diamond"]
+[ext_resource type="Texture2D" path="res://cards/symbol_club.png" id="12_symbol_club"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_time_morning"]
 atlas = ExtResource("6_time")
@@ -1460,7 +1464,7 @@ theme_override_constants/separation = -2
 layout_mode = 2
 theme_override_colors/font_color = Color(0.7764706, 0.72156864, 0.5882353, 1)
 theme_override_font_sizes/font_size = 9
-text = "VND / ĐIỂM"
+text = "VNĐ / ĐIỂM"
 metadata/match_dictionary_binding = "header_caption_labels"
 metadata/match_dictionary_key = "VndPerPointStat"
 
@@ -1468,7 +1472,7 @@ metadata/match_dictionary_key = "VndPerPointStat"
 layout_mode = 2
 theme_override_colors/font_color = Color(0.972549, 0.92941177, 0.8117647, 1)
 theme_override_font_sizes/font_size = 14
-text = "₫1.000"
+text = "VNĐ1.000"
 text_overrun_behavior = 3
 metadata/match_binding = "vnd_per_point_value"
 
@@ -1500,7 +1504,7 @@ metadata/match_dictionary_key = "IncomeStat"
 layout_mode = 2
 theme_override_colors/font_color = Color(0.972549, 0.92941177, 0.8117647, 1)
 theme_override_font_sizes/font_size = 14
-text = "₫0"
+text = "VNĐ0"
 text_overrun_behavior = 3
 metadata/match_binding = "earnings_value"
 
@@ -1544,7 +1548,7 @@ layout_mode = 2
 size_flags_vertical = 3
 theme_override_colors/font_color = Color(0.9607843, 0.7490196, 0.25882354, 1)
 theme_override_font_sizes/font_size = 15
-text = "₫0"
+text = "VNĐ0"
 vertical_alignment = 1
 text_overrun_behavior = 3
 metadata/match_binding = "wallet_value"
@@ -2256,14 +2260,28 @@ theme_override_constants/margin_bottom = 10
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="SpadesDiscardArchiveSuitTitles" type="Label" parent="DiscardArchiveOverlay/ArchivePanel/MarginContainer/VBoxContainer/SuitColumns/SpadesColumn/MarginContainer/VBoxContainer" unique_id=1144392163]
+[node name="SpadesDiscardArchiveSuitTitles" type="HBoxContainer" parent="DiscardArchiveOverlay/ArchivePanel/MarginContainer/VBoxContainer/SuitColumns/SpadesColumn/MarginContainer/VBoxContainer" unique_id=1144392163]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 5
+alignment = 1
+metadata/match_dictionary_binding = "discard_archive_suit_titles"
+metadata/match_dictionary_key = "Spades"
+
+[node name="Title" type="Label" parent="DiscardArchiveOverlay/ArchivePanel/MarginContainer/VBoxContainer/SuitColumns/SpadesColumn/MarginContainer/VBoxContainer/SpadesDiscardArchiveSuitTitles"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.972549, 0.92941177, 0.8117647, 1)
 theme_override_font_sizes/font_size = 14
-text = "BÍCH  ♠"
-horizontal_alignment = 1
-metadata/match_dictionary_binding = "discard_archive_suit_titles"
-metadata/match_dictionary_key = "Spades"
+text = "BÍCH"
+
+[node name="Icon" type="TextureRect" parent="DiscardArchiveOverlay/ArchivePanel/MarginContainer/VBoxContainer/SuitColumns/SpadesColumn/MarginContainer/VBoxContainer/SpadesDiscardArchiveSuitTitles"]
+custom_minimum_size = Vector2(9, 10)
+layout_mode = 2
+texture_filter = 1
+mouse_filter = 2
+texture = ExtResource("9_symbol_spade")
+expand_mode = 1
+stretch_mode = 5
 
 [node name="ScrollContainer" type="ScrollContainer" parent="DiscardArchiveOverlay/ArchivePanel/MarginContainer/VBoxContainer/SuitColumns/SpadesColumn/MarginContainer/VBoxContainer" unique_id=353072919]
 layout_mode = 2
@@ -2296,14 +2314,28 @@ theme_override_constants/margin_bottom = 10
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="HeartsDiscardArchiveSuitTitles" type="Label" parent="DiscardArchiveOverlay/ArchivePanel/MarginContainer/VBoxContainer/SuitColumns/HeartsColumn/MarginContainer/VBoxContainer" unique_id=626676824]
+[node name="HeartsDiscardArchiveSuitTitles" type="HBoxContainer" parent="DiscardArchiveOverlay/ArchivePanel/MarginContainer/VBoxContainer/SuitColumns/HeartsColumn/MarginContainer/VBoxContainer" unique_id=626676824]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 5
+alignment = 1
+metadata/match_dictionary_binding = "discard_archive_suit_titles"
+metadata/match_dictionary_key = "Hearts"
+
+[node name="Title" type="Label" parent="DiscardArchiveOverlay/ArchivePanel/MarginContainer/VBoxContainer/SuitColumns/HeartsColumn/MarginContainer/VBoxContainer/HeartsDiscardArchiveSuitTitles"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.84705883, 0.35686275, 0.30588236, 1)
 theme_override_font_sizes/font_size = 14
-text = "CƠ  ♥"
-horizontal_alignment = 1
-metadata/match_dictionary_binding = "discard_archive_suit_titles"
-metadata/match_dictionary_key = "Hearts"
+text = "CƠ"
+
+[node name="Icon" type="TextureRect" parent="DiscardArchiveOverlay/ArchivePanel/MarginContainer/VBoxContainer/SuitColumns/HeartsColumn/MarginContainer/VBoxContainer/HeartsDiscardArchiveSuitTitles"]
+custom_minimum_size = Vector2(9, 9)
+layout_mode = 2
+texture_filter = 1
+mouse_filter = 2
+texture = ExtResource("10_symbol_heart")
+expand_mode = 1
+stretch_mode = 5
 
 [node name="ScrollContainer" type="ScrollContainer" parent="DiscardArchiveOverlay/ArchivePanel/MarginContainer/VBoxContainer/SuitColumns/HeartsColumn/MarginContainer/VBoxContainer" unique_id=303735923]
 layout_mode = 2
@@ -2336,14 +2368,28 @@ theme_override_constants/margin_bottom = 10
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="DiamondsDiscardArchiveSuitTitles" type="Label" parent="DiscardArchiveOverlay/ArchivePanel/MarginContainer/VBoxContainer/SuitColumns/DiamondsColumn/MarginContainer/VBoxContainer" unique_id=912360207]
+[node name="DiamondsDiscardArchiveSuitTitles" type="HBoxContainer" parent="DiscardArchiveOverlay/ArchivePanel/MarginContainer/VBoxContainer/SuitColumns/DiamondsColumn/MarginContainer/VBoxContainer" unique_id=912360207]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 5
+alignment = 1
+metadata/match_dictionary_binding = "discard_archive_suit_titles"
+metadata/match_dictionary_key = "Diamonds"
+
+[node name="Title" type="Label" parent="DiscardArchiveOverlay/ArchivePanel/MarginContainer/VBoxContainer/SuitColumns/DiamondsColumn/MarginContainer/VBoxContainer/DiamondsDiscardArchiveSuitTitles"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.84705883, 0.35686275, 0.30588236, 1)
 theme_override_font_sizes/font_size = 14
-text = "RÔ  ♦"
-horizontal_alignment = 1
-metadata/match_dictionary_binding = "discard_archive_suit_titles"
-metadata/match_dictionary_key = "Diamonds"
+text = "RÔ"
+
+[node name="Icon" type="TextureRect" parent="DiscardArchiveOverlay/ArchivePanel/MarginContainer/VBoxContainer/SuitColumns/DiamondsColumn/MarginContainer/VBoxContainer/DiamondsDiscardArchiveSuitTitles"]
+custom_minimum_size = Vector2(11, 11)
+layout_mode = 2
+texture_filter = 1
+mouse_filter = 2
+texture = ExtResource("11_symbol_diamond")
+expand_mode = 1
+stretch_mode = 5
 
 [node name="ScrollContainer" type="ScrollContainer" parent="DiscardArchiveOverlay/ArchivePanel/MarginContainer/VBoxContainer/SuitColumns/DiamondsColumn/MarginContainer/VBoxContainer" unique_id=1568632044]
 layout_mode = 2
@@ -2376,14 +2422,28 @@ theme_override_constants/margin_bottom = 10
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="ClubsDiscardArchiveSuitTitles" type="Label" parent="DiscardArchiveOverlay/ArchivePanel/MarginContainer/VBoxContainer/SuitColumns/ClubsColumn/MarginContainer/VBoxContainer" unique_id=438997738]
+[node name="ClubsDiscardArchiveSuitTitles" type="HBoxContainer" parent="DiscardArchiveOverlay/ArchivePanel/MarginContainer/VBoxContainer/SuitColumns/ClubsColumn/MarginContainer/VBoxContainer" unique_id=438997738]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 5
+alignment = 1
+metadata/match_dictionary_binding = "discard_archive_suit_titles"
+metadata/match_dictionary_key = "Clubs"
+
+[node name="Title" type="Label" parent="DiscardArchiveOverlay/ArchivePanel/MarginContainer/VBoxContainer/SuitColumns/ClubsColumn/MarginContainer/VBoxContainer/ClubsDiscardArchiveSuitTitles"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.972549, 0.92941177, 0.8117647, 1)
 theme_override_font_sizes/font_size = 14
-text = "TÉP  ♣"
-horizontal_alignment = 1
-metadata/match_dictionary_binding = "discard_archive_suit_titles"
-metadata/match_dictionary_key = "Clubs"
+text = "TÉP"
+
+[node name="Icon" type="TextureRect" parent="DiscardArchiveOverlay/ArchivePanel/MarginContainer/VBoxContainer/SuitColumns/ClubsColumn/MarginContainer/VBoxContainer/ClubsDiscardArchiveSuitTitles"]
+custom_minimum_size = Vector2(11, 11)
+layout_mode = 2
+texture_filter = 1
+mouse_filter = 2
+texture = ExtResource("12_symbol_club")
+expand_mode = 1
+stretch_mode = 5
 
 [node name="ScrollContainer" type="ScrollContainer" parent="DiscardArchiveOverlay/ArchivePanel/MarginContainer/VBoxContainer/SuitColumns/ClubsColumn/MarginContainer/VBoxContainer" unique_id=872907194]
 layout_mode = 2

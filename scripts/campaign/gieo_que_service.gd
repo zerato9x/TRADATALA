@@ -171,7 +171,7 @@ func cast(forced_lines: Array[String] = []) -> Dictionary:
 		return _failure("A committed cast must finish before another pull.")
 	var price := current_pull_cost()
 	if price > 0 and wallet.balance_vnd < price:
-		return _failure("Not enough VND for this cast.")
+		return _failure("Not enough VNĐ for this cast.")
 	var free_pull := not free_cast_used_today
 	if free_pull:
 		free_cast_used_today = true

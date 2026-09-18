@@ -135,6 +135,8 @@ func run() -> void:
 			check(campaign.drink_manager.select_for_event(event.slot, DrinkCatalog.TRA_DA).ok, "purchase available each event")
 			events.complete_interaction(event.interactions[0].id)
 			campaign.complete_current_event()
+		elif campaign.current_phase == CampaignManager.CampaignPhase.MONEY_REQUIREMENT_CHECK:
+			campaign.collect_day_debt()
 		else:
 			campaign.wallet.apply_vnd(campaign.daily_requirement(), "test")
 			campaign.complete_deal()
@@ -150,6 +152,8 @@ func run() -> void:
 			campaign.complete_current_event()
 		else:
 			campaign.complete_deal()
+	check(campaign.current_phase == CampaignManager.CampaignPhase.MONEY_REQUIREMENT_CHECK, "Monday waits for collection")
+	campaign.collect_day_debt()
 	check(campaign.run_failed, "Monday zero-wallet failure")
 
 	root.get_node("GameSettings").set_music_system("authored_dj")

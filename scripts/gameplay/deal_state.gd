@@ -1427,6 +1427,13 @@ func _count_action(result: Dictionary) -> void:
 		for bonus in context.relic_bonuses:
 			action_counts["relic_triggers"] = int(action_counts.get("relic_triggers", 0)) + 1
 
+	if action == "exhaustion":
+		event["points"] = 0
+		event["passes"] = []
+		for exhausted_context: ScoringContext in result.get("exhaustion", {}).get("scoring_contexts", []):
+			event.points += exhausted_context.final_points
+			for scoring_pass: ScoringContext in exhausted_context.scoring_passes:
+				event.passes.append({"origin": scoring_pass.trigger_origin, "points": scoring_pass.final_points, "hits": scoring_pass.presentation_hits.duplicate(true)})
 	action_history.append(event)
 
 

@@ -19,6 +19,7 @@ enum PresentationState {
 }
 
 const SLOT_TEXTURE := preload("res://assets/ui/gieo_que/slot_machine.png")
+const CARD_SYMBOL_ART_SCRIPT := preload("res://scripts/ui/card_symbol_art.gd")
 const LEVER_FRAMES := [
 	preload("res://assets/ui/gieo_que/lever_1.png"),
 	preload("res://assets/ui/gieo_que/lever_2.png"),
@@ -428,6 +429,10 @@ func _build_destination_selection() -> void:
 	var values: Array[String] = DeckManager.RANKS if chooses_rank else DeckManager.SUITS
 	for value in values:
 		var button := _button(value.to_upper() if chooses_rank else _suit_label(value), "gold", Vector2(76 if chooses_rank else 130, 46))
+		if not chooses_rank:
+			button.icon = CARD_SYMBOL_ART_SCRIPT.texture_for_suit(value)
+			button.expand_icon = true
+			button.add_theme_constant_override("icon_max_width", 14)
 		button.pressed.connect(_on_destination_pressed.bind(value))
 		choices.add_child(button)
 

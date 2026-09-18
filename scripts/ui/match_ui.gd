@@ -11,6 +11,7 @@ const GAME_SETTINGS_SCRIPT := preload("res://scripts/settings/game_settings.gd")
 const TUTORIAL_SPOTLIGHT_SCRIPT := preload("res://scripts/ui/tutorial_spotlight.gd")
 const CARD_DRAG_PAYLOAD_SCRIPT := preload("res://scripts/ui/card_drag_payload.gd")
 const CARD_ACTION_OUTLINE_SCRIPT := preload("res://scripts/ui/card_action_outline.gd")
+const CARD_SYMBOL_ART_SCRIPT := preload("res://scripts/ui/card_symbol_art.gd")
 const GAMEPLAY_MUSIC_CONDUCTOR_SCRIPT := preload("res://scripts/audio/gameplay_music_conductor.gd")
 const EVENT_TABLE_CONTROLLER_SCRIPT := preload("res://scripts/ui/event_table_controller.gd")
 const GIEO_QUE_PANEL_SCRIPT := preload("res://scripts/ui/gieo_que_panel.gd")
@@ -270,6 +271,11 @@ var modal_secondary: Button
 var banner_panel: PanelContainer
 var banner_label: Label
 
+var run_save := RunSave.new()
+var run_seed_input := ""
+var _run_save_pending := false
+var _restoring_run := false
+var _run_menu: Control
 var resolve_receipt: Control
 var resolve_mode := ""
 var campaign_overlay: Control
@@ -326,11 +332,12 @@ func _ready() -> void:
 	CampaignNpcCatalog.register_initial_npcs(event_manager)
 	deal.relics.shop_wallet = deal.wallet
 	drink_manager = DrinkManager.new(deal.wallet)
-	if DemoBuild.enabled():
-		drink_manager.progress = DrinkProgress.new()
-		drink_manager.progress.drink_unlocked.connect(_on_drink_unlocked)
-		deal.state_changed.connect(_on_demo_progress_action)
+	drink_manager.progress = DrinkProgress.new()
+	drink_manager.progress.drink_unlocked.connect(_on_drink_unlocked)
+	deal.state_changed.connect(_on_demo_progress_action)
 	campaign = CampaignManager.new(deal.wallet, event_manager, drink_manager)
+	campaign.relic_shop.runtime = deal.relics
+	_setup_run_saving()
 	campaign.lottery.settled.connect(_on_lottery_settled)
 	campaign.collection_requested.connect(_on_collection_requested)
 	campaign.campaign_started.connect(_on_campaign_started)
@@ -340,8 +347,7 @@ func _ready() -> void:
 	campaign.requirement_passed.connect(_on_campaign_requirement_passed)
 	campaign.campaign_won.connect(_on_campaign_won)
 	campaign.campaign_lost.connect(_on_campaign_lost)
-	if DemoBuild.enabled():
-		campaign.deal_finished.connect(_on_demo_deal_finished)
+	campaign.deal_finished.connect(_on_demo_deal_finished)
 	_sync_all(result, true)
 	_set_hand_interaction_enabled(false)
 	_park_game_layer()
@@ -453,7 +459,7 @@ func _setup_event_table_presentation() -> void:
 
 
 func _connect_editor_interface_signals() -> void:
-	_connect_signal_once(play_button.pressed, _on_play_pressed)
+	_connect_signal_once(play_button.pressed, _show_run_menu)
 	_connect_signal_once(how_to_play_button.pressed, _show_menu_page.bind(&"how_to_play"))
 	_connect_signal_once(tutorial_button.pressed, _on_tutorial_pressed)
 	_connect_signal_once(options_button.pressed, _show_menu_page.bind(&"options"))
@@ -813,7 +819,15 @@ func _refresh_localized_ui() -> void:
 		if not event_table.focused_npc_id.is_empty():
 			_on_event_table_npc_focused(event_table.focused_npc_id)
 	for suit in DeckManager.SUITS:
-		(discard_archive_suit_titles.get(suit) as Label).text = _discard_suit_title(suit)
+		var title_control := discard_archive_suit_titles.get(suit) as Control
+		if title_control == null:
+			continue
+		var title_label := title_control.get_node_or_null("Title") as Label
+		if title_label != null:
+			title_label.text = _discard_suit_title(suit)
+		var symbol := title_control.get_node_or_null("Icon") as TextureRect
+		if symbol != null:
+			CARD_SYMBOL_ART_SCRIPT.tint_icon(symbol, _discard_suit_color(suit))
 	_sync_all()
 
 
@@ -1298,13 +1312,19 @@ func _build_event_deck_inspector() -> void:
 		var suit_row := HBoxContainer.new()
 		suit_row.add_theme_constant_override("separation", 5)
 		rows.add_child(suit_row)
-		var suit_label := Label.new()
+		var suit_label := HBoxContainer.new()
 		suit_label.custom_minimum_size = Vector2(92, 75)
-		suit_label.text = _discard_suit_title(suit)
-		suit_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		suit_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		suit_label.add_theme_font_size_override("font_size", 14)
-		suit_label.add_theme_color_override("font_color", PresentationTheme.MUTED)
+		suit_label.alignment = BoxContainer.ALIGNMENT_CENTER
+		suit_label.add_theme_constant_override("separation", 5)
+		var suit_title := Label.new()
+		suit_title.name = "Title"
+		suit_title.text = _discard_suit_title(suit)
+		suit_title.add_theme_font_size_override("font_size", 14)
+		suit_title.add_theme_color_override("font_color", PresentationTheme.MUTED)
+		suit_label.add_child(suit_title)
+		var suit_icon := CARD_SYMBOL_ART_SCRIPT.create_suit_icon(suit, Vector2(12, 12), _discard_suit_color(suit))
+		suit_icon.name = "Icon"
+		suit_label.add_child(suit_icon)
 		suit_row.add_child(suit_label)
 		var suit_cards: Array[CardData] = []
 		for card in deck_cards:
@@ -1441,11 +1461,13 @@ func _show_campaign_event(event: EventInstance) -> void:
 	var day: Dictionary = event.context.get("day", campaign.current_day())
 	event_table.enter_event(
 		event.slot,
-		tr(String(day.get("name_key", ""))),
+		_campaign_day_name(),
 		tr(EventManager.slot_name_key(event.slot)),
 		_event_money_text(deal.wallet.balance_vnd),
 		campaign.gieo_que.persistent_deck.size()
 	)
+	if not event_table.cash_clicked.is_connected(_on_event_cash_clicked):
+		event_table.cash_clicked.connect(_on_event_cash_clicked)
 	event_table.set_continue_enabled(event.can_exit)
 	_refresh_stats()
 
@@ -1473,7 +1495,7 @@ func _on_event_table_npc_focused(npc_id: String) -> void:
 		event_table.continue_button.visible = false
 		var panel := RelicSelector.new()
 		campaign_participants.add_child(panel)
-		panel.configure(deal.relics)
+		panel.configure(deal.relics, campaign.relic_shop)
 		panel.wallet_changed.connect(_on_gieo_wallet_changed)
 	elif npc_id == EventTableController.NPC_TRA_DA and participant != null:
 		_build_campaign_participant(participant, current_campaign_event)
@@ -1550,6 +1572,7 @@ func _restore_event_content_frame() -> void:
 
 
 func _on_gieo_wallet_changed() -> void:
+	_queue_run_save()
 	displayed_wallet_vnd = deal.wallet.balance_vnd
 	money_queue_wallet_vnd = displayed_wallet_vnd
 	event_table.event_money_feedback(_event_money_text(displayed_wallet_vnd))
@@ -1647,8 +1670,9 @@ func _on_event_table_deal_ready() -> void:
 	pending_deal_presentation_unlock = false
 	_drain_pending_exhaustion_presentations()
 	await _drain_pending_u_khan_presentations()
-	interaction_locked = false
-	_set_hand_interaction_enabled(true)
+	if resolve_mode.is_empty() and not modal_overlay.visible:
+		interaction_locked = false
+		_set_hand_interaction_enabled(true)
 	_refresh_actions()
 
 
@@ -2141,6 +2165,8 @@ func _points_to_vnd(points: int) -> int:
 
 
 func _refresh_relics() -> void:
+	if event_table != null and event_table.visible:
+		_refresh_stats()
 	for child in relic_grid.get_children():
 		relic_grid.remove_child(child)
 		child.queue_free()
@@ -2166,10 +2192,14 @@ func _refresh_stats() -> void:
 			campaign_value.text = "—"
 		else:
 			campaign_value.text = "%s  •  %s" % [
-				tr(String(campaign.current_day().get("name_key", ""))),
+				_campaign_day_name(),
 				VndWallet.format_vnd(campaign.daily_requirement()),
 			]
+			campaign_value.tooltip_text = _run_words("Run seed: ", "Hạt giống: ") + campaign.run_seed
 	_refresh_campaign_period()
+	if event_table != null and event_table.visible and event_table.current_event_slot >= 0:
+		event_table.money_label.text = _event_money_text(deal.wallet.balance_vnd)
+		event_table.overview.sync(money_presentation, deal.wallet.balance_vnd, deal.relics.equipped, campaign.current_day_index, event_table.current_event_slot, campaign.daily_requirement(), campaign.campaign_days)
 
 
 func _refresh_campaign_period() -> void:
@@ -2340,7 +2370,29 @@ func _drink_target_status() -> String:
 			return tr("STATUS_DRINK_TARGETING_ONE")
 
 
+func _on_event_cash_clicked() -> void:
+	if event_table.focused_npc_id.is_empty() and not event_table.deck_focused and not money_queue_running and deal.wallet.balance_vnd > 0:
+		_try_wallet_easter_egg(event_table.overview.cash_anchor)
+
+
+func _try_wallet_easter_egg(source: Control = null) -> void:
+	var now := Time.get_ticks_msec()
+	wallet_click_times = wallet_click_times.filter(func(t: int) -> bool: return now - t <= 650)
+	wallet_click_times.append(now)
+	if wallet_click_times.size() < 3 or is_instance_valid(wallet_spiral):
+		return
+	wallet_click_times.clear()
+	wallet_spiral = preload("res://scripts/ui/wallet_spiral.gd").new()
+	add_child(wallet_spiral)
+	wallet_spiral.begin(money_presentation, deal.wallet.balance_vnd, game_layer, source)
+
+
 func _input(event: InputEvent) -> void:
+	if event.is_action_pressed("ui_cancel") and event_table != null and event_table.is_visible_in_tree() and event_table.overview.expanded:
+		event_table.overview._set_expanded(false)
+		event_table.overview._refresh_journey()
+		get_viewport().set_input_as_handled()
+		return
 	if is_instance_valid(wallet_spiral):
 		if (event is InputEventKey and event.is_action_pressed(&"ui_cancel")) or (event is InputEventMouseButton and event.pressed):
 			wallet_spiral.dismiss()
@@ -2350,14 +2402,8 @@ func _input(event: InputEvent) -> void:
 		if game_started and not interaction_locked and not money_queue_running and not menu_layer.visible and not modal_overlay.visible and not score_overlay.visible and not discard_archive_overlay.visible and deal.wallet.balance_vnd > 0:
 			var wallet_panel := wallet_pile_anchor.get_parent().get_parent().get_parent() as Control
 			if Rect2(Vector2.ZERO, wallet_panel.size).has_point(wallet_panel.get_global_transform_with_canvas().affine_inverse() * event.position):
-				var now := Time.get_ticks_msec()
-				wallet_click_times = wallet_click_times.filter(func(t: int) -> bool: return now - t <= 650)
-				wallet_click_times.append(now)
-				if wallet_click_times.size() >= 3:
-					wallet_click_times.clear()
-					wallet_spiral = preload("res://scripts/ui/wallet_spiral.gd").new()
-					add_child(wallet_spiral)
-					wallet_spiral.begin(money_presentation, deal.wallet.balance_vnd, game_layer)
+				_try_wallet_easter_egg()
+				if is_instance_valid(wallet_spiral):
 					get_viewport().set_input_as_handled()
 					return
 			else:
@@ -3469,6 +3515,10 @@ func _begin_phase_two(keep_hand: bool) -> void:
 
 
 func _start_campaign() -> void:
+	event_table.table_state = EventTableController.TABLE_STATE_DEAL
+	resolve_mode = ""
+	if is_instance_valid(resolve_receipt):
+		resolve_receipt.hide()
 	if tutorial_active:
 		_deactivate_tutorial(true)
 	interaction_locked = true
@@ -3485,7 +3535,8 @@ func _start_campaign() -> void:
 			snapshot.queue_free()
 	money_queue_wallet_vnd = displayed_wallet_vnd
 	deal.relics.reset_run()
-	campaign.start_campaign(true)
+	campaign.start_campaign(true, run_seed_input)
+	run_seed_input = ""
 	_refresh_stats()
 
 
@@ -3520,7 +3571,7 @@ func _on_campaign_day_started(_day: Dictionary) -> void:
 
 
 func _on_campaign_deal_requested(day: Dictionary, period: String, drink_id: String) -> void:
-	if DemoBuild.enabled() and drink_manager.progress != null:
+	if drink_manager.progress != null:
 		drink_manager.progress.begin_deal()
 	_sync_music_player()
 	current_campaign_event = null
@@ -3532,7 +3583,7 @@ func _on_campaign_deal_requested(day: Dictionary, period: String, drink_id: Stri
 	var drink_result := deal.set_current_drink(drink_id)
 	if not drink_result.get("ok", false):
 		deal.set_current_drink(DrinkCatalog.TRA_DA)
-	var result := deal.start_deal(-1, false)
+	var result := deal.start_deal(campaign.seed_for("deal", campaign.current_day_index * 4 + ["morning", "noon", "afternoon", "evening"].find(period)), false)
 	if result.get("ok", false) and gameplay_music != null:
 		gameplay_music.on_deal_started(period)
 	displayed_wallet_vnd = deal.wallet.balance_vnd
@@ -3541,7 +3592,7 @@ func _on_campaign_deal_requested(day: Dictionary, period: String, drink_id: Stri
 	pending_deal_presentation_unlock = true
 	event_table.enter_deal()
 	_show_banner(tr("CAMPAIGN_DEAL_BANNER") % [
-		tr(String(day.get("name_key", ""))),
+		_campaign_day_name(),
 		tr(_campaign_period_key(period)),
 	])
 
@@ -3767,7 +3818,7 @@ func _on_campaign_continue_pressed() -> void:
 	campaign.complete_current_event()
 
 func _on_campaign_requirement_passed(day: Dictionary) -> void:
-	if DemoBuild.enabled() and drink_manager.progress != null and day.get("id") == "monday":
+	if drink_manager.progress != null and day.get("id") == "monday":
 		drink_manager.progress.add_progress("mondays")
 	_show_banner(tr("CAMPAIGN_REQUIREMENT_PASSED") % [
 		tr(String(day.get("name_key", ""))),
@@ -3796,6 +3847,12 @@ func _show_campaign_outcome(won: bool) -> void:
 	for day_report in campaign.day_reports:
 		for key in day_report.get("counts", {}):
 			report.counts[key] = int(report.counts.get(key, 0)) + int(day_report.counts[key])
+	report["actions"] = _resolve_card_history(false)
+	report["won"] = won
+	report["seed"] = campaign.run_seed
+	report["days"] = campaign.day_reports.duplicate(true)
+	report["activities"] = campaign.activities.duplicate(true)
+	report["can_endless"] = won and campaign.campaign_complete
 	resolve_receipt.show_report(report, "outcome", tr("CAMPAIGN_VICTORY" if won else "CAMPAIGN_FAILURE"), tr("CAMPAIGN_NEW_RUN"))
 	_refresh_stats()
 
@@ -3809,6 +3866,7 @@ func _ensure_resolve_receipt() -> void:
 	add_child(layer)
 	layer.add_child(resolve_receipt)
 	resolve_receipt.continued.connect(_on_receipt_continue)
+	resolve_receipt.endless_requested.connect(_on_endless_requested)
 
 
 func _on_collection_requested(report: Dictionary) -> void:
@@ -3821,8 +3879,24 @@ func _on_collection_requested(report: Dictionary) -> void:
 	var caption: String = resolve_receipt.words("PAY & CONTINUE", "TRẢ NỢ & TIẾP TỤC")
 	if int(report.shortfall_vnd) > 0:
 		caption = resolve_receipt.words("CANNOT PAY · END RUN", "KHÔNG ĐỦ TIỀN · KẾT THÚC")
+	report = report.duplicate(true)
+	report["actions"] = _resolve_card_history(true)
 	resolve_receipt.show_report(report, "collection",
 		resolve_receipt.words("ĐÒI NỢ · DAY'S ACCOUNTS", "ĐÒI NỢ · SỔ CUỐI NGÀY"), caption)
+
+
+func _resolve_card_history(today_only: bool) -> Array:
+	var actions: Array = []
+	var deal_number := 0
+	for result: Dictionary in campaign.deal_reports:
+		deal_number += 1
+		if today_only and result.get("day_id", "") != campaign.current_day().get("id", ""):
+			continue
+		for action: Dictionary in result.get("details", {}).get("actions", []):
+			var snapshot := action.duplicate(true)
+			snapshot["deal_number"] = deal_number
+			actions.append(snapshot)
+	return actions
 
 
 func _on_receipt_continue() -> void:
@@ -3848,7 +3922,7 @@ func _on_receipt_continue() -> void:
 
 
 func _event_money_text(amount_vnd: int) -> String:
-	return "%s VND" % VndWallet.format_vnd(amount_vnd).trim_prefix("₫")
+	return "%s VNĐ" % VndWallet.format_vnd(amount_vnd).replace("VNĐ", "")
 
 
 func _campaign_period_key(period: String) -> String:
@@ -4017,6 +4091,8 @@ func _rewind_tutorial_selection() -> void:
 
 
 func _unhandled_key_input(event: InputEvent) -> void:
+	if is_instance_valid(_run_menu):
+		return
 	if is_instance_valid(resolve_receipt) and resolve_receipt.visible:
 		return
 	if not event is InputEventKey or not event.pressed or event.echo:
@@ -4027,7 +4103,7 @@ func _unhandled_key_input(event: InputEvent) -> void:
 		elif game_started and event.is_action_pressed(&"ui_cancel"):
 			_close_menu_to_game()
 		elif menu_page == &"home" and not menu_transitioning and event.is_action_pressed(&"ui_accept"):
-			_on_play_pressed()
+			_show_run_menu()
 		return
 	if event_table != null and event_table.visible and not event_table.focused_npc_id.is_empty():
 		if event.is_action_pressed(&"ui_cancel"):
@@ -4196,3 +4272,119 @@ func _sync_passive_drink_sound(result: Dictionary) -> void:
 		var meld := deal.get_meld(int(result.get("meld_id", -1)))
 		if meld != null and meld.meld_type == MeldRules.TYPE_RUN and MeldRules.classify(meld.cards) == MeldRules.TYPE_INVALID:
 			ui_feedback.play_drink(deal.current_drink_id)
+
+func _setup_run_saving() -> void:
+	deal.state_changed.connect(func(_result: Dictionary): _queue_run_save())
+	deal.wallet.balance_changed.connect(func(_a: int, _b: int, _c: int, _reason: String): _queue_run_save())
+	deal.relics.inventory_changed.connect(_queue_run_save)
+	campaign.campaign_phase_changed.connect(func(_phase: int): _queue_run_save())
+	campaign.event_manager.interaction_completed.connect(func(_event, _interaction): _queue_run_save())
+	campaign.gieo_que.state_changed.connect(func(_state, _payload): _queue_run_save())
+	campaign.relic_shop.changed.connect(_queue_run_save)
+
+
+func _queue_run_save() -> void:
+	if _run_save_pending or _restoring_run or tutorial_active or not game_started or campaign.run_seed.is_empty():
+		return
+	_run_save_pending = true
+	_flush_run_save.call_deferred()
+
+
+func _flush_run_save() -> void:
+	_run_save_pending = false
+	if _restoring_run or tutorial_active or not game_started or campaign.run_seed.is_empty():
+		return
+	if not run_save.save_run(campaign, deal):
+		_show_banner(_run_words("Could not save: ", "Không thể lưu: ") + run_save.error)
+
+
+func _run_words(en: String, vi: String) -> String:
+	return vi if TranslationServer.get_locale().begins_with("vi") else en
+
+
+func _show_run_menu() -> void:
+	if is_instance_valid(_run_menu):
+		return
+	var saved := run_save.load_run()
+	var layer := CanvasLayer.new()
+	layer.layer = 250
+	add_child(layer)
+	_run_menu = preload("res://scripts/ui/run_menu.gd").new()
+	layer.add_child(_run_menu)
+	var note := _run_words("Recovered the previous backup save.", "Đã khôi phục bản lưu dự phòng.") if run_save.recovered_backup else run_save.error
+	_run_menu.configure(drink_manager.progress, saved, note)
+	_run_menu.dismissed.connect(func(): layer.queue_free())
+	_run_menu.new_run.connect(func(seed_text: String):
+		run_seed_input = seed_text
+		layer.queue_free()
+		_on_play_pressed())
+	_run_menu.resume_run.connect(func():
+		if _resume_saved_run(saved):
+			layer.queue_free())
+
+
+func _resume_saved_run(saved: Dictionary) -> bool:
+	if saved.is_empty():
+		return false
+	_restoring_run = true
+	if tutorial_active:
+		_deactivate_tutorial(true)
+	_reset_tutorial_ui_state()
+	money_presentation.hide_ceremony()
+	if not run_save.restore(saved, campaign, deal):
+		_restoring_run = false
+		return false
+	game_started = true
+	menu_transitioning = false
+	menu_layer.hide()
+	menu_layer.position = Vector2.ZERO
+	menu_layer.modulate = Color.WHITE
+	game_layer.position = Vector2.ZERO
+	play_button.disabled = false
+	if is_instance_valid(resolve_receipt):
+		resolve_receipt.hide()
+	resolve_mode = ""
+	current_campaign_event = campaign.event_manager.current_event
+	displayed_wallet_vnd = deal.wallet.balance_vnd
+	money_queue_wallet_vnd = displayed_wallet_vnd
+	_on_campaign_started()
+	_on_campaign_day_started(campaign.current_day())
+	_sync_all()
+	_refresh_relics()
+	event_table.table_state = EventTableController.TABLE_STATE_DEAL
+	if current_campaign_event != null:
+		_show_campaign_event(current_campaign_event)
+		if campaign.gieo_que.state not in [GieoQueService.STATE_READY, GieoQueService.STATE_COMPLETE]:
+			event_table.focus_npc(EventTableController.NPC_THAY_BOI)
+	elif campaign.current_phase == CampaignManager.CampaignPhase.MONEY_REQUIREMENT_CHECK:
+		_on_collection_requested(campaign.collection_report)
+	elif campaign.campaign_complete or campaign.run_failed:
+		_show_campaign_outcome(not campaign.run_failed)
+	else:
+		interaction_locked = true
+		pending_deal_presentation_unlock = true
+		event_table.enter_deal()
+		if deal.state == DealState.STATE_DEAL_OVER:
+			_show_deal_over(deal.last_phase_resolution)
+		elif deal.state == DealState.STATE_PHASE_CHOICE:
+			_show_phase_choice(deal.last_phase_resolution)
+	_restoring_run = false
+	_queue_run_save()
+	return true
+
+
+func _on_endless_requested() -> void:
+	if not campaign.campaign_complete or campaign.run_failed:
+		return
+	resolve_mode = ""
+	resolve_receipt.hide()
+	campaign.continue_endless()
+	_queue_run_save()
+
+
+func _campaign_day_name() -> String:
+	if campaign == null:
+		return ""
+	if campaign.endless:
+		return _run_words("ENDLESS · DAY %d", "VÔ TẬN · NGÀY %d") % (campaign.current_day_index + 1)
+	return tr(String(campaign.current_day().get("name_key", "")))

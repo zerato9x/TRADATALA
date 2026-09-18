@@ -22,10 +22,10 @@ All balance is in scripts/campaign/misc_service_config.gd:
 
 | Setting | Value |
 | --- | ---: |
-| Polish two cards | ₫10,000 |
-| Optional tip | ₫5,000 |
-| Cumulative tips for Special-number information | ₫20,000 |
-| Ticket stake | ₫10,000 |
+| Polish two cards | VNĐ10,000 |
+| Optional tip | VNĐ5,000 |
+| Cumulative tips for Special-number information | VNĐ20,000 |
+| Ticket stake | VNĐ10,000 |
 | Tickets per appearance | 8 |
 | Refresh | None |
 
@@ -51,4 +51,4 @@ Fresh validation results are recorded in the task handoff. Automated viewport in
 - git diff --check: PASS.
 - Existing runtime_scene_smoke.gd stops at line 353 while dereferencing a null drink texture. Its fixture expects a Trà Đá sprite while the deal has no active drink; the relevant drink behavior was not changed by this implementation. This smoke is not reported as passing.
 
-Rendered review images are generated under .godot/misc_shoe.png, .godot/misc_lottery.png and .godot/misc_lottery_result.png. The deterministic Special-win capture uses 03 and credits ₫800,000 for a ₫10,000 ticket.
+Rendered review images are generated under .godot/misc_shoe.png, .godot/misc_lottery.png and .godot/misc_lottery_result.png. The deterministic Special-win capture uses 03 and credits VNĐ800,000 for a VNĐ10,000 ticket.

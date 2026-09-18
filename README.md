@@ -1,10 +1,10 @@
 # TRADATALA / TRÀ ĐÁ TÁ LẢ
 
-A Godot 4.7.1 early-campaign prototype built above the existing solo-derived Phỏm Deal. The project uses the complete card-face set in `res://cards/` and separates campaign progression, events, economy, rules, and presentation.
+A Godot 4.7.1 solo Phỏm roguelike with a seven-day campaign and Endless continuation. The project uses the complete card-face set in `res://cards/` and separates campaign progression, events, economy, rules, and presentation.
 
 The official presentation uses the generated Vietnamese sidewalk-table plate at `res://assets/environment/sidewalk_table.png`, with `DFVN Pexel Grotesk` as the global game font. Cards and HUD elements remain live Godot controls layered over the environment.
 
-The project opens on a dedicated title menu over the fixed sidewalk-table background. Choosing **VÁN MỚI** starts Monday's Starter Event, where Cô Trà Đá supplies the Drink used by the Morning and Noon Deals. The same table then carries the player through four Deals and four Event slots per day for seven days. The match layout uses a compact top status strip, a lower-right active Drink beside the hand, and a separate quiet Relics rail initialized with four presentation-only slots.
+The project opens on a dedicated title menu over the fixed sidewalk-table background. Choosing **VÁN MỚI** opens the run menu: continue the autosave, enter a seed, or start a random run. A new run begins at Monday's Starter Event, where Cô Trà Đá supplies the Drink used by the Morning and Noon Deals. The same table then carries the player through four Deals and four Event slots per day for seven days. The match layout uses a compact top status strip, a lower-right active Drink beside the hand, and a separate Relics rail with four equipped slots.
 
 ## Run
 
@@ -22,7 +22,15 @@ The committed `Windows Desktop` preset produces the x86_64 V1 build in `build/wi
 Godot_v4.7.1-stable_win64_console.exe --headless --path . --export-release "Windows Desktop"
 ```
 
-Distribute `TRADATALA-v1.0.1.exe` together with `TRADATALA-v1.0.1.pck`. The PCK remains separate so the build can be code-signed later and is less likely to trigger antivirus heuristics. The current local checkpoint is unsigned; signing requires a Windows signing certificate and is a separate release operation.
+Distribute `TRADATALA-v1.0.2.exe` together with `TRADATALA-v1.0.2.pck`. The PCK remains separate so the build can be code-signed later and is less likely to trigger antivirus heuristics. The current local checkpoint is unsigned; signing requires a Windows signing certificate and is a separate release operation.
+
+## Full itch.io release
+
+The `Web Full Release` preset exports the complete campaign without the demo feature flag. The existing `Web Demo` preset retains the restricted configuration. Both browser presets use the official no-threads Compatibility template.
+
+Run `tools/build_full_release.ps1` to export fresh browser and Windows ZIPs with a version, source-state manifest, SHA256 hashes, and itch.io archive-limit checks. Use a new output directory for each build. The official `web_nothreads_release.zip` must be installed at `build/demo-tools/`, and matching Windows export templates must be installed in Godot's application-data directory.
+
+See [the 1.0.2 release checkpoint](docs/releases/2026-09-19-v1.0.2.md) for release scope and validation, and [itch.io page copy](docs/releases/ITCH_PAGE_v1.0.2.md) for the prepared description.
 
 ## Controls
 
@@ -34,7 +42,7 @@ Distribute `TRADATALA-v1.0.1.exe` together with `TRADATALA-v1.0.1.pck`. The PCK 
 - `C`: CHỐT the Phase from LAST CALL after any final HẠ / EXTEND actions.
 - `S`: cycle rank/suit hand sorting.
 - `G`: select the highest-scoring legal new Meld; if none exists, select the best legal table extension.
-- Hover a loose card to reveal its top-right meld badge: `✓` means it already belongs to a ready Phỏm; otherwise the badge shows that card's best exact completion percentage. The badge hides again when the pointer leaves.
+- Hover a loose card to reveal its top-right meld badge: the supplied white straw-hat symbol means it already belongs to a ready Phỏm; otherwise the badge shows that card's best exact completion percentage. The badge hides again when the pointer leaves.
 - Ready action cards carry one reusable animated outline: flowing green for a legal new Phỏm, orange for a legal table extension, and blue for an active Drink target. Any combination can coexist in the same multicolor sweep without covering the card face. The Drink box keeps its own blue charge outline until spent, while Sâm dứa preservation keeps blue on marked cards until the Phase transition resolves.
 - Click the `BỎ • XEM` pile to open every discarded card grouped into Bích, Cơ, Rô, and Tép columns.
 - Hover the active Drink for its complete effect and timing. Click the charged Drink first to arm it, then choose its eligible target objects; blue gradients identify every current Drink target.
@@ -73,7 +81,7 @@ The prototype now follows the two-Phase Deal contract: each Phase has four manda
 - Sets accept any number of same-rank physical cards; Runs require one suit, unique consecutive ranks, A low, and no wrap.
 - Every card sent to the discard pile remains available through the suit-grouped discard archive; mandatory discards retain Phase and discard-number provenance in the Deal record.
 - Each card's hover badge summarizes its best canonical three-card Set/Run target. Percentages are exact without-replacement odds for the next refill toward ten, using the known remaining deck; the full target and missing-card calculation stay in the tooltip so probability information does not obstruct the table.
-- Exactly one Drink is active at a time. All 12 Drinks are implemented for mechanics testing, available in both Starter and Noon shops at an explicitly temporary zero test price. Every Drink effect is optional: Trà đá lets you skip its extra discard with End Turn. Nhân trần and Đen đá reset each normal Turn, with no bonus LAST CALL charge. Energy Pair creation and C2 Run creation require explicit Drink targeting. Drinks add no score multiplier; new Phỏm use the ordinary scoring pipeline. See [Drink roster and conversation flow](docs/DRINK_ROSTER_TESTING.md) for rules and controls.
+- Exactly one Drink is active at a time. All 12 Drinks have implemented mechanics. Campaign day/event gates and persistent achievement unlocks control availability; paid drinks cost 2–8% of the current debt goal, while Trà đá remains free. Every Drink effect is optional: Trà đá lets you skip its extra discard with End Turn. Nhân trần and Đen đá reset each normal Turn, with no bonus LAST CALL charge. Energy Pair creation and C2 Run creation require explicit Drink targeting. Drinks add no score multiplier; new Phỏm use the ordinary scoring pipeline. See [Drink roster and conversation flow](docs/DRINK_ROSTER_TESTING.md) for rules and controls.
 - Every implemented basic Drink has a reactive opportunity cue on the Sound bus. The three glass-clink variants rotate without immediate repetition and fire only on the inactive-to-active edge: Trà đá after its first discard, Nhân trần when a current-Phase discard completes a hand Meld, Nước vối when a legal Meld card can be recovered, and Sâm dứa on entry to the Phase 1 preservation window.
 - Card manipulation also routes through the Sound bus: selecting a card plays the dedicated choose clip, successful Phỏm/extension/discard placement rotates three non-repeating place clips, every non-empty draw result plays the draw clip once, and an authoritative Deal reset plays the shuffle clip. Hidden boot setup stays silent.
 - Scoring and resolution expose controlled hooks for new Phỏm, Extensions, settlement, Deadwood, MÓM, Deal resolution, and Ù.
@@ -82,11 +90,14 @@ The prototype now follows the two-Phase Deal contract: each Phase has four manda
 
 - A run is Monday through Sunday. Every day follows `Starter Event → Morning Deal → Morning Event → Noon Deal → Noon Event → Afternoon Deal → Afternoon Event → Evening Deal → requirement check` with no Evening Event.
 - Cô Trà Đá is a guaranteed participant in Starter and Noon Events, but Events own participant lists and can contain zero, one, or multiple NPCs. Her mandatory interaction selects/purchases the Drink for the next two Deals.
-- Morning and Afternoon Events are valid empty Events with an enabled Continue action. The same interaction model supports optional future NPCs without changing campaign progression.
-- Daily VND thresholds and Drink prices are provisional data in `campaign_config.gd` and `drink_manager.gd`; thresholds are not deducted, and the wallet carries across days.
-- Failing any end-of-day threshold ends the run. Passing Sunday's threshold wins the current early campaign without a Zodiac boss.
+- Morning and Afternoon Events include optional Gieo Quẻ, lottery and Hàng Rong visits. Hàng Rong offers three seeded unowned relics per visit; buy one or pay to reroll before buying. Owned relics can be equipped or removed for free.
+- Daily debts are 250k, 500k, 1m, 2m, 4m, 8m and 16m VND. The collection receipt deducts that day's debt exactly once; the remaining wallet carries forward.
+- A collection shortfall ends the run. Paying Sunday opens a scroll of MVP cards, finances and run statistics; choose New Run or continue into Endless. Endless begins at 24m debt and grows 50% each day, retaining the current seed, deck, relics and wallet.
+- Runs autosave committed gameplay, including exact draw order, card state, NPC/shop choices, RNG state and pending collection. Continue Saved Run restores the last committed state; previous-file backup recovery is available. Drink unlocks persist independently.
 
-The Escape/Menu window defaults to the reactive Authored DJ system for a new campaign: the approved Mèo/CAT route plays on day one, the Chó/DOG route on day two, and the two routes alternate by day. The standalone album player for all 26 OST files remains available as an explicit Playing Tracks option, with cover art, track selection, progress, next-track preview, play/pause, Shuffle, and Repeat Off/All/One; its spectrum still drives four presentation frequency bands. The offline `MusicLoopAudition` tester also supports arranging bar-aligned segments into named, repeatable sections without changing the source WAVs. Relics, final Drink progression/prices/art, Zodiac bosses, special weekday mechanics, story chains, non-Drink shops, multiplayer, AI opponents, broader ambient/UI sound design, and 3D presentation remain intentionally unimplemented.
+See [progression, saves, prices and validation](docs/RUN_PROGRESSION_SAVES_2026-09-19.md) for the exact day gates, Sting → Bò Húc / C2 → Nước mía branches, unlock goals, save schema and limitations.
+
+The Escape/Menu window defaults to the reactive Authored DJ system for a new campaign: the approved Mèo/CAT route plays on day one, the Chó/DOG route on day two, and the two routes alternate by day. The standalone album player for all 26 OST files remains available as an explicit Playing Tracks option, with cover art, track selection, progress, next-track preview, play/pause, Shuffle, and Repeat Off/All/One; its spectrum still drives four presentation frequency bands. The offline `MusicLoopAudition` tester also supports arranging bar-aligned segments into named, repeatable sections without changing the source WAVs. Zodiac bosses, special weekday mechanics, story chains, multiplayer, AI opponents and 3D presentation remain unimplemented. The new progression prices and Endless curve are implemented balance values that still need extended playtesting.
 
 ## Verification
 

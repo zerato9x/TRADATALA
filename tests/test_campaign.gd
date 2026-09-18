@@ -107,12 +107,12 @@ func test_drink_selection_uses_shared_wallet_and_two_deal_periods() -> void:
 	drinks.test_all_drinks_available = false
 	var morning := drinks.select_for_event(EventManager.EventSlot.STARTER, DrinkCatalog.NUOC_VOI)
 	assert_true(morning["ok"])
-	assert_eq(wallet.balance_vnd, 40_000)
+	assert_eq(wallet.balance_vnd, 45_000)
 	assert_eq(drinks.morning_drink_id, DrinkCatalog.NUOC_VOI)
 	assert_eq(drinks.active_drink_id, DrinkCatalog.NUOC_VOI)
 	var afternoon := drinks.select_for_event(EventManager.EventSlot.NOON, DrinkCatalog.SAM_DUA)
 	assert_true(afternoon["ok"])
-	assert_eq(wallet.balance_vnd, 20_000)
+	assert_eq(wallet.balance_vnd, 35_000)
 	assert_eq(drinks.morning_drink_id, DrinkCatalog.NUOC_VOI)
 	assert_eq(drinks.afternoon_drink_id, DrinkCatalog.SAM_DUA)
 	drinks.clear_day()
@@ -129,22 +129,22 @@ func test_drink_selection_is_once_per_event_and_does_not_double_charge() -> void
 
 	var first := drinks.select_for_event(EventManager.EventSlot.STARTER, DrinkCatalog.NUOC_VOI)
 	assert_true(first["ok"])
-	assert_eq(wallet.balance_vnd, 40_000)
+	assert_eq(wallet.balance_vnd, 45_000)
 
 	var duplicate := drinks.select_for_event(EventManager.EventSlot.STARTER, DrinkCatalog.SAM_DUA)
 	assert_false(duplicate["ok"])
 	assert_eq(duplicate["reason"], "already_selected")
-	assert_eq(wallet.balance_vnd, 40_000)
+	assert_eq(wallet.balance_vnd, 45_000)
 	assert_eq(drinks.morning_drink_id, DrinkCatalog.NUOC_VOI)
 
 	var second := drinks.select_for_event(EventManager.EventSlot.NOON, DrinkCatalog.SAM_DUA)
 	assert_true(second["ok"])
-	assert_eq(wallet.balance_vnd, 20_000)
+	assert_eq(wallet.balance_vnd, 35_000)
 
 	var second_duplicate := drinks.select_for_event(EventManager.EventSlot.NOON, DrinkCatalog.TRA_DA)
 	assert_false(second_duplicate["ok"])
 	assert_eq(second_duplicate["reason"], "already_selected")
-	assert_eq(wallet.balance_vnd, 20_000)
+	assert_eq(wallet.balance_vnd, 35_000)
 
 
 func test_campaign_completes_28_deals_and_28_event_slots_before_sunday_victory() -> void:
@@ -166,7 +166,7 @@ func test_campaign_completes_28_deals_and_28_event_slots_before_sunday_victory()
 				assert_true(events.complete_interaction("choose_drink"))
 			assert_true(campaign.complete_current_event())
 		elif CampaignManager.DEAL_PHASE_TO_PERIOD.has(campaign.current_phase):
-			wallet.apply_vnd(500_000, "campaign_test_deal")
+			wallet.apply_vnd(campaign.daily_requirement(), "campaign_test_deal")
 			deal_count += 1
 			assert_true(campaign.complete_deal())
 		elif campaign.current_phase == CampaignManager.CampaignPhase.MONEY_REQUIREMENT_CHECK:
@@ -178,7 +178,7 @@ func test_campaign_completes_28_deals_and_28_event_slots_before_sunday_victory()
 	assert_eq(campaign.current_phase, CampaignManager.CampaignPhase.CAMPAIGN_VICTORY)
 	assert_eq(deal_count, 28)
 	assert_eq(event_count, 28)
-	assert_eq(wallet.balance_vnd, 14_000_000 - 3_900_000)
+	assert_eq(wallet.balance_vnd, 31_750_000 * 3)
 
 
 func test_campaign_failure_stops_after_evening_deal_without_deducting_requirement() -> void:

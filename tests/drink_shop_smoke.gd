@@ -25,6 +25,9 @@ func _run() -> void:
 	_check(scene.menu_page == &"options", "viewport click opens Options")
 	await _click(scene.options_back_button)
 	_check(scene.menu_page == &"home", "viewport click activates Options Back")
+	# This roster/input smoke deliberately exposes all drinks; progression gates have their own suite.
+	scene.drink_manager.test_all_drinks_available = true
+	scene.drink_manager.progress.save_path = ""
 	await scene._on_play_pressed()
 	await create_timer(0.5).timeout
 	scene.event_table.focus_npc(EventTableController.NPC_TRA_DA)

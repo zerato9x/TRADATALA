@@ -23,8 +23,8 @@ func _run() -> void:
 	var balance := scene.deal.wallet.balance_vnd
 	for reason in ["u", "u_khan", "exhaustion"]:
 		var event := {"reason": reason, "title": {"u": "Ù!", "u_khan": "Ù KHAN!", "exhaustion": "EXHAUSTION"}[reason],
-			"steps": ["120.000 ₫", "×2"] if reason == "u" else (["12", "×10"] if reason == "u_khan" else ["Cash out table melds"]),
-			"payout": "+120.000 ₫", "amount_vnd": 120000,
+			"steps": ["VNĐ120.000", "×2"] if reason == "u" else (["12", "×10"] if reason == "u_khan" else ["Cash out table melds"]),
+			"payout": "+VNĐ120.000", "amount_vnd": 120000,
 			"start_wallet_vnd": 120000, "target_wallet_vnd": 240000}
 		presenter.present_transaction(event)
 		await create_timer(0.65).timeout
