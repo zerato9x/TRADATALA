@@ -11,7 +11,7 @@ func _campaign() -> CampaignManager:
 	campaign.lottery.set_seed_value(1776)
 	campaign.start_campaign()
 	campaign.wallet.reset(5_000_000)
-	campaign.wallet.economy_scaling = false # Fixed-price service unit fixtures; scaling has separate coverage.
+	campaign.wallet.economy_scaling = false # Disable wallet percentage in these fixtures; repetition still scales.
 	return campaign
 
 func test_polish_randomly_selects_two_distinct_cards_with_real_payment() -> void:
@@ -123,9 +123,12 @@ func test_tips_persist_across_days_reset_per_run_and_reveal_authoritative_specia
 	assert_true(c.shoe_shine.special_hint().is_empty())
 	var before := c.wallet.balance_vnd
 	var threshold := int(MiscServiceConfig.FAVORS.lottery_special.tips_required_vnd)
+	var paid := 0
 	while not c.shoe_shine.favor_available("lottery_special"):
+		paid += c.shoe_shine.tip_cost()
 		assert_true(c.shoe_shine.tip().ok)
-	assert_eq(c.wallet.balance_vnd, before - threshold)
+	assert_true(paid >= threshold)
+	assert_eq(c.wallet.balance_vnd, before - paid)
 	assert_eq(c.shoe_shine.special_hint().number, c.lottery.special_number())
 	c.current_day_index = 1
 	c._begin_current_day()
@@ -150,7 +153,7 @@ func test_service_gates_insufficient_money_and_wrong_event() -> void:
 	c.lottery.begin_event(EventManager.EventSlot.AFTERNOON)
 	assert_false(c.lottery.purchase(id).ok)
 	c.wallet.reset(0)
-	assert_false(c.lottery.purchase(c.lottery.offered_tickets()[0].id).ok)
+	assert_true(c.lottery.offered_tickets().is_empty())
 
 func test_draw_is_seven_distinct_numbers_with_exact_categories_and_integer_payouts() -> void:
 	var wallet := VndWallet.new()
@@ -188,8 +191,8 @@ func test_daily_draw_and_offers_survive_reopen_and_hint_and_change_next_day() ->
 		assert_eq(lotto.special_number(), special)
 	lotto.begin_event(EventManager.EventSlot.AFTERNOON)
 	assert_eq(lotto.special_number(), special)
-	assert_true(lotto.revealed_results().is_empty())
-	var old := lotto.settle_day()
+	assert_false(lotto.revealed_results().is_empty())
+	var old := lotto.last_receipt
 	lotto.begin_day(1)
 	assert_eq(lotto.day_index, 1)
 	assert_true(lotto.revealed_results().is_empty())
@@ -205,7 +208,7 @@ func test_actual_offered_tickets_pay_each_category_once_and_reopen_cannot_pay_ag
 	for day in 100:
 		lotto.begin_day(day)
 		wallet.reset(10_000_000)
-		for slot in [EventManager.EventSlot.MORNING, EventManager.EventSlot.AFTERNOON]:
+		for slot in [EventManager.EventSlot.MORNING]:
 			lotto.begin_event(slot)
 			for offer in lotto.offered_tickets():
 				assert_true(lotto.purchase(offer.id).ok)
@@ -318,6 +321,7 @@ func test_lottery_settlement_is_reentrant_safe_and_counts_toward_requirement() -
 			assert_true(c.lottery.settle_day().is_empty())
 	c.wallet.balance_changed.connect(reenter)
 	c.campaign_days[0]["required_vnd"] = MiscServiceConfig.TICKET_STAKE_VND * 80
+	c.lottery.begin_event(EventManager.EventSlot.AFTERNOON)
 	c._finish_day()
 	assert_true(c.collect_day_debt())
 	assert_false(c.run_failed)

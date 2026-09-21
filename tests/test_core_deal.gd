@@ -1182,7 +1182,7 @@ func test_vnd_per_point_converts_positive_and_negative_point_changes() -> void:
 
 func test_point_to_vnd_conversion_uses_integer_thousands_by_default() -> void:
 	assert_eq(VndWallet.points_to_vnd(63), 63000)
-	assert_eq(VndWallet.format_vnd(1234567890), "VNĐ1.234.567.890")
+	assert_eq(VndWallet.format_vnd(1234567890), "₫1.234.567.890")
 
 
 func _controlled_deal(stock_count: int, spent_count: int, seed: int) -> DealState:
@@ -1401,3 +1401,20 @@ func test_u_doubles_the_signed_current_deal_earning_exactly() -> void:
 	assert_true(deal.discard_card(deal.hand[0])["u_triggered"])
 	assert_eq(deal.current_deal_earnings_points(), -40)
 	assert_eq(deal.wallet.balance_vnd - before, VndWallet.points_to_vnd(-20))
+
+
+func test_set_extension_liquid_echo_waits_for_four_card_milestone() -> void:
+	var pipeline := ScoringPipeline.new()
+	for count: int in [4, 5, 6, 7, 8, 9, 11, 12]:
+		var cards := _kings(count)
+		cards[0].gieo_properties.append(GieoQueService.PROPERTY_MELD_RETRIGGER)
+		var added: Array[CardData] = [cards[-1]]
+		var old_score := 13 * (count - 1) * (count - 1)
+		var result := pipeline.preview_extension(cards, MeldRules.TYPE_SET, old_score, 1, added)
+		var milestone := count % 4 == 0
+		assert_eq(result.retrigger_count, 2 if milestone else 0, "SET retriggers only at a milestone")
+		assert_eq(result.scoring_passes.size(), 3 if milestone else 1)
+		if not milestone:
+			assert_eq(result.final_points, result.base_extension_score)
+			for hit: Dictionary in result.scoring_passes[0].presentation_hits:
+				assert_true(hit.card_id.is_empty() or hit.card_id == cards[-1].unique_id, "ordinary extension never replays old cards")

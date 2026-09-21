@@ -108,6 +108,19 @@ func _rebuild() -> void:
 		GieoQueService.STATE_COMPLETE:
 			_set_presentation_state(PresentationState.COMPLETE)
 			_build_complete()
+	var guide := Button.new()
+	guide.name = "GieoGuide"
+	guide.text = GameGlossary.words("GUIDE", "HƯỚNG DẪN")
+	guide.position = Vector2(690, 0)
+	guide.size = Vector2(165, 38)
+	guide.z_index = 100
+	guide.top_level = false
+	guide.pressed.connect(func(): GameGlossary.open(self, "gieo"))
+	# Use the free-positioned stage so the guide never consumes the cabinet layout.
+	if is_instance_valid(_stage):
+		_stage.add_child(guide)
+	else:
+		add_child(guide)
 
 
 func _set_presentation_state(next_state: PresentationState) -> void:
@@ -151,7 +164,7 @@ func _build_machine(lines: Array, is_ready: bool) -> void:
 	_build_lever(is_ready)
 	_build_oracle_panels(is_ready)
 	if is_ready:
-		var pull_hint := _label("%s\n%s" % [tr("GIEO_PULL_LEVER"), VndWallet.format_vnd(service.current_pull_cost())], 16, PresentationTheme.GOLD, HORIZONTAL_ALIGNMENT_CENTER)
+		var pull_hint := _label("%s\n%s" % [tr("GIEO_PULL_LEVER"), VndWallet.format_vnd(-service.current_pull_cost())], 16, PresentationTheme.GOLD, HORIZONTAL_ALIGNMENT_CENTER)
 		pull_hint.name = "OraclePullCost"
 		pull_hint.position = Vector2(340, 447)
 		pull_hint.size = Vector2(350, 62)
@@ -191,7 +204,7 @@ func _build_lever(is_ready: bool) -> void:
 	_lever_button.focus_mode = Control.FOCUS_ALL
 	_lever_button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	_lever_button.disabled = not is_ready or not service.can_afford_pull()
-	_lever_button.tooltip_text = "%s · %s" % [tr("GIEO_PULL_LEVER"), VndWallet.format_vnd(service.current_pull_cost())]
+	_lever_button.tooltip_text = "%s · %s" % [tr("GIEO_PULL_LEVER"), VndWallet.format_vnd(-service.current_pull_cost())]
 	_lever_button.pressed.connect(_on_cast_pressed.bind(false))
 	_stage.add_child(_lever_button)
 
@@ -222,7 +235,7 @@ func _build_oracle_panels(is_ready: bool) -> void:
 		_lower_detail.modulate.a = 0.38
 	if is_ready and not service.can_afford_pull():
 		_upper_detail.text = tr("GIEO_NOT_ENOUGH")
-		_upper_detail.add_theme_color_override("font_color", PresentationTheme.RED)
+		_upper_detail.add_theme_color_override("font_color", PresentationTheme.DANGER)
 
 
 func _create_oracle_frame(node_name: String, position_value: Vector2, title_text: String, detail_text: String) -> Dictionary:
@@ -351,7 +364,7 @@ func _add_result_panel(animated: bool) -> void:
 	_upper_detail.add_theme_color_override("font_color", PresentationTheme.GOLD)
 	_lower_label.text = tr("GIEO_TARGET").to_upper()
 	_lower_detail.text = tr(service.targeting_label_key())
-	_lower_detail.add_theme_color_override("font_color", Color("#9ed0ff"))
+	_lower_detail.add_theme_color_override("font_color", PresentationTheme.ACTION)
 	_result_parts = [_upper_label, _upper_detail, _lower_label, _lower_detail]
 	if animated:
 		for part in _result_parts:
@@ -384,7 +397,7 @@ func _add_decisions(animated: bool) -> void:
 	var accept := _button(tr("GIEO_ACCEPT"), "tea", Vector2(120, 62))
 	accept.pressed.connect(_on_accept_pressed)
 	decisions.add_child(accept)
-	var reroll := _button(_trf("GIEO_REROLL", VndWallet.format_vnd(service.current_pull_cost())), "gold", Vector2(160, 62))
+	var reroll := _button(_trf("GIEO_REROLL", VndWallet.format_vnd(-service.current_pull_cost())), "gold", Vector2(160, 62))
 	reroll.disabled = not service.can_afford_pull()
 	reroll.pressed.connect(_on_cast_pressed.bind(true))
 	decisions.add_child(reroll)
@@ -468,7 +481,7 @@ func _build_complete() -> void:
 	var summary := _label(_trf("GIEO_COMPLETE_SUMMARY", service.last_transformations.size()), 16, PresentationTheme.TEA, HORIZONTAL_ALIGNMENT_CENTER)
 	summary.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	box.add_child(summary)
-	var again := _button(_trf("GIEO_CAST_AGAIN", VndWallet.format_vnd(service.current_pull_cost())), "gold", Vector2(0, 52))
+	var again := _button(_trf("GIEO_CAST_AGAIN", VndWallet.format_vnd(-service.current_pull_cost())), "gold", Vector2(0, 52))
 	again.disabled = not service.can_afford_pull()
 	again.pressed.connect(_on_cast_pressed.bind(false))
 	box.add_child(again)
@@ -515,7 +528,7 @@ func _build_compact_result(parent: VBoxContainer) -> void:
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	row.add_theme_constant_override("separation", 24)
 	row.add_child(_result_value_block(tr("GIEO_CHANGE"), _effect_text(), PresentationTheme.GOLD))
-	row.add_child(_result_value_block(tr("GIEO_TARGET"), tr(service.targeting_label_key()), Color("#9ed0ff")))
+	row.add_child(_result_value_block(tr("GIEO_TARGET"), tr(service.targeting_label_key()), PresentationTheme.ACTION))
 	parent.add_child(row)
 
 

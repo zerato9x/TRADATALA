@@ -20,11 +20,13 @@ func configure(manager: DrinkManager, completed: bool) -> void:
 	_manager = manager
 	_completed = completed
 	confirm.text = tr("DRINK_ORDER")
+	PresentationTheme.configure_button(confirm, "gold")
 	var hint := Label.new()
 	hint.name = "QuickOrderHint"
 	hint.text = tr("DRINK_SHOP_QUICK_HINT")
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	hint.add_theme_font_size_override("font_size", 12)
+	PresentationTheme.style_text(hint, &"muted", 16)
+	hint.add_theme_stylebox_override("normal", PresentationTheme.panel_style(PresentationTheme.PANEL))
 	hint.add_theme_color_override("font_color", PresentationTheme.MUTED)
 	add_child(hint)
 	move_child(hint, 0)
@@ -38,7 +40,7 @@ func configure(manager: DrinkManager, completed: bool) -> void:
 		section.add_theme_constant_override("separation", 2)
 		var heading := Label.new()
 		heading.text = tr("DRINK_CLASS_" + category.to_upper())
-		heading.add_theme_font_size_override("font_size", 13)
+		heading.add_theme_font_size_override("font_size", 16)
 		heading.add_theme_color_override("font_color", COLORS[category])
 		heading.add_theme_color_override("font_shadow_color", Color.BLACK)
 		heading.add_theme_constant_override("shadow_offset_y", 2)
@@ -132,6 +134,8 @@ func configure(manager: DrinkManager, completed: bool) -> void:
 
 
 func inspect_drink(drink_id: String) -> void:
+	if not _buttons.has(drink_id) or selected_id == drink_id:
+		return
 	selected_id = drink_id
 	(_buttons[drink_id] as Button).button_pressed = true
 	_update_drink_details(drink_id, true)
@@ -142,10 +146,12 @@ func _update_drink_details(drink_id: String, update_order_state: bool) -> void:
 		confirm.disabled = _completed or not _manager.can_order(drink_id)
 	if _goal_label != null:
 		_goal_label.text = _manager.progress.goal_text(drink_id) if _manager.progress != null else ""
-		if update_order_state:
-			confirm.text = tr("DRINK_ORDER") if _manager.is_unlocked(drink_id) else tr("DRINK_LOCKED")
+	if update_order_state:
+		confirm.text = tr("EVENT_INTERACT_DONE") if _completed else (tr("DRINK_ORDER") if _manager.is_unlocked(drink_id) else tr("DRINK_LOCKED"))
+	PresentationTheme.configure_button(confirm, "gold")
 	if not _manager.test_all_drinks_available:
-		price.text = VndWallet.format_vnd(_manager.price_for(drink_id))
+		price.text = VndWallet.format_vnd(-_manager.price_for(drink_id))
+		PresentationTheme.style_text(price, &"cost", 20)
 	drink_inspected.emit(drink_id)
 
 

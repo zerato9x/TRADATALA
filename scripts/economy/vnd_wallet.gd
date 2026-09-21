@@ -8,6 +8,7 @@ const VND_PER_POINT := 1000
 var journal: Array[Dictionary] = []
 var journal_opening_vnd: int = 0
 var economy_scaling := false
+var day_target_vnd := 250_000
 
 var balance_vnd: int = 0
 var vnd_per_point: int = VND_PER_POINT
@@ -49,7 +50,12 @@ static func format_vnd(amount_vnd: int, include_sign: bool = false) -> String:
 		grouped = "." + digits.right(3) + grouped
 		digits = digits.left(digits.length() - 3)
 	grouped = digits + grouped
-	return "%sVNĐ%s" % [sign_text, grouped]
+	return "%s₫%s" % [sign_text, grouped]
+
+
+# Numeric-only HUD amount; the adjacent Label owns the VNĐ unit.
+static func format_amount(amount_vnd: int, include_sign: bool = false) -> String:
+	return format_vnd(amount_vnd, include_sign).replace("₫", "")
 
 
 # Every committed mutation is journaled before observers run. Summaries never pay.
@@ -73,5 +79,12 @@ func scaled_cost(base_vnd: int, percent: int = 2) -> int:
 	if not economy_scaling or base_vnd <= 0:
 		return base_vnd
 	# Round up to a 500 dong denomination; prices never become negative.
-	var proportional := int(ceil(maxi(balance_vnd, 0) * percent / 50000.0)) * 500
+	var proportional := int(ceil(maxi(day_target_vnd, 0) * percent / 50000.0)) * 500
 	return maxi(base_vnd, proportional)
+
+
+func player_service_cost(base_vnd: int, percent: int, purchases: int, balance: int = -1) -> int:
+	# Quote against the player, never the day's debt. Explicit balance supports Buy All.
+	var current := balance_vnd if balance < 0 else balance
+	var proportional := int(ceil(maxi(current, 0) * percent / 50000.0)) * 500 if economy_scaling else 0
+	return maxi(base_vnd, proportional) * (maxi(purchases, 0) + 1)

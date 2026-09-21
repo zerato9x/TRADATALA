@@ -42,6 +42,7 @@ func _capture(file: String) -> void:
 	root.get_texture().get_image().save_png("res://.godot/" + file)
 
 func _run() -> void:
+	root.size = Vector2i(1280, 720)
 	scene = load("res://scenes/match.tscn").instantiate()
 	root.add_child(scene)
 	current_scene = scene
@@ -60,35 +61,22 @@ func _run() -> void:
 	await _pause(0.7)
 	scene.event_table.focus_npc("hang_rong")
 	await _pause(0.7)
-	var panel := scene.campaign_participants.get_node_or_null("RelicSelector") as RelicSelector
-	_check(panel != null and panel.is_visible_in_tree(), "Hàng Rong opens a visible selector")
-	if panel == null:
-		_finish()
-		return
-	_check(panel.buttons.size() == 10, "all ten owned relics available")
-	var scroll := panel.get_child(3) as ScrollContainer
-	for id: String in panel.buttons:
-		scroll.ensure_control_visible(panel.buttons[id])
-		await _pause(0.08)
-		await _click(panel.buttons[id])
+	var panel := scene.campaign_participants.get_child(0)
+	_check(panel.is_visible_in_tree(), "Hang Rong opens a visible table shop")
+	_check(panel.find_children("Equip_*", "Button", true, false).size() == 10, "all ten owned relics available")
+	for id: String in RelicCatalog.DEFINITIONS:
+		await _click(panel.find_child("Equip_" + id, true, false))
 		_check(scene.deal.relics.equipped.has(id), id + " pointer equip")
-		await _click(panel.buttons[id])
+		await _click(panel.find_child("Equip_" + id, true, false))
 		_check(not scene.deal.relics.equipped.has(id), id + " pointer remove")
-	scroll.scroll_vertical = 0
-	await _pause(0.08)
-	await _click(panel.buttons["hair_clip"])
-	_check(scene.deal.relics.equipped.has("hair_clip"), "hair clip pointer equip")
-	await _click(panel.buttons["comb"])
-	_check(scene.deal.relics.equipped.has("comb"), "comb pointer equip")
-	await _click(panel.buttons["rubber_band"])
-	_check(scene.deal.relics.equipped.has("rubber_band"), "rubber band pointer equip")
-	await _click(panel.buttons["chewing_gum"])
-	_check(scene.deal.relics.equipped.has("chewing_gum"), "gum pointer equip")
-	_check(panel.buttons["lipstick"].disabled, "fifth relic requires removing one")
+	for id in ["hair_clip", "comb", "rubber_band", "chewing_gum"]:
+		await _click(panel.find_child("Equip_" + id, true, false))
+		_check(scene.deal.relics.equipped.has(id), id + " pointer equip")
+	_check(panel.find_child("Equip_lipstick", true, false).disabled, "fifth relic requires removing one")
 	await _capture("relic_selector.png")
-	await _click(panel.buttons["comb"])
+	await _click(panel.find_child("Equip_comb", true, false))
 	_check(not scene.deal.relics.equipped.has("comb"), "pointer remove frees slot")
-	await _click(panel.buttons["comb"])
+	await _click(panel.find_child("Equip_comb", true, false))
 	_check(scene.deal.relics.equipped.has("comb"), "pointer re-equip")
 	scene.deal.relics.reset_run()
 	for id in ["hair_clip", "sunflower_seeds", "hard_candy", "buttons"]:

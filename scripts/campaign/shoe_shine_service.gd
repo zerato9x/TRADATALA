@@ -7,6 +7,8 @@ var wallet: VndWallet
 var lottery: LotteryService
 var _deck: Array[CardData] = []
 var _tips_vnd := 0
+var polish_count_today := 0
+var tip_count_today := 0
 var _day_index := -1
 var _event_slot := -1
 var _favors_given: Dictionary = {}
@@ -17,6 +19,8 @@ func _init(p_wallet: VndWallet, p_lottery: LotteryService) -> void:
 	lottery = p_lottery
 
 func reset_run() -> void:
+	polish_count_today = 0
+	tip_count_today = 0
 	_tips_vnd = 0
 	_day_index = -1
 	_event_slot = -1
@@ -28,6 +32,8 @@ func begin_day(index: int, deck: Array[CardData]) -> void:
 	if _day_index == index:
 		return
 	_day_index = index
+	polish_count_today = 0
+	tip_count_today = 0
 	last_polished_ids.clear()
 	_event_slot = -1
 	_deck = deck
@@ -59,6 +65,7 @@ func can_polish() -> bool:
 func polish() -> Dictionary:
 	if not can_polish():
 		return {"ok": false}
+	var cost := polish_cost()
 	var pool := _eligible_cards()
 	last_polished_ids.clear()
 	for _i in 2:
@@ -67,7 +74,8 @@ func polish() -> Dictionary:
 		pool.remove_at(index)
 		card.shiny = true
 		last_polished_ids.append(card.unique_id)
-	wallet.apply_vnd(-polish_cost(), "shoe_polish")
+	polish_count_today += 1
+	wallet.apply_vnd(-cost, "shoe_polish")
 	return {"ok": true, "card_ids": last_polished_ids.duplicate()}
 
 func can_tip() -> bool:
@@ -76,8 +84,10 @@ func can_tip() -> bool:
 func tip() -> Dictionary:
 	if not can_tip():
 		return {"ok": false}
-	_tips_vnd += tip_cost()
-	wallet.apply_vnd(-tip_cost(), "shoe_tip")
+	var cost := tip_cost()
+	_tips_vnd += cost
+	tip_count_today += 1
+	wallet.apply_vnd(-cost, "shoe_tip")
 	return {"ok": true}
 
 func favor_available(favor_id: String) -> bool:
@@ -94,7 +104,7 @@ func special_hint() -> Dictionary:
 
 
 func polish_cost() -> int:
-	return wallet.scaled_cost(MiscServiceConfig.POLISH_COST_VND)
+	return wallet.player_service_cost(MiscServiceConfig.POLISH_COST_VND, 2, polish_count_today)
 
 func tip_cost() -> int:
-	return wallet.scaled_cost(MiscServiceConfig.TIP_VND, 1)
+	return wallet.player_service_cost(MiscServiceConfig.TIP_VND, 1, tip_count_today)

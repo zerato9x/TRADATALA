@@ -313,6 +313,9 @@ func _apply_gold(context: ScoringContext) -> void:
 
 
 func _gieo_full_meld_retrigger_count(context: ScoringContext) -> int:
+	# An ordinary SET extension is delta-only, including Liquid echoes.
+	if context.action_type == "extension" and context.meld_type == MeldRules.TYPE_SET and not is_set_milestone(context.meld_type, context.cards.size()):
+		return 0
 	var count := 0
 	for card in context.cards:
 		if card.has_gieo_property(GieoQueService.PROPERTY_MELD_RETRIGGER):

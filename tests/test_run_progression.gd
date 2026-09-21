@@ -142,7 +142,7 @@ func test_save_recovers_backup_and_rejects_unsupported_version() -> void:
 	file.close()
 	var result := save.load_run()
 	assert_true(save.recovered_backup)
-	assert_eq(result.deal.wallet_balance_vnd, 0)
+	assert_eq(result.deal.wallet_balance_vnd, CampaignConfig.STARTING_WALLET_VND)
 
 func test_paid_sunday_waits_for_endless_choice_and_preserves_run() -> void:
 	var d := DealState.new()
@@ -154,7 +154,7 @@ func test_paid_sunday_waits_for_endless_choice_and_preserves_run() -> void:
 	assert_true(c.collect_day_debt())
 	assert_true(c.campaign_complete)
 	assert_eq(c.current_day_index, 6)
-	assert_eq(d.wallet.balance_vnd, 4_000_000)
+	assert_eq(d.wallet.balance_vnd, 4_000_000 + CampaignConfig.STARTING_WALLET_VND)
 	assert_true(c.continue_endless())
 	assert_false(c.continue_endless())
 	assert_true(c.endless)
@@ -164,7 +164,7 @@ func test_paid_sunday_waits_for_endless_choice_and_preserves_run() -> void:
 	c._finish_day()
 	assert_true(c.collect_day_debt())
 	assert_true(c.run_failed)
-	assert_eq(d.wallet.balance_vnd, 4_000_000)
+	assert_eq(d.wallet.balance_vnd, 4_000_000 + CampaignConfig.STARTING_WALLET_VND)
 
 func test_pending_collection_roundtrip_does_not_charge_twice() -> void:
 	var d := DealState.new()
@@ -177,10 +177,10 @@ func test_pending_collection_roundtrip_does_not_charge_twice() -> void:
 	var other := DealState.new()
 	var restored := make_campaign(other)
 	assert_true(save.restore(save.load_run(), restored, other))
-	assert_eq(other.wallet.balance_vnd, 1_000_000)
+	assert_eq(other.wallet.balance_vnd, 1_000_000 + CampaignConfig.STARTING_WALLET_VND)
 	assert_true(restored.collect_day_debt())
 	assert_false(restored.collect_day_debt())
-	assert_eq(other.wallet.balance_vnd, 750_000)
+	assert_eq(other.wallet.balance_vnd, 750_000 + CampaignConfig.STARTING_WALLET_VND)
 
 func test_save_preserves_melds_properties_phase_choice_and_pending_gieo() -> void:
 	var d := DealState.new()
@@ -288,3 +288,59 @@ func test_exhaustion_card_contributions_are_in_run_mvp_history() -> void:
 		for hit: Dictionary in scoring_pass.hits:
 			points += int(hit.points)
 	assert_eq(points, event.points)
+
+func test_difficulty_doubles_debts_and_unlocks_only_after_week() -> void:
+	var d := DealState.new()
+	var c := make_campaign(d)
+	c.difficulty_progress = preload("res://scripts/campaign/difficulty_progress.gd").new("")
+	assert_false(c.select_difficulty(2))
+	assert_true(c.select_difficulty(1))
+	c.current_day_index = 6
+	c.current_phase = CampaignManager.CampaignPhase.MONEY_REQUIREMENT_CHECK
+	d.wallet.reset(16_000_000)
+	assert_true(c.collect_day_debt())
+	assert_eq(c.difficulty_progress.unlocked, 2)
+	assert_true(c.continue_endless())
+	assert_eq(c.daily_requirement(), 24_000_000)
+	assert_eq(c.difficulty_progress.unlocked, 2)
+	assert_true(c.select_difficulty(2))
+	c.start_campaign(true, "difficulty-two")
+	assert_eq(c.daily_requirement(), 500_000)
+	assert_eq(c.campaign_days[6].required_vnd, 32_000_000)
+	var save := RunSave.new("user://difficulty_test.save")
+	var snapshot := save.capture(c, d)
+	var other := make_campaign(DealState.new())
+	assert_true(save.restore(snapshot, other, d))
+	assert_eq(other.difficulty, 2)
+	assert_eq(other.daily_requirement(), 500_000)
+	snapshot.campaign.erase("difficulty")
+	assert_true(save.restore(snapshot, other, d))
+	assert_eq(other.difficulty, 1)
+
+func test_difficulty_profile_survives_new_instance() -> void:
+	var progress = preload("res://scripts/campaign/difficulty_progress.gd").new("user://difficulty_test.cfg")
+	progress.unlocked = 1
+	progress.complete_week(1)
+	var restored = preload("res://scripts/campaign/difficulty_progress.gd").new("user://difficulty_test.cfg")
+	assert_eq(restored.unlocked, 2)
+	restored.complete_week(1)
+	assert_eq(restored.unlocked, 2)
+	restored.complete_week(3)
+	assert_eq(restored.unlocked, 2)
+
+func test_failed_sunday_does_not_unlock_difficulty() -> void:
+	var d := DealState.new()
+	var c := make_campaign(d)
+	c.difficulty_progress = preload("res://scripts/campaign/difficulty_progress.gd").new("")
+	c.current_day_index = 6
+	c.current_phase = CampaignManager.CampaignPhase.MONEY_REQUIREMENT_CHECK
+	d.wallet.reset(0)
+	assert_true(c.collect_day_debt())
+	assert_true(c.run_failed)
+	assert_eq(c.difficulty_progress.unlocked, 1)
+	var first := CampaignConfig.day_definitions(1)
+	var second := CampaignConfig.day_definitions(2)
+	var third := CampaignConfig.day_definitions(3)
+	for index in first.size():
+		assert_eq(second[index].required_vnd, first[index].required_vnd * 2)
+		assert_eq(third[index].required_vnd, second[index].required_vnd * 2)

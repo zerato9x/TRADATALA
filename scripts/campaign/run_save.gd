@@ -10,11 +10,11 @@ const TYPES := {
 	"PhaseSettlement": preload("res://scripts/gameplay/phase_settlement.gd"),
 	"ScoringContext": preload("res://scripts/scoring/scoring_context.gd"),
 }
-const CAMPAIGN_FIELDS := ["run_seed", "endless", "_base_day_count", "current_day_index", "current_phase", "campaign_complete", "run_failed", "campaign_days", "active_deal_wallet_before_vnd", "deal_cursor", "day_cursor", "deal_reports", "day_reports", "collection_report", "activities", "day_activity_cursor"]
+const CAMPAIGN_FIELDS := ["difficulty", "run_seed", "endless", "_base_day_count", "current_day_index", "current_phase", "campaign_complete", "run_failed", "campaign_days", "active_deal_wallet_before_vnd", "deal_cursor", "day_cursor", "deal_reports", "day_reports", "collection_report", "activities", "day_activity_cursor"]
 const DRINK_FIELDS := ["day_index", "day_target_vnd", "empty_glasses", "current_event_slot", "event_ordered", "morning_drink_id", "afternoon_drink_id", "active_drink_id"]
 const GIEO_FIELDS := ["persistent_deck", "state", "current_day_index", "free_cast_used_today", "paid_cast_count_today", "current_result", "resolved_destination", "resolved_targets", "last_transformations"]
 const LOTTERY_FIELDS := ["day_index", "event_slot", "_draw", "_offers", "_tickets", "_settled", "last_receipt"]
-const SHOE_FIELDS := ["last_polished_ids", "_deck", "_tips_vnd", "_day_index", "_event_slot", "_favors_given"]
+const SHOE_FIELDS := ["polish_count_today", "tip_count_today", "last_polished_ids", "_deck", "_tips_vnd", "_day_index", "_event_slot", "_favors_given"]
 const SHOP_FIELDS := ["offers", "visit_id", "purchased", "rerolls", "target_vnd"]
 var path: String
 var error := ""
@@ -45,6 +45,7 @@ static func apply_fields(object: Object, data: Dictionary, names: Array) -> void
 func capture(campaign: CampaignManager, deal: DealState) -> Dictionary:
 	var event := campaign.event_manager.current_event
 	return {
+		"onboarding": {"learned": campaign.onboarding.learned.duplicate(), "dismissed": campaign.onboarding.dismissed.duplicate()},
 		"campaign": fields(campaign, CAMPAIGN_FIELDS), "deal": deal.snapshot_state(),
 		"drinks": fields(campaign.drink_manager, DRINK_FIELDS),
 		"progress": {"counters": campaign.drink_manager.progress.counters.duplicate(), "seen": campaign.drink_manager.progress._seen_melds.duplicate()} if campaign.drink_manager.progress != null else {},
@@ -58,13 +59,24 @@ func capture(campaign: CampaignManager, deal: DealState) -> Dictionary:
 func restore(data: Dictionary, campaign: CampaignManager, deal: DealState) -> bool:
 	if not valid_snapshot(data):
 		return false
+	campaign.difficulty = int(data.campaign.get("difficulty", 1))
 	apply_fields(campaign, data.campaign, CAMPAIGN_FIELDS)
+	campaign.onboarding.reset()
+	campaign.onboarding.learned = data.get("onboarding", {}).get("learned", {}).duplicate()
+	campaign.onboarding.dismissed = data.get("onboarding", {}).get("dismissed", {}).duplicate()
 	deal.restore_snapshot(data.deal)
 	deal.wallet.economy_scaling = true
+	deal.wallet.day_target_vnd = campaign.daily_requirement()
 	apply_fields(campaign.drink_manager, data.drinks, DRINK_FIELDS)
 	apply_fields(campaign.gieo_que, data.gieo, GIEO_FIELDS)
 	apply_fields(campaign.lottery, data.lottery, LOTTERY_FIELDS)
 	apply_fields(campaign.shoe_shine, data.shoe, SHOE_FIELDS)
+	# Older saves lack repeat counts. Recover today's purchases from the journal.
+	var today := deal.wallet.journal.slice(campaign.day_cursor)
+	if not data.shoe.has("polish_count_today"):
+		campaign.shoe_shine.polish_count_today = today.filter(func(entry): return entry.reason == "shoe_polish").size()
+	if not data.shoe.has("tip_count_today"):
+		campaign.shoe_shine.tip_count_today = today.filter(func(entry): return entry.reason == "shoe_tip").size()
 	apply_fields(campaign.relic_shop, data.shop, SHOP_FIELDS)
 	campaign.gieo_que._rng.state = data.gieo_rng
 	campaign.lottery._rng.state = data.lottery_rng

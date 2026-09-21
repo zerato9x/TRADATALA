@@ -29,6 +29,13 @@ func _build(receipt: Dictionary) -> void:
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 12)
 	margin.add_child(box)
+	var host := TextureRect.new()
+	host.texture = preload("res://assets/environment/npcs/lode.png")
+	host.custom_minimum_size = Vector2(90, 95)
+	host.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	host.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	host.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	box.add_child(host)
 	_add_label(box, tr("LOTTO_RESULTS") % (int(receipt.day_index) + 1), 24)
 	for prize in MiscServiceConfig.PRIZES:
 		var numbers: Array[String] = []
@@ -37,6 +44,10 @@ func _build(receipt: Dictionary) -> void:
 		var label := _add_label(box, "%s  %s     %s" % [tr(prize.label), prize.multiplier, " · ".join(numbers)], 32 if prize.id == "special" else 19)
 		if prize.id == "special":
 			label.add_theme_color_override("font_color", PresentationTheme.GOLD)
+		label.modulate.a = 0.0
+		var reveal := label.create_tween()
+		reveal.tween_interval(0.2 + MiscServiceConfig.PRIZES.find(prize) * 0.24)
+		reveal.tween_property(label, "modulate:a", 1.0, 0.2)
 	var scroll := ScrollContainer.new()
 	scroll.custom_minimum_size.y = 150
 	box.add_child(scroll)
@@ -48,14 +59,14 @@ func _build(receipt: Dictionary) -> void:
 		for prize in MiscServiceConfig.PRIZES:
 			if prize.id == ticket.prize:
 				prize_label = tr(prize.label) + " " + prize.multiplier
-		_add_label(tickets, "%02d — %s   ·   %s → %s" % [int(ticket.number), prize_label, VndWallet.format_vnd(int(ticket.stake_vnd)), VndWallet.format_vnd(int(ticket.payout_vnd))], 17)
+		_add_label(tickets, "%02d — %s   ·   %s → %s" % [int(ticket.number), prize_label, VndWallet.format_vnd(int(ticket.stake_vnd)), VndWallet.format_vnd(int(ticket.payout_vnd), true)], 17)
 	var special_win := false
 	for ticket in receipt.tickets:
 		if ticket.prize == "special":
 			special_win = true
 	if special_win:
 		_add_label(box, tr("LOTTO_SPECIAL") + " ×80!", 38).add_theme_color_override("font_color", PresentationTheme.GOLD)
-	_add_label(box, tr("LOTTO_PAID") % VndWallet.format_vnd(int(receipt.total_vnd)), 32 if special_win else 26)
+	_add_label(box, tr("LOTTO_PAID") % VndWallet.format_vnd(int(receipt.total_vnd), true), 32 if special_win else 26).add_theme_color_override("font_color", PresentationTheme.MONEY_GAIN)
 	var close := Button.new()
 	close.name = "CloseReceipt"
 	close.text = tr("EVENT_CONTINUE")

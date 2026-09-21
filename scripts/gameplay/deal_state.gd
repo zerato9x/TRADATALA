@@ -81,7 +81,7 @@ func _init() -> void:
 	deck.draw_requested_while_empty.connect(_on_draw_requested_while_empty)
 
 
-func start_deal(shuffle_seed: int = -1, reset_wallet: bool = false) -> Dictionary:
+func start_deal(shuffle_seed: int = -1, reset_wallet: bool = false, opening_ids: Array[String] = []) -> Dictionary:
 	if reset_wallet:
 		wallet.reset()
 	action_counts.clear()
@@ -91,6 +91,16 @@ func start_deal(shuffle_seed: int = -1, reset_wallet: bool = false) -> Dictionar
 		deck.reset(shuffle_seed)
 	else:
 		deck.reset_from_campaign_cards(campaign_deck_cards, shuffle_seed)
+	# Reorder only existing physical deal copies before the ordinary draw path.
+	var opening: Array[CardData] = []
+	for id in opening_ids:
+		for card in deck.draw_pile:
+			if card.unique_id == id:
+				opening.append(card)
+				deck.draw_pile.erase(card)
+				break
+	for index in range(opening.size() - 1, -1, -1):
+		deck.draw_pile.append(opening[index])
 	_reset_exhaustion_state()
 	_capture_expected_deal_card_ids()
 	hand.clear()

@@ -77,7 +77,8 @@ func _build_shoe() -> void:
 	add_child(row)
 	_polish_button = Button.new()
 	_polish_button.name = "PolishConfirm"
-	_polish_button.text = tr("SHOE_POLISH") % VndWallet.format_vnd(shoe.polish_cost())
+	_polish_button.tooltip_text = GameGlossary.words("2% of current wallet (minimum 10.000 VNĐ), rounded to 500 VNĐ; daily purchase multiplier: ", "2% ví hiện tại (tối thiểu 10.000 VNĐ), làm tròn 500 VNĐ; hệ số mua trong ngày: ") + str(shoe.polish_count_today + 1) + "×"
+	_polish_button.text = tr("SHOE_POLISH") % VndWallet.format_vnd(-shoe.polish_cost())
 	_polish_button.custom_minimum_size = Vector2(300, 44)
 	row.add_child(_polish_button)
 	_polish_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -85,7 +86,8 @@ func _build_shoe() -> void:
 	_polish_button.pressed.connect(_polish)
 	var tip := Button.new()
 	tip.name = "Tip"
-	tip.text = tr("SHOE_TIP") % VndWallet.format_vnd(shoe.tip_cost())
+	tip.tooltip_text = GameGlossary.words("1% of current wallet (minimum 5.000 VNĐ); daily tip multiplier: ", "1% ví hiện tại (tối thiểu 5.000 VNĐ); hệ số boa trong ngày: ") + str(shoe.tip_count_today + 1) + "×"
+	tip.text = tr("SHOE_TIP") % VndWallet.format_vnd(-shoe.tip_cost())
 	tip.custom_minimum_size = Vector2(260, 44)
 	tip.disabled = not shoe.can_tip()
 	row.add_child(tip)
@@ -119,12 +121,38 @@ func _speak_hint() -> bool:
 
 func _build_lottery() -> void:
 	_clear()
+	if not lottery.revealed_results().is_empty():
+		_label(tr("LOTTO_RESULTS") % (lottery.day_index + 1), 23)
+		for prize in MiscServiceConfig.PRIZES:
+			var numbers: Array[String] = []
+			for number in lottery.revealed_results()[prize.id]:
+				numbers.append("%02d" % int(number))
+			_label(tr(prize.label) + "  " + prize.multiplier + "   " + " · ".join(numbers), 20)
+		_label(tr("LOTTO_PAID") % VndWallet.format_vnd(int(lottery.last_receipt.total_vnd)), 23)
+		var review := Button.new()
+		review.text = tr("LOTTO_PREVIOUS")
+		add_child(review)
+		review.pressed.connect(func(): LotteryReceipt.show_receipt(self, lottery.last_receipt))
+		return
 	var heading := HBoxContainer.new()
 	heading.add_theme_constant_override("separation", 16)
 	add_child(heading)
 	var title := _label(tr("LOTTO_CHOOSE"), 23)
 	title.reparent(heading)
 	_label(tr("LOTTO_RULES"), 15)
+	var quote := lottery.buy_all_quote()
+	var all := Button.new()
+	all.name = "BuyAll"
+	all.tooltip_text = GameGlossary.words("Includes increasing daily prices: 1×, 2×, 3×… Each ticket uses the remaining wallet. Winnings use its paid stake.", "Đã tính giá tăng trong ngày: 1×, 2×, 3×… Mỗi vé dựa trên ví còn lại. Thưởng tính theo giá thực trả.")
+	all.text = ("MUA TẤT CẢ" if TranslationServer.get_locale().begins_with("vi") else "BUY ALL") + " · %d · %s" % [quote.count, VndWallet.format_vnd(-int(quote.cost_vnd))]
+	all.disabled = int(quote.count) == 0
+	PresentationTheme.configure_button(all, "gold")
+	add_child(all)
+	all.pressed.connect(func():
+		if lottery.buy_all().get("ok", false):
+			_build_lottery()
+			wallet_changed.emit()
+	)
 	var grid := GridContainer.new()
 	grid.columns = 4
 	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -153,14 +181,14 @@ func _build_lottery() -> void:
 		number.text = "%02d" % int(ticket.number)
 		number.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		number.add_theme_font_size_override("font_size", 38)
-		number.add_theme_color_override("font_color", Color("#342315") if not ticket.purchased else PresentationTheme.MUTED)
+		number.add_theme_color_override("font_color", PresentationTheme.PAPER_INK if not ticket.purchased else PresentationTheme.PAPER_MUTED)
 		number.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		ticket_face.add_child(number)
 		var price := Label.new()
-		price.text = tr("LOTTO_BOUGHT") if ticket.purchased else VndWallet.format_vnd(int(ticket.stake_vnd))
+		price.text = tr("LOTTO_BOUGHT") if ticket.purchased else VndWallet.format_vnd(-int(ticket.stake_vnd))
 		price.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		price.add_theme_font_size_override("font_size", 16)
-		price.add_theme_color_override("font_color", Color("#704326") if not ticket.purchased else PresentationTheme.MUTED)
+		price.add_theme_color_override("font_color", PresentationTheme.PAPER_COST if not ticket.purchased else PresentationTheme.PAPER_MUTED)
 		price.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		ticket_face.add_child(price)
 		button.pressed.connect(_buy.bind(String(ticket.id)))

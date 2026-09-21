@@ -10,15 +10,15 @@ IMPLEMENTED NOW
 - The shared card material has an independent clear-polish uniform, gloss sweep and small cleaning glint. Reused card faces clear the state.
 - Tips spend real VND. Run goodwill and the small favor registry are internal; no balance or progress meter is displayed. The Starter dialogue reads LotteryService.special_number().
 - A daily draw is generated before Starter, with seven distinct numbers from 00–99 in categories 1 / 1 / 2 / 3.
-- Morning and Afternoon use the same draw and separate pre-generated batches. Reopening does not refresh offers. Purchases require a currently offered ticket ID; arbitrary-number requests are invalid.
-- The existing day-end lifecycle settles all purchased tickets before checking the daily money requirement. Settlement commits before wallet signals and is idempotent.
+- Morning sells the pre-generated offers. Reopening does not refresh them. Buy All purchases affordable unowned tickets in display order through the normal single-ticket authority; its quote shows count and total cost. Purchases require a currently offered ticket ID; arbitrary-number requests are invalid.
+- Entry to the Afternoon Event settles all purchased tickets and closes purchases before the Evening Deal. Vé Số reveals categories, winning numbers, tickets, matches and total payout. Settlement commits before wallet signals and is idempotent, including days with no tickets. Winnings fly to the shared top wallet.
 - Payouts use integer numerator/denominator arithmetic. Third prize is stake * 5 / 2, rounding down a fractional dong; default stakes divide exactly.
 - A receipt shows the draw, category and payout per ticket, and total credited. It survives next-day state creation and can be revisited at Vé Số. Viewing never pays.
 - Existing demo gating is retained; these NPCs are full-campaign services.
 
 ## Provisional tuning
 
-All balance is in scripts/campaign/misc_service_config.gd:
+Base values and prize data are in scripts/campaign/misc_service_config.gd. Polish uses 2% of the current player wallet; tips and tickets use 1%, with the following minimums and rounding up to VNĐ500. Each category independently multiplies that base by its next daily purchase number (1, 2, 3, ...). Reopening and resuming preserve counts; a new day resets counts. Buy All simulates every successive wallet deduction and repeat multiplier. Purchased ticket stakes remain fixed for payouts.
 
 | Setting | Value |
 | --- | ---: |
@@ -39,7 +39,7 @@ Interaction/render coverage: tests/misc_npc_scene_smoke.gd uses viewport clicks 
 Fresh validation results are recorded in the task handoff. Automated viewport input is not a claim of manual physical-input testing.
 
 
-### Verified in this implementation
+### Historical verification (original services implementation)
 
 - Fresh Godot 4.7.1 deterministic suite: 148 passed / 148 total.
 - NPC scene smoke: PASS headless and OpenGL-rendered at 1280×720, with viewport clicks and an actual offered Special ticket paying ×80.
@@ -52,3 +52,5 @@ Fresh validation results are recorded in the task handoff. Automated viewport in
 - Existing runtime_scene_smoke.gd stops at line 353 while dereferencing a null drink texture. Its fixture expects a Trà Đá sprite while the deal has no active drink; the relevant drink behavior was not changed by this implementation. This smoke is not reported as passing.
 
 Rendered review images are generated under .godot/misc_shoe.png, .godot/misc_lottery.png and .godot/misc_lottery_result.png. The deterministic Special-win capture uses 03 and credits VNĐ800,000 for a VNĐ10,000 ticket.
+
+Current overhaul validation is recorded in CAMPAIGN_OVERHAUL_2026-09-20.md.

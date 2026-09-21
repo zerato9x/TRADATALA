@@ -142,6 +142,7 @@ func _build_objects() -> void:
 	cash_anchor.size = Vector2(270, 194)
 	cash_anchor.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(cash_anchor)
+	cash_anchor.show()
 	cash_button = Button.new()
 	cash_button.name = "EventCashInspect"
 	cash_button.position = cash_anchor.position - Vector2(10, 10)
@@ -158,6 +159,7 @@ func _build_objects() -> void:
 		cash_anchor.modulate = Color.WHITE
 		inspect_card.hide())
 	add_child(cash_button)
+	cash_button.show()
 	for index in RelicRuntime.MAX_EQUIPPED:
 		var button := Button.new()
 		button.name = "TableRelic%d" % index

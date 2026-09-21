@@ -5,11 +5,15 @@ signal dismissed()
 var seed_field: LineEdit
 var resume_button: Button
 var start_button: Button
+var difficulty_selector: OptionButton
+var music_choice: OptionButton
+var selected_difficulty := 1
+var selected_music := ""
 
 func words(en: String, vi: String) -> String:
 	return vi if TranslationServer.get_locale().begins_with("vi") else en
 
-func configure(progress: DrinkProgress, saved: Dictionary, message: String = "") -> void:
+func configure(progress: DrinkProgress, saved: Dictionary, message: String = "", unlocked: int = 1) -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	theme = PresentationTheme.create_game_theme()
 	var shade := ColorRect.new()
@@ -27,13 +31,34 @@ func configure(progress: DrinkProgress, saved: Dictionary, message: String = "")
 	body.add_theme_constant_override("separation", 14)
 	margin.add_child(body)
 	body.add_child(_label(words("A WEEK AT THE TABLE", "MỘT TUẦN BÊN BÀN BÀI"), 30))
-	body.add_child(_label(words("Seven debts. Sunday: VNĐ16,000,000. Then keep going in Endless.", "Bảy ngày trả nợ. Chủ nhật: VNĐ16.000.000. Sau đó chơi Vô tận."), 18))
+	body.add_child(_label(words("Pay Sunday to unlock the next difficulty. Each level doubles every debt. Then choose Endless or exit.", "Trả nợ Chủ nhật để mở độ khó tiếp theo. Mỗi mức nhân đôi mọi khoản nợ. Sau đó chọn Vô tận hoặc thoát."), 18))
+	difficulty_selector = OptionButton.new()
+	difficulty_selector.name = "Difficulty"
+	for level in range(1, mini(unlocked + 1, 28) + 1):
+		var days := CampaignConfig.day_definitions(level)
+		difficulty_selector.add_item(words("DIFFICULTY %d · Sunday %s", "ĐỘ KHÓ %d · Chủ nhật %s") % [level, VndWallet.format_amount(days[-1].required_vnd) + " VNĐ"])
+		difficulty_selector.set_item_disabled(level - 1, level > unlocked)
+		if level > unlocked: difficulty_selector.set_item_text(level - 1, difficulty_selector.get_item_text(level - 1) + words(" · LOCKED", " · CHƯA MỞ"))
+	difficulty_selector.item_selected.connect(func(index: int): selected_difficulty = index + 1)
+	body.add_child(difficulty_selector)
+	body.add_child(_label(words("CHOOSE YOUR MUSIC · You can change this later in Options.", "CHỌN NHẠC · Có thể đổi lại trong Tùy chọn."), 18))
+	music_choice = OptionButton.new()
+	music_choice.name = "MusicChoice"
+	music_choice.add_item(words("Choose before starting…", "Chọn trước khi chơi…"))
+	music_choice.set_item_disabled(0, true)
+	music_choice.add_item(words("PLAYLIST · Individual tracks", "DANH SÁCH · Từng bản nhạc"))
+	music_choice.add_item(words("AUTHORED DJ SETS · Continuous curated mixes", "DJ SET BIÊN SOẠN · Bản phối liên tục"))
+	music_choice.item_selected.connect(func(index: int):
+		selected_music = "playing_tracks" if index == 1 else "authored_dj"
+		start_button.disabled = false
+		resume_button.disabled = saved.is_empty())
+	body.add_child(music_choice)
 	var actions := HBoxContainer.new()
 	actions.add_theme_constant_override("separation", 14)
 	body.add_child(actions)
 	resume_button = Button.new()
 	resume_button.text = words("CONTINUE SAVED RUN", "TIẾP TỤC VÁN ĐÃ LƯU")
-	resume_button.disabled = saved.is_empty()
+	resume_button.disabled = true
 	resume_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	resume_button.custom_minimum_size.y = 48
 	PresentationTheme.configure_button(resume_button, "tea")
@@ -42,7 +67,7 @@ func configure(progress: DrinkProgress, saved: Dictionary, message: String = "")
 	var saved_info := words("No saved run yet.", "Chưa có ván đã lưu.")
 	if not saved.is_empty():
 		var c: Dictionary = saved.campaign
-		saved_info = words("Day %d · Seed %s · ", "Ngày %d · Hạt giống %s · ") % [int(c.current_day_index) + 1, c.run_seed] + VndWallet.format_vnd(int(saved.deal.wallet_balance_vnd))
+		saved_info = words("Difficulty %d · Day %d · Seed %s · ", "Độ khó %d · Ngày %d · Hạt giống %s · ") % [int(c.get("difficulty", 1)), int(c.current_day_index) + 1, c.run_seed] + VndWallet.format_vnd(int(saved.deal.wallet_balance_vnd))
 	body.add_child(_label(saved_info + ("\n" + message if not message.is_empty() else ""), 16))
 	var seed_row := HBoxContainer.new()
 	seed_row.add_theme_constant_override("separation", 14)
@@ -55,12 +80,13 @@ func configure(progress: DrinkProgress, saved: Dictionary, message: String = "")
 	seed_field.add_theme_font_size_override("font_size", 16)
 	seed_row.add_child(seed_field)
 	start_button = Button.new()
+	start_button.disabled = true
 	start_button.text = words("NEW RUN", "VÁN MỚI")
 	start_button.custom_minimum_size = Vector2(220, 44)
 	PresentationTheme.configure_button(start_button, "gold")
 	start_button.pressed.connect(func(): new_run.emit(seed_field.text))
 	seed_row.add_child(start_button)
-	body.add_child(_label(words("New Run replaces the current run save. Drink unlocks are kept. Autosaves follow every committed action.", "Ván mới thay bản lưu hiện tại. Mở khóa đồ uống được giữ lại. Tự lưu sau mỗi hành động hoàn tất."), 14))
+	body.add_child(_label(words("New Run replaces the current run save. Drink and difficulty unlocks are kept. Autosaves follow every committed action.", "Ván mới thay bản lưu hiện tại. Mở khóa đồ uống và độ khó được giữ lại. Tự lưu sau mỗi hành động hoàn tất."), 14))
 	body.add_child(_label(words("DRINK COLLECTION · PRICE AS % OF TODAY’S DEBT", "BỘ SƯU TẬP · GIÁ THEO % NỢ HÔM NAY"), 22))
 	body.add_child(_label(words("Day 1: iced tea → basics. Day 2: basics → tier 2. Day 3+: Sting → Red Bull; C2 → sugarcane at noon.", "Ngày 1: Trà đá → cơ bản. Ngày 2: cơ bản → bậc 2. Từ ngày 3: Sting → Bò Húc; C2 → Nước mía vào trưa."), 15))
 	var scroll := ScrollContainer.new()

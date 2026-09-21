@@ -123,6 +123,9 @@ var options_button: Button
 var how_to_play_back_button: Button
 var options_back_button: Button
 var menu_button: Button
+var return_to_game_button: Button
+var _menu_interaction_was_locked := false
+var _collection_departing := false
 var music_slider: HSlider
 var sound_slider: HSlider
 var music_settings_label: Label
@@ -277,6 +280,8 @@ var _run_save_pending := false
 var _restoring_run := false
 var _run_menu: Control
 var resolve_receipt: Control
+var campaign_money_hud: CanvasLayer
+var campaign_coach: CanvasLayer
 var resolve_mode := ""
 var campaign_overlay: Control
 var campaign_event_kicker: Label
@@ -299,6 +304,8 @@ func _ready() -> void:
 	if DemoBuild.enabled():
 		relic_title_label.get_parent().hide()
 	money_presentation.configure(wallet_value, wallet_pile_anchor)
+	money_presentation.major_event_started.connect(func(_reason: String): ui_feedback.play(&"jackpot"))
+	money_presentation.major_event_finished.connect(func(): ui_feedback.stop(&"jackpot"))
 	deal.relics.inventory_changed.connect(_refresh_relics)
 	_refresh_relics()
 	_setup_event_table_presentation()
@@ -348,6 +355,13 @@ func _ready() -> void:
 	campaign.campaign_won.connect(_on_campaign_won)
 	campaign.campaign_lost.connect(_on_campaign_lost)
 	campaign.deal_finished.connect(_on_demo_deal_finished)
+	campaign_money_hud = preload("res://scripts/ui/campaign_money_hud.gd").new()
+	add_child(campaign_money_hud)
+	campaign_money_hud.configure(self)
+	_setup_return_navigation()
+	campaign_coach = preload("res://scripts/ui/campaign_coach.gd").new()
+	add_child(campaign_coach)
+	campaign_coach.configure(self)
 	_sync_all(result, true)
 	_set_hand_interaction_enabled(false)
 	_park_game_layer()
@@ -460,7 +474,7 @@ func _setup_event_table_presentation() -> void:
 
 func _connect_editor_interface_signals() -> void:
 	_connect_signal_once(play_button.pressed, _show_run_menu)
-	_connect_signal_once(how_to_play_button.pressed, _show_menu_page.bind(&"how_to_play"))
+	_connect_signal_once(how_to_play_button.pressed, _open_glossary)
 	_connect_signal_once(tutorial_button.pressed, _on_tutorial_pressed)
 	_connect_signal_once(options_button.pressed, _show_menu_page.bind(&"options"))
 	_connect_signal_once(how_to_play_back_button.pressed, _show_menu_page.bind(&"home"))
@@ -783,6 +797,8 @@ func _refresh_localized_ui() -> void:
 	sound_settings_label.text = tr("MENU_SOUND")
 	language_settings_label.text = tr("MENU_LANGUAGE")
 	_refresh_language_options()
+	if return_to_game_button != null:
+		return_to_game_button.text = _run_words("BACK TO GAME", "TRỞ LẠI BÀN")
 	menu_button.text = tr("HUD_MENU")
 	menu_button.tooltip_text = tr("HUD_MENU_TOOLTIP")
 	discard_history_title.text = tr("HUD_DISCARD_HISTORY")
@@ -932,64 +948,18 @@ func _on_play_pressed() -> void:
 	_start_campaign()
 
 
+func _open_glossary() -> void:
+	GameGlossary.open(self)
+
+
 func _on_tutorial_pressed() -> void:
-	if menu_transitioning:
-		return
-	var return_to_gameplay := game_started
-	menu_transitioning = true
-	tutorial_button.disabled = true
-	menu_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	if game_started:
-		var close_tween := create_tween()
-		close_tween.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-		close_tween.tween_property(menu_layer, "modulate", Color(1, 1, 1, 0), 0.22)
-		await close_tween.finished
-	else:
-		var viewport_width := get_viewport_rect().size.x
-		var entrance := create_tween().set_parallel(true)
-		entrance.set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_OUT)
-		entrance.tween_property(game_layer, "position:x", 0.0, 0.72)
-		entrance.tween_property(menu_layer, "position:x", -viewport_width * 0.34, 0.62)
-		entrance.tween_property(menu_layer, "modulate", Color(1, 1, 1, 0), 0.48)
-		await entrance.finished
-	menu_layer.visible = false
-	menu_layer.position = Vector2.ZERO
-	menu_layer.modulate = Color.WHITE
-	game_started = true
-	menu_transitioning = false
-	tutorial_button.disabled = false
-	_start_tutorial_deal(return_to_gameplay)
+	# The old standalone tutorial is retired. Reference never replaces a live Deal.
+	GameGlossary.open(self, "campaign")
 
 
-func _start_tutorial_deal(return_to_gameplay: bool = false) -> void:
-	if tutorial_active:
-		_deactivate_tutorial(true)
-	tutorial_deal_snapshot.clear()
-	tutorial_return_to_gameplay = return_to_gameplay
-	tutorial_wallet_before = deal.wallet.balance_vnd
-	tutorial_journal_before = deal.wallet.journal.duplicate(true)
-	tutorial_journal_opening = deal.wallet.journal_opening_vnd
-	if tutorial_return_to_gameplay:
-		tutorial_deal_snapshot = deal.snapshot_state()
-	tutorial_active = true
-	tutorial_step = TUTORIAL_SELECT_RUN
-	interaction_locked = true
-	modal_overlay.visible = false
-	selected_card_ids.clear()
-	selected_meld_id = -1
-	tutorial_meld_id = -1
-	deal.set_current_drink(DrinkCatalog.NONE)
-	var result := deal.start_tutorial_deal()
-	deal.relics.reset_run()
-	displayed_wallet_vnd = deal.wallet.balance_vnd
-	money_queue_wallet_vnd = displayed_wallet_vnd
-	_sync_all(result, true)
-	tutorial_coach.visible = true
-	interaction_locked = false
-	_set_hand_interaction_enabled(true)
-	_refresh_tutorial_coach()
-	_refresh_tutorial_spotlight()
-	_refresh_actions()
+func _start_tutorial_deal(_return_to_gameplay: bool = false) -> void:
+	# Deprecated compatibility entry point; no second tutorial ruleset is launched.
+	GameGlossary.open(self, "core")
 
 
 func _deactivate_tutorial(restore_wallet: bool) -> void:
@@ -1217,9 +1187,26 @@ func _refresh_tutorial_spotlight() -> void:
 	tutorial_spotlight.set_targets(targets)
 
 
+func _setup_return_navigation() -> void:
+	event_table.menu_requested.connect(_on_menu_pressed)
+	return_to_game_button = Button.new()
+	return_to_game_button.name = "ReturnToGame"
+	return_to_game_button.position = Vector2(24, 24)
+	return_to_game_button.size = Vector2(240, 48)
+	return_to_game_button.text = _run_words("BACK TO GAME", "TRỞ LẠI BÀN")
+	PresentationTheme.configure_button(return_to_game_button, "gold")
+	return_to_game_button.pressed.connect(_close_menu_to_game)
+	menu_layer.add_child(return_to_game_button)
+	return_to_game_button.hide()
+
+
 func _on_menu_pressed() -> void:
-	if not game_started or menu_transitioning or interaction_locked or modal_overlay.visible or score_overlay.visible or discard_archive_overlay.visible:
+	if _collection_departing: return
+	if not game_started or menu_transitioning or (interaction_locked and current_campaign_event == null) or modal_overlay.visible or score_overlay.visible or discard_archive_overlay.visible:
 		return
+	_menu_interaction_was_locked = interaction_locked
+	event_table.collector_arrival.stop()
+	return_to_game_button.show()
 	interaction_locked = true
 	_set_hand_interaction_enabled(false)
 	_show_menu_page(&"home")
@@ -1245,8 +1232,8 @@ func _close_menu_to_game() -> void:
 	menu_layer.visible = false
 	menu_layer.modulate = Color.WHITE
 	menu_transitioning = false
-	interaction_locked = false
-	_set_hand_interaction_enabled(true)
+	interaction_locked = _menu_interaction_was_locked
+	_set_hand_interaction_enabled(not interaction_locked)
 	_refresh_actions()
 
 
@@ -1470,10 +1457,12 @@ func _show_campaign_event(event: EventInstance) -> void:
 		event_table.cash_clicked.connect(_on_event_cash_clicked)
 	event_table.set_continue_enabled(event.can_exit)
 	_refresh_stats()
+	if event.slot == EventManager.EventSlot.STARTER and not event.completed_interactions.has("debt_intro"):
+		event_table.focus_npc(EventTableController.NPC_DOI_NO)
 
 
 func _on_event_table_npc_focused(npc_id: String) -> void:
-	if DemoBuild.enabled() and npc_id != EventTableController.NPC_TRA_DA:
+	if DemoBuild.enabled() and npc_id not in [EventTableController.NPC_TRA_DA, EventTableController.NPC_DOI_NO]:
 		return
 	_clear_campaign_participants()
 	_restore_event_content_frame()
@@ -1487,13 +1476,18 @@ func _on_event_table_npc_focused(npc_id: String) -> void:
 			if candidate.id == npc_id:
 				participant = candidate
 				break
-	if npc_id == EventTableController.NPC_THAY_BOI and participant != null:
+	if npc_id == EventTableController.NPC_DOI_NO:
+		_build_debt_ledger()
+	elif npc_id == EventTableController.NPC_THAY_BOI and participant != null:
 		_build_gieo_que_service()
 	elif npc_id in [EventTableController.NPC_DANH_GIAY, EventTableController.NPC_LOTTO] and participant != null:
 		_build_misc_npc_service(npc_id)
 	elif npc_id == EventTableController.NPC_HANG_RONG:
 		event_table.continue_button.visible = false
-		var panel := RelicSelector.new()
+		event_table.content_panel.position = Vector2(115, 285)
+		event_table.content_panel.size = Vector2(740, 400)
+		event_table.content_panel.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
+		var panel := preload("res://scripts/ui/relic_table_shop.gd").new()
 		campaign_participants.add_child(panel)
 		panel.configure(deal.relics, campaign.relic_shop)
 		panel.wallet_changed.connect(_on_gieo_wallet_changed)
@@ -1513,7 +1507,7 @@ func _build_misc_npc_service(npc_id: String) -> void:
 	var service_rect: Rect2 = EventTableController.MISC_SERVICE_RECTS[npc_id]
 	event_table.content_panel.position = service_rect.position
 	event_table.content_panel.size = service_rect.size
-	event_table.content_panel.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
+	event_table.content_panel.add_theme_stylebox_override("panel", PresentationTheme.panel_style(PresentationTheme.PANEL, PresentationTheme.GOLD_DARK, 1, 4))
 	var margin := event_table.content_panel.get_child(0) as MarginContainer
 	for side in ["left", "top", "right", "bottom"]:
 		margin.add_theme_constant_override("margin_" + side, 0)
@@ -1528,8 +1522,19 @@ func _build_misc_npc_service(npc_id: String) -> void:
 
 
 func _on_lottery_settled(receipt: Dictionary) -> void:
-	# Campaign advances immediately; the immutable receipt survives the new draw.
-	LotteryReceipt.show_receipt.call_deferred(self, receipt)
+	# Focus the actual Afternoon visitor before revealing the immutable draw.
+	_present_afternoon_results.call_deferred(receipt)
+
+func _present_afternoon_results(receipt: Dictionary) -> void:
+	if current_campaign_event != null and current_campaign_event.slot == EventManager.EventSlot.AFTERNOON:
+		event_table.focus_npc(EventTableController.NPC_LOTTO)
+		LotteryReceipt.show_receipt(self, receipt)
+		var result_view := get_tree().root.get_node_or_null("LotteryReceipt")
+		if result_view != null:
+			result_view.find_child("CloseReceipt", true, false).pressed.connect(func():
+				campaign.onboarding.mark("lottery_result")
+				_queue_run_save()
+			)
 
 
 func _build_gieo_que_service() -> void:
@@ -2184,8 +2189,8 @@ func _pulse_relic(id: String) -> void:
 
 func _refresh_stats() -> void:
 	vnd_per_point_value.text = VndWallet.format_vnd(deal.vnd_per_point)
-	earnings_value.text = VndWallet.format_vnd(_points_to_vnd(deal.current_deal_earnings_points()), true)
-	wallet_value.text = VndWallet.format_vnd(displayed_wallet_vnd)
+	earnings_value.text = VndWallet.format_amount(_points_to_vnd(deal.current_deal_earnings_points()), true)
+	wallet_value.text = VndWallet.format_amount(displayed_wallet_vnd)
 	money_presentation.sync_wallet(displayed_wallet_vnd)
 	if campaign_value != null:
 		if campaign == null or campaign.current_day().is_empty():
@@ -2307,7 +2312,7 @@ func _refresh_actions() -> void:
 		return
 	if deal.state == DealState.STATE_FINAL_COMMIT_WINDOW and selected.is_empty():
 		status_label.text = tr("STATUS_LAST_CALL")
-		status_label.add_theme_color_override("font_color", PresentationTheme.GOLD)
+		status_label.add_theme_color_override("font_color", PresentationTheme.WARNING)
 		return
 	if deal.tra_da_extra_discard_pending and selected.is_empty():
 		status_label.text = tr("STATUS_TRA_DA_EXTRA_DISCARD")
@@ -2324,7 +2329,7 @@ func _refresh_actions() -> void:
 			points,
 			VndWallet.format_vnd(_points_to_vnd(points), true),
 		]
-		status_label.add_theme_color_override("font_color", PresentationTheme.TEA)
+		status_label.add_theme_color_override("font_color", PresentationTheme.MONEY_GAIN)
 	elif selected_meld_id >= 0 and deal.can_extend_meld(selected_meld_id, selected):
 		var points := HandAdvisor.estimate_extension_points(
 			deal.get_meld(selected_meld_id), selected, deal.scoring, deal.current_phase, deal.state == DealState.STATE_FINAL_COMMIT_WINDOW
@@ -2334,13 +2339,13 @@ func _refresh_actions() -> void:
 			points,
 			VndWallet.format_vnd(_points_to_vnd(points), true),
 		]
-		status_label.add_theme_color_override("font_color", PresentationTheme.GOLD)
+		status_label.add_theme_color_override("font_color", PresentationTheme.WARNING)
 	elif selected.size() == 1:
 		status_label.text = tr("STATUS_ONE_SELECTED")
 		status_label.add_theme_color_override("font_color", PresentationTheme.INK)
 	else:
 		status_label.text = tr("STATUS_INVALID_MELD")
-		status_label.add_theme_color_override("font_color", PresentationTheme.RED)
+		status_label.add_theme_color_override("font_color", PresentationTheme.DANGER)
 
 
 func _drink_target_status() -> String:
@@ -2388,6 +2393,8 @@ func _try_wallet_easter_egg(source: Control = null) -> void:
 
 
 func _input(event: InputEvent) -> void:
+	if get_tree().root.has_node("GameGlossary"):
+		return
 	if event.is_action_pressed("ui_cancel") and event_table != null and event_table.is_visible_in_tree() and event_table.overview.expanded:
 		event_table.overview._set_expanded(false)
 		event_table.overview._refresh_journey()
@@ -3541,6 +3548,9 @@ func _start_campaign() -> void:
 
 
 func _on_campaign_event_started(event: EventInstance) -> void:
+	if _collection_departing:
+		current_campaign_event = event
+		return
 	if gameplay_music != null:
 		match event.slot:
 			EventManager.EventSlot.NOON:
@@ -3583,7 +3593,11 @@ func _on_campaign_deal_requested(day: Dictionary, period: String, drink_id: Stri
 	var drink_result := deal.set_current_drink(drink_id)
 	if not drink_result.get("ok", false):
 		deal.set_current_drink(DrinkCatalog.TRA_DA)
-	var result := deal.start_deal(campaign.seed_for("deal", campaign.current_day_index * 4 + ["morning", "noon", "afternoon", "evening"].find(period)), false)
+	var opening: Array[String] = []
+	if campaign.current_day_index == 0:
+		opening = campaign.onboarding.opening_ids(period, campaign.gieo_que.persistent_deck, deal.relics.equipped)
+	var shuffle_seed := CampaignOnboarding.SEED if campaign.current_day_index == 0 else campaign.seed_for("deal", campaign.current_day_index * 4 + ["morning", "noon", "afternoon", "evening"].find(period))
+	var result := deal.start_deal(shuffle_seed, false, opening)
 	if result.get("ok", false) and gameplay_music != null:
 		gameplay_music.on_deal_started(period)
 	displayed_wallet_vnd = deal.wallet.balance_vnd
@@ -3766,7 +3780,6 @@ func _drain_pending_exhaustion_presentations() -> void:
 
 
 func _on_campaign_drink_pressed(event_slot: int, interaction_id: String, drink_id: String) -> void:
-	var previous_displayed_wallet := displayed_wallet_vnd
 	var result := drink_manager.select_for_event(event_slot, drink_id)
 	if not result.get("ok", false):
 		if String(result.get("reason", "")) == "already_selected":
@@ -3776,21 +3789,6 @@ func _on_campaign_drink_pressed(event_slot: int, interaction_id: String, drink_i
 	ui_feedback.play_drink(drink_id)
 	event_manager.complete_interaction(interaction_id)
 	var target_wallet := deal.wallet.balance_vnd
-	var paid_vnd := maxi(previous_displayed_wallet - target_wallet, 0)
-	if paid_vnd > 0:
-		await money_presentation.present_transaction({
-			"direction": "loss",
-			"amount_vnd": paid_vnd,
-			"start_wallet_vnd": previous_displayed_wallet,
-			"target_wallet_vnd": target_wallet,
-			"source_control": wallet_pile_anchor,
-			"destination_control": event_table,
-			"intensity": 0.75,
-			"title": tr(DrinkCatalog.display_name(drink_id)).to_upper(),
-			"steps": [],
-			"payout": VndWallet.format_vnd(-paid_vnd),
-			"reason": "drink_purchase",
-		})
 	displayed_wallet_vnd = target_wallet
 	money_queue_wallet_vnd = target_wallet
 	event_table.event_money_feedback(_event_money_text(target_wallet))
@@ -3812,6 +3810,8 @@ func _on_campaign_continue_pressed() -> void:
 		_start_campaign()
 		return
 	if current_campaign_event == null or not current_campaign_event.can_exit:
+		return
+	if campaign.gieo_que.state not in [GieoQueService.STATE_READY, GieoQueService.STATE_COMPLETE]:
 		return
 	campaign_continue_button.disabled = true
 	current_campaign_event = null
@@ -3836,6 +3836,10 @@ func _on_campaign_lost() -> void:
 
 
 func _show_campaign_outcome(won: bool) -> void:
+	if won and not campaign.endless and campaign._base_day_count == 7 and campaign.campaign_complete:
+		campaign.difficulty_progress.complete_week(campaign.difficulty)
+	event_table._hide_all_npcs()
+	event_table.hide()
 	current_campaign_event = null
 	interaction_locked = true
 	_set_hand_interaction_enabled(false)
@@ -3852,8 +3856,11 @@ func _show_campaign_outcome(won: bool) -> void:
 	report["seed"] = campaign.run_seed
 	report["days"] = campaign.day_reports.duplicate(true)
 	report["activities"] = campaign.activities.duplicate(true)
+	report["difficulty"] = campaign.difficulty
+	report["next_difficulty"] = campaign.difficulty_progress.unlocked
+	report["endless_debt"] = mini(4_000_000_000_000_000, int(ceil(float(campaign.daily_requirement()) * 1.5 / 500.0)) * 500)
 	report["can_endless"] = won and campaign.campaign_complete
-	resolve_receipt.show_report(report, "outcome", tr("CAMPAIGN_VICTORY" if won else "CAMPAIGN_FAILURE"), tr("CAMPAIGN_NEW_RUN"))
+	resolve_receipt.show_report(report, "outcome", tr("CAMPAIGN_VICTORY" if won else "CAMPAIGN_FAILURE"), _run_words("EXIT TO MENU", "VỀ MENU"))
 	_refresh_stats()
 
 
@@ -3870,6 +3877,14 @@ func _ensure_resolve_receipt() -> void:
 
 
 func _on_collection_requested(report: Dictionary) -> void:
+	# A collection owns the stage even when restored from an event save.
+	event_table._hide_all_npcs()
+	event_table._clear_content()
+	event_table.hide()
+	displayed_wallet_vnd = deal.wallet.balance_vnd
+	money_queue_wallet_vnd = displayed_wallet_vnd
+	money_presentation.sync_wallet(displayed_wallet_vnd)
+	event_table._animate_deal_out()
 	current_campaign_event = null
 	interaction_locked = true
 	_set_hand_interaction_enabled(false)
@@ -3900,8 +3915,38 @@ func _resolve_card_history(today_only: bool) -> Array:
 
 
 func _on_receipt_continue() -> void:
+	if _collection_departing: return
 	var mode := resolve_mode
 	resolve_mode = ""
+	if mode == "collection" and deal.wallet.balance_vnd >= campaign.daily_requirement():
+		_collection_departing = true
+		resolve_receipt._collector_arrival.stop()
+		# Keep the receiving character on screen while committed banknotes arrive.
+		var departure := CanvasLayer.new()
+		departure.layer = 244
+		add_child(departure)
+		var rider := TextureRect.new()
+		rider.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		rider.texture = resolve_receipt.portrait.texture
+		rider.position = resolve_receipt.portrait.global_position
+		rider.size = resolve_receipt.portrait.size
+		rider.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		departure.add_child(rider)
+		var exit := rider.create_tween()
+		exit.tween_interval(0.85)
+		exit.tween_property(rider, "position:x", 1380.0, 0.4).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
+		resolve_receipt.hide()
+		# Commit through the campaign once. Its wallet signal starts the flight.
+		campaign.collect_day_debt()
+		await exit.finished
+		departure.queue_free()
+		_collection_departing = false
+		if current_campaign_event != null:
+			_on_campaign_event_started(current_campaign_event)
+		displayed_wallet_vnd = deal.wallet.balance_vnd
+		money_queue_wallet_vnd = displayed_wallet_vnd
+		_refresh_stats()
+		return
 	resolve_receipt.hide()
 	match mode:
 		"deal":
@@ -3918,11 +3963,11 @@ func _on_receipt_continue() -> void:
 			money_queue_wallet_vnd = displayed_wallet_vnd
 			_refresh_stats()
 		"outcome":
-			_start_campaign()
+			_exit_completed_run()
 
 
 func _event_money_text(amount_vnd: int) -> String:
-	return "%s VNĐ" % VndWallet.format_vnd(amount_vnd).replace("VNĐ", "")
+	return VndWallet.format_amount(amount_vnd)
 
 
 func _campaign_period_key(period: String) -> String:
@@ -4027,7 +4072,7 @@ func _reject_action(message: String) -> void:
 	interaction_locked = false
 	_show_banner(message)
 	status_label.text = message.to_upper()
-	status_label.add_theme_color_override("font_color", PresentationTheme.RED)
+	status_label.add_theme_color_override("font_color", PresentationTheme.DANGER)
 	for card in _selected_cards():
 		if hand_views.has(card.unique_id):
 			hand_views[card.unique_id].play_reject()
@@ -4091,6 +4136,8 @@ func _rewind_tutorial_selection() -> void:
 
 
 func _unhandled_key_input(event: InputEvent) -> void:
+	if get_tree().root.has_node("GameGlossary"):
+		return
 	if is_instance_valid(_run_menu):
 		return
 	if is_instance_valid(resolve_receipt) and resolve_receipt.visible:
@@ -4312,15 +4359,39 @@ func _show_run_menu() -> void:
 	_run_menu = preload("res://scripts/ui/run_menu.gd").new()
 	layer.add_child(_run_menu)
 	var note := _run_words("Recovered the previous backup save.", "Đã khôi phục bản lưu dự phòng.") if run_save.recovered_backup else run_save.error
-	_run_menu.configure(drink_manager.progress, saved, note)
+	_run_menu.configure(drink_manager.progress, saved, note, campaign.difficulty_progress.unlocked)
 	_run_menu.dismissed.connect(func(): layer.queue_free())
 	_run_menu.new_run.connect(func(seed_text: String):
+		if not campaign.select_difficulty(_run_menu.selected_difficulty): return
+		_apply_run_music_choice()
 		run_seed_input = seed_text
 		layer.queue_free()
 		_on_play_pressed())
 	_run_menu.resume_run.connect(func():
+		_apply_run_music_choice()
 		if _resume_saved_run(saved):
 			layer.queue_free())
+
+
+func _apply_run_music_choice() -> void:
+	if _run_menu.selected_music.is_empty(): return
+	var index: int = settings.SUPPORTED_MUSIC_SYSTEMS.find(_run_menu.selected_music)
+	_on_music_system_selected(index)
+
+func _exit_completed_run() -> void:
+	_flush_run_save()
+	game_started = false
+	_park_game_layer()
+	interaction_locked = true
+	current_campaign_event = null
+	event_table.hide()
+	menu_layer.position = Vector2.ZERO
+	menu_layer.modulate = Color.WHITE
+	menu_layer.show()
+	menu_layer.mouse_filter = Control.MOUSE_FILTER_STOP
+	return_to_game_button.hide()
+	play_button.disabled = false
+	_show_menu_page(&"home")
 
 
 func _resume_saved_run(saved: Dictionary) -> bool:
@@ -4388,3 +4459,39 @@ func _campaign_day_name() -> String:
 	if campaign.endless:
 		return _run_words("ENDLESS · DAY %d", "VÔ TẬN · NGÀY %d") % (campaign.current_day_index + 1)
 	return tr(String(campaign.current_day().get("name_key", "")))
+
+
+func _build_debt_ledger() -> void:
+	event_table.continue_button.visible = false
+	event_table.content_panel.position = Vector2(145, 285)
+	event_table.content_panel.size = Vector2(700, 370)
+	var heading := Label.new()
+	heading.text = tr("DEBT_INTRO_REQUIRED")
+	PresentationTheme.style_text(heading, &"body", 18)
+	campaign_participants.add_child(heading)
+	var amount := Label.new()
+	amount.name = "DebtAmountDue"
+	amount.text = VndWallet.format_vnd(campaign.daily_requirement())
+	PresentationTheme.style_text(amount, &"debt", 38)
+	campaign_participants.add_child(amount)
+	var line := RichTextLabel.new()
+	line.bbcode_enabled = true
+	line.fit_content = true
+	line.scroll_active = false
+	line.custom_minimum_size = Vector2(640, 90)
+	line.text = tr("DEBT_INTRO_EXPLANATION") % PresentationTheme.emphasis(tr("PERIOD_EVENING"), &"warning")
+	PresentationTheme.style_text(line, &"body", 18)
+	campaign_participants.add_child(line)
+	var remaining := Label.new()
+	remaining.text = tr("DEBT_INTRO_SHORTFALL") % VndWallet.format_vnd(maxi(campaign.daily_requirement() - deal.wallet.balance_vnd, 0))
+	PresentationTheme.style_text(remaining, &"debt", 20)
+	campaign_participants.add_child(remaining)
+	var guide := Button.new()
+	guide.text = _run_words("ABOUT DEBT", "VỀ KHOẢN NỢ")
+	guide.pressed.connect(func(): GameGlossary.open(self, "campaign"))
+	campaign_participants.add_child(guide)
+	PresentationTheme.configure_button(guide)
+	event_table.back_button.text = tr("DEBT_INTRO_ACKNOWLEDGE")
+	event_manager.complete_interaction("debt_intro")
+	campaign.onboarding.mark("debt_intro")
+	_queue_run_save()

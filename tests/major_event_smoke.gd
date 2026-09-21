@@ -26,9 +26,11 @@ func _run() -> void:
 			"steps": ["VNĐ120.000", "×2"] if reason == "u" else (["12", "×10"] if reason == "u_khan" else ["Cash out table melds"]),
 			"payout": "+VNĐ120.000", "amount_vnd": 120000,
 			"start_wallet_vnd": 120000, "target_wallet_vnd": 240000}
+		var sound_count := int(scene.ui_feedback.play_counts.get(&"jackpot", 0))
 		presenter.present_transaction(event)
 		await create_timer(0.65).timeout
 		check(presenter.presentation_active, reason + " is active")
+		check(int(scene.ui_feedback.play_counts.get(&"jackpot", 0)) == sound_count + 1, reason + " plays jackpot once")
 		check(presenter.bill_layer.get_child_count() == 36, reason + " has bounded bill burst")
 		check(presenter.payout_label.modulate.a == 1.0, reason + " payout visible")
 		check(presenter.score_panel.position.distance_to((presenter.size - presenter.score_panel.size) * 0.5) < 1, reason + " is centered")
@@ -37,7 +39,7 @@ func _run() -> void:
 			root.get_texture().get_image().save_png("res://.godot/major_event_" + reason + ".png")
 		while presenter.presentation_active:
 			await process_frame
-		check(presenter.wallet_label.text == VndWallet.format_vnd(240000), reason + " wallet display reaches target")
+		check(presenter.wallet_label.text == VndWallet.format_amount(240000), reason + " wallet display reaches target")
 		check(scene.deal.wallet.balance_vnd == balance, reason + " does not pay twice")
 		check(presenter._major_nodes.is_empty(), reason + " cleanup")
 	# Exercise real exhaustion signal aggregation, scoring totals and ghost recycling.
@@ -63,9 +65,10 @@ func _run() -> void:
 	presenter.hide_ceremony()
 	presenter.sync_wallet(123000)
 	await create_timer(2.5).timeout
-	check(presenter.wallet_label.text == VndWallet.format_vnd(123000), "cancel cannot overwrite restored wallet")
+	check(presenter.wallet_label.text == VndWallet.format_amount(123000), "cancel cannot overwrite restored wallet")
 	check(not presenter.presentation_active, "cancel stays stopped")
+	check(not scene.ui_feedback.players[&"jackpot"].playing, "cancel stops jackpot cue")
 	print("MAJOR_EVENT_SMOKE: " + ("PASS" if failures.is_empty() else str(failures)))
 	scene.queue_free()
-	await process_frame
+	await create_timer(0.2).timeout
 	quit(0 if failures.is_empty() else 1)

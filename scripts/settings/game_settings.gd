@@ -16,7 +16,7 @@ const DEFAULT_AUTHORED_SET := "cat"
 
 var music_volume_percent: float = 100.0
 var sound_volume_percent: float = 100.0
-var locale_code: String = "vi"
+var locale_code: String = "en"
 var music_system: String = DEFAULT_MUSIC_SYSTEM
 var authored_music_set: String = DEFAULT_AUTHORED_SET
 
@@ -55,7 +55,7 @@ func set_authored_music_set(set_id: String) -> void:
 func set_locale(locale: String) -> void:
 	var normalized := locale.to_lower()
 	if normalized not in SUPPORTED_LOCALES:
-		normalized = "vi"
+		normalized = "en"
 	if locale_code == normalized and TranslationServer.get_locale() == normalized:
 		return
 	locale_code = normalized
@@ -99,7 +99,7 @@ func _load_preferences() -> void:
 	music_volume_percent = clampf(float(config.get_value("audio", "music_percent", music_volume_percent)), 0.0, 100.0)
 	sound_volume_percent = clampf(float(config.get_value("audio", "sound_percent", sound_volume_percent)), 0.0, 100.0)
 	var saved_locale := String(config.get_value("localization", "locale", locale_code)).to_lower()
-	locale_code = saved_locale if saved_locale in SUPPORTED_LOCALES else "vi"
+	locale_code = saved_locale if saved_locale in SUPPORTED_LOCALES else "en"
 	var saved_music_system := String(config.get_value("music", "system", music_system))
 	music_system = saved_music_system if saved_music_system in SUPPORTED_MUSIC_SYSTEMS else DEFAULT_MUSIC_SYSTEM
 	var saved_authored_set := String(config.get_value("music", "authored_set", authored_music_set))

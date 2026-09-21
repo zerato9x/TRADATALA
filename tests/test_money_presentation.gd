@@ -152,4 +152,4 @@ func test_export_font_covers_currency_and_negative_sign() -> void:
 	assert_true(font.has_char(0x20ab))
 	assert_true(font.has_char(0x2d))
 	assert_true(font.has_char(0x2212))
-	assert_eq(VndWallet.format_vnd(-12000), "−VNĐ12.000")
+	assert_eq(VndWallet.format_vnd(-12000), "−₫12.000")

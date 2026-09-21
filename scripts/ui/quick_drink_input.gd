@@ -12,7 +12,7 @@ func _ready() -> void:
 func _input(event: InputEvent) -> void:
 	if ui == null:
 		return
-	if not ui.game_started or ui.tutorial_active or ui.interaction_locked or ui.menu_layer.visible or ui.modal_overlay.visible:
+	if get_tree().root.has_node("GameGlossary") or not ui.game_started or ui.tutorial_active or ui.interaction_locked or ui.menu_layer.visible or ui.modal_overlay.visible:
 		cancel()
 		return
 	if event is InputEventKey and event.is_action_pressed(&"ui_cancel") and not source.is_empty():

@@ -1,5 +1,6 @@
 class_name CampaignConfig
 extends RefCounted
+const STARTING_WALLET_VND := 25_000
 
 ## The online-demo debt curve is the full campaign economy baseline.
 const DAYS := [
@@ -13,10 +14,11 @@ const DAYS := [
 ]
 
 
-static func day_definitions() -> Array[Dictionary]:
+static func day_definitions(difficulty: int = 1) -> Array[Dictionary]:
 	var definitions: Array[Dictionary] = []
 	for index in range(DAYS.size()):
 		var day: Dictionary = DAYS[index].duplicate(true)
+		day["required_vnd"] = int(day.required_vnd) * (1 << clampi(difficulty - 1, 0, 29))
 		definitions.append(day)
 	return definitions
 

@@ -82,7 +82,7 @@ func run() -> void:
 	deal.state_changed.disconnect(action_callback)
 	var events := EventManager.new()
 	CampaignNpcCatalog.register_initial_npcs(events)
-	check(events.npc_definitions.size() == 1, "only drink seller registered")
+	check(events.npc_definitions.size() == 2, "demo registers drink seller and debt collector")
 	var manager := DrinkManager.new()
 	manager.progress = DrinkProgress.new("")
 	manager.test_all_drinks_available = true
@@ -130,10 +130,10 @@ func run() -> void:
 		if CampaignManager.EVENT_PHASE_TO_SLOT.has(campaign.current_phase):
 			var event := events.current_event
 			event_count += 1
-			check(event.participants.size() == 1 and event.interactions.size() == 1, "seller in every event")
+			check(event.participants.any(func(npc): return npc.id == CampaignNpcCatalog.TRA_DA_AUNTIE), "seller in every event")
 			check(event.can_exit == (event.slot in [1, 3]), "replacement visits optional")
 			check(campaign.drink_manager.select_for_event(event.slot, DrinkCatalog.TRA_DA).ok, "purchase available each event")
-			events.complete_interaction(event.interactions[0].id)
+			events.complete_interaction("choose_drink")
 			campaign.complete_current_event()
 		elif campaign.current_phase == CampaignManager.CampaignPhase.MONEY_REQUIREMENT_CHECK:
 			campaign.collect_day_debt()

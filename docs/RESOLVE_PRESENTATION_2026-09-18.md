@@ -20,3 +20,9 @@ VALIDATION
 
 Entry points: `scripts/ui/resolve_receipt.gd`, `MatchUI._resolve_card_history()`.
 Tests: `tests/resolve_scene_smoke.gd`, `tests/resolve_presentation_smoke.gd`.
+
+## Collector arrival — 2026-09-20
+
+Collection receipts now introduce Đòi Nợ with a large motorcycle ride-in, braking lean, brief settle, and docking into the receipt portrait. The supplied `bike_sound.mp3` plays through the Sound bus with an approach/fade envelope. Tabs, continuation, report replacement, and hiding the receipt cancel the entrance and audio; payment remains immediately actionable and authoritative accounting is unchanged. The Starter Event also introduces him with this entrance and the weekly ledger. Evening collection clears the played table, foregrounds a large collector, and keeps the shared top wallet visible. Paying flies bills to him and plays a short departure while campaign authority advances the day.
+
+Focused headless and rendered presentation checks pass, including sound routing/playback, entrance duration, docking, interruption, repeat opening, and wallet isolation. Entrance and final portrait captures were inspected at 1280×720. Final audio mix quality still requires listening.

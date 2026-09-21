@@ -6,9 +6,12 @@ func _initialize() -> void:
 	call_deferred("_run")
 
 func _check(ok: bool, message: String) -> void:
-	if not ok: failures.append(message)
+	if not ok:
+		failures.append(message)
+		push_error(message)
 
 func _run() -> void:
+	root.size = Vector2i(1280, 720)
 	await _check_moving_card_input()
 	var scene := load("res://scenes/match.tscn").instantiate() as MatchUI
 	root.add_child(scene)
@@ -18,9 +21,11 @@ func _run() -> void:
 	await _click(scene.get_node("TitleScreen/TitleDisc") as Control)
 	await create_timer(0.5).timeout
 	await _click(scene.how_to_play_button)
-	_check(scene.menu_page == &"how_to_play", "viewport click opens How to Play")
-	await _click(scene.how_to_play_back_button)
-	_check(scene.menu_page == &"home", "viewport click activates How to Play Back")
+	_check(root.get_node_or_null("GameGlossary") != null, "viewport click opens the handbook")
+	var handbook := root.get_node_or_null("GameGlossary")
+	if handbook != null:
+		await _click(handbook.find_child("CloseHandbook", true, false))
+	_check(root.get_node_or_null("GameGlossary") == null and scene.menu_page == &"home", "handbook Back returns to menu")
 	await _click(scene.options_button)
 	_check(scene.menu_page == &"options", "viewport click opens Options")
 	await _click(scene.options_back_button)
@@ -53,7 +58,7 @@ func _run() -> void:
 	await create_timer(0.5).timeout
 	shop = scene.campaign_participants.get_child(0) as DrinkShop
 	_check(shop != null, "returning to the NPC reopens the Drink shop")
-	_check(scene.event_table.conversation.get_rect().end.y <= 270, "first opening never expands speech over the table")
+	_check(scene.event_table.conversation.get_global_rect().end.y <= shop.get_global_rect().position.y, "first opening never expands speech over the table")
 	for locale_name in ["vi", "en"]:
 		TranslationServer.set_locale(locale_name)
 		for id in DrinkCatalog.all_ids():
@@ -124,7 +129,10 @@ func _run() -> void:
 	_check((scene.hand_views[pair_cards[0].unique_id] as PlayingCardView).drag_enabled, "drink targeting retains dragging")
 	await _click(scene.hand_views[pair_cards[1].unique_id])
 	_check(scene.next_money_job_id == money_job_before_pair + 1, "second Pair click commits and queues exactly one payout")
-	await scene._wait_for_money_job(money_job_before_pair)
+	var deadline := Time.get_ticks_msec() + 10000
+	while scene.money_queue_running and Time.get_ticks_msec() < deadline:
+		await process_frame
+	_check(not scene.money_queue_running, "Pair payout completes within ten seconds")
 	_check(scene.deal.melds.size() == 1 and scene.deal.melds[0].pair_created, "Pair commits without a second cup click")
 	_check(scene.drink_table_texture.texture.resource_path.ends_with("_half.png"), "spent testing Drink visibly changes its fill")
 	scene.interaction_locked = false

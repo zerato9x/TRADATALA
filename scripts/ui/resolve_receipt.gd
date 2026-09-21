@@ -3,11 +3,11 @@ extends Control
 signal continued()
 signal endless_requested()
 var endless_button: Button
-const INK := Color("24354c")
-const MUTED := Color("687182")
+const INK := PresentationTheme.PAPER_INK
+const MUTED := PresentationTheme.PAPER_MUTED
 const PAPER := Color("f1e8d2")
-const GREEN := Color("367453")
-const RED := Color("aa493f")
+const GREEN := PresentationTheme.PAPER_GAIN
+const RED := PresentationTheme.PAPER_COST
 var primary: Button
 var rows: VBoxContainer
 var title_label: Label
@@ -25,6 +25,9 @@ var _leaving := false
 var _page := "overview"
 var _mode := ""
 var _sound: AudioStreamPlayer
+var _collector_arrival: Control
+var _margin: MarginContainer
+var _shade: ColorRect
 
 func words(en: String, vi: String) -> String:
 	return vi if TranslationServer.get_locale().begins_with("vi") else en
@@ -58,10 +61,12 @@ func _ready() -> void:
 	theme = PresentationTheme.create_game_theme()
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	var shade := ColorRect.new()
+	_shade = shade
 	shade.color = Color("142c50f5")
 	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(shade)
 	var margin := MarginContainer.new()
+	_margin = margin
 	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	for side in ["left", "right"]:
 		margin.add_theme_constant_override("margin_" + side, 38)
@@ -118,6 +123,12 @@ func _ready() -> void:
 	_sound.bus = "Sound"
 	_sound.volume_db = -14
 	add_child(_sound)
+	_collector_arrival = preload("res://scripts/ui/debt_collector_arrival.gd").new()
+	add_child(_collector_arrival)
+	visibility_changed.connect(func():
+		if not is_visible_in_tree():
+			_collector_arrival.stop()
+	)
 	visible = false
 
 func _clear(node: Node) -> void:
@@ -128,6 +139,7 @@ func _clear(node: Node) -> void:
 func _continue() -> void:
 	if _leaving or not visible:
 		return
+	_collector_arrival.stop()
 	_leaving = true
 	primary.disabled = true
 	if _animation and _animation.is_running():
@@ -140,7 +152,7 @@ func _continue() -> void:
 func line(label: String, value: String, color: Color = INK, parent: Node = null) -> void:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 24)
-	var name_label := _label(label, 17, color)
+	var name_label := _label(label, 17, INK)
 	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(name_label)
 	var amount := _label(value, 18, color)
@@ -162,6 +174,9 @@ func show_report(report: Dictionary, mode: String, heading: String, button_text:
 		_animation.kill()
 	_report = report.duplicate(true)
 	_mode = mode
+	_margin.add_theme_constant_override("margin_right", 430 if mode == "collection" else 38)
+	_margin.add_theme_constant_override("margin_top", 125 if mode == "collection" else 24)
+	_shade.color = Color("142c5099") if mode == "collection" else Color("142c50f5")
 	_leaving = false
 	primary.disabled = false
 	# The portrait is reused across collection reports, independently of old panels.
@@ -196,8 +211,11 @@ func show_report(report: Dictionary, mode: String, heading: String, button_text:
 	_animation.tween_property(_body, "modulate:a", 1.0, 0.28)
 	_animation.tween_method(func(value: float): net_label.text = VndWallet.format_vnd(roundi(value), true), 0.0, float(report.net_vnd), 0.65).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 	_sound.play()
+	if mode == "collection":
+		_collector_arrival.play(portrait)
 
 func _show_page(page: String) -> void:
+	_collector_arrival.stop()
 	if _page_animation and _page_animation.is_running():
 		_page_animation.kill()
 	_page = page
@@ -213,6 +231,11 @@ func _show_page(page: String) -> void:
 		"overview": _overview()
 		"cards": _cards()
 		"ledger": _ledger()
+	if _mode == "collection" and portrait.get_parent() == null:
+		add_child(portrait)
+		portrait.position = Vector2(size.x - 420, 175)
+		portrait.size = Vector2(405, 490)
+		portrait.show()
 	# Fade newly laid-out content without moving container-owned coordinates.
 	rows.modulate.a = 0.0
 	_page_animation = create_tween()
@@ -224,13 +247,26 @@ func _overview() -> void:
 		collector.add_theme_constant_override("separation", 20)
 		rows.add_child(collector)
 		portrait.custom_minimum_size = Vector2(120, 145)
-		collector.add_child(portrait)
+		if _mode == "collection":
+			add_child(portrait)
+			portrait.position = Vector2(size.x - 420, 175)
+			portrait.size = Vector2(405, 490)
+			portrait.custom_minimum_size = Vector2.ZERO
+			move_child(_collector_arrival, get_child_count() - 1)
+		else:
+			collector.add_child(portrait)
 		portrait.visible = _mode == "collection"
 		var debt := _panel(collector)
 		debt.add_child(_label(words("ĐÒI NỢ · TONIGHT'S COLLECTION", "ĐÒI NỢ · THU NỢ TỐI NAY"), 20))
-		line(words("Amount due", "Nợ phải trả"), VndWallet.format_vnd(int(_report.due_vnd)), INK, debt)
+		debt.add_child(_label(words("AMOUNT DUE", "NỢ PHẢI TRẢ"), 16, MUTED))
+		debt.add_child(_label(VndWallet.format_vnd(int(_report.due_vnd)), 32, RED))
 		var shortfall := int(_report.get("shortfall_vnd", 0))
 		line(words("Shortfall", "Còn thiếu") if shortfall > 0 else words("Wallet after payment", "Ví sau khi trả nợ"), VndWallet.format_vnd(shortfall if shortfall > 0 else int(_report.closing_vnd) - int(_report.due_vnd)), RED if shortfall > 0 else GREEN, debt)
+		var guide := Button.new()
+		guide.text = words("DEBT LEDGER / GUIDE", "SỔ NỢ / HƯỚNG DẪN")
+		guide.pressed.connect(func(): GameGlossary.open(self, "campaign"))
+		debt.add_child(guide)
+		PresentationTheme.configure_button(guide)
 	var columns := HBoxContainer.new()
 	columns.add_theme_constant_override("separation", 14)
 	rows.add_child(columns)
@@ -349,6 +385,8 @@ func _ledger() -> void:
 		box.add_child(_label(words("No transactions yet.", "Chưa có giao dịch."), 18, MUTED))
 
 func _exit_tree() -> void:
+	_sound.stop()
+	_sound.stream = null
 	# May be detached when leaving a non-collection screen.
 	if is_instance_valid(portrait) and portrait.get_parent() == null:
 		portrait.free()
@@ -418,7 +456,7 @@ func _chronicle() -> void:
 	line(words("Deals completed", "Ván hoàn thành"), str(_report.get("counts", {}).get("deals", 0)), INK, hero)
 	line(words("Days survived", "Ngày vượt qua"), str(_report.get("counts", {}).get("days", 0)), INK, hero)
 	if _report.get("can_endless", false):
-		hero.add_child(_label(words("Sunday is paid. Keep your deck, relics and wallet. Endless begins at VNĐ24,000,000 and grows 50% per day.", "Đã trả nợ Chủ nhật. Giữ bộ bài, di vật và ví tiền. Vô tận bắt đầu với nợ VNĐ24.000.000, tăng 50% mỗi ngày."), 17, GREEN))
+		hero.add_child(_label(words("Difficulty %d unlocked. Exit to choose it, or keep your deck, relics and wallet in Endless. Next debt: %s; +50%% each day.", "Đã mở độ khó %d. Về menu để chọn, hoặc giữ bài, di vật và ví trong Vô tận. Nợ tiếp theo: %s; +50%% mỗi ngày.") % [int(_report.get("next_difficulty", 2)), VndWallet.format_vnd(int(_report.get("endless_debt", 24000000)))], 17, GREEN))
 	var card_totals := {}
 	var best_action := 0
 	for action: Dictionary in _report.get("actions", []):

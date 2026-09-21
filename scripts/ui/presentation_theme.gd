@@ -18,6 +18,51 @@ const TEA := Color("#79c843")
 const RED := Color("#d85b4e")
 const SHADOW := Color("#050302bd")
 
+# Meaning, not panel identity. Dark-surface colors; paper variants below.
+const MONEY_GAIN := Color("#9be3aa")
+const MONEY_COST := Color("#ffaaa0")
+const WALLET := Color("#ffe099")
+const DEBT := Color("#ffc18c")
+const ACTION := Color("#8fe7ff")
+const SPEAKER := Color("#d9b6ff")
+const WARNING := Color("#ffd080")
+const DANGER := Color("#ffaaa0")
+const PAPER_INK := Color("#24354c")
+const PAPER_MUTED := Color("#515c6d")
+const PAPER_GAIN := Color("#286141")
+const PAPER_COST := Color("#983b34")
+const SEMANTIC_COLORS := {
+	&"body": INK, &"muted": MUTED, &"gain": MONEY_GAIN,
+	&"cost": MONEY_COST, &"wallet": WALLET, &"debt": DEBT,
+	&"number": WALLET, &"card": ACTION, &"action": ACTION,
+	&"success": MONEY_GAIN, &"warning": WARNING, &"danger": DANGER,
+	&"speaker": SPEAKER, &"mechanic": SPEAKER, &"jackpot": WALLET,
+}
+
+static func semantic_color(role: StringName) -> Color:
+	return SEMANTIC_COLORS.get(role, INK)
+
+static func style_text(control: Control, role: StringName = &"body", font_size: int = 18) -> void:
+	control.set_meta("text_role", role)
+	control.add_theme_color_override("default_color" if control is RichTextLabel else "font_color", semantic_color(role))
+	control.add_theme_font_size_override("normal_font_size" if control is RichTextLabel else "font_size", font_size)
+
+static func emphasis(text: String, role: StringName) -> String:
+	return "[color=#%s][b]%s[/b][/color]" % [semantic_color(role).to_html(false), text.replace("[", "[lb]")]
+
+static func emphasize_money(text: String, role: StringName = &"number") -> String:
+	var pattern := RegEx.new()
+	pattern.compile("[+−-]?(?:₫|VNĐ)[0-9][0-9.,]*")
+	var result := ""
+	var cursor := 0
+	for found in pattern.search_all(text):
+		result += text.substr(cursor, found.get_start() - cursor)
+		var token := found.get_string()
+		var meaning: StringName = &"gain" if token.begins_with("+") else &"cost" if token.begins_with("−") or token.begins_with("-") else role
+		result += emphasis(token, meaning)
+		cursor = found.get_end()
+	return result + text.substr(cursor)
+
 static var _official_font: Font
 
 
@@ -32,7 +77,12 @@ static func official_font() -> Font:
 static func create_game_theme() -> Theme:
 	var game_theme := Theme.new()
 	game_theme.default_font = official_font()
-	game_theme.default_font_size = 14
+	game_theme.default_font_size = 16
+	game_theme.set_color("font_color", "Label", INK)
+	game_theme.set_color("default_color", "RichTextLabel", INK)
+	game_theme.set_color("font_disabled_color", "Button", MUTED)
+	game_theme.set_color("font_color", "Button", ACTION)
+	game_theme.set_font_size("normal_font_size", "RichTextLabel", 16)
 	var tooltip_style := panel_style(PANEL_SOLID, GOLD_DARK, 1, 3, 3)
 	tooltip_style.content_margin_left = 12
 	tooltip_style.content_margin_right = 12
@@ -101,8 +151,8 @@ static func configure_button(button: Button, tone: String = "neutral") -> void:
 	button.add_theme_color_override("font_color", font_color)
 	button.add_theme_color_override("font_hover_color", Color.WHITE)
 	button.add_theme_color_override("font_pressed_color", Color.WHITE)
-	button.add_theme_color_override("font_disabled_color", Color("#776e5d"))
-	button.add_theme_font_size_override("font_size", 13)
+	button.add_theme_color_override("font_disabled_color", MUTED)
+	button.add_theme_font_size_override("font_size", 16)
 	button.focus_mode = Control.FOCUS_ALL
 	button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 

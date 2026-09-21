@@ -6,6 +6,9 @@ const THAY_BOI := "thay_boi"
 
 
 static func register_initial_npcs(event_manager: EventManager) -> void:
+	var collector := NPCDefinition.new("doi_no", "NPC_DOI_NO", [EventManager.EventSlot.STARTER], true)
+	collector.interaction_specs.append({"id": "debt_intro", "action_type": "debt_intro", "mandatory": false})
+	event_manager.register_npc(collector)
 	var auntie := NPCDefinition.new(
 		TRA_DA_AUNTIE,
 		"NPC_TRA_DA_AUNTIE",
@@ -40,6 +43,7 @@ static func register_initial_npcs(event_manager: EventManager) -> void:
 	})
 	event_manager.register_npc(fortune_teller)
 	for spec in [
+		["hang_rong", "NPC_HANG_RONG", [EventManager.EventSlot.MORNING, EventManager.EventSlot.AFTERNOON], "relic_shop"],
 		["danh_giay", "NPC_DANH_GIAY", [EventManager.EventSlot.STARTER], "polish"],
 		["lotto", "NPC_LOTTO", [EventManager.EventSlot.MORNING, EventManager.EventSlot.AFTERNOON], "lottery"],
 	]:

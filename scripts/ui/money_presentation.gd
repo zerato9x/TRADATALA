@@ -2,6 +2,8 @@ class_name MoneyPresentation
 extends Control
 
 signal impact_requested(intensity: float, positive: bool)
+signal major_event_started(reason: String)
+signal major_event_finished
 signal transfer_requested
 
 const DENOMINATIONS: Array[int] = [500_000, 200_000, 100_000, 50_000, 20_000, 10_000, 5_000, 2_000, 1_000]
@@ -63,7 +65,7 @@ func configure(exact_wallet_label: Label, pile_anchor: Control) -> void:
 
 func sync_wallet(balance_vnd: int) -> void:
 	if wallet_label != null:
-		wallet_label.text = VndWallet.format_vnd(balance_vnd)
+		wallet_label.text = VndWallet.format_amount(balance_vnd)
 	_rebuild_wallet_pile(balance_vnd)
 
 
@@ -307,7 +309,7 @@ func present_transaction(event: Dictionary) -> void:
 	if steps.size() > 1:
 		_set_label_text(line_b_label, String(steps[1]), Color("#f5bf42"))
 		await _pop_label(line_b_label, 0.11, 1.06 + 0.06 * intensity)
-	_set_label_text(payout_label, payout, PresentationTheme.TEA if positive else PresentationTheme.RED)
+	_set_label_text(payout_label, payout, PresentationTheme.MONEY_GAIN if positive else PresentationTheme.MONEY_COST)
 	await _pop_label(payout_label, 0.14, 1.12 + 0.08 * intensity)
 	_nudge_score_panel(intensity)
 	impact_requested.emit(intensity, positive)
@@ -596,14 +598,14 @@ func _pulse_source(source: Control, positive: bool, intensity: float) -> void:
 	if source == null or not is_instance_valid(source):
 		return
 	var original := source.modulate
-	source.modulate = original.lerp(Color("#ffe18a") if positive else Color("#ff7770"), 0.34)
+	source.modulate = original.lerp(PresentationTheme.MONEY_GAIN if positive else PresentationTheme.MONEY_COST, 0.34)
 	var tween := create_tween()
 	tween.tween_property(source, "modulate", original, 0.22 + 0.05 * intensity).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 
 
 func _set_wallet_number(value: float) -> void:
 	if wallet_label != null:
-		wallet_label.text = VndWallet.format_vnd(roundi(value))
+		wallet_label.text = VndWallet.format_amount(roundi(value))
 
 
 func _wallet_impact(positive: bool, intensity: float) -> void:
@@ -615,10 +617,10 @@ func _wallet_impact(positive: bool, intensity: float) -> void:
 	tween.tween_property(target, "scale", original_scale * (1.0 + 0.12 * intensity), 0.07).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	tween.tween_property(target, "scale", original_scale, 0.15).set_trans(Tween.TRANS_QUAD)
 	if wallet_label != null:
-		wallet_label.add_theme_color_override("font_color", PresentationTheme.TEA if positive else PresentationTheme.RED)
+		wallet_label.add_theme_color_override("font_color", PresentationTheme.MONEY_GAIN if positive else PresentationTheme.MONEY_COST)
 		var color_tween := create_tween()
 		color_tween.tween_interval(0.16)
-		color_tween.tween_callback(wallet_label.remove_theme_color_override.bind("font_color"))
+		color_tween.tween_callback(wallet_label.add_theme_color_override.bind("font_color", PresentationTheme.WALLET))
 
 
 func _rebuild_wallet_pile(balance_vnd: int) -> void:
@@ -723,7 +725,7 @@ func present_major_event(event: Dictionary) -> void:
 	var steps: Array = event.get("steps", [])
 	_set_label_text(line_b_label, "  ·  ".join(steps), Color("f8edd0"))
 	var positive := int(event.get("amount_vnd", 0)) >= 0
-	_set_label_text(payout_label, String(event.get("payout", "")), Color("79d94c") if positive else Color("ff625e"))
+	_set_label_text(payout_label, String(event.get("payout", "")), PresentationTheme.MONEY_GAIN if positive else PresentationTheme.MONEY_COST)
 	line_b_label.modulate = Color.WHITE
 	payout_label.modulate = Color.WHITE
 	line_b_label.scale = Vector2.ONE
@@ -734,6 +736,7 @@ func present_major_event(event: Dictionary) -> void:
 	_major_tweens.append(pop)
 	heading.scale = Vector2.ONE * 0.45
 	pop.tween_property(heading, "scale", Vector2.ONE, 0.25).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	major_event_started.emit(String(event.get("reason", "")))
 	impact_requested.emit(1.9, positive)
 	var center := size * 0.5
 	var target := _control_center(wallet_pile_anchor)
@@ -785,6 +788,8 @@ static func scoring_hit_interval(triggered_cards: int) -> float:
 
 
 func _clear_major_event() -> void:
+	if not _major_nodes.is_empty():
+		major_event_finished.emit()
 	for tween in _major_tweens:
 		if tween != null and tween.is_valid():
 			tween.kill()

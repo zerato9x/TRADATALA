@@ -153,13 +153,13 @@ func set_seed_value(seed_value: int) -> void:
 
 
 func daily_base_cost() -> int:
-	return BASE_COST_VND + DAY_LINEAR_STEP_VND * current_day_index
+	return wallet.scaled_cost(BASE_COST_VND, 4)
 
 
 func current_pull_cost() -> int:
 	if not free_cast_used_today:
 		return 0
-	return wallet.scaled_cost(daily_base_cost() * int(pow(PAID_GROWTH_FACTOR, paid_cast_count_today)), 5)
+	return daily_base_cost() * int(pow(PAID_GROWTH_FACTOR, paid_cast_count_today))
 
 
 func can_afford_pull() -> bool:

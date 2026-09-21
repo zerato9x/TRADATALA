@@ -224,7 +224,7 @@ func test_daily_free_pull_and_paid_escalation_reset_by_day() -> void:
 	service.begin_day(1)
 	assert_eq(service.current_pull_cost(), 0)
 	assert_eq(service.paid_cast_count_today, 0)
-	assert_eq(service.daily_base_cost(), GieoQueService.BASE_COST_VND + GieoQueService.DAY_LINEAR_STEP_VND)
+	assert_eq(service.daily_base_cost(), GieoQueService.BASE_COST_VND)
 
 
 func test_free_cast_stays_consumed_across_all_fortune_teller_windows_that_day() -> void:
@@ -352,16 +352,14 @@ func test_liquid_scales_without_cap_and_includes_all_gold_without_recursion() ->
 				assert_eq(scoring_pass.retrigger_source_id, cards[i - 1].unique_id)
 
 
-func test_old_liquid_cards_remain_active_after_normal_extension() -> void:
+func test_old_liquid_cards_wait_for_set_milestone_while_gold_stays_active() -> void:
 	var cards := _kings(5)
 	cards[0].gieo_properties.assign(["MELD_RETRIGGER", "GOLD_SET"])
 	cards[1].add_gieo_property("MELD_RETRIGGER")
 	var context := ScoringPipeline.new().preview_extension(cards, MeldRules.TYPE_SET, 208, 1, [cards[-1]])
-	assert_eq(context.scoring_passes.size(), 3)
+	assert_eq(context.scoring_passes.size(), 1)
 	assert_eq(context.scoring_passes[0].final_points, 182)
-	assert_eq(context.scoring_passes[1].final_points, 390)
-	assert_eq(context.scoring_passes[2].final_points, 390)
-	assert_eq(context.final_points, 962)
+	assert_eq(context.final_points, 182)
 	var gold_hits := 0
 	for hit in context.scoring_passes[0].presentation_hits:
 		if hit["card_id"] == cards[0].unique_id and hit["property"] == "GOLD_SET":

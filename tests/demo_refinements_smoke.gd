@@ -87,7 +87,7 @@ func run() -> void:
 	var balance := scene.deal.wallet.balance_vnd
 	scene._queue_scoring(context, scene.meld_views[82])
 	await create_timer(0.45).timeout
-	check(scene.wallet_value.text == VndWallet.format_vnd(balance), "wallet waits while score accumulates")
+	check(scene.wallet_value.text == VndWallet.format_amount(balance), "wallet waits while score accumulates")
 	check(scene.money_presentation.bill_layer.get_child_count() > 0, "earnings form a visible stack")
 	var deadline := Time.get_ticks_msec() + 10000
 	while scene.money_queue_running and Time.get_ticks_msec() < deadline:

@@ -41,6 +41,7 @@ func capture(file: String) -> void:
 		root.get_texture().get_image().save_png("res://.godot/" + file + ".png")
 
 func _run() -> void:
+	root.size = Vector2i(1280, 720)
 	scene = load("res://scenes/match.tscn").instantiate()
 	root.add_child(scene)
 	current_scene = scene
@@ -51,6 +52,8 @@ func _run() -> void:
 	scene.drink_manager.progress.save_path = ""
 	scene._restoring_run = true
 	await scene._on_play_pressed()
+	scene.event_table.unfocus_npc()
+	await pause(0.4)
 	for id in ["hair_clip", "comb", "sunglasses", "chewing_gum"]:
 		scene.deal.relics.acquire(id)
 		scene.deal.relics.equip(id)
@@ -113,6 +116,12 @@ func _run() -> void:
 		var phases := [CampaignManager.CampaignPhase.MORNING_EVENT, CampaignManager.CampaignPhase.NOON_EVENT, CampaignManager.CampaignPhase.AFTERNOON_EVENT]
 		scene.campaign._enter_phase(phases[slot - 1])
 		await pause(0.5)
+		var result_view := root.get_node_or_null("LotteryReceipt")
+		if result_view != null:
+			await click(result_view.find_child("CloseReceipt", true, false))
+		if not scene.event_table.focused_npc_id.is_empty():
+			await click(scene.event_table.back_button)
+			await pause(0.4)
 		check(overview.event_slot == slot and overview.visible, "table updates current event position %d" % slot)
 		await capture("event-table-slot-%d" % slot)
 		var npc := "hang_rong" if slot == 1 else "thay_boi" if slot == 2 else "lotto"
@@ -124,6 +133,8 @@ func _run() -> void:
 		await pause(0.4)
 		check(overview.visible and scene.event_table.focused_npc_id.is_empty(), "NPC Back restores overview " + npc)
 	scene.campaign._enter_phase(CampaignManager.CampaignPhase.STARTER_EVENT)
+	await pause(0.4)
+	scene.event_table.unfocus_npc()
 	await pause(0.4)
 	for amount in [1000, 5000, 50000, 250000, 2887500, 288750000, 500000000]:
 		scene.deal.wallet.reset(amount)

@@ -37,17 +37,35 @@ func _run() -> void:
 	# Negative totals, zero entries, shortfall, and repeat openings are independent.
 	var loss := {"net_vnd": -100, "opening_vnd": 100, "closing_vnd": 0, "income_vnd": 0, "expense_vnd": 100, "entries": [], "categories": {}, "due_vnd": 500, "shortfall_vnd": 500}
 	receipt.show_report(loss, "collection", "SHORTFALL", "END RUN")
+	check(receipt._collector_arrival.visible, "collection starts bike entrance")
+	check(receipt._collector_arrival._engine.playing, "collection starts supplied engine sound")
+	check(receipt._collector_arrival._engine.bus == "Sound", "engine obeys sound settings")
 	await create_timer(0.7).timeout
 	check(receipt.net_label.text == VndWallet.format_vnd(-100, true), "negative count finishes exactly")
+	check(receipt._collector_arrival.visible, "entrance remains active while riding in")
+	if DisplayServer.get_name() != "headless":
+		await RenderingServer.frame_post_draw
+		root.get_texture().get_image().save_png("res://.godot/collector-arrival.png")
 	check(receipt.portrait.visible, "collector restored after repeated report")
 	check(not receipt.primary.disabled, "new report restores continue")
 	receipt._show_page("cards")
+	check(not receipt._collector_arrival.visible and not receipt._collector_arrival._engine.playing, "tab interrupts entrance and sound cleanly")
 	check(receipt.rows.find_children("*", "TextureRect", true, false).is_empty(), "no stale card evidence on empty report")
 	receipt._show_page("overview")
 	await process_frame
 	check(receipt.primary.get_global_rect().end.y <= root.size.y, "shortfall action remains within viewport")
+	receipt.show_report(loss, "collection", "SHORTFALL", "END RUN")
+	await create_timer(2.6).timeout
+	check(not receipt._collector_arrival.visible and not receipt._collector_arrival._engine.playing, "entrance finishes and engine stops")
+	check(receipt.portrait.modulate.a == 1.0, "docking restores receipt portrait")
+	if DisplayServer.get_name() != "headless":
+		await RenderingServer.frame_post_draw
+		root.get_texture().get_image().save_png("res://.godot/collector-arrived.png")
+	receipt.show_report(loss, "collection", "SHORTFALL", "END RUN")
+	receipt.hide()
+	check(not receipt._collector_arrival._engine.playing, "hidden receipt stops engine immediately")
 	receipt.queue_free()
-	await process_frame
+	await create_timer(0.2).timeout
 	for failure in failures:
 		push_error(failure)
 	print("RESOLVE_PRESENTATION_SMOKE: " + ("PASS" if failures.is_empty() else "FAIL"))

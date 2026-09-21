@@ -6,6 +6,7 @@ signal focus_cleared()
 signal deal_presentation_ready()
 signal deck_inspect_requested()
 signal cash_clicked()
+signal menu_requested()
 
 const TABLE_STATE_DEAL := &"deal"
 const TABLE_STATE_EVENT := &"event"
@@ -18,6 +19,7 @@ const NPC_TRA_DA := "tra_da_auntie"
 const NPC_THAY_BOI := "thay_boi"
 const NPC_HANG_RONG := "hang_rong"
 const NPC_LOTTO := "lotto"
+const NPC_DOI_NO := "doi_no"
 
 # Dialogue and service share a column beside the full focused character.
 const MISC_SERVICE_RECTS := {
@@ -32,6 +34,11 @@ const EVENT_ROSTERS := {
 	3: [NPC_THAY_BOI, NPC_HANG_RONG, NPC_LOTTO],
 }
 const NPC_DATA := {
+	NPC_DOI_NO: {
+		"name_key": "NPC_DOI_NO", "slot": &"top_right",
+		"overlay": preload("res://assets/environment/npcs/doino.png"),
+		"sprite": preload("res://assets/environment/npcs/doino.png"),
+	},
 	NPC_DANH_GIAY: {
 		"name_key": "NPC_DANH_GIAY",
 		"slot": &"left",
@@ -71,6 +78,7 @@ var current_event_slot: int = -1
 var day_label: Label
 var period_label: Label
 var money_label: Label
+var money_row: HBoxContainer
 var participants_container: VBoxContainer
 var continue_button: Button
 var back_button: Button
@@ -85,6 +93,10 @@ var _deal_home: Dictionary = {}
 var _npc_layers: Dictionary = {}
 var _transition: Tween
 var _money_pulse: Tween
+var _focus_motion: Tween
+var _header_motion: Tween
+var collector_arrival: Control
+var menu_button: Button
 
 
 func _ready() -> void:
@@ -107,6 +119,15 @@ func _ready() -> void:
 	conversation.size = Vector2(710, 124)
 	conversation.visible = false
 	conversation.response_selected.connect(_on_conversation_response)
+	collector_arrival = preload("res://scripts/ui/debt_collector_arrival.gd").new()
+	add_child(collector_arrival)
+	menu_button = Button.new()
+	menu_button.name = "EventMenu"
+	menu_button.position = Vector2(16, 12)
+	menu_button.size = Vector2(96, 42)
+	menu_button.text = tr("HUD_MENU")
+	menu_button.pressed.connect(func(): menu_requested.emit())
+	add_child(menu_button)
 	visible = false
 
 
@@ -153,6 +174,8 @@ func enter_event(event_slot: int, day_text: String, period_text: String, money_t
 
 
 func enter_deal() -> void:
+	collector_arrival.stop()
+	if _focus_motion != null: _focus_motion.kill()
 	if table_state == TABLE_STATE_DEAL and not visible:
 		deal_presentation_ready.emit()
 		return
@@ -190,23 +213,28 @@ func set_continue_enabled(enabled: bool) -> void:
 func refresh_localized_ui() -> void:
 	continue_button.text = tr("EVENT_CONTINUE")
 	back_button.text = tr("EVENT_BACK")
+	if menu_button != null: menu_button.text = tr("HUD_MENU")
 	for npc_id in _npc_layers:
 		var layer: Dictionary = _npc_layers[npc_id]
 		(layer["name_tag"] as Label).text = npc_display_name(String(npc_id))
 
 
 func focus_npc(npc_id: String) -> void:
-	if DemoBuild.enabled() and npc_id != NPC_TRA_DA:
+	if DemoBuild.enabled() and npc_id not in [NPC_TRA_DA, NPC_DOI_NO]:
 		return
 	if table_state != TABLE_STATE_EVENT or not _npc_layers.has(npc_id) or focused_npc_id == npc_id:
 		return
+	collector_arrival.stop()
 	focused_npc_id = npc_id
 	deck_focused = false
 	_set_header_focused(true)
 	content_panel.visible = true
 	event_deck.visible = false
 	back_button.visible = true
-	var tween := create_tween().set_parallel(true)
+	back_button.text = tr("EVENT_BACK")
+	if _focus_motion != null: _focus_motion.kill()
+	_focus_motion = create_tween().set_parallel(true)
+	var tween := _focus_motion
 	tween.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 	for candidate_id in _npc_layers:
 		var layer: Dictionary = _npc_layers[candidate_id]
@@ -216,28 +244,39 @@ func focus_npc(npc_id: String) -> void:
 		var sprite := layer["sprite"] as TextureRect
 		button.disabled = true
 		button.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		name_tag.visible = candidate_id == npc_id and npc_id not in [NPC_THAY_BOI, NPC_DANH_GIAY, NPC_LOTTO]
+		name_tag.visible = candidate_id == npc_id and npc_id not in [NPC_THAY_BOI, NPC_DANH_GIAY, NPC_LOTTO, NPC_DOI_NO]
 		if candidate_id == npc_id:
 			tween.tween_property(overlay, "modulate:a", 0.0, 0.18)
 			sprite.visible = true
 			sprite.modulate.a = 0.0
 			sprite.position = _sprite_out_position(StringName(layer["slot"]), sprite.size)
-			var focus_position := Vector2(0, 95) if npc_id == NPC_THAY_BOI else _sprite_focus_position(StringName(layer["slot"]), sprite.size)
-			tween.tween_property(sprite, "position", focus_position, TRANSITION_SECONDS)
-			tween.tween_property(sprite, "modulate:a", 1.0, 0.2)
-		elif overlay.visible:
+			var focus_position := Vector2(0, 95) if npc_id == NPC_THAY_BOI else Vector2(855, 140) if npc_id == NPC_DOI_NO else _sprite_focus_position(StringName(layer["slot"]), sprite.size)
+			if npc_id == NPC_DOI_NO:
+				sprite.position = focus_position
+			else:
+				tween.tween_property(sprite, "position", focus_position, TRANSITION_SECONDS)
+				tween.tween_property(sprite, "modulate:a", 1.0, 0.2)
+		else:
+			sprite.hide()
+		if candidate_id != npc_id and overlay.visible:
 			tween.tween_property(overlay, "modulate", Color(0.42, 0.46, 0.5, 0.38), 0.22)
 	npc_focused.emit(npc_id)
+	if npc_id == NPC_DOI_NO:
+		collector_arrival.play(_npc_layers[npc_id].sprite)
 
 
 func focus_deck() -> void:
 	if table_state != TABLE_STATE_EVENT or deck_focused or not focused_npc_id.is_empty():
 		return
+	collector_arrival.stop()
 	deck_focused = true
 	_set_header_focused(true)
 	content_panel.visible = true
 	back_button.visible = true
-	var tween := create_tween().set_parallel(true)
+	back_button.text = tr("EVENT_BACK")
+	if _focus_motion != null: _focus_motion.kill()
+	_focus_motion = create_tween().set_parallel(true)
+	var tween := _focus_motion
 	tween.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 	tween.tween_property(event_deck, "position", EVENT_DECK_FOCUS_POSITION, TRANSITION_SECONDS)
 	tween.tween_property(event_deck, "scale", Vector2(1.18, 1.18), TRANSITION_SECONDS)
@@ -253,8 +292,11 @@ func focus_deck() -> void:
 
 
 func unfocus_npc() -> void:
+	if back_button.disabled:
+		return
 	if focused_npc_id.is_empty() and not deck_focused:
 		return
+	collector_arrival.stop()
 	var previous := focused_npc_id
 	var was_deck_focused := deck_focused
 	focused_npc_id = ""
@@ -263,7 +305,9 @@ func unfocus_npc() -> void:
 	event_deck.visible = true
 	_clear_content()
 	_set_header_focused(false)
-	var tween := create_tween().set_parallel(true)
+	if _focus_motion != null: _focus_motion.kill()
+	_focus_motion = create_tween().set_parallel(true)
+	var tween := _focus_motion
 	tween.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 	if was_deck_focused:
 		tween.tween_property(event_deck, "position", EVENT_DECK_REST_POSITION, TRANSITION_SECONDS)
@@ -373,11 +417,16 @@ func _build_header() -> void:
 	day_label.add_theme_color_override("font_color", Color("#fff1c6"))
 	day_label.set_meta("match_binding", "campaign_event_title")
 	header.add_child(day_label)
+	money_row = HBoxContainer.new()
+	money_row.name = "EventMoneyRow"
+	money_row.position = Vector2(0, 82)
+	money_row.size = Vector2(520, 68)
+	money_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	money_row.add_theme_constant_override("separation", 10)
+	money_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	header.add_child(money_row)
 	money_label = Label.new()
 	money_label.name = "EventMoney"
-	money_label.position = Vector2(0, 82)
-	money_label.size = Vector2(520, 68)
-	money_label.pivot_offset = money_label.size * 0.5
 	money_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	money_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	money_label.add_theme_font_size_override("font_size", 43)
@@ -386,7 +435,15 @@ func _build_header() -> void:
 	money_label.add_theme_constant_override("shadow_offset_x", 3)
 	money_label.add_theme_constant_override("shadow_offset_y", 4)
 	money_label.set_meta("match_binding", "campaign_event_wallet")
-	header.add_child(money_label)
+	money_row.add_child(money_label)
+	var unit := Label.new()
+	unit.name = "CurrencyUnit"
+	unit.text = "VNĐ"
+	unit.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	unit.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	PresentationTheme.style_text(unit, &"muted", 18)
+	money_row.add_child(unit)
+	money_label.show()
 
 
 func _build_content() -> void:
@@ -417,6 +474,7 @@ func _build_content() -> void:
 	back_button = Button.new()
 	back_button.name = "EventBack"
 	back_button.text = tr("EVENT_BACK")
+	if menu_button != null: menu_button.text = tr("HUD_MENU")
 	back_button.position = Vector2(24, 90)
 	back_button.size = Vector2(132, 42)
 	back_button.visible = false
@@ -499,8 +557,10 @@ func _build_npc_layers() -> void:
 			target_height = 600.0
 		var ratio := target_height / sprite_texture.get_height()
 		sprite.size = sprite_texture.get_size() * ratio
-		sprite.texture = sprite_texture
 		sprite.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		sprite.texture = sprite_texture
+		sprite.size = sprite_texture.get_size() * ratio
+		if npc_id == NPC_DOI_NO: sprite.size = Vector2(420, 545)
 		sprite.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		sprite.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -521,6 +581,7 @@ func _build_npc_layers() -> void:
 		name_tag.name = "%sName" % npc_id.to_pascal_case()
 		name_tag.text = npc_display_name(npc_id)
 		name_tag.position = _slot_name_position(slot)
+		if npc_id == NPC_DOI_NO: name_tag.position = Vector2(785, 345)
 		name_tag.size = Vector2(210, 34)
 		name_tag.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		name_tag.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -544,20 +605,22 @@ func _show_roster(event_slot: int) -> void:
 	_hide_all_npcs()
 	var roster: Array = [NPC_TRA_DA] if DemoBuild.enabled() else EVENT_ROSTERS.get(event_slot, [])
 	for npc_id in roster:
-		if DemoBuild.enabled() and npc_id != NPC_TRA_DA:
+		if DemoBuild.enabled() and npc_id not in [NPC_TRA_DA, NPC_DOI_NO]:
 			continue
 		var layer: Dictionary = _npc_layers[npc_id]
 		var overlay := layer["overlay"] as TextureRect
 		var button := layer["button"] as Button
 		overlay.visible = true
 		overlay.modulate = Color.WHITE
-		overlay.position = _overlay_out_offset(StringName(layer["slot"]))
+		overlay.position = Vector2(1380, 130) if npc_id == NPC_DOI_NO else _overlay_out_offset(StringName(layer["slot"]))
 		button.visible = true
 		button.disabled = true
 		button.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 
 func _hide_all_npcs() -> void:
+	if collector_arrival != null: collector_arrival.stop()
+	if _focus_motion != null: _focus_motion.kill()
 	for npc_id in _npc_layers:
 		var layer: Dictionary = _npc_layers[npc_id]
 		(layer["overlay"] as TextureRect).visible = false
@@ -640,6 +703,9 @@ func _finish_event_exit() -> void:
 
 func _set_header_focused(focused: bool, animate: bool = true) -> void:
 	overview.set_focused(focused)
+	money_label.visible = not focused
+	money_row.visible = not focused
+	if _header_motion != null: _header_motion.kill()
 	var header := day_label.get_parent() as Control
 	var target_position := Vector2(380, -2) if focused else Vector2(380, 190)
 	var target_scale := Vector2(0.78, 0.78) if focused else Vector2.ONE
@@ -647,7 +713,8 @@ func _set_header_focused(focused: bool, animate: bool = true) -> void:
 		header.position = target_position
 		header.scale = target_scale
 		return
-	var tween := create_tween().set_parallel(true)
+	_header_motion = create_tween().set_parallel(true)
+	var tween := _header_motion
 	tween.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 	tween.tween_property(header, "position", target_position, 0.28)
 	tween.tween_property(header, "scale", target_scale, 0.28)
@@ -667,15 +734,15 @@ func say(line: String) -> void:
 	if focused_npc_id.is_empty():
 		return
 	var misc_service := MISC_SERVICE_RECTS.has(focused_npc_id)
-	conversation.speech.custom_minimum_size.y = 40 if misc_service else 80
+	conversation.speech.custom_minimum_size.y = 40 if misc_service or focused_npc_id == NPC_DOI_NO else 60 if focused_npc_id == NPC_HANG_RONG else 80
 	if misc_service:
 		var service_rect: Rect2 = MISC_SERVICE_RECTS[focused_npc_id]
 		conversation.position = Vector2(service_rect.position.x, 140)
 	else:
 		conversation.position = Vector2(20, 510) if focused_npc_id == NPC_THAY_BOI else Vector2(165, 140)
 	conversation.say(npc_display_name(focused_npc_id), line)
-	conversation.show_responses(focused_npc_id != NPC_TRA_DA, not back_button.disabled)
-	var speech_size := Vector2(340, 176) if focused_npc_id == NPC_THAY_BOI else Vector2(710, 124 if focused_npc_id == NPC_TRA_DA else 160)
+	conversation.show_responses(focused_npc_id not in [NPC_TRA_DA, NPC_DOI_NO], not back_button.disabled)
+	var speech_size := Vector2(340, 176) if focused_npc_id == NPC_THAY_BOI else Vector2(710, 124 if focused_npc_id in [NPC_TRA_DA, NPC_DOI_NO] else 140 if focused_npc_id == NPC_HANG_RONG else 160)
 	if misc_service:
 		speech_size = Vector2(700, 124)
 	conversation.set_deferred("size", speech_size)

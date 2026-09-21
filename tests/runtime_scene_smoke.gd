@@ -62,13 +62,16 @@ func _run() -> void:
 	_check(scene.music_system_selector != null and scene.music_system_selector.item_count == 2, "music player offers Playing Tracks and Authored DJ systems")
 	_check(scene.authored_music_set_selector != null and scene.authored_music_set_selector.item_count == 2, "Authored DJ offers both DOG and CAT playtest sets")
 	_check(scene.play_button != null and scene.play_button.text == "VÁN MỚI", "Vietnamese New Game action exists on the main menu")
-	_check(scene.how_to_play_button != null and scene.how_to_play_button.text == "CÁCH CHƠI", "main menu exposes the localized How to Play section")
-	_check(scene.tutorial_button != null and scene.tutorial_button.text == "TẬP CHƠI", "main menu exposes a separate playable Tutorial")
-	_check(scene.tutorial_button.get_parent() == scene.how_to_play_button.get_parent() and scene.tutorial_button.position.x > scene.how_to_play_button.position.x, "Tutorial sits beside How to Play")
+	_check(scene.how_to_play_button != null and scene.how_to_play_button.text == "SỔ TAY", "main menu exposes the localized How to Play section")
+	_check(scene.tutorial_button != null and scene.tutorial_button.text == "SỔ TAY HÀNH TRÌNH", "main menu exposes the campaign Handbook")
+	_check(not scene.tutorial_button.visible, "The duplicate campaign handbook entry is retired")
 	_check(scene.options_button != null and scene.options_button.text == "TÙY CHỌN", "main menu exposes the localized Options section")
 	_check(how_panel != null and not how_panel.visible and options_panel != null and not options_panel.visible, "secondary menu sections begin hidden")
 	scene.how_to_play_button.pressed.emit()
-	_check(how_panel.visible and not menu_home.visible, "How to Play opens as its own menu section")
+	var handbook := root.get_node_or_null("GameGlossary")
+	_check(handbook != null and not how_panel.visible, "How to Play opens the shared Handbook")
+	if handbook: handbook.queue_free()
+	await process_frame
 	var cards_tab := scene.how_tab_pages.get(&"cards") as Control
 	var phases_tab := scene.how_tab_pages.get(&"phases") as Control
 	var scoring_tab := scene.how_tab_pages.get(&"scoring") as Control
@@ -123,7 +126,7 @@ func _run() -> void:
 	scene.language_selector.item_selected.emit(1)
 	await process_frame
 	_check(TranslationServer.get_locale() == "en" and scene.play_button.text == "NEW GAME", "English selection localizes the menu immediately")
-	_check(scene.how_to_play_button.text == "HOW TO PLAY" and scene.tutorial_button.text == "TUTORIAL" and scene.options_button.text == "OPTIONS", "English selection refreshes main-menu navigation")
+	_check(scene.how_to_play_button.text == "HANDBOOK" and scene.tutorial_button.text == "CAMPAIGN HANDBOOK" and scene.options_button.text == "OPTIONS", "English selection refreshes main-menu navigation")
 	_check(scene.event_table.continue_button.text == "CONTINUE" and scene.event_table.back_button.text == "← BACK", "English selection refreshes event-table navigation")
 	_check((scene.event_table.get_node("TraDaAuntieName") as Label).text == "ICED TEA AUNTIE", "English selection refreshes event-table NPC labels")
 	_check((scene.how_tab_buttons[&"cards"] as Button).text == "CARDS & MELDS" and (scene.how_tab_buttons[&"phases"] as Button).text == "PHASES & TURNS" and (scene.how_tab_buttons[&"scoring"] as Button).text == "SCORING", "English selection refreshes all How to Play tabs")
@@ -212,6 +215,10 @@ func _run() -> void:
 	_check(scene.current_campaign_event.participants.any(func(npc: NPCDefinition): return npc.id == CampaignNpcCatalog.TRA_DA_AUNTIE), "Cô Trà Đá is a guaranteed Starter Event participant alongside the optional services")
 	_check(not scene.current_campaign_event.can_exit and scene.campaign_continue_button.disabled, "mandatory Drink selection blocks Event exit")
 	_check(scene.event_table.table_state == EventTableController.TABLE_STATE_EVENT, "event-table controller owns the active presentation state")
+	_check(scene.event_table.focused_npc_id == EventTableController.NPC_DOI_NO, "Starter opens the debt encounter")
+	scene.event_table.unfocus_npc()
+	await create_timer(0.6).timeout
+	_check(not scene.event_table._npc_layers.doi_no.overlay.visible and not scene.event_table._npc_layers.doi_no.sprite.visible, "collector leaves without a tabletop representation")
 	_check(scene.event_table.event_deck.visible and scene.event_table.event_deck.position.x < 350.0 and scene.event_table.event_deck_count.text.contains(str(scene.campaign.gieo_que.persistent_deck.size())), "Event overview puts the persistent Deck on the left side of the table with its exact count")
 	var lotto_selector := scene.event_table.get_node("LottoSelect") as Button
 	var right_focus := scene.event_table._sprite_focus_position(&"right", Vector2(300, 590))
@@ -245,7 +252,7 @@ func _run() -> void:
 	order_button.pressed.emit()
 	await process_frame
 	_check(scene.current_campaign_event.can_exit and not scene.campaign_continue_button.disabled, "selecting a Drink completes Cô Trà Đá's mandatory interaction")
-	_check(scene.drink_manager.morning_drink_id == DrinkCatalog.TRA_DA and scene.deal.wallet.balance_vnd == 0, "Starter Drink is assigned to Morning/Noon without inventing a charge for free Trà đá")
+	_check(scene.drink_manager.morning_drink_id == DrinkCatalog.TRA_DA and scene.deal.wallet.balance_vnd == CampaignConfig.STARTING_WALLET_VND, "Starter Drink is assigned to Morning/Noon without inventing a charge for free Trà đá")
 	scene.event_table.back_button.pressed.emit()
 	await create_timer(EventTableController.TRANSITION_SECONDS + 0.05).timeout
 	_check(scene.event_table.focused_npc_id.is_empty() and not scene.event_table.content_panel.visible, "Back clears focused NPC content and restores the event overview")
@@ -294,15 +301,15 @@ func _run() -> void:
 	_check(discard_history_hud != null and is_equal_approx(discard_history_hud.get_global_rect().get_center().x, scene.table_surface.get_global_rect().get_center().x) and discard_history_hud.position.y >= 270.0, "discard history is centered below the Phom region")
 	_check(scene.discard_history_row != null and scene.discard_history_row.get_child_count() == 1, "discard history HUD begins with its empty state")
 	_check(scene.get_node_or_null("GameLayer/Header/HeaderRow/IdentityPanel") == null, "game title and description panel is removed from gameplay")
-	var income_panel := scene.get_node_or_null("GameLayer/Header/HeaderRow/IncomeStat") as PanelContainer
-	_check(income_panel != null and income_panel.size.y <= 54.0, "Income remains in the compact top status strip")
-	var vnd_per_point_panel := scene.get_node_or_null("GameLayer/Header/HeaderRow/VndPerPointStat") as PanelContainer
-	_check(vnd_per_point_panel != null and income_panel != null and vnd_per_point_panel.get_index() == income_panel.get_index() - 1, "VND-per-point HUD panel sits immediately to the left of Income")
+	var income_panel := scene.campaign_money_hud.income_panel as PanelContainer
+	_check(income_panel != null and income_panel.is_visible_in_tree() and income_panel.size.y <= 72.0, "Income remains in the compact top status strip")
+	var vnd_per_point_panel := scene.campaign_money_hud.rate_panel as PanelContainer
+	_check(income_panel != null and income_panel.get_global_rect().end.x < scene.campaign_money_hud.panel.get_global_rect().position.x, "Income sits to the left of the persistent wallet")
 	_check(scene.vnd_per_point_value != null, "VND-per-point HUD exposes its value label")
 	_check(vnd_per_point_panel != null and scene.vnd_per_point_value != null and vnd_per_point_panel.is_ancestor_of(scene.vnd_per_point_value), "VND-per-point value label belongs to its HUD panel")
 	_check(scene.vnd_per_point_value != null and scene.vnd_per_point_value.text == VndWallet.format_vnd(scene.deal.vnd_per_point), "VND-per-point HUD matches the economy authority")
-	_check(scene.get_node_or_null("GameLayer/Header/HeaderRow/WalletStat") != null, "Wallet remains in the top stat row")
-	var wallet_pile := scene.get_node_or_null("GameLayer/Header/HeaderRow/WalletStat/MarginContainer/WalletRow/WalletPile") as Control
+	_check(scene.campaign_money_hud.panel.is_visible_in_tree(), "Wallet stays in its persistent top layer")
+	var wallet_pile := scene.wallet_pile_anchor
 	_check(scene.money_presentation != null and scene.money_presentation.get_parent() == scene.game_layer, "one reusable table-native money presentation layer replaces the old resolve popup")
 	_check(scene.score_overlay != null and not scene.score_overlay.visible and scene.score_panel != null, "money ceremony begins hidden while preserving tutorial targeting")
 	_check(scene.money_presentation.get_node_or_null("Ceremony/ResolveBackdrop") == null, "resolve feedback is floating text with no opaque backing")
@@ -312,13 +319,14 @@ func _run() -> void:
 	scene.money_presentation._position_score_stage(scene.meld_scroll)
 	_check(absf(scene.score_panel.get_global_rect().get_center().x - scene.meld_scroll.get_global_rect().get_center().x) < 12.0, "resolve text anchors horizontally over its Meld source")
 	_check(is_equal_approx(MoneyPresentation.MONEY_FLIGHT_DURATION, 0.48), "all money resolutions use the shared flight duration")
+	scene.money_presentation.sync_wallet(0)
 	_check(wallet_pile == scene.wallet_pile_anchor and wallet_pile.get_child_count() == 1, "zero wallet renders an empty cash state without fake banknotes")
 	scene.money_presentation.sync_wallet(45_000)
 	var wallet_bill := wallet_pile.get_child(0) as Control
 	var wallet_bill_texture := wallet_bill.get_child(0) as TextureRect if wallet_bill != null else null
 	_check(wallet_bill_texture != null and wallet_bill_texture.size.x <= 70.0 and wallet_bill_texture.size.y <= 31.0, "wallet banknotes obey their pile bounds instead of atlas-native size")
 	scene.money_presentation.sync_wallet(-75_000)
-	_check(scene.wallet_value.text == VndWallet.format_vnd(-75_000) and wallet_pile.get_child_count() == 1 and wallet_pile.get_child(0) is Label, "negative wallet keeps its exact value and renders debt instead of impossible negative bills")
+	_check(scene.wallet_value.text == VndWallet.format_amount(-75_000) and wallet_pile.get_child_count() == 1 and wallet_pile.get_child(0) is Label, "negative wallet keeps its exact value and renders debt instead of impossible negative bills")
 	scene.money_presentation.sync_wallet(987_654_000)
 	_check(wallet_pile.get_child_count() <= MoneyPresentation.MAX_WALLET_OBJECTS, "very large wallet pile stays capped")
 	scene.money_presentation.sync_wallet(scene.displayed_wallet_vnd)
@@ -356,7 +364,7 @@ func _run() -> void:
 	_check(loose_hand.get_global_rect().end.x <= scene.drink_table_button.get_global_rect().position.x, "the Drink sprite sits fully to the right of the hand interaction surface")
 	scene.campaign.current_phase = CampaignManager.CampaignPhase.NOON_DEAL
 	scene._sync_drink_table_visual()
-	_check(scene.drink_table_texture.texture.resource_path == "res://assets/drinks/tra_da_full.png", "the noon Deal does not falsely mark an available Drink spent")
+	_check(scene.drink_table_texture.texture != null and scene.drink_table_texture.texture.resource_path == "res://assets/drinks/tra_da_full.png", "the noon Deal does not falsely mark an available Drink spent")
 	scene.campaign.current_phase = CampaignManager.CampaignPhase.MORNING_DEAL
 	scene._sync_drink_table_visual()
 	scene.drink_manager.afternoon_drink_id = DrinkCatalog.SAM_DUA
@@ -618,7 +626,7 @@ func _run() -> void:
 	_check(stable_meld.cards.size() == 3 and scene.deal.hand.has(removable_endpoint), "clicking the armed Nước vối target returns it to the loose hand")
 	_check(scene.deal.nuoc_voi_used_phases.has(scene.deal.current_phase), "Nước vối becomes spent for the current Phase")
 	_check(not scene.drink_charge_outline.visible and not scene.drink_charge_outline.is_processing(), "Nước vối blue charge outline disappears immediately after use")
-	_check(scene.drink_table_texture.texture.resource_path == "res://assets/drinks/nuoc_voi_half.png", "spent Nuoc voi changes its table prop from full to half-full")
+	_check(scene.drink_table_texture.texture != null and scene.drink_table_texture.texture.resource_path == "res://assets/drinks/nuoc_voi_half.png", "spent Nuoc voi changes its table prop from full to half-full")
 	scene.deal.set_current_drink(DrinkCatalog.TRA_DA)
 	scene.deal.melds.clear()
 	scene.selected_card_ids.clear()
@@ -834,7 +842,8 @@ func _run() -> void:
 	scene.music_controller.music_director.stop()
 	await create_timer(0.2).timeout
 	scene.queue_free()
-	await process_frame
+	# Allow the audio mixer to release stopped playback before process teardown.
+	await create_timer(0.2).timeout
 	for autoload_name in ["GameSettings", "_mcp_game_helper"]:
 		var autoload_node := root.get_node_or_null(autoload_name)
 		if autoload_node != null:

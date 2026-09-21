@@ -94,12 +94,13 @@ func _run() -> void:
 	check(panel.find_child("CampaignCards", true, false) == null, "no manual card selector")
 	var cards := scene.campaign.gieo_que.persistent_deck
 	var before_polish := scene.campaign.wallet.balance_vnd
+	var polish_quote := scene.campaign.shoe_shine.polish_cost()
 	await click(panel._polish_button)
 	var ids := scene.campaign.shoe_shine.last_polished_ids
 	check(ids.size() == 2 and ids[0] != ids[1], "payment chooses two distinct random cards")
 	for card in cards:
 		check(card.shiny == ids.has(card.unique_id), "only random result cards are polished")
-	check(scene.campaign.wallet.balance_vnd == before_polish - MiscServiceConfig.POLISH_COST_VND, "polish charges wallet")
+	check(scene.campaign.wallet.balance_vnd == before_polish - polish_quote, "polish charges wallet")
 	var face := panel.find_child("Face", true, false) as TextureRect
 	check(face != null and face.material.get_shader_parameter("polished") == true, "random result visibly polished")
 	for _i in 4:
@@ -134,7 +135,7 @@ func _run() -> void:
 	var button := panel.find_child("Ticket_" + String(chosen.id).replace(":", "_"), true, false) as Button
 	var before := scene.campaign.wallet.balance_vnd
 	await click(button)
-	check(scene.campaign.wallet.balance_vnd == before - MiscServiceConfig.TICKET_STAKE_VND, "physical ticket click charges authoritative wallet")
+	check(scene.campaign.wallet.balance_vnd == before - int(chosen.stake_vnd), "physical ticket click charges authoritative wallet")
 	check(scene.campaign.lottery.purchased_tickets().size() == 1, "ticket purchased once")
 	await create_timer(1.0).timeout
 	check(scene.get_global_rect().encloses(panel.get_global_rect()), "lottery panel fits viewport")
@@ -148,15 +149,24 @@ func _run() -> void:
 	check(scene.campaign.lottery.purchased_tickets()[0].id == chosen.id, "reopening retains purchased ticket")
 	check(scene.campaign.lottery.revealed_results().is_empty(), "panel cannot reveal draw early")
 	var before_payout := scene.campaign.wallet.balance_vnd
-	var receipt := scene.campaign.lottery.settle_day()
-	check(receipt.tickets[0].prize == "special", "hinted offered ticket wins Special")
-	check(scene.campaign.wallet.balance_vnd == before_payout + MiscServiceConfig.TICKET_STAKE_VND * 80, "real Special payout reaches wallet")
+	# Current campaign reveals the draw at the Afternoon Event; offers are random.
+	scene.campaign._enter_phase(CampaignManager.CampaignPhase.AFTERNOON_EVENT)
 	await create_timer(0.5).timeout
-	check(root.get_node_or_null("LotteryReceipt") != null, "settlement creates result receipt")
+	var receipt := scene.campaign.lottery.last_receipt
+	check(not receipt.is_empty(), "Afternoon settles the purchased ticket")
+	var expected_payout := 0
+	for prize in MiscServiceConfig.PRIZES:
+		if receipt.draw[prize.id].has(chosen.number):
+			expected_payout = LotteryService.payout_vnd(int(chosen.stake_vnd), prize)
+			break
+	check(int(receipt.tickets[0].payout_vnd) == expected_payout, "ticket payout matches the authoritative draw")
+	check(scene.campaign.wallet.balance_vnd == before_payout + expected_payout, "real payout reaches wallet once")
+	var result_view := root.get_node_or_null("LotteryReceipt")
+	check(result_view != null, "Afternoon settlement creates result receipt")
 	await capture("misc_lottery_result")
-	var close := root.get_node("LotteryReceipt").find_child("CloseReceipt", true, false) as Button
-	await click(close)
-	check(root.get_node_or_null("LotteryReceipt") == null, "receipt closes by physical click")
+	if result_view != null:
+		await click(result_view.find_child("CloseReceipt", true, false) as Button)
+		check(root.get_node_or_null("LotteryReceipt") == null, "receipt closes by physical click")
 	check(scene.campaign.lottery.settle_day().is_empty(), "reopening cannot settle twice")
 	var plain := CardData.new("plain", "K", 13, "Spades", 13)
 	var reused := TextureRect.new()
@@ -170,6 +180,7 @@ func _run() -> void:
 	check(reused.material == null, "reused plain face clears polish")
 	reused.free()
 	scene.queue_free()
-	await process_frame
+	# Allow the audio mixer to release stopped playback before process teardown.
+	await create_timer(0.2).timeout
 	print("MISC_NPC_SCENE_SMOKE ", "PASS" if failures.is_empty() else "FAIL " + str(failures))
 	quit(0 if failures.is_empty() else 1)

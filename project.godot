@@ -11,7 +11,7 @@ config_version=5
 [application]
 
 config/name="TRADATALA / TRÀ ĐÁ TÁ LẢ"
-config/version="1.0.2"
+config/version="1.0.3"
 run/main_scene="res://scenes/match.tscn"
 config/features=PackedStringArray("4.7", "Forward Plus")
 config/icon="res://icon.svg"
@@ -19,7 +19,6 @@ config/name.tradatala_demo="TRADATALA Demo"
 
 [audio]
 
-buses/default_bus_layout="uid://d12cwqh5xc7vn"
 general/default_playback_type.web=0
 
 [autoload]
@@ -96,7 +95,7 @@ game_hint={
 [internationalization]
 
 locale/translations=PackedStringArray("res://locale/ui.vi.translation", "res://locale/ui.en.translation")
-locale/fallback="vi"
+locale/fallback="en"
 
 [physics]
 

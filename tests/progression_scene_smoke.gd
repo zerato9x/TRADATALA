@@ -44,6 +44,8 @@ func _run() -> void:
 	if OS.get_cmdline_user_args().has("--resume-only"):
 		await make_scene()
 		scene._show_run_menu()
+		scene._run_menu.music_choice.select(1)
+		scene._run_menu.music_choice.item_selected.emit(1)
 		await pause()
 		check(not scene._run_menu.resume_button.disabled, "fresh process detects save")
 		await click(scene._run_menu.resume_button)
@@ -55,7 +57,7 @@ func _run() -> void:
 			push_error(failure)
 		print("FRESH_PROCESS_RESUME: " + ("PASS" if failures.is_empty() else "FAIL"))
 		scene.queue_free()
-		await process_frame
+		await pause(0.25)
 		quit(0 if failures.is_empty() else 1)
 		return
 	for suffix in ["", ".bak", ".tmp"]:
@@ -63,6 +65,8 @@ func _run() -> void:
 			DirAccess.remove_absolute(SAVE + suffix)
 	await make_scene()
 	scene._show_run_menu()
+	scene._run_menu.music_choice.select(1)
+	scene._run_menu.music_choice.item_selected.emit(1)
 	await pause()
 	scene._run_menu.seed_field.text = "SIDEWALK-2026"
 	check(scene._run_menu.start_button.get_global_rect().end.y <= root.size.y, "seeded start button fits")
@@ -86,6 +90,8 @@ func _run() -> void:
 	await pause(0.2)
 	await make_scene()
 	scene._show_run_menu()
+	scene._run_menu.music_choice.select(1)
+	scene._run_menu.music_choice.item_selected.emit(1)
 	await pause(0.2)
 	await click(scene._run_menu.resume_button)
 	await pause(1.0)
@@ -100,16 +106,18 @@ func _run() -> void:
 	await pause()
 	scene.event_table.focus_npc(EventTableController.NPC_HANG_RONG)
 	await pause()
-	var panel := scene.campaign_participants.get_child(0) as RelicSelector
-	check(panel.buttons.size() == 3, "live shop shows exactly three offers")
+	var panel = scene.campaign_participants.get_child(0)
+	check(panel._tiles.size() == 3, "live shop shows exactly three offers")
 	await capture("relic-offer")
 	var old := scene.campaign.relic_shop.offers.duplicate()
-	await click(panel.reroll_button)
+	await click(panel.find_child("RerollRelics", true, false))
 	await pause(0.2)
 	check(scene.campaign.relic_shop.rerolls == 1, "pointer rerolls once")
 	check(scene.campaign.relic_shop.offers != old, "reroll replaces offer")
 	var chosen := scene.campaign.relic_shop.offers[0]
-	await click(panel.buttons[chosen])
+	await click(panel._tiles[chosen])
+	check(not scene.campaign.relic_shop.purchased, "inspect never purchases")
+	await click(panel._buy)
 	check(scene.campaign.relic_shop.purchased, "pointer buys one relic")
 	check(scene.deal.relics.inventory.has(chosen), "bought relic is owned")
 	check(scene.campaign.relic_shop.offers.is_empty(), "unchosen offers leave")
@@ -144,12 +152,22 @@ func _run() -> void:
 	check(scene.campaign.endless and scene.campaign.current_day_index == 7, "pointer enters endless day eight")
 	check(scene.campaign.daily_requirement() == 24_000_000, "endless goal appears")
 	check(scene.campaign.run_seed == "SIDEWALK-2026", "endless retains seed")
-	check(scene.event_table.focused_npc_id.is_empty(), "new endless event clears old NPC focus")
+	check(scene.event_table.focused_npc_id == "doi_no", "new endless day presents its collector briefing")
 	check("8" in scene.event_table.day_label.text, "endless day number visible")
 	await capture("endless")
+	# Presentation fixtures use the existing authority to enter the loss route.
+	scene.run_save = RunSave.new("user://failure_presentation_test.save")
+	scene.deal.wallet.apply_vnd(-scene.deal.wallet.balance_vnd, "shortfall_fixture")
+	scene.campaign._finish_day()
+	await pause(1.2)
+	await capture("shortfall")
+	await click(scene.resolve_receipt.primary)
+	await pause()
+	check(scene.campaign.run_failed, "unpayable debt reaches failure")
+	await capture("failure")
 	for failure in failures:
 		push_error(failure)
 	print("PROGRESSION_SCENE_SMOKE: " + ("PASS" if failures.is_empty() else "FAIL"))
 	scene.queue_free()
-	await process_frame
+	await pause(0.25)
 	quit(0 if failures.is_empty() else 1)

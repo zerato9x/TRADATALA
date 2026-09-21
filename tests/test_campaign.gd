@@ -70,8 +70,8 @@ func test_events_support_empty_multiple_and_mandatory_interactions() -> void:
 	})
 	manager.register_npc(visitor)
 	var event := manager.build_event(EventManager.EventSlot.STARTER)
-	assert_eq(event.participants.size(), 3)
-	assert_eq(event.interactions.size(), 3)
+	assert_eq(event.participants.size(), 4)
+	assert_eq(event.interactions.size(), 4)
 	assert_false(event.can_exit)
 	assert_false(manager.finish_current_event())
 	assert_true(manager.complete_interaction("choose_drink"))
@@ -178,7 +178,7 @@ func test_campaign_completes_28_deals_and_28_event_slots_before_sunday_victory()
 	assert_eq(campaign.current_phase, CampaignManager.CampaignPhase.CAMPAIGN_VICTORY)
 	assert_eq(deal_count, 28)
 	assert_eq(event_count, 28)
-	assert_eq(wallet.balance_vnd, 31_750_000 * 3)
+	assert_eq(wallet.balance_vnd, 31_750_000 * 3 + CampaignConfig.STARTING_WALLET_VND)
 
 
 func test_campaign_failure_stops_after_evening_deal_without_deducting_requirement() -> void:
@@ -188,6 +188,7 @@ func test_campaign_failure_stops_after_evening_deal_without_deducting_requiremen
 	var days: Array[Dictionary] = [{"id": "monday", "name_key": "DAY_MONDAY", "required_vnd": 1}]
 	var campaign := CampaignManager.new(wallet, events, DrinkManager.new(wallet), days)
 	campaign.start_campaign()
+	wallet.reset(0)
 	var deals := 0
 	while not campaign.run_failed:
 		if CampaignManager.EVENT_PHASE_TO_SLOT.has(campaign.current_phase):

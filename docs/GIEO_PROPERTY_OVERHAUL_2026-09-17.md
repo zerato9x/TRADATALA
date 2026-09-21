@@ -12,11 +12,11 @@ Six conditional Gold properties share `ScoringContext.qualifying_gold()`. Each q
 - `GOLD_BIG_PHOM`: at least four physical cards in the resulting meld.
 - `GOLD_LAST_CALL`: newly committed by creation or extension while DealState is in `STATE_FINAL_COMMIT_WINDOW`, in either phase. Existing table cards and exhaustion events do not gain this condition. Preview/advisor paths receive the same explicit event flag.
 
-`MELD_RETRIGGER` counts every Liquid card in the resulting meld exactly once per event. Each adds one complete Gold-enhanced scoring pass, with no cap and no recursive pass generation. Existing Liquid table cards remain active on extensions and exhaustion. Passes carry their individual source-card identity for feedback. Gold bonuses and their receipt hits use the same shared evaluator.
+`MELD_RETRIGGER` counts every Liquid card in the resulting meld exactly once per event. Each adds one complete Gold-enhanced scoring pass, with no cap and no recursive pass generation. Existing Liquid table cards remain active on RUN extensions and exhaustion. As of 1.0.3, SET extensions between 4-card milestones are delta-only; Liquid full-meld echoes wait for 4/8/12/... just like the native replay. Passes carry their individual source-card identity for feedback. Gold bonuses and their receipt hits use the same shared evaluator.
 
 ### Native scoring preserved
 
-The existing SET 4/8/12/... and perfected RUN 13-card rules remain independent of Liquid. For extensions the sequence is: intrinsic delta, one native full-meld pass when applicable, then one full-meld pass per Liquid card. The existing old-score baseline remains `ScoringPipeline.meld_value(old_cards)`; it is not replaced by historic payout or accumulated echo totals. Gold enters the new event's full value before this baseline is subtracted.
+The existing SET 4/8/12/... and perfected RUN 13-card rules remain independent of Liquid. For extensions the sequence is: intrinsic delta, one native full-meld pass when applicable, then one full-meld pass per eligible Liquid card. For SET extensions, full-meld passes are eligible only at 4/8/12/... cards. The existing old-score baseline remains `ScoringPipeline.meld_value(old_cards)`; it is not replaced by historic payout or accumulated echo totals. Gold enters the new event's full value before this baseline is subtracted.
 
 Thus, absent a native milestone, total passes are 1 + Liquid count; at a native milestone there is the existing additional native pass. The native rule also remains in new-meld/exhaustion scoring as before. This reconciles the overhaul with the request to preserve ongoing native milestone work; no native mechanics were redefined.
 

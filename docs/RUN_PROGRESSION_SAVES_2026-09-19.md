@@ -69,3 +69,11 @@ Continue Endless preserves seed, deck transformations, relic collection, wallet,
 - `RunSave`: persistence codec and file lifecycle.
 - `MatchUI`: autosave triggers, menu/resume routing and reconstructed presentation.
 - `run_menu.gd`, `relic_selector.gd`, `resolve_receipt.gd`: player-facing UI.
+
+## Campaign-integrated onboarding — 2026-09-20
+
+New campaigns start with VNĐ25,000 and real Monday onboarding. Monday uses the authored onboarding shuffle and reorders only existing physical card IDs for its opening Set and extension. Noon prioritizes a real polished/transformed card (or a relic-relevant opening) without adding cards or applying fake effects. Later days retain their normal seeded shuffles.
+
+Learned and dismissed hints are optional fields in the version-1 campaign snapshot. Older saves default to empty knowledge. Knowledge is per campaign, resets with New Run, and survives save/resume independently of animation state. It does not replace persistent drink unlock progress. The Handbook remains available after hints disappear. Legacy tutorial entry points now open that read-only reference and never replace the live deal.
+
+The restricted demo skips unavailable NPC services and follows the same debt/day progression without onboarding gates. Current validation: CAMPAIGN_OVERHAUL_2026-09-20.md.

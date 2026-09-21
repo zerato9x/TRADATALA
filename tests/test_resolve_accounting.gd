@@ -22,6 +22,7 @@ func test_collection_pauses_pays_once_and_blocks_reentrant_charge() -> void:
 	var days: Array[Dictionary] = [{"id": "test", "required_vnd": 1000}]
 	var c := CampaignManager.new(null, null, null, days)
 	c.start_campaign()
+	c.wallet.reset(0)
 	c.wallet.apply_vnd(1500, "new_meld")
 	c._finish_day()
 	assert_false(c.campaign_complete)
@@ -41,6 +42,7 @@ func test_shortfall_does_not_charge_or_advance_and_restart_clears_history() -> v
 	var days: Array[Dictionary] = [{"id": "test", "required_vnd": 1000}]
 	var c := CampaignManager.new(null, null, null, days)
 	c.start_campaign()
+	c.wallet.reset(0)
 	c.wallet.apply_vnd(500, "new_meld")
 	c._finish_day()
 	assert_eq(c.collection_report.shortfall_vnd, 500)
@@ -66,7 +68,7 @@ func test_cost_scaling_preserves_free_choice_and_prices_paid_services() -> void:
 	var wallet := VndWallet.new()
 	wallet.reset(10_000_000)
 	wallet.economy_scaling = true
-	assert_eq(wallet.scaled_cost(10_000), 200_000)
+	assert_eq(wallet.scaled_cost(10_000), 10_000)
 	assert_eq(wallet.scaled_cost(0), 0)
 	var drinks := DrinkManager.new(wallet)
 	assert_eq(drinks.price_for(DrinkCatalog.TRA_DA), 0)

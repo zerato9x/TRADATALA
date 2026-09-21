@@ -12,6 +12,7 @@ var _offers: Dictionary = {}
 var _tickets: Array[Dictionary] = []
 var _settled := false
 var last_receipt: Dictionary = {}
+var _buying_all := false
 
 func _init(p_wallet: VndWallet) -> void:
 	wallet = p_wallet
@@ -49,11 +50,13 @@ func begin_day(index: int) -> void:
 		var numbers := _shuffled_numbers()
 		for i in mini(MiscServiceConfig.TICKETS_PER_APPEARANCE, 100):
 			batch.append({"id": "%d:%d:%d" % [index, slot, i], "number": numbers[i],
-				"stake_vnd": wallet.scaled_cost(MiscServiceConfig.TICKET_STAKE_VND, 1), "purchased": false})
+				"stake_vnd": ticket_cost(), "purchased": false})
 		_offers[slot] = batch
 
 func begin_event(slot: int) -> void:
 	event_slot = slot
+	if slot == EventManager.EventSlot.AFTERNOON:
+		settle_day()
 
 func end_event() -> void:
 	event_slot = -1
@@ -61,7 +64,11 @@ func end_event() -> void:
 func offered_tickets() -> Array:
 	if _settled or not _offers.has(event_slot):
 		return []
-	return _offers[event_slot].duplicate(true)
+	var offers: Array = _offers[event_slot].duplicate(true)
+	for ticket: Dictionary in offers:
+		if not ticket.purchased:
+			ticket.stake_vnd = ticket_cost()
+	return offers
 
 func purchased_tickets() -> Array[Dictionary]:
 	return _tickets.duplicate(true)
@@ -79,14 +86,45 @@ func purchase(ticket_id: String) -> Dictionary:
 	for ticket: Dictionary in _offers[event_slot]:
 		if ticket.id != ticket_id:
 			continue
-		var stake := int(ticket.stake_vnd)
+		var stake := ticket_cost()
 		if ticket.purchased or stake <= 0 or wallet.balance_vnd < stake:
 			return {"ok": false}
+		ticket.stake_vnd = stake
 		ticket.purchased = true
 		_tickets.append(ticket.duplicate(true))
 		wallet.apply_vnd(-stake, "lottery_ticket")
 		return {"ok": true, "ticket": ticket.duplicate(true)}
 	return {"ok": false}
+
+func ticket_cost(balance: int = -1, purchases: int = -1) -> int:
+	return wallet.player_service_cost(MiscServiceConfig.TICKET_STAKE_VND, 1, _tickets.size() if purchases < 0 else purchases, balance)
+
+func buy_all_quote() -> Dictionary:
+	var remaining := wallet.balance_vnd
+	var ids: Array[String] = []
+	var total := 0
+	for ticket: Dictionary in offered_tickets():
+		var cost := ticket_cost(remaining, _tickets.size() + ids.size())
+		if not ticket.purchased and cost > 0 and remaining >= cost:
+			ids.append(ticket.id)
+			remaining -= cost
+			total += cost
+	return {"ids": ids, "count": ids.size(), "cost_vnd": total}
+
+func buy_all() -> Dictionary:
+	if _buying_all:
+		return {"ok": false, "count": 0, "cost_vnd": 0}
+	_buying_all = true
+	var quote := buy_all_quote()
+	var count := 0
+	var cost := 0
+	for id: String in quote.ids:
+		var result := purchase(id)
+		if result.get("ok", false):
+			count += 1
+			cost += int(result.ticket.stake_vnd)
+	_buying_all = false
+	return {"ok": count > 0, "count": count, "cost_vnd": cost}
 
 func settle_day() -> Dictionary:
 	if _settled or day_index < 0:
@@ -110,8 +148,7 @@ func settle_day() -> Dictionary:
 	last_receipt = {"day_index": day_index, "draw": _draw.duplicate(true), "tickets": results, "total_vnd": total}
 	if total > 0:
 		wallet.apply_vnd(total, "lottery_settlement")
-	if not results.is_empty():
-		settled.emit(last_receipt.duplicate(true))
+	settled.emit(last_receipt.duplicate(true))
 	return last_receipt.duplicate(true)
 
 static func payout_vnd(stake: int, prize: Dictionary) -> int:

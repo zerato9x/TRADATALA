@@ -56,7 +56,10 @@ const NEXT_PHASE := {
 }
 
 var run_seed := ""
+var onboarding := CampaignOnboarding.new()
 var endless := false
+var difficulty := 1
+var difficulty_progress = preload("res://scripts/campaign/difficulty_progress.gd").new()
 var relic_shop: RelicShop
 var _base_day_count := 7
 var current_day_index: int = -1
@@ -101,17 +104,29 @@ func _init(
 	drink_manager.drink_selected.connect(_record_drink)
 
 func _record_cast(price: int, free: bool) -> void:
+	onboarding.mark("gieo_cast")
 	activities.append({"action": "gieo_cast", "price_vnd": price, "free": free})
 
 func _record_transformations(changes: Array[Dictionary]) -> void:
+	onboarding.mark("gieo_transform")
 	activities.append({"action": "transformation", "changes": changes.duplicate(true)})
 
 func _record_drink(id: String, period: String, price: int) -> void:
+	onboarding.mark("drink")
+	if period == "afternoon": onboarding.mark("noon_drink")
 	activities.append({"action": "drink_selected", "id": id, "period": period, "price_vnd": price})
 
 
 
+func select_difficulty(level: int) -> bool:
+	if level < 1 or level > difficulty_progress.unlocked: return false
+	difficulty = level
+	campaign_days = CampaignConfig.day_definitions(level)
+	_base_day_count = campaign_days.size()
+	return true
+
 func start_campaign(reset_wallet: bool = true, seed_text: String = "") -> void:
+	onboarding.reset()
 	run_seed = seed_text.strip_edges().left(64)
 	if run_seed.is_empty():
 		var random := RandomNumberGenerator.new()
@@ -126,7 +141,7 @@ func start_campaign(reset_wallet: bool = true, seed_text: String = "") -> void:
 	lottery.set_seed_value(seed_for("lottery"))
 	shoe_shine.set_seed_value(seed_for("polish"))
 	if reset_wallet:
-		wallet.reset()
+		wallet.reset(CampaignConfig.STARTING_WALLET_VND)
 	wallet.economy_scaling = true
 	activities.clear()
 	deal_reports.clear()
@@ -173,6 +188,8 @@ func complete_deal(extra_result: Dictionary = {}) -> bool:
 
 
 func complete_current_event() -> bool:
+	if gieo_que.state not in [GieoQueService.STATE_READY, GieoQueService.STATE_COMPLETE]:
+		return false
 	if not EVENT_PHASE_TO_SLOT.has(current_phase) or event_manager.current_event == null:
 		return false
 	var finished := event_manager.current_event
@@ -186,6 +203,7 @@ func complete_current_event() -> bool:
 
 
 func _begin_current_day() -> void:
+	wallet.day_target_vnd = daily_requirement()
 	day_cursor = wallet.journal.size()
 	day_activity_cursor = activities.size()
 	_set_phase(CampaignPhase.DAY_START)
@@ -232,7 +250,7 @@ func _advance_from_current_phase() -> void:
 
 
 func _finish_day() -> void:
-	lottery.settle_day()
+	# Lottery is settled at the Afternoon Event before the Evening Deal.
 	drink_manager.clear_day()
 	day_finished.emit(current_day())
 	_set_phase(CampaignPhase.MONEY_REQUIREMENT_CHECK)
@@ -272,6 +290,8 @@ func collect_day_debt() -> bool:
 		_append_endless_day()
 	if current_day_index == campaign_days.size() - 1:
 		campaign_complete = true
+		if not endless and _base_day_count == 7:
+			difficulty_progress.complete_week(difficulty)
 		_set_phase(CampaignPhase.CAMPAIGN_VICTORY)
 		campaign_won.emit()
 	else:

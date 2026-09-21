@@ -4,7 +4,7 @@ A Godot 4.7.1 solo Phỏm roguelike with a seven-day campaign and Endless contin
 
 The official presentation uses the generated Vietnamese sidewalk-table plate at `res://assets/environment/sidewalk_table.png`, with `DFVN Pexel Grotesk` as the global game font. Cards and HUD elements remain live Godot controls layered over the environment.
 
-The project opens on a dedicated title menu over the fixed sidewalk-table background. Choosing **VÁN MỚI** opens the run menu: continue the autosave, enter a seed, or start a random run. A new run begins at Monday's Starter Event, where Cô Trà Đá supplies the Drink used by the Morning and Noon Deals. The same table then carries the player through four Deals and four Event slots per day for seven days. The match layout uses a compact top status strip, a lower-right active Drink beside the hand, and a separate Relics rail with four equipped slots.
+The project opens on a dedicated title menu over the fixed sidewalk-table background. Choosing **VÁN MỚI** opens the run menu: continue the autosave, enter a seed, or start a random run. A new run begins with VNĐ25,000 at Monday's Starter Event: Đòi Nợ presents the day's debt, Đánh Giày offers polish, and Cô Trà Đá supplies the Drink used by the Morning and Noon Deals. Monday teaches through real curated hands and optional contextual hints; the bilingual searchable Handbook replaces the standalone tutorial. The same table then carries the player through four Deals and four Event slots per day for seven days. The match layout uses a compact top status strip, a lower-right active Drink beside the hand, and a separate Relics rail with four equipped slots.
 
 ## Run
 
@@ -133,3 +133,9 @@ diagnostics documented there. Live GPU checks cover all combinations and animati
 ## Drink roster and NPC conversations
 
 All twelve Drinks have mechanics-testing effects at a temporary zero test price. The table shop uses inspect-before-order interactions, shared localized NPC speech, and an action-word legend; only Sâm dứa and Bạc xỉu offer the Phase transition preservation choice. See [Drink roster and NPC conversation testing](docs/DRINK_ROSTER_TESTING.md) for the rules and current verification evidence.
+
+## Campaign overhaul validation
+
+See [the implementation and acceptance ledger](docs/CAMPAIGN_OVERHAUL_2026-09-20.md) for current scope and evidence. Run `tests/run_headless.gd` for deterministic rules, economy and save checks. Run `tests/campaign_overhaul_scene_smoke.gd` for the complete real Monday-to-Tuesday flow, using `-- --english --large` for English at 1920×1080 or `-- --tradatala-demo` for restricted-demo coverage. Omit `--headless` to render its review captures. `tests/tutorial_scene_smoke.gd` checks that the retired tutorial route opens the Handbook without modifying the live deal.
+
+Current working version: **1.0.3**. See [the polish and validation report](docs/releases/2026-09-21-v1.0.3-polish.md). The 1.0.2 package instructions above describe the previous release; this pass has not exported or published new packages.
