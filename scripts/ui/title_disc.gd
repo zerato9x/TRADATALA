@@ -96,7 +96,7 @@ func _draw() -> void:
 		var prompt := "NHẤP BẤT KỲ ĐÂU ĐỂ TIẾP TỤC" if TranslationServer.get_locale().begins_with("vi") else "CLICK ANYWHERE TO CONTINUE"
 		var pixels := maxi(12, roundi(16.0 * scale_factor))
 		var width := FONT.get_string_size(prompt, HORIZONTAL_ALIGNMENT_LEFT, -1, pixels).x
-		draw_string(FONT, Vector2((size.x - width) * 0.5, size.y * 0.87), prompt, HORIZONTAL_ALIGNMENT_LEFT, -1, pixels, Color(INK, (1.0 - unfold) * entrance))
+		draw_string(FONT, Vector2((size.x - width) * 0.5, size.y * 0.94), prompt, HORIZONTAL_ALIGNMENT_LEFT, -1, pixels, Color(INK, (1.0 - unfold) * entrance))
 
 func _draw_ring(text: String, center: Vector2, radius: float, font_size: int, angle: float, opacity: float, scale_factor: float) -> void:
 	var pixels := maxi(10, roundi(font_size * scale_factor))
