@@ -46,6 +46,7 @@ func _run() -> void:
 	await click(scene.play_button)
 	var run = scene._run_menu
 	check(run.start_button.disabled and run.resume_button.disabled, "music choice required before play")
+	check(run.music_choice.selected == 0, "required music choice shows its placeholder")
 	check(run.difficulty_selector.is_item_disabled(1), "next difficulty is visibly locked")
 	run.music_choice.select(1)
 	run.music_choice.item_selected.emit(1)

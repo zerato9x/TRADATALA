@@ -48,6 +48,7 @@ func configure(progress: DrinkProgress, saved: Dictionary, message: String = "",
 	music_choice.set_item_disabled(0, true)
 	music_choice.add_item(words("PLAYLIST · Individual tracks", "DANH SÁCH · Từng bản nhạc"))
 	music_choice.add_item(words("AUTHORED DJ SETS · Continuous curated mixes", "DJ SET BIÊN SOẠN · Bản phối liên tục"))
+	music_choice.select(0)
 	music_choice.item_selected.connect(func(index: int):
 		selected_music = "playing_tracks" if index == 1 else "authored_dj"
 		start_button.disabled = false
