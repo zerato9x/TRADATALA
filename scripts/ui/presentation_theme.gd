@@ -52,7 +52,7 @@ static func emphasis(text: String, role: StringName) -> String:
 
 static func emphasize_money(text: String, role: StringName = &"number") -> String:
 	var pattern := RegEx.new()
-	pattern.compile("[+−-]?(?:₫|VNĐ)[0-9][0-9.,]*")
+	pattern.compile("[+−-]?[0-9][0-9.,]* VNĐ")
 	var result := ""
 	var cursor := 0
 	for found in pattern.search_all(text):

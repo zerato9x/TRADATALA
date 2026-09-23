@@ -251,17 +251,27 @@ func _run() -> void:
 	_check(order_button != null and not order_button.disabled, "inspected Drink exposes an explicit order response")
 	order_button.pressed.emit()
 	await process_frame
+	_check(not scene.campaign_continue_button.visible, "Continue stays hidden after ordering tea")
 	_check(scene.current_campaign_event.can_exit and not scene.campaign_continue_button.disabled, "selecting a Drink completes Cô Trà Đá's mandatory interaction")
 	_check(scene.drink_manager.morning_drink_id == DrinkCatalog.TRA_DA and scene.deal.wallet.balance_vnd == CampaignConfig.STARTING_WALLET_VND, "Starter Drink is assigned to Morning/Noon without inventing a charge for free Trà đá")
 	scene.event_table.back_button.pressed.emit()
 	await create_timer(EventTableController.TRANSITION_SECONDS + 0.05).timeout
 	_check(scene.event_table.focused_npc_id.is_empty() and not scene.event_table.content_panel.visible, "Back clears focused NPC content and restores the event overview")
+	_check(scene.campaign_continue_button.visible, "Continue returns on the table overview")
 	var starter_shoe_selector := scene.event_table.get_node("DanhGiaySelect") as Button
 	starter_shoe_selector.pressed.emit()
 	await create_timer(EventTableController.TRANSITION_SECONDS + 0.05).timeout
 	_check(scene.event_table.focused_npc_id == EventTableController.NPC_DANH_GIAY and scene.campaign_participants.get_child(0) is MiscNpcPanel, "shoe-shine focus opens the implemented service panel")
 	scene.event_table.back_button.pressed.emit()
 	await create_timer(EventTableController.TRANSITION_SECONDS + 0.05).timeout
+	for npc_id in scene.event_table._npc_layers:
+		scene.event_table.focus_npc(npc_id)
+		_check(not scene.campaign_continue_button.visible, "Continue hidden for " + npc_id)
+		scene.event_table.back_button.disabled = false
+		scene.event_table.unfocus_npc()
+	scene.event_table.focus_deck()
+	_check(not scene.campaign_continue_button.visible, "Continue hidden in deck inspection")
+	scene.event_table.unfocus_npc()
 	scene.campaign_continue_button.pressed.emit()
 	await create_timer(EventTableController.TRANSITION_SECONDS * 2.0 + 0.08).timeout
 	_check(scene.campaign.current_phase == CampaignManager.CampaignPhase.MORNING_DEAL and not scene.campaign_overlay.visible, "continuing the Starter Event hands off to the existing Morning Deal")

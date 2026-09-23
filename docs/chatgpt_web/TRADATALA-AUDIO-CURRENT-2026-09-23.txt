@@ -1,0 +1,28 @@
+TRADATALA — CURRENT AUDIO DESIGN AND IMPLEMENTATION
+Snapshot: 2026-09-23
+The shipped v1.0.3 audio baseline includes a twelve-Zodiac soundtrack identity, Vietnamese musical influences blended with funk, reactive gameplay music and a 26-track album player.
+
+GAMEPLAY MUSIC
+- New runs use the Authored DJ route by default: the Mèo/CAT route plays on day one and the Chó/DOG route on day two; those routes alternate by day.
+- The standalone album player exposes all 26 OST tracks, cover art, track selection, progress, next-track preview, play/pause, shuffle and Repeat Off/All/One.
+- Four frequency bands drive presentation spectrum motion.
+- Gameplay cues use authored approved cue plans. MusicDirector supports holding a bar-aligned cue, releasing into original playback or the next reachable approved cue, finishing a loop before a reprise, intentional hard jumps, and release to the original track ending.
+- Source WAVs remain intact. Cue control duplicates imported AudioStreamWAV data rather than editing source assets or manufacturing transition audio.
+- Card choose/place/draw/shuffle cues, Drink opportunity cues, collector arrival sound and Ù / Ù Khan / Exhaustion ceremonies route through existing audio buses and event lifecycle.
+
+AUTHORING AND EVIDENCE
+- The offline MusicLoopAudition tester supports listening to candidate loops and two-bar lead-ins, reviewing approved cue sequences, and arranging bar-aligned segments for audition. Machine scores only order the listening queue; a cue is approved through human listening review.
+- Timing and exhaustive loop catalogs are generated measurements. Loop seams still require listening QA.
+- v1.0.3 package checks and browser startup checks do not establish final speaker/headphone mix acceptance, human listening acceptance across the full campaign, or physical-device audio behavior.
+- Audio for future Zodiac boss/modifier mechanics has not been designed or approved. Do not imply that each boss already has a unique theme or reactive cue.
+
+FILES AND OWNERS
+- assets/audio/ost/ keeps the original music, measured timing, cue approvals and independent arrangement data.
+- scripts/audio/gameplay_music_conductor.gd routes authored gameplay cue roles.
+- audio_system/MusicDirector.gd owns audition and DJ transport.
+- audio_system/MusicCueCatalog.gd owns candidate/review data.
+- audio_system/MusicArrangementCatalog.gd and MusicArrangementPlayer.gd own saved audition arrangements.
+- debug/MusicLoopAudition.tscn is an offline tool, not gameplay input.
+
+ACCEPTANCE BOUNDARY
+Automated routing, transport and rendered checks prove code paths under their test conditions. They do not prove that a full soundtrack mix sounds correct to a human listener. Premium audio changes need listening sign-off in addition to code, export and runtime checks.

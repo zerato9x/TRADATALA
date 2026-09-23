@@ -1182,7 +1182,7 @@ func test_vnd_per_point_converts_positive_and_negative_point_changes() -> void:
 
 func test_point_to_vnd_conversion_uses_integer_thousands_by_default() -> void:
 	assert_eq(VndWallet.points_to_vnd(63), 63000)
-	assert_eq(VndWallet.format_vnd(1234567890), "₫1.234.567.890")
+	assert_eq(VndWallet.format_vnd(1234567890), "1.234.567.890 VNĐ")
 
 
 func _controlled_deal(stock_count: int, spent_count: int, seed: int) -> DealState:

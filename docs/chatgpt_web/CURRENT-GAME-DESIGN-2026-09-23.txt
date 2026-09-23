@@ -1,0 +1,46 @@
+TRADATALA / TRÀ ĐÁ TÁ LẢ — CURRENT GAME DESIGN AND RELEASE
+Snapshot: 2026-09-23
+Authority: the v1.0.3 release tag and verified build artifacts describe the shipped baseline. The current working tree has post-release uncommitted changes; do not attribute them to v1.0.3.
+
+RELEASE STATUS
+- Official game website: https://naixdev.itch.io/tradatala
+- The page was directly accessible on 2026-09-23. It displayed an embedded browser game and the downloadable file TRADATALA-v1.0.3-windows-itch.zip (197 MB), with “Name your own price” pricing. The visible update time was 2026-09-21 14:31 UTC.
+- The local v1.0.3 build manifest records clean source commit 5260e37511224f066ba1f9f7ee227d4101a590f9 and verified Web and Windows ZIPs. Web SHA-256: CAE784C20DBFA1082372E16991A62FED964A8747B839A00A028F0B99A2F0AC4E. Windows SHA-256: 713136B775605A20F08669359D80D0F99B5DF572BA2C07FB4757D0205E2B99A4.
+- The local release receipt was generated at 2026-09-21 21:25 +07 and recorded that no itch.io upload had yet occurred. The official game website was updated at 21:31 +07. The later page verifies that v1.0.3 is listed; the page does not expose the live file hash, so the listed Windows file has not been matched byte-for-byte to the local archive. The local Web ZIP and browser startup checks do not prove that exact ZIP is hosted.
+- The official game website still calls the embedded game a demo and says a later full release will add NPCs, items and mechanics, including a daily Zodiac modifier and boss. That copy is stale against the released v1.0.3 build and should be corrected in a separate page-edit task.
+
+SHIPPED GAMEPLAY BASELINE
+TRADATALA is a single-player Phỏm roguelike at a Vietnamese sidewalk table. The release combines card play, a seven-day debt campaign, persistent deck changes, NPC services, Drinks, relics, seeded runs and an Endless continuation.
+
+Core Deal:
+- A Deal has two Phases. Each Phase has four mandatory discards and a player-confirmed LAST CALL window.
+- Melds persist between Phases. A Set uses cards of one rank; a Run uses one suit and consecutive ranks, with Ace low and no wrap.
+- Scoring resolves new Melds, extensions, Deadwood and settlement through the shared scoring pipeline. MÓM is evaluated per Phase. Ù is Phase-scoped; Ù Khan uses the documented near-meld rule. Exhaustion triggers only on a requested draw/refill from an already-empty draw deck and resumes the request after recycling.
+- The in-game Handbook is bilingual and searchable. Monday onboarding uses real cards and optional contextual hints; it does not grant fake outcomes or replace the rules.
+
+Campaign and economy:
+- Seven days, four Deals per day, and Starter/Morning/Noon/Afternoon event slots. Weekday targets: Monday 250,000; Tuesday 500,000; Wednesday 1,000,000; Thursday 2,000,000; Friday 4,000,000; Saturday 8,000,000; Sunday 16,000,000 VNĐ.
+- The collector takes the daily target once after the evening Deal. A shortfall ends the run; paying Sunday completes the campaign. Endless starts at 24,000,000 VNĐ and grows the daily target by 50%, preserving the run.
+- New runs begin with VNĐ25,000. Wallet, score conversion and payment remain integer VND authorities. Service choices and payouts commit through the wallet journal.
+- The full campaign has six NPC roles: collector, Cô Trà Đá, fortune teller / Gieo Quẻ, shoe shine, lottery seller and Hàng Rong relic vendor. Events own their participant lists and service windows.
+
+Build systems:
+- All twelve Drinks have implemented mechanics. Availability follows day gates and persistent unlock goals; Drink effects have their own timing and targeting rules.
+- Gieo Quẻ makes permanent transformations to physical cards. Relics are offered from seeded per-visit inventories; a player can own a collection and equip up to four.
+- Runs can use an entered or generated seed. Gameplay randomness uses versioned independent streams. Autosaves capture committed gameplay and exact draw/RNG continuation; backup recovery is available. Drink unlock progress is separate from the active run.
+- A Sunday report records run statistics and can continue into Endless or start again.
+- The released v1.0.3 tag includes fixes for Tuesday progression, collector audio lifecycle, NPC interaction, Handbook input blocking, money HUD hierarchy, major payout cues and SET-extension scoring. It also adds debt-based repeat pricing for polish, tips and lottery tickets. See the release record for exact price formulas and acceptance evidence.
+
+NOT IN v1.0.3
+- Zodiac bosses and daily Zodiac gameplay modifiers.
+- Special weekday mechanics and story chains.
+- AI opponents and multiplayer.
+- 3D presentation.
+These items are not implemented at the tagged baseline. The first three groups are part of premium full-mechanics planning; 3D remains a presentation decision.
+
+SOURCE AND VALIDATION BOUNDARIES
+- Release tag: v1.0.3 at 5260e37511224f066ba1f9f7ee227d4101a590f9.
+- Build manifest and receipt: build/TRADATALA-v1.0.3/manifest.json and release-receipt.json.
+- The release receipt records archive hashes, pack checks, Windows startup and a fresh browser startup flow. These checks are not a human full-campaign acceptance run, extended balance study or physical listening review.
+- The working tree currently contains uncommitted changes after the v1.0.3 tag, including localization, project settings, card/UI presentation, event-table, wallet, scoring/text display and smoke sources. Treat them as WIP only. Do not call them shipped or include them in a premium feature claim without a separate review.
+- Premium design is not present in this current-state source. Use the dedicated premium plan for intended future scope.

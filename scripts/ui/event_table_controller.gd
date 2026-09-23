@@ -156,7 +156,7 @@ func enter_event(event_slot: int, day_text: String, period_text: String, money_t
 	event_deck.scale = Vector2.ONE
 	event_deck.modulate = Color.WHITE
 	continue_button.text = tr("EVENT_CONTINUE")
-	continue_button.visible = true
+	continue_button.visible = not already_showing or (focused_npc_id.is_empty() and not deck_focused)
 	if already_showing:
 		return
 	table_state = TABLE_STATE_EVENT
@@ -226,6 +226,7 @@ func focus_npc(npc_id: String) -> void:
 		return
 	collector_arrival.stop()
 	focused_npc_id = npc_id
+	continue_button.hide()
 	deck_focused = false
 	_set_header_focused(true)
 	content_panel.visible = true
@@ -270,6 +271,7 @@ func focus_deck() -> void:
 		return
 	collector_arrival.stop()
 	deck_focused = true
+	continue_button.hide()
 	_set_header_focused(true)
 	content_panel.visible = true
 	back_button.visible = true

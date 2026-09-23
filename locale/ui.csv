@@ -167,9 +167,9 @@ HOW_SCORING_INTRO,"Hạ và Ghép trả điểm ngay. Khi Chốt, bài rời b�
 HOW_SCORE_TOPIC_BASIC,"ĐIỂM CƠ BẢN","BASIC SCORING"
 HOW_SCORE_TOPIC_SPECIAL,"MÓM • Ù • Ù KHAN","SPECIAL OUTCOMES"
 HOW_SCORE_MELD_TITLE,"ĐIỂM HẠ PHỎM","MELD SCORE"
-HOW_SCORE_MELD_BODY,"Tổng lá × số lá\n(4+5+6) × 3 = 45\n45 điểm = ₫45.000","Card sum × card count\n(4+5+6) × 3 = 45\n45 points = ₫45.000"
+HOW_SCORE_MELD_BODY,"Tổng lá × số lá\n(4+5+6) × 3 = 45\n45 điểm = 45.000 VNĐ","Card sum × card count\n(4+5+6) × 3 = 45\n45 points = 45.000 VNĐ"
 HOW_SCORE_EXTEND_TITLE,"ĐIỂM GHÉP","EXTEND SCORE"
-HOW_SCORE_EXTEND_BODY,"Điểm mới 88 − cũ 45\n= +43 điểm\n= +₫43.000","New score 88 − old 45\n= +43 points\n= +₫43.000"
+HOW_SCORE_EXTEND_BODY,"Điểm mới 88 − cũ 45\n= +43 điểm\n= +43.000 VNĐ","New score 88 − old 45\n= +43 points\n= +43.000 VNĐ"
 HOW_SCORE_PHASE_TITLE,"ĐIỂM GIAI ĐOẠN","PHASE SCORE"
 HOW_SCORE_PHASE_BODY,"Gross − bài rời = Net\nBài rời bị trừ sau mỗi lượt\nQ = 12, K = 13\nÍt bài rời hơn = tốt hơn","Gross − deadwood = Net\nDeadwood deducts after every turn\nQ = 12, K = 13\nFewer loose cards is better"
 HOW_MOM_TITLE,"MÓM","MÓM"
@@ -190,7 +190,7 @@ TUTORIAL_SELECT_RUN_BODY,"Nhấn 4 Cơ, 5 Cơ và 6 Cơ trong tay.","Click 4 Hea
 TUTORIAL_PLAY_RUN_TITLE,"Hạ Sảnh","Play the Run"
 TUTORIAL_PLAY_RUN_BODY,"Ba lá sáng lên màu xanh. Nhấn HẠ.","The three cards glow green. Press MELD."
 TUTORIAL_MELD_SCORE_TITLE,"Điểm Hạ Phỏm","Scoring a Meld"
-TUTORIAL_MELD_SCORE_BODY,"Tổng giá trị lá × số lá. Mỗi điểm trả ₫1.000.","Card-value sum × card count. Each point pays ₫1.000."
+TUTORIAL_MELD_SCORE_BODY,"Tổng giá trị lá × số lá. Mỗi điểm trả 1.000 VNĐ.","Card-value sum × card count. Each point pays 1.000 VNĐ."
 TUTORIAL_SELECT_DISCARD_TITLE,"Chọn lá bỏ","Choose a discard"
 TUTORIAL_SELECT_DISCARD_BODY,"Nhấn Q Rô. Đây là lá bài rời không dùng trong Phỏm.","Click the Queen of Diamonds. It is a loose card you do not need."
 TUTORIAL_DISCARD_TITLE,"Kết thúc lượt","End the turn"
@@ -393,7 +393,7 @@ DRINK_EFFECT_C2_ICED_TEA,"Mỗi ván tạo một Dây không cần đồng chấ
 DRINK_EFFECT_MIA_TAC,"Dây được trộn Cơ với Rô, kể cả khi gửi. Hạng vẫn liền nhau, Át thấp, không vòng. Không trộn hai chất đen.","Runs may mix Hearts and Diamonds, including extensions. Ranks stay unique and consecutive, Ace low, no wrap. Black suits gain no compatibility."
 DRINK_EFFECT_MIA_SAU_RIENG,"Dây được trộn Bích với Tép, kể cả khi gửi. Hạng vẫn liền nhau, Át thấp, không vòng. Không trộn hai chất đỏ.","Runs may mix Spades and Clubs, including extensions. Ranks stay unique and consecutive, Ace low, no wrap. Red suits gain no compatibility."
 NPC_ASK_BUSINESS,Hôm nay thế nào?,How is business?
-NPC_LEAVE,Cháu đi nhé.,I'll let you work.
+NPC_LEAVE,Tạm biệt nhé.,I'll let you work.
 NPC_CHAT_DANH_GIAY,Sáng giờ ai cũng đi vội hết á. Em đang để dành tiền mua quả bóng mới. Anh chị biết đá bóng không?,Everyone keeps rushing past! I’m saving up for a new football. Do you play?
 NPC_CHAT_HANG_RONG,Sáng gánh đi đầy cả hai đầu. Chiều nhẹ vai là mừng rồi.,I carry a full load out each morning. A lighter load home is a good day.
 NPC_CHAT_LOTTO,Người trúng thì kể cả tuần. Người trượt thì bảo mai sẽ khác.,A winner tells the story all week. Everyone else says tomorrow will be different.

@@ -95,7 +95,6 @@ game_hint={
 [internationalization]
 
 locale/translations=PackedStringArray("res://locale/ui.vi.translation", "res://locale/ui.en.translation")
-locale/fallback="en"
 
 [physics]
 

@@ -107,16 +107,24 @@ void fragment() {
  float enabled = step(0.5, dot(w, vec4(1.0)) + dot(accents, vec3(1.0)));
  vec3 result = mix(art.rgb, art.rgb * clamp(paper, vec3(0.0), vec3(1.0)), blank_paper * material_amount * enabled);
  if (polished) {
-  float sweep_position = mod(TIME * 0.28, 2.5) - 0.6;
-  float sweep = 1.0 - smoothstep(0.0, 0.10, abs(UV.x + UV.y * 0.38 - sweep_position));
-  float clean_paper = smoothstep(0.6, 0.95, min(art.r, min(art.g, art.b)));
-  result = mix(result, vec3(1.0, 0.995, 0.97), clean_paper * 0.16);
-  result = mix(result, vec3(1.0), sweep * (0.12 + clean_paper * 0.22));
-  vec2 sparkle_uv = (UV - vec2(0.85, 0.14)) * vec2(1.0, 1.386);
-  float sparkle = max((1.0 - smoothstep(0.0, 0.004, abs(sparkle_uv.x))) * (1.0 - smoothstep(0.0, 0.038, abs(sparkle_uv.y))),
-                      (1.0 - smoothstep(0.0, 0.004, abs(sparkle_uv.y))) * (1.0 - smoothstep(0.0, 0.028, abs(sparkle_uv.x))));
-  // A tiny silver-blue cleaning glint stays readable on white paper.
-  result = mix(result, vec3(0.38, 0.59, 0.65), sparkle * (0.75 + 0.15 * sin(TIME * 2.0)));
+  float polish_time = freeze_motion ? sample_time : TIME;
+  float sweep_position = mod(polish_time * 0.48, 1.9) - 0.25;
+  float sweep = stripe(UV.x + UV.y * 0.38 - sweep_position, 0.065, 0.055);
+  // Persistent cool-silver rim reads even between sweeps, including small hand cards.
+  float rim = stripe(edge - 0.034, 0.018, aa);
+  vec3 silver = mix(vec3(0.30, 0.65, 0.78), vec3(0.78, 0.93, 1.0), 0.5 + 0.5 * sin(polish_time * 2.0));
+  float protected_paper = blank_paper * (1.0 - max(corner_a, corner_b));
+  result = mix(result, silver, rim * blank_paper * 0.85);
+  // A tinted reflection remains visible on white paper without washing out printed ink.
+  result = mix(result, vec3(0.58, 0.83, 0.95), sweep * protected_paper * 0.55);
+  result = mix(result, vec3(1.0), stripe(UV.x + UV.y * 0.38 - sweep_position + 0.055, 0.012, aa) * protected_paper * 0.75);
+  for (int i = 0; i < 2; i++) {
+   vec2 anchor = i == 0 ? vec2(0.86, 0.16) : vec2(0.15, 0.83);
+   vec2 sparkle_uv = (UV - anchor) * vec2(1.0, 1.386);
+   float sparkle = max(stripe(sparkle_uv.x, 0.008, aa) * (1.0 - smoothstep(0.0, 0.065, abs(sparkle_uv.y))),
+                       stripe(sparkle_uv.y, 0.008, aa) * (1.0 - smoothstep(0.0, 0.050, abs(sparkle_uv.x))));
+   result = mix(result, vec3(0.18, 0.52, 0.68), sparkle * blank_paper * (0.8 + 0.2 * sin(polish_time * 2.5 + float(i) * 2.0)));
+  }
  }
  COLOR = vec4(result, art.a) * vertex_tint;
 }

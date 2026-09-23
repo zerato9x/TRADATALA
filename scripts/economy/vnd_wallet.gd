@@ -50,12 +50,12 @@ static func format_vnd(amount_vnd: int, include_sign: bool = false) -> String:
 		grouped = "." + digits.right(3) + grouped
 		digits = digits.left(digits.length() - 3)
 	grouped = digits + grouped
-	return "%s₫%s" % [sign_text, grouped]
+	return "%s%s VNĐ" % [sign_text, grouped]
 
 
 # Numeric-only HUD amount; the adjacent Label owns the VNĐ unit.
 static func format_amount(amount_vnd: int, include_sign: bool = false) -> String:
-	return format_vnd(amount_vnd, include_sign).replace("₫", "")
+	return format_vnd(amount_vnd, include_sign).trim_suffix(" VNĐ")
 
 
 # Every committed mutation is journaled before observers run. Summaries never pay.

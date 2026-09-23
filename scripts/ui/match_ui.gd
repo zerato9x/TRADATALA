@@ -1276,7 +1276,7 @@ func _on_event_deck_inspect_requested() -> void:
 	_restore_event_content_frame()
 	event_table.content_panel.position = Vector2(250, 120)
 	event_table.content_panel.size = Vector2(950, 520)
-	event_table.continue_button.visible = true
+	event_table.continue_button.visible = false
 	_build_event_deck_inspector()
 
 
@@ -1466,7 +1466,7 @@ func _on_event_table_npc_focused(npc_id: String) -> void:
 		return
 	_clear_campaign_participants()
 	_restore_event_content_frame()
-	event_table.continue_button.visible = true
+	event_table.continue_button.visible = false
 	event_table.content_panel.position = Vector2(350, 305)
 	event_table.content_panel.size = Vector2(580, 360)
 	event_table.back_button.disabled = false

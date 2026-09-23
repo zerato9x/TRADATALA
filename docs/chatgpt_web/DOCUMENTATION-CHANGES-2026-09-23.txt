@@ -1,0 +1,24 @@
+TRADATALA — CHATGPT PROJECT DOCUMENTATION UPDATE
+Updated: 2026-09-23
+Project: TRADATALA (ChatGPT Project g-p-6a8da900214c8191b183ba68463eed12)
+
+CURRENT SOURCE SET
+1. CURRENT-GAME-DESIGN-2026-09-23.txt — released v1.0.3 facts, implemented mechanics, official-website status and evidence boundaries.
+2. PREMIUM-EDITION-FULL-MECHANICS-PLAN-2026-09-23.txt — future premium scope and unimplemented mechanics. Treat it as planning, not shipping evidence.
+3. TRADATALA-AUDIO-CURRENT-2026-09-23.txt — shipped soundtrack/music behavior, authoring tools and listening-evidence boundaries.
+4. This file — source map, cleanup record and project-level status.
+
+SOURCE PRECEDENCE
+- For shipped behavior, use the v1.0.3 tag/build manifest and current-state document.
+- The official game website is https://naixdev.itch.io/tradatala. The local release receipt's “itchPublished: false” reflects its 2026-09-21 21:25 +07 checkpoint and is superseded as a current-status claim by the website updated at 21:31 +07. The hosted file's exact hash is not visible.
+- For premium features, use the premium plan only as intent/backlog. Mark every not-yet-implemented feature as planned.
+- Uncommitted local changes are workspace WIP and are not evidence about the public archive.
+
+PROJECT SOURCE CLEANUP
+These four dated files replaced the earlier dated design/audio/documentation snapshots from September 3, 5, 16 and 18, plus the separate September 5 Gieo Quẻ mechanics source. Those 11 older document sources have been removed from the TRADATALA Project. Keep sidewalk_table_full_reference.png because it is a visual reference, not an outdated document. Project conversations are not being deleted.
+
+RELEASE-PAGE COPY FOLLOW-UP
+The official game website embeds the browser game and lists TRADATALA-v1.0.3-windows-itch.zip, but still describes the embed as a demo and promises a future full release. This is a visible copy mismatch. Update it in a separate, explicitly scoped website-edit task; this document update did not change the website.
+
+VALIDATION LANGUAGE
+Only say what the evidence shows. The v1.0.3 release pack checks and local browser startup passed; the official game website currently lists v1.0.3. The live hosted ZIP has not been hash-matched to the local artifact. No new full-campaign balance study, human listening review, multiplayer/AI acceptance or premium-feature validation was done in this documentation update.

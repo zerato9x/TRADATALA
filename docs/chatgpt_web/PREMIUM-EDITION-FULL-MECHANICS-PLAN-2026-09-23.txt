@@ -1,0 +1,39 @@
+TRADATALA — PREMIUM EDITION / FULL-MECHANICS PLAN
+Planning snapshot: 2026-09-23
+Purpose: prepare the next full-mechanics edition after the public v1.0.3 release. This is a scope and design checklist, not an implemented feature list. Do not invent final gameplay effects where a rule is still marked “design required.”
+
+PRODUCT DIRECTION
+The user has directed that work move from the released game toward a premium version with the full mechanics. Use v1.0.3 as the released baseline. Keep new premium plans, implementation and public claims distinct from what the released build currently contains.
+The official game website promises a later full version with more NPCs, items and mechanics, including daily Zodiac modifiers and a Zodiac boss. The project README also lists special weekday mechanics, story chains, AI opponents and multiplayer as unimplemented. This plan gathers those known gaps for specification; it does not claim every detail or commercial arrangement has already been approved.
+
+TARGET FEATURE SET
+1. Daily Zodiac modifiers — required full-mechanics feature.
+Design the complete calendar and all twelve Zodiac identities. Specify when a modifier is selected and shown, what it changes, its duration, interactions with card rules / Drinks / relics / services / scoring, how it can be countered, and how it is represented in seed/save/replay. Effects remain design-required until specified.
+2. Zodiac bosses — required full-mechanics feature.
+Specify each boss's identity, arrival and encounter timing, rules, telegraph, player response, success/failure outcomes, campaign accounting and persistence. Define how a boss interacts with the daily modifier without hidden or contradictory rules.
+3. Expanded NPC and item content — required by the public full-version promise.
+Define the complete roster and inventory against the six current roles. Each new service needs eligibility, phase/day timing, price/payment authority, repeat behavior, save/resume behavior, bilingual copy and Handbook entry. Each item needs ownership, offer, equip/slot rules, gameplay effect, timing and accounting.
+4. Special weekday mechanics and story chains — outstanding full-game mechanics from the project README.
+Define the calendar schedule, authored narrative beats, player choices, state carried across days, effects on NPCs, rewards and failure/skip behavior. The stories and effects remain to be written.
+5. AI opponents — outstanding mode from the README and earlier release scope.
+Specify match format, legal-action interface, information available to the AI, difficulty behavior, turn pacing and how outcomes connect to campaign economy. Do not use hidden player information unless the rules explicitly allow it.
+6. Multiplayer — outstanding mode from the README and earlier release scope.
+Decide local or online play, player count, match format, turn order, disconnect/reconnect, pause, persistence, and whether it uses campaign economy. The current project is solo and does not establish these choices.
+7. 3D presentation — listed as a project gap, but not a card-game mechanic. Treat it as a separate optional production decision; do not make it a prerequisite for the full-mechanics goal unless explicitly chosen.
+
+CURRENT CORE TO RETAIN
+Build on the existing Phỏm Deal, two-Phase scoring, seven-day campaign and VND collection, twelve Drinks, Gieo Quẻ transformations, relic collection/equipment, six service roles, seeded deterministic runs, autosave/restore, victory report and Endless. Preserve authoritative ownership: DealState/scoring for card rules; campaign services for days/events; VndWallet for payments; RunSave for committed persistence; UI/Handbook for explanation only.
+
+DESIGN AND IMPLEMENTATION ORDER
+A. Freeze v1.0.3 as the public reference and audit post-tag working-tree changes before reusing them.
+B. Write source-of-truth rule specs and a content matrix for all Zodiac modifiers, bosses, NPCs, items, weekday mechanics and story chains.
+C. Define compatibility contracts: seed versioning, save migration, campaign ordering, payment/scoring authority, bilingual Handbook/help and accessibility/readability.
+D. Implement and accept deterministic single-player additions first. Every effect needs a player-visible explanation, exact timing and rule-level regression coverage.
+E. Decide and prototype AI and multiplayer formats before building them; both depend on complete legal-action and turn-resolution contracts.
+F. Run integrated campaign, save/resume, seed reproduction, balance, rendered-UI and human-play acceptance before packaging. A passing local rules suite alone does not establish full release acceptance.
+
+RELEASE BOUNDARY AND OPEN DECISIONS
+- Nothing in this file is implemented or shipped.
+- Exact boss/modifier effects, story content, NPC/item definitions, AI style, multiplayer format, premium edition name/price, launch date, store setup and upgrade/save compatibility policy remain to be specified.
+- Keep core gameplay rule changes out of public claims until implemented, validated and present in the release artifact.
+- The official game website still calls the browser build a demo; its product copy should be updated separately to explain the released version and planned premium/full-mechanics edition.
