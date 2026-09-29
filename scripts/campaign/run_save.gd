@@ -1,7 +1,11 @@
 class_name RunSave
 extends RefCounted
 ## Versioned, atomic, object-free on disk. Only whitelisted value classes are reconstructed.
-const VERSION := 1
+const VERSION := 2
+# These archives contain only committed value snapshots, never live Objects.
+# Keep them in native Variant containers instead of allocating a recursive
+# key/value wrapper for every old scoring hit on every autosave.
+const VALUE_ARCHIVES := ["campaign/deal_reports", "campaign/day_reports", "campaign/activities", "campaign/collection_report", "deal/wallet_journal", "deal/action_history"]
 const PATH := "user://run_v1.save"
 const TYPES := {
 	"CardData": preload("res://scripts/cards/card_data.gd"),
@@ -42,11 +46,11 @@ static func apply_fields(object: Object, data: Dictionary, names: Array) -> void
 		else:
 			object.set(field, data[field])
 
-func capture(campaign: CampaignManager, deal: DealState) -> Dictionary:
+func capture(campaign: CampaignManager, deal: DealState, copy_history: bool = true) -> Dictionary:
 	var event := campaign.event_manager.current_event
 	return {
 		"onboarding": {"learned": campaign.onboarding.learned.duplicate(), "dismissed": campaign.onboarding.dismissed.duplicate()},
-		"campaign": fields(campaign, CAMPAIGN_FIELDS), "deal": deal.snapshot_state(),
+		"campaign": fields(campaign, CAMPAIGN_FIELDS), "deal": deal.snapshot_state(copy_history),
 		"drinks": fields(campaign.drink_manager, DRINK_FIELDS),
 		"progress": {"counters": campaign.drink_manager.progress.counters.duplicate(), "seen": campaign.drink_manager.progress._seen_melds.duplicate()} if campaign.drink_manager.progress != null else {},
 		"gieo": fields(campaign.gieo_que, GIEO_FIELDS), "gieo_rng": campaign.gieo_que._rng.state,
@@ -121,7 +125,8 @@ func valid_snapshot(data: Dictionary) -> bool:
 	return data.deal.get("hand") is Array and data.deal.get("deck") is Dictionary and data.gieo.get("persistent_deck", []).size() == 52
 
 func save_run(campaign: CampaignManager, deal: DealState) -> bool:
-	return write_snapshot(capture(campaign, deal))
+	# Synchronous serialization finishes before gameplay can mutate the arrays.
+	return write_snapshot(capture(campaign, deal, false))
 
 func write_snapshot(data: Dictionary) -> bool:
 	error = ""
@@ -175,7 +180,7 @@ func _read(source: String) -> Dictionary:
 		return {}
 	var envelope: Variant = file.get_var(false)
 	file.close()
-	if not envelope is Dictionary or int(envelope.get("version", -1)) != VERSION or not envelope.get("payload") is PackedByteArray:
+	if not envelope is Dictionary or int(envelope.get("version", -1)) not in [1, VERSION] or not envelope.get("payload") is PackedByteArray:
 		error = "Unsupported or damaged save"
 		return {}
 	if _digest(envelope.payload) != envelope.get("sha256", ""):
@@ -217,7 +222,9 @@ static func _field_names(value: Object) -> Array:
 			names.append(String(property.name))
 	return names
 
-func _encode(value: Variant) -> Variant:
+func _encode(value: Variant, field_path: String = "") -> Variant:
+	if field_path in VALUE_ARCHIVES:
+		return {"plain": value}
 	if value is Object:
 		if value == null:
 			return null
@@ -242,13 +249,15 @@ func _encode(value: Variant) -> Variant:
 	if value is Dictionary:
 		var pairs := []
 		for key: Variant in value:
-			pairs.append([_encode(key), _encode(value[key])])
+			pairs.append([_encode(key), _encode(value[key], str(key) if field_path.is_empty() else field_path + "/" + str(key))])
 		return {"dict": pairs}
 	return value
 
 func _decode(value: Variant) -> Variant:
 	if not value is Dictionary:
 		return value
+	if value.has("plain"):
+		return value.plain
 	if value.has("ref"):
 		var index := int(value.ref)
 		if index < 0 or index >= _objects.size():

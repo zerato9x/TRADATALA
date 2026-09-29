@@ -101,6 +101,7 @@ var pending_exhaustion_presentations: Array[Dictionary] = []
 var money_jobs: Array[Dictionary] = []
 var completed_money_jobs: Dictionary = {}
 var money_queue_running: bool = false
+var money_queue_started_msec: int = 0
 var money_queue_generation := 0
 var next_money_job_id: int = 1
 var money_queue_wallet_vnd: int = 0
@@ -1015,6 +1016,7 @@ func _reset_tutorial_ui_state() -> void:
 	money_jobs.clear()
 	completed_money_jobs.clear()
 	money_queue_running = false
+	money_queue_started_msec = 0
 	money_queue_wallet_vnd = displayed_wallet_vnd
 
 
@@ -2993,7 +2995,7 @@ func _discard_history_target_center(record: DiscardRecord) -> Vector2:
 func _resolve_hand_drink_target(card: CardData, record: DiscardRecord) -> void:
 	interaction_locked = true
 	_refresh_actions()
-	await _fly_cards([card] as Array[CardData], _discard_history_target_center(record))
+	_fly_cards([card] as Array[CardData], _discard_history_target_center(record))
 	var result: Dictionary = deal.use_den_da(card, record) if deal.current_drink_id == DrinkCatalog.DEN_DA else deal.use_nhan_tran(card, record)
 	_finish_drink_use(result)
 
@@ -3074,7 +3076,7 @@ func _on_ha_pressed() -> void:
 	var selected := _selected_cards()
 	interaction_locked = true
 	_refresh_actions()
-	await _fly_cards(selected, meld_scroll.get_global_rect().get_center())
+	_fly_cards(selected, meld_scroll.get_global_rect().get_center())
 	var use_drink := not deal.can_create_meld(selected) and not tutorial_active
 	var result := deal.create_meld(selected, use_drink)
 	if not result.get("ok", false):
@@ -3104,7 +3106,7 @@ func _on_extend_pressed() -> void:
 	var selected := _selected_cards()
 	interaction_locked = true
 	_refresh_actions()
-	await _fly_cards(selected, meld_scroll.get_global_rect().get_center())
+	_fly_cards(selected, meld_scroll.get_global_rect().get_center())
 	var result := deal.extend_meld(selected_meld_id, selected)
 	if not result.get("ok", false):
 		_reject_action(result.get("message", "Extension failed."))
@@ -3131,7 +3133,7 @@ func _on_discard_pressed() -> void:
 	var card := selected[0]
 	interaction_locked = true
 	_refresh_actions()
-	await _fly_cards(selected, discard_texture.get_global_rect().get_center())
+	_fly_cards(selected, discard_texture.get_global_rect().get_center())
 	var result: Dictionary = deal.discard_card(card)
 	if not result.get("ok", false):
 		_reject_action(result.get("message", "Discard failed."))
@@ -3141,7 +3143,7 @@ func _on_discard_pressed() -> void:
 	_sync_all(result)
 	await _drain_pending_u_presentations()
 	if result.has("turn_resolution"):
-		await _show_turn_deadwood(result["turn_resolution"])
+		_show_turn_deadwood(result["turn_resolution"])
 	_drain_pending_exhaustion_presentations()
 	await _drain_pending_u_khan_presentations()
 	if result.get("extra_discard_pending", false):
@@ -3176,7 +3178,7 @@ func _on_settle_pressed() -> void:
 			return
 		_sync_all(turn_result)
 		if turn_result.has("turn_resolution"):
-			await _show_turn_deadwood(turn_result["turn_resolution"])
+			_show_turn_deadwood(turn_result["turn_resolution"])
 		_drain_pending_exhaustion_presentations()
 		if turn_result.get("final_commit_window", false):
 			_show_banner(tr("BANNER_LAST_CALL"))
@@ -3371,8 +3373,7 @@ func _show_turn_deadwood(resolution: Dictionary) -> void:
 		"reason": "deadwood",
 	}
 	money_queue_wallet_vnd = target_wallet
-	var job_id := _enqueue_money_job("transaction", event)
-	await _wait_for_money_job(job_id)
+	_enqueue_money_job("transaction", event)
 
 
 func _enqueue_money_job(kind: String, event: Dictionary, recycle_visual: Dictionary = {}) -> int:
@@ -3386,6 +3387,7 @@ func _enqueue_money_job(kind: String, event: Dictionary, recycle_visual: Diction
 	})
 	if not money_queue_running:
 		money_queue_running = true
+		money_queue_started_msec = Time.get_ticks_msec()
 		call_deferred("_drain_money_jobs")
 	return job_id
 
@@ -3396,6 +3398,7 @@ func _drain_money_jobs() -> void:
 		var job: Dictionary = money_jobs.pop_front()
 		var event: Dictionary = job["event"]
 		if String(job["kind"]) == "scoring":
+			event["queue_elapsed_seconds"] = float(Time.get_ticks_msec() - money_queue_started_msec) / 1000.0
 			await money_presentation.present_scoring(event)
 		elif String(job["kind"]) == "phase":
 			await money_presentation.present_phase(event)
@@ -3418,6 +3421,7 @@ func _drain_money_jobs() -> void:
 		completed_money_jobs[job_id] = true
 		money_job_completed.emit(job_id)
 	money_queue_running = false
+	money_queue_started_msec = 0
 
 
 func _wait_for_money_job(job_id: int) -> void:
@@ -3453,11 +3457,16 @@ func _show_deal_over(_resolution: Dictionary) -> void:
 	interaction_locked = true
 	_set_hand_interaction_enabled(false)
 	modal_overlay.visible = false
-	resolve_mode = "deal"
-	_ensure_resolve_receipt()
-	resolve_receipt.show_report(deal.accounting_report(), "deal",
-		resolve_receipt.words("DEAL COMPLETE · YOUR RECEIPT", "HẾT VÁN · SỔ THU CHI"), tr("EVENT_CONTINUE"))
-	_refresh_actions()
+	# Resolution feedback has already played. Archive once and return to the
+	# event table without constructing an inspection screen for every deal.
+	resolve_mode = ""
+	if campaign != null and CampaignManager.DEAL_PHASE_TO_PERIOD.has(campaign.current_phase):
+		var result := deal.last_phase_resolution.duplicate(true)
+		result["details"] = deal.accounting_report()
+		campaign.complete_deal(result)
+	elif campaign == null:
+		interaction_locked = false
+		_start_new_deal()
 
 
 func _show_modal() -> void:
@@ -3610,7 +3619,10 @@ func _on_campaign_deal_requested(day: Dictionary, period: String, drink_id: Stri
 		tr(_campaign_period_key(period)),
 	])
 
-func _on_deal_new_phom_scored(_context: ScoringContext) -> void:
+   
+
+
+,'.":vb  vb cv cv func _on_deal_new_phom_scored(_context: ScoringContext) -> void:
 	if gameplay_music != null:
 		gameplay_music.on_new_phom(deal.current_phase, deal.phase_new_meld_count)
 
@@ -3894,10 +3906,18 @@ func _on_collection_requested(report: Dictionary) -> void:
 	var caption: String = resolve_receipt.words("PAY & CONTINUE", "TRẢ NỢ & TIẾP TỤC")
 	if int(report.shortfall_vnd) > 0:
 		caption = resolve_receipt.words("CANNOT PAY · END RUN", "KHÔNG ĐỦ TIỀN · KẾT THÚC")
-	report = report.duplicate(true)
-	report["actions"] = _resolve_card_history(true)
+	# Full records remain in CampaignManager; collection needs only its totals.
+	report = _collection_summary(report)
 	resolve_receipt.show_report(report, "collection",
 		resolve_receipt.words("ĐÒI NỢ · DAY'S ACCOUNTS", "ĐÒI NỢ · SỔ CUỐI NGÀY"), caption)
+
+
+func _collection_summary(report: Dictionary) -> Dictionary:
+	var summary := {}
+	for key in ["opening_vnd", "closing_vnd", "income_vnd", "expense_vnd", "net_vnd", "categories", "counts", "due_vnd", "shortfall_vnd", "paid"]:
+		if report.has(key):
+			summary[key] = report[key]
+	return summary
 
 
 func _resolve_card_history(today_only: bool) -> Array:

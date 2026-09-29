@@ -128,6 +128,11 @@ func _ready() -> void:
 	visibility_changed.connect(func():
 		if not is_visible_in_tree():
 			_collector_arrival.stop()
+			# Hidden receipts must release their report and generated controls.
+			_report = {}
+			if portrait.get_parent():
+				portrait.get_parent().remove_child(portrait)
+			_clear(rows)
 	)
 	visible = false
 
@@ -189,6 +194,9 @@ func show_report(report: Dictionary, mode: String, heading: String, button_text:
 	_stat(words("SPENT / LOST", "CHI / MẤT"), -int(report.expense_vnd), RED)
 	_clear(_tabs)
 	var pages := ["chronicle", "overview", "cards", "ledger"] if mode == "outcome" else ["overview", "cards", "ledger"]
+	if mode == "collection":
+		pages = ["overview"]
+	_tabs.visible = pages.size() > 1
 	for page in pages:
 		var tab := Button.new()
 		tab.name = page

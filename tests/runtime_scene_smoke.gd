@@ -808,6 +808,7 @@ func _run() -> void:
 	_check(scene._card_drop_target_at(table_drop_position)["kind"] == scene.DROP_TARGET_TABLE, "the open table resolves as the new-Meld drop target")
 	scene._finish_card_drag(table_drop_position)
 	_check(await _wait_for_interaction_unlock(scene), "dragging selected cards to the table completes the Meld action")
+	await process_frame
 	_check(not scene.interaction_locked and scene.score_overlay.visible, "Meld money continues floating while the next player interaction is already enabled")
 	_check(scene.deal.melds.size() == 1 and scene.deal.melds[0].cards.size() == 3, "the table drop commits the selected three-card Meld")
 	_check(int(scene.card_sfx_play_counts[scene.CARD_SFX_PLACE]) == place_sfx_count + 1 and (scene.card_sfx_players[scene.CARD_SFX_PLACE] as AudioStreamPlayer).stream.resource_path.begins_with("res://assets/audio/sfx/card_place"), "creating a Phỏm plays one supplied placement variant")

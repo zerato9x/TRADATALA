@@ -165,7 +165,7 @@ func start_tutorial_deal() -> Dictionary:
 	return result
 
 
-func snapshot_state() -> Dictionary:
+func snapshot_state(copy_history: bool = true) -> Dictionary:
 	var metric_snapshot := {
 		"raw_gross": phase_metrics.raw_gross,
 		"deadwood_total": phase_metrics.deadwood_total,
@@ -178,9 +178,9 @@ func snapshot_state() -> Dictionary:
 	}
 	return {
 		"action_counts": action_counts.duplicate(true),
-		"action_history": action_history.duplicate(true),
+		"action_history": action_history.duplicate(true) if copy_history else action_history,
 		"deal_journal_cursor": deal_journal_cursor,
-		"wallet_journal": wallet.journal.duplicate(true),
+		"wallet_journal": wallet.journal.duplicate(true) if copy_history else wallet.journal,
 		"wallet_journal_opening": wallet.journal_opening_vnd,
 		"deck": deck.snapshot_state(),
 		"relics": relics.snapshot(),

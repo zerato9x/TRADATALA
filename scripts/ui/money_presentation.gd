@@ -27,6 +27,8 @@ const MONEY_BILL_STAGGER := 0.04
 const MONEY_BILL_FADE_DURATION := 0.08
 const MONEY_SETTLE_DELAY := 0.16
 const MONEY_CEREMONY_FADE_DURATION := 0.14
+const SCORING_FAST_FORWARD_AFTER_SECONDS := 4.0
+const SCORING_FAST_FORWARD_INTERVAL := 0.012
 var ceremony: Control
 var score_panel: Control
 var title_label: Label
@@ -98,6 +100,7 @@ func present_scoring(event: Dictionary) -> void:
 	_scoring_face = face
 	var hits: Array = event.get("hits", [])
 	var triggered_cards := 0
+	var scoring_started_msec := Time.get_ticks_msec() - roundi(float(event.get("queue_elapsed_seconds", 0.0)) * 1000.0)
 	_stacked_gain = 0
 	var running_wallet := int(event.get("start_wallet_vnd", 0))
 	var running_gain := 0
@@ -108,7 +111,8 @@ func present_scoring(event: Dictionary) -> void:
 		var card_id := String(hit.get("card_id", ""))
 		var card_control: Control = locator.call(card_id) if locator.is_valid() and not card_id.is_empty() else null
 		var reveal: Callable = event.get("reveal_card", Callable())
-		if reveal.is_valid() and is_instance_valid(card_control):
+		var elapsed_seconds := float(Time.get_ticks_msec() - scoring_started_msec) / 1000.0
+		if reveal.is_valid() and is_instance_valid(card_control) and elapsed_seconds < SCORING_FAST_FORWARD_AFTER_SECONDS:
 			await reveal.call(card_control)
 			if generation != _scoring_generation:
 				return
@@ -126,6 +130,7 @@ func present_scoring(event: Dictionary) -> void:
 		var interval := 0.65 if relic_hit else scoring_hit_interval(triggered_cards)
 		if replay:
 			interval = maxf(0.14, 0.30 - float(hit.get("echo", 0)) * 0.025)
+		interval = scoring_resolve_interval(interval, elapsed_seconds)
 		var flow := property_id == GieoQueService.PROPERTY_MELD_RETRIGGER
 		var accent := Color("#79d9cf") if flow else Color("#f5bf42")
 		if is_instance_valid(card_control):
@@ -785,6 +790,12 @@ func present_major_event(event: Dictionary) -> void:
 
 static func scoring_hit_interval(triggered_cards: int) -> float:
 	return maxf(0.045, 0.36 * pow(0.91, maxi(triggered_cards - 2, 0)))
+
+
+static func scoring_resolve_interval(base_interval: float, elapsed_seconds: float) -> float:
+	if elapsed_seconds >= SCORING_FAST_FORWARD_AFTER_SECONDS:
+		return minf(base_interval, SCORING_FAST_FORWARD_INTERVAL)
+	return base_interval
 
 
 func _clear_major_event() -> void:
