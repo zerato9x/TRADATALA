@@ -19,6 +19,7 @@ config/name.tradatala_demo="TRADATALA Demo"
 
 [audio]
 
+buses/default_bus_layout="uid://d12cwqh5xc7vn"
 general/default_playback_type.web=0
 
 [autoload]

@@ -1,6 +1,6 @@
 # Drink roster and NPC conversation testing
 
-Updated through September 13, 2026. Mechanics testing; final prices, art and day/tier progression are not implemented.
+Historical mechanics/UI test record, originally updated through September 13, 2026. Current-status note refreshed September 29, 2026: all twelve Drink effects, production prices and campaign unlock/day gates are implemented; Trà Đá remains free. See [current cost policy](RESOLVE_ACCOUNTING.md) and [progression/save contract](RUN_PROGRESSION_SAVES_2026-09-19.md) for current rules. The verification counts below are from the earlier test pass, not the September 29 full validation gate.
 
 ## Player flow
 
@@ -10,7 +10,7 @@ The shop occupies the left of the table, clear of Cô Trà Đá's sprite, with f
 
 The top-right `?` opens the shared action-word legend. HẠ/MELD is green, EXTEND amber, DISCARD/DUMP coral, KEEP/SWAP/RECOVER cyan, DRAW pale blue, SETTLE lavender, and ORDER gold. Dialogue verbs and primary action controls use the same vocabulary. Text labels remain present so colors are not the only identifier.
 
-`DrinkManager.TEST_ALL_DRINKS_AVAILABLE` defaults to true. Its instance override can be disabled to retain the existing Basic shop path. The zero test price is explicitly provisional. Tier/category/charge metadata stays in DrinkCatalog; Caffeine entries have no parent relationships.
+`DrinkManager.TEST_ALL_DRINKS_AVAILABLE` defaults to false. Production prices and campaign unlock/day gates are active. The test override is available only when explicitly enabled, outside the restricted demo. Tier/category/charge metadata stays in DrinkCatalog; Caffeine entries have no parent relationships.
 
 Every Drink effect is optional. Trà đá's extra discard can be skipped with **End Turn**. Ordinary Phase transitions automatically DUMP the loose hand into the discard pile and refill toward ten after settlement; these cards stay separate from the four mandatory discards in either Phase. **KEEP is available only with Sâm dứa or Bạc xỉu**; their optional preservation applies when DUMP is chosen. Preservation selections count as deadwood before either choice.
 

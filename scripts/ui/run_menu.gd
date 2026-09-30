@@ -41,7 +41,7 @@ func configure(progress: DrinkProgress, saved: Dictionary, message: String = "",
 		if level > unlocked: difficulty_selector.set_item_text(level - 1, difficulty_selector.get_item_text(level - 1) + words(" · LOCKED", " · CHƯA MỞ"))
 	difficulty_selector.item_selected.connect(func(index: int): selected_difficulty = index + 1)
 	body.add_child(difficulty_selector)
-	body.add_child(_label(words("CHOOSE YOUR MUSIC · You can change this later in Options.", "CHỌN NHẠC · Có thể đổi lại trong Tùy chọn."), 18))
+	body.add_child(_label(words("NEW RUN MUSIC · Continue restores saved music. Switch anytime in the jukebox.", "NHẠC VÁN MỚI · Tiếp tục khôi phục nhạc đã lưu. Đổi bất kỳ lúc nào ở máy nhạc."), 18))
 	music_choice = OptionButton.new()
 	music_choice.name = "MusicChoice"
 	music_choice.add_item(words("Choose before starting…", "Chọn trước khi chơi…"))
@@ -59,7 +59,7 @@ func configure(progress: DrinkProgress, saved: Dictionary, message: String = "",
 	body.add_child(actions)
 	resume_button = Button.new()
 	resume_button.text = words("CONTINUE SAVED RUN", "TIẾP TỤC VÁN ĐÃ LƯU")
-	resume_button.disabled = true
+	resume_button.disabled = saved.is_empty()
 	resume_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	resume_button.custom_minimum_size.y = 48
 	PresentationTheme.configure_button(resume_button, "tea")

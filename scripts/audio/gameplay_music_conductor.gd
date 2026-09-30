@@ -49,6 +49,44 @@ func start_campaign(set_id := "cat") -> bool:
 	return true
 
 
+func start_at_state(set_id: String, period: String, phase: int = 1, new_phom_count: int = 0, resolved: bool = false) -> bool:
+	# An explicit jukebox switch may enter an approved cue immediately.
+	# Resume instead uses restore_snapshot(), preserving the saved transport.
+	if controller == null or not _load_set(set_id):
+		return false
+	var closing_half := period in ["noon_event", "afternoon", "afternoon_event", "evening", "collection"]
+	var track_id := closing_track_id if closing_half else opening_track_id
+	if not _load_plan(track_id):
+		return false
+	var role: StringName
+	match period:
+		"", "starter_event": role = &"starter_event"
+		"morning_event": role = &"morning_event_sustain"
+		"noon_event": role = &"noon_event"
+		"afternoon_event": role = &"afternoon_event"
+		"collection": role = &"evening_phase_2_cleanup"
+		"morning": role = &"morning_deal_phase_2" if phase == 2 else &"morning_deal_phase_1"
+		"noon": role = &"noon_deal_phase_2" if phase == 2 else &"noon_deal_phase_1"
+		"afternoon": role = &"afternoon_phase_2" if phase == 2 else &"afternoon_phase_1"
+		"evening": role = &"evening_phase_2" if phase == 2 else &"evening_phase_1"
+		_: return _fail("Unknown gameplay music period: %s" % period)
+	morning_first_phom_released = period == "morning" and phase == 2 and new_phom_count > 0 \
+		and not cue_for_role(&"morning_deal_phase_2_cleanup").is_empty()
+	noon_first_phom_released = period == "noon" and phase == 2 and new_phom_count > 0
+	boss_first_phom_released = period == "evening" and phase == 2 and new_phom_count > 0
+	if morning_first_phom_released: role = &"morning_deal_phase_2_cleanup"
+	if noon_first_phom_released: role = &"noon_deal_final"
+	if boss_first_phom_released: role = &"evening_phase_2_cleanup"
+	if resolved and period == "morning": role = &"morning_event_sustain"
+	if not _start_track_at_role(track_id, role):
+		return false
+	active_period = period
+	active = true
+	if period == "collection" or (resolved and period in ["noon", "evening"]):
+		return _release_authored_audio()
+	return true
+
+
 func stop_campaign() -> void:
 	active = false
 	active_period = ""
@@ -57,6 +95,35 @@ func stop_campaign() -> void:
 	opening_track_id = ""
 	closing_track_id = ""
 	cue_roles.clear()
+
+
+func snapshot_state() -> Dictionary:
+	return {"active": active, "set": active_set_id, "track": active_track_id,
+		"period": active_period, "morning_released": morning_first_phom_released,
+		"noon_released": noon_first_phom_released, "boss_released": boss_first_phom_released}
+
+
+func restore_snapshot(data: Dictionary) -> bool:
+	stop_campaign()
+	if not bool(data.get("active", false)):
+		return true
+	var period := String(data.get("period", ""))
+	if period not in ["", "starter_event", "morning_event", "noon_event", "afternoon_event",
+			PERIOD_MORNING, PERIOD_NOON, PERIOD_AFTERNOON, PERIOD_EVENING, "collection"]:
+		return _fail("Invalid saved gameplay music period")
+	if not _load_set(String(data.get("set", ""))):
+		return false
+	var track_id := String(data.get("track", ""))
+	if track_id not in [opening_track_id, closing_track_id] or not _load_plan(track_id):
+		stop_campaign()
+		return _fail("Invalid saved gameplay music track")
+	active_track_id = track_id
+	active_period = period
+	morning_first_phom_released = bool(data.get("morning_released", false))
+	noon_first_phom_released = bool(data.get("noon_released", false))
+	boss_first_phom_released = bool(data.get("boss_released", false))
+	active = true
+	return true
 
 
 func on_event_started(period: String) -> bool:

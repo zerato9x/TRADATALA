@@ -2,6 +2,8 @@ class_name RunSave
 extends RefCounted
 ## Versioned, atomic, object-free on disk. Only whitelisted value classes are reconstructed.
 const VERSION := 2
+const MAX_FILE_BYTES := 64 * 1024 * 1024
+const MAX_OBJECTS := 100_000
 # These archives contain only committed value snapshots, never live Objects.
 # Keep them in native Variant containers instead of allocating a recursive
 # key/value wrapper for every old scoring hit on every autosave.
@@ -23,6 +25,9 @@ const SHOP_FIELDS := ["offers", "visit_id", "purchased", "rerolls", "target_vnd"
 var path: String
 var error := ""
 var recovered_backup := false
+# Per-instance limits also let boundary tests use small fixtures.
+var max_file_bytes := MAX_FILE_BYTES
+var max_objects := MAX_OBJECTS
 var _ids: Dictionary = {}
 var _records: Array = []
 var _objects: Array = []
@@ -46,9 +51,10 @@ static func apply_fields(object: Object, data: Dictionary, names: Array) -> void
 		else:
 			object.set(field, data[field])
 
-func capture(campaign: CampaignManager, deal: DealState, copy_history: bool = true) -> Dictionary:
+func capture(campaign: CampaignManager, deal: DealState, copy_history: bool = true, music: Dictionary = {}) -> Dictionary:
 	var event := campaign.event_manager.current_event
 	return {
+		"music": music,
 		"onboarding": {"learned": campaign.onboarding.learned.duplicate(), "dismissed": campaign.onboarding.dismissed.duplicate()},
 		"campaign": fields(campaign, CAMPAIGN_FIELDS), "deal": deal.snapshot_state(copy_history),
 		"drinks": fields(campaign.drink_manager, DRINK_FIELDS),
@@ -124,9 +130,9 @@ func valid_snapshot(data: Dictionary) -> bool:
 		return false
 	return data.deal.get("hand") is Array and data.deal.get("deck") is Dictionary and data.gieo.get("persistent_deck", []).size() == 52
 
-func save_run(campaign: CampaignManager, deal: DealState) -> bool:
+func save_run(campaign: CampaignManager, deal: DealState, music: Dictionary = {}) -> bool:
 	# Synchronous serialization finishes before gameplay can mutate the arrays.
-	return write_snapshot(capture(campaign, deal, false))
+	return write_snapshot(capture(campaign, deal, false, music))
 
 func write_snapshot(data: Dictionary) -> bool:
 	error = ""
@@ -134,6 +140,9 @@ func write_snapshot(data: Dictionary) -> bool:
 	_records.clear()
 	var root: Variant = _encode(data)
 	if not error.is_empty():
+		return false
+	if _records.size() > max_objects:
+		error = "Save exceeds the supported object limit"
 		return false
 	var payload := {"root": root, "objects": _records}
 	var bytes := var_to_bytes(payload)
@@ -145,9 +154,14 @@ func write_snapshot(data: Dictionary) -> bool:
 	file.store_var(envelope, false)
 	file.flush()
 	var write_error := file.get_error()
+	var file_bytes := file.get_length()
 	file.close()
 	if write_error != OK:
 		error = error_string(write_error)
+		return false
+	if file_bytes > max_file_bytes:
+		error = "Save exceeds the supported file size limit"
+		DirAccess.remove_absolute(path + ".tmp")
 		return false
 	# Keep the previous complete file. Never replace it with a failed partial write.
 	if FileAccess.file_exists(path) and not recovered_backup:
@@ -175,7 +189,7 @@ func _read(source: String) -> Dictionary:
 	if not FileAccess.file_exists(source):
 		return {}
 	var file := FileAccess.open(source, FileAccess.READ)
-	if file == null or file.get_length() > 64 * 1024 * 1024 or file.get_length() < 8:
+	if file == null or file.get_length() > max_file_bytes or file.get_length() < 8:
 		error = "Invalid save file"
 		return {}
 	var envelope: Variant = file.get_var(false)
@@ -187,7 +201,7 @@ func _read(source: String) -> Dictionary:
 		error = "Save checksum mismatch"
 		return {}
 	var payload: Variant = bytes_to_var(envelope.payload)
-	if not payload is Dictionary or not payload.get("objects") is Array or payload.objects.size() > 100_000:
+	if not payload is Dictionary or not payload.get("objects") is Array or payload.objects.size() > max_objects:
 		error = "Invalid save payload"
 		return {}
 	_objects.clear()

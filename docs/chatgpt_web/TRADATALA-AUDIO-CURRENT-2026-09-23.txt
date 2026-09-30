@@ -1,10 +1,17 @@
 TRADATALA — CURRENT AUDIO DESIGN AND IMPLEMENTATION
-Snapshot: 2026-09-23
-The shipped v1.0.3 audio baseline includes a twelve-Zodiac soundtrack identity, Vietnamese musical influences blended with funk, reactive gameplay music and a 26-track album player.
+Release-baseline snapshot: 2026-09-23. Workspace status refreshed: 2026-09-29.
+The shipped v1.0.3 audio baseline includes a twelve-Zodiac soundtrack identity, Vietnamese musical influences blended with funk, reactive gameplay music and a 26-track Playlist.
 
-GAMEPLAY MUSIC
+CURRENT WORKSPACE MUSIC BEHAVIOR — 2026-09-29 WIP
+- The Escape/Menu jukebox offers Authored DJ and Playlist through one mode selector and one source chooser. DJ offers the CAT/Mèo and DOG/Chó sets; Playlist offers all 26 tracks plus Shuffle and Repeat Off/All/One.
+- Starting DJ or changing its set during a run begins the approved cue for the current event/deal/phase immediately, including committed first-meld cleanup. The selected set also applies at later day openings. Switching mode or set preserves pause and does not change gameplay, wallet, history or gameplay RNG.
+- Continue restores the actual recorded source, position, cue/transition, pause state, Playlist transport and active crossfade. A New Run selection does not replace the saved music on Continue. Legacy saves without a usable music checkpoint still restore gameplay and fall back to Playlist with a notice.
+- Version-2 saves can optionally include value-only music checkpoints for the director, reactive controller, anti-fatigue filter and gameplay conductor. Exact music resume is available only for saves made after this checkpoint was added.
+- This source work was checkpointed to `main` on September 30 and remains WIP relative to the public release. The September 29 validation gate and its limitations are recorded in `docs/CODEBASE_AUDIT_2026-09-29.md`; no new audio release/export or human listening sign-off is claimed.
+
+SHIPPED V1.0.3 AUDIO BASELINE
 - New runs use the Authored DJ route by default: the Mèo/CAT route plays on day one and the Chó/DOG route on day two; those routes alternate by day.
-- The standalone album player exposes all 26 OST tracks, cover art, track selection, progress, next-track preview, play/pause, shuffle and Repeat Off/All/One.
+- The Playlist exposes all 26 OST tracks, cover art, track selection, progress, next-track preview, play/pause, shuffle and Repeat Off/All/One.
 - Four frequency bands drive presentation spectrum motion.
 - Gameplay cues use authored approved cue plans. MusicDirector supports holding a bar-aligned cue, releasing into original playback or the next reachable approved cue, finishing a loop before a reprise, intentional hard jumps, and release to the original track ending.
 - Source WAVs remain intact. Cue control duplicates imported AudioStreamWAV data rather than editing source assets or manufacturing transition audio.

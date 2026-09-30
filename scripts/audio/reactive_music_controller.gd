@@ -50,6 +50,8 @@ var current_track_index: int = 0
 var queued_track_index: int = -1
 var transition_in_progress: bool = false
 var transition_tween: Tween
+var _transition_track_index := -1
+var _transition_duration := TRANSITION_OVERLAP_SECONDS
 var music_paused: bool = false
 var shuffle_enabled: bool = false
 var repeat_mode: StringName = REPEAT_OFF
@@ -273,6 +275,95 @@ func release_dj_to_end() -> bool:
 	return dj_mode and music_director != null and music_director.release_to_end()
 
 
+func snapshot_state() -> Dictionary:
+	var data := {"version": 1, "dj": dj_mode, "paused": music_paused,
+		"shuffle": shuffle_enabled, "repeat": String(repeat_mode), "rng": music_rng.state,
+		"track_path": current_mix_path,
+		"queued_path": String(playlist[queued_track_index].path) if queued_track_index >= 0 else "",
+		"anti_fatigue": anti_fatigue.snapshot_state()}
+	if dj_mode:
+		data["transport"] = music_director.snapshot_state()
+	else:
+		data["player"] = _player_checkpoint(full_mix_player)
+		if transition_in_progress:
+			data["fade"] = {"track_path": String(playlist[_transition_track_index].path),
+				"player": _player_checkpoint(mix_players[1 - active_mix_index]),
+				"remaining": maxf(0.001, _transition_duration - transition_tween.get_total_elapsed_time())}
+	return data
+
+
+func restore_snapshot(data: Dictionary) -> bool:
+	if data.get("version") != 1 or not data.get("rng") is int \
+			or StringName(data.get("repeat", "")) not in [REPEAT_OFF, REPEAT_ALL, REPEAT_ONE]:
+		return false
+	var track_index := _index_for_path(String(data.get("track_path", "")))
+	if track_index < 0:
+		return false
+	music_paused = bool(data.get("paused", false))
+	shuffle_enabled = bool(data.get("shuffle", false))
+	repeat_mode = StringName(data.repeat)
+	_stop_all_mix_players()
+	music_director.stop()
+	dj_mode = bool(data.get("dj", false))
+	if dj_mode:
+		if not data.get("transport") is Dictionary or not music_director.restore_snapshot(data.transport):
+			return false
+		full_mix_player = music_director.audio_player
+		stem_players[&"full_mix"] = full_mix_player
+		# The source may already have finished while the authored route stays active.
+		var track_id := String(data.transport.get("track", ""))
+		if track_id.is_empty():
+			track_id = "%s_%d" % [playlist[track_index].theme_id, playlist[track_index].variant]
+		_apply_dj_track_metadata(track_id)
+	else:
+		_play_initial_track(track_index)
+		if not data.get("player") is Dictionary or not _restore_player(full_mix_player, data.player):
+			return false
+		if data.has("fade"):
+			if not data.fade is Dictionary or not data.fade.get("player") is Dictionary:
+				return false
+			var incoming_index := _index_for_path(String(data.fade.get("track_path", "")))
+			var remaining := float(data.fade.get("remaining", -1.0))
+			if incoming_index < 0 or not is_finite(remaining) or remaining <= 0.0 or remaining > TRANSITION_OVERLAP_SECONDS:
+				return false
+			_begin_transition_to(incoming_index, data.fade)
+			if not transition_in_progress:
+				return false
+	queued_track_index = _index_for_path(String(data.get("queued_path", "")))
+	music_rng.state = data.rng
+	if not data.get("anti_fatigue") is Dictionary or not anti_fatigue.restore_snapshot(data.anti_fatigue):
+		return false
+	full_mix_player.stream_paused = music_paused
+	playback_options_changed.emit()
+	pause_changed.emit(music_paused)
+	return true
+
+
+func _index_for_path(path: String) -> int:
+	for index in playlist.size():
+		if String(playlist[index].path) == path:
+			return index
+	return -1
+
+
+func _player_checkpoint(player: AudioStreamPlayer) -> Dictionary:
+	return {"position": player.get_playback_position(), "playing": player.has_stream_playback(), "volume": player.volume_db}
+
+
+func _restore_player(player: AudioStreamPlayer, data: Dictionary) -> bool:
+	var position := float(data.get("position", -1.0))
+	var volume := float(data.get("volume", 0.0))
+	if player.stream == null or not is_finite(position) or position < 0.0 \
+			or position > player.stream.get_length() or not is_finite(volume) or volume < SILENCE_DB or volume > 0.0:
+		return false
+	player.stop()
+	player.volume_db = volume
+	if bool(data.get("playing", true)):
+		player.play(position)
+	player.stream_paused = music_paused
+	return true
+
+
 func _apply_dj_track_metadata(track_id: String) -> void:
 	var track := music_director.get_track(track_id)
 	current_mix_path = String(track.get("project_path", ""))
@@ -371,7 +462,7 @@ func _begin_boundary_transition() -> void:
 		_begin_transition_to(next_index)
 
 
-func _begin_transition_to(track_index: int) -> void:
+func _begin_transition_to(track_index: int, checkpoint: Dictionary = {}) -> void:
 	if transition_in_progress or track_index < 0 or track_index >= playlist.size():
 		return
 	var request := playlist[track_index]
@@ -386,12 +477,18 @@ func _begin_transition_to(track_index: int) -> void:
 	incoming.volume_db = SILENCE_DB
 	incoming.play()
 	incoming.stream_paused = music_paused
+	if not checkpoint.is_empty() and not _restore_player(incoming, checkpoint.player):
+		incoming.stop()
+		return
 	transition_in_progress = true
+	_transition_track_index = track_index
 	var outgoing_index := active_mix_index
 	var outgoing := mix_players[outgoing_index]
 	transition_tween = create_tween().set_parallel(true)
-	transition_tween.tween_property(outgoing, "volume_db", SILENCE_DB, TRANSITION_OVERLAP_SECONDS)
-	transition_tween.tween_property(incoming, "volume_db", 0.0, TRANSITION_OVERLAP_SECONDS)
+	var duration := float(checkpoint.get("remaining", TRANSITION_OVERLAP_SECONDS))
+	_transition_duration = duration
+	transition_tween.tween_property(outgoing, "volume_db", SILENCE_DB, duration)
+	transition_tween.tween_property(incoming, "volume_db", 0.0, duration)
 	transition_tween.finished.connect(
 		_complete_transition.bind(outgoing_index, next_index, track_index), CONNECT_ONE_SHOT
 	)
@@ -405,6 +502,7 @@ func _complete_transition(outgoing_index: int, next_index: int, track_index: int
 	active_mix_index = next_index
 	_apply_active_track(mix_players[next_index], track_index)
 	transition_in_progress = false
+	_transition_track_index = -1
 	transition_tween = null
 
 
@@ -438,6 +536,7 @@ func _stop_all_mix_players() -> void:
 		transition_tween.kill()
 	transition_tween = null
 	transition_in_progress = false
+	_transition_track_index = -1
 	for player in mix_players:
 		player.stop()
 		player.stream = null

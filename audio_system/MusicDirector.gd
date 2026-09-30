@@ -47,7 +47,7 @@ func _ready() -> void:
 
 
 func _process(_delta: float) -> void:
-	if audio_player == null or not audio_player.playing:
+	if audio_player == null or not audio_player.playing or audio_player.stream_paused:
 		return
 	current_playback_position = _read_position()
 	if _did_hold_cue_wrap():
@@ -268,6 +268,85 @@ func stop() -> void:
 	_set_state(STATE_STOPPED)
 
 
+func snapshot_state() -> Dictionary:
+	var track := get_track(current_track_id)
+	return {
+		"version": 1, "state": String(state), "track": current_track_id,
+		"track_path": track.get("project_path", ""), "frame_count": track.get("frame_count", 0),
+		"cue": current_cue_id, "pending": pending_cue_id,
+		"position": _read_position() if runtime_stream != null else 0.0,
+		"playing": audio_player.has_stream_playback(), "paused": audio_player.stream_paused,
+		"rewind_boundary": _rewind_boundary_end,
+		"loop_mode": runtime_stream.loop_mode if runtime_stream != null else AudioStreamWAV.LOOP_DISABLED,
+		"loop_begin": runtime_stream.loop_begin if runtime_stream != null else 0,
+		"loop_end": runtime_stream.loop_end if runtime_stream != null else 0,
+	}
+
+
+func restore_snapshot(data: Dictionary) -> bool:
+	# Restore the transport, never replay gameplay events or hard-jump to a role.
+	var saved_state := StringName(data.get("state", ""))
+	if data.get("version") != 1 or saved_state not in [STATE_STOPPED, STATE_PLAYING_SOURCE,
+			STATE_AUDITIONING_CUE, STATE_HOLDING_CUE, STATE_TRAVELING_FORWARD,
+			STATE_REWIND_PENDING, STATE_RELEASED_TO_END]:
+		return _fail("Unsupported music checkpoint")
+	if saved_state == STATE_STOPPED:
+		stop()
+		audio_player.stream_paused = bool(data.get("paused", false))
+		return true
+	var track_id := String(data.get("track", ""))
+	var track := get_track(track_id)
+	if track.is_empty() or data.get("track_path") != track.get("project_path") \
+			or data.get("frame_count") != track.get("frame_count"):
+		return _fail("Saved music source has changed or is unavailable")
+	var cue_id := String(data.get("cue", ""))
+	var pending_id := String(data.get("pending", ""))
+	for id in [cue_id, pending_id]:
+		if not id.is_empty() and cue_catalog.get_candidate(track_id, id).is_empty():
+			return _fail("Saved music cue is unavailable: %s" % id)
+	var loop_id := cue_id if saved_state == STATE_HOLDING_CUE else pending_id
+	var looping := saved_state in [STATE_HOLDING_CUE, STATE_TRAVELING_FORWARD, STATE_AUDITIONING_CUE]
+	if looping:
+		var cue := cue_catalog.get_candidate(track_id, loop_id)
+		if cue.is_empty() or data.get("loop_mode") != AudioStreamWAV.LOOP_FORWARD \
+				or data.get("loop_begin") != cue.get("start_sample") or data.get("loop_end") != cue.get("end_sample"):
+			return _fail("Saved music loop has changed")
+	elif data.get("loop_mode") != AudioStreamWAV.LOOP_DISABLED:
+		return _fail("Invalid saved music loop mode")
+	var position := float(data.get("position", -1.0))
+	var boundary := float(data.get("rewind_boundary", -1.0))
+	if not is_finite(position) or position < 0.0 or not is_finite(boundary):
+		return _fail("Invalid saved music position")
+	if saved_state == STATE_REWIND_PENDING:
+		var current := cue_catalog.get_candidate(track_id, cue_id)
+		if current.is_empty() or pending_id.is_empty() or not is_equal_approx(boundary, float(current.get("end_seconds", -1.0))):
+			return _fail("Invalid saved music reprise boundary")
+	if not _load_track(track_id):
+		return false
+	if position > stream_length_seconds:
+		return _fail("Saved music position exceeds its source")
+	if looping and not _configure_loop(cue_catalog.get_candidate(track_id, loop_id)):
+		return false
+	if not looping:
+		var begin_sample := int(data.get("loop_begin", -1))
+		var end_sample := int(data.get("loop_end", -1))
+		if begin_sample < 0 or end_sample < begin_sample or end_sample > int(track.get("frame_count", 0)):
+			return _fail("Invalid saved music sample bounds")
+		runtime_stream.loop_begin = begin_sample
+		runtime_stream.loop_end = end_sample
+	current_cue_id = cue_id
+	pending_cue_id = pending_id
+	_rewind_boundary_end = boundary
+	current_playback_position = position
+	_last_playback_position = position
+	if bool(data.get("playing", true)):
+		audio_player.play(position)
+	audio_player.stream_paused = bool(data.get("paused", false))
+	_set_state(saved_state)
+	last_error = ""
+	return true
+
+
 func _travel_forward_to_cue(target: Dictionary) -> bool:
 	if not _configure_loop(target):
 		return false
@@ -348,7 +427,16 @@ func _load_track(track_id: String) -> bool:
 
 
 func _read_position() -> float:
-	var value := audio_player.get_playback_position() + AudioServer.get_time_since_last_mix()
+	if not audio_player.has_stream_playback():
+		return current_playback_position
+	var value := audio_player.get_playback_position()
+	if not audio_player.stream_paused:
+		value += AudioServer.get_time_since_last_mix()
+	if runtime_stream != null and runtime_stream.loop_mode == AudioStreamWAV.LOOP_FORWARD:
+		var begin := float(runtime_stream.loop_begin) / runtime_stream.mix_rate
+		var end := float(runtime_stream.loop_end) / runtime_stream.mix_rate
+		if end > begin and value >= end:
+			value = begin + fposmod(value - begin, end - begin)
 	return clampf(value, 0.0, stream_length_seconds) if stream_length_seconds > 0.0 else maxf(0.0, value)
 
 

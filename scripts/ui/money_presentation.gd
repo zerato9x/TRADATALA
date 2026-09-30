@@ -27,8 +27,8 @@ const MONEY_BILL_STAGGER := 0.04
 const MONEY_BILL_FADE_DURATION := 0.08
 const MONEY_SETTLE_DELAY := 0.16
 const MONEY_CEREMONY_FADE_DURATION := 0.14
-const SCORING_FAST_FORWARD_AFTER_SECONDS := 4.0
 const SCORING_FAST_FORWARD_INTERVAL := 0.012
+const FAST_FORWARD_SPEED := 8.0
 var ceremony: Control
 var score_panel: Control
 var title_label: Label
@@ -40,6 +40,7 @@ var bill_layer: Control
 var wallet_label: Label
 var wallet_pile_anchor: Control
 var presentation_active := false
+var fast_forward_enabled := false
 var peak_transaction_object_count := 0
 
 var _rng := RandomNumberGenerator.new()
@@ -51,6 +52,7 @@ var _scoring_shakes: Dictionary = {}
 var _stacked_gain := 0
 var _major_tweens: Array[Tween] = []
 var _major_nodes: Array[Node] = []
+var _animation_tweens: Array[Tween] = []
 
 
 func _ready() -> void:
@@ -69,6 +71,35 @@ func sync_wallet(balance_vnd: int) -> void:
 	if wallet_label != null:
 		wallet_label.text = VndWallet.format_amount(balance_vnd)
 	_rebuild_wallet_pile(balance_vnd)
+
+
+func reset_fast_forward() -> void:
+	fast_forward_enabled = false
+	_animation_tweens.clear()
+
+
+func request_fast_forward() -> void:
+	fast_forward_enabled = true
+	for tween in _animation_tweens:
+		if tween != null and tween.is_valid():
+			tween.set_speed_scale(FAST_FORWARD_SPEED)
+
+
+func animation_tween(animation_owner: Node = null) -> Tween:
+	for index in range(_animation_tweens.size() - 1, -1, -1):
+		if not _animation_tweens[index].is_valid():
+			_animation_tweens.remove_at(index)
+	var tween := (animation_owner if animation_owner != null else self).create_tween()
+	tween.set_speed_scale(FAST_FORWARD_SPEED if fast_forward_enabled else 1.0)
+	_animation_tweens.append(tween)
+	return tween
+
+
+func wait_animation(seconds: float) -> void:
+	var remaining := seconds
+	while remaining > 0.0:
+		await get_tree().process_frame
+		remaining -= get_process_delta_time() * (FAST_FORWARD_SPEED if fast_forward_enabled else 1.0)
 
 
 func present_scoring(event: Dictionary) -> void:
@@ -100,7 +131,6 @@ func present_scoring(event: Dictionary) -> void:
 	_scoring_face = face
 	var hits: Array = event.get("hits", [])
 	var triggered_cards := 0
-	var scoring_started_msec := Time.get_ticks_msec() - roundi(float(event.get("queue_elapsed_seconds", 0.0)) * 1000.0)
 	_stacked_gain = 0
 	var running_wallet := int(event.get("start_wallet_vnd", 0))
 	var running_gain := 0
@@ -111,8 +141,7 @@ func present_scoring(event: Dictionary) -> void:
 		var card_id := String(hit.get("card_id", ""))
 		var card_control: Control = locator.call(card_id) if locator.is_valid() and not card_id.is_empty() else null
 		var reveal: Callable = event.get("reveal_card", Callable())
-		var elapsed_seconds := float(Time.get_ticks_msec() - scoring_started_msec) / 1000.0
-		if reveal.is_valid() and is_instance_valid(card_control) and elapsed_seconds < SCORING_FAST_FORWARD_AFTER_SECONDS:
+		if reveal.is_valid() and is_instance_valid(card_control) and not fast_forward_enabled:
 			await reveal.call(card_control)
 			if generation != _scoring_generation:
 				return
@@ -130,7 +159,7 @@ func present_scoring(event: Dictionary) -> void:
 		var interval := 0.65 if relic_hit else scoring_hit_interval(triggered_cards)
 		if replay:
 			interval = maxf(0.14, 0.30 - float(hit.get("echo", 0)) * 0.025)
-		interval = scoring_resolve_interval(interval, elapsed_seconds)
+		interval = scoring_resolve_interval(interval, fast_forward_enabled)
 		var flow := property_id == GieoQueService.PROPERTY_MELD_RETRIGGER
 		var accent := Color("#79d9cf") if flow else Color("#f5bf42")
 		if is_instance_valid(card_control):
@@ -177,12 +206,12 @@ func present_scoring(event: Dictionary) -> void:
 		if card_trigger:
 			triggered_cards += 1
 		# Wait from this actual hit, never catch up by skipping visible card beats.
-		if not await _wait_scoring_tail(interval, generation):
+		if not await _wait_scoring_tail(interval, generation, true):
 			return
 	_fly_scoring_stack()
 	if not await _wait_scoring_tail(MONEY_FLIGHT_DURATION, generation):
 		return
-	_scoring_fade = create_tween()
+	_scoring_fade = animation_tween()
 	_scoring_fade.tween_property(score_panel, "modulate:a", 0.0, 0.10)
 	if not await _wait_scoring_tail(0.10, generation):
 		return
@@ -192,12 +221,22 @@ func present_scoring(event: Dictionary) -> void:
 	presentation_active = false
 
 
-func _wait_scoring_tail(seconds: float, generation: int) -> bool:
-	var deadline := Time.get_ticks_msec() + roundi(seconds * 1000.0)
-	while Time.get_ticks_msec() < deadline:
+func _wait_scoring_tail(seconds: float, generation: int, scoring_beat: bool = false) -> bool:
+	var remaining := seconds
+	var previous_usec := Time.get_ticks_usec()
+	while remaining > 0.0:
 		await get_tree().process_frame
 		if generation != _scoring_generation:
 			return false
+		var now := Time.get_ticks_usec()
+		var elapsed := float(now - previous_usec) / 1_000_000.0
+		previous_usec = now
+		if fast_forward_enabled and scoring_beat:
+			# A press during a long card/relic beat takes effect on this beat.
+			remaining = minf(remaining, SCORING_FAST_FORWARD_INTERVAL)
+			remaining -= elapsed
+		else:
+			remaining -= elapsed * (FAST_FORWARD_SPEED if fast_forward_enabled else 1.0)
 	return generation == _scoring_generation
 
 
@@ -227,7 +266,7 @@ func _shake_scoring_card(face: Control, accent: Color, interval: float) -> void:
 	face.modulate = baseline_color.lerp(accent, 0.40)
 	var duration := minf(0.27, interval * 0.85)
 	var angle := deg_to_rad(7.0)
-	var tween := face.create_tween()
+	var tween := animation_tween(face)
 	_scoring_shakes[card_id] = {
 		"face": face, "rotation": baseline_rotation, "pivot": baseline_pivot,
 		"color": baseline_color, "tween": tween,
@@ -280,7 +319,7 @@ func _fly_scoring_stack() -> void:
 			to = from
 			from = _control_center(wallet_pile_anchor)
 		var control := (from + to) * 0.5 + Vector2(0, -65)
-		var flight := bill.create_tween().set_parallel(true)
+		var flight := animation_tween(bill).set_parallel(true)
 		flight.tween_method(_set_bill_curve_position.bind(bill, from, control, to), 0.0, 1.0, MONEY_FLIGHT_DURATION)
 		flight.tween_property(bill, "scale", Vector2.ONE * 0.5, MONEY_FLIGHT_DURATION)
 		flight.tween_property(bill, "modulate:a", 0.0, 0.08).set_delay(MONEY_FLIGHT_DURATION - 0.08)
@@ -319,7 +358,7 @@ func present_transaction(event: Dictionary) -> void:
 	_nudge_score_panel(intensity)
 	impact_requested.emit(intensity, positive)
 	await _move_money(amount_vnd, positive, source, destination, start_wallet_vnd, target_wallet_vnd, intensity)
-	await get_tree().create_timer(MONEY_SETTLE_DELAY).timeout
+	await wait_animation(MONEY_SETTLE_DELAY)
 	await _fade_ceremony(MONEY_CEREMONY_FADE_DURATION)
 	sync_wallet(target_wallet_vnd)
 	presentation_active = false
@@ -381,7 +420,7 @@ func present_phase(event: Dictionary) -> void:
 			await _move_money(deadwood_vnd, false, source, source, running_wallet, target_wallet_vnd, 1.0)
 		_set_label_text(payout_label, "= %s" % VndWallet.format_vnd(net_vnd, true), PresentationTheme.TEA if net_vnd >= 0 else PresentationTheme.RED)
 		await _pop_label(payout_label, 0.16, 1.2)
-	await get_tree().create_timer(MONEY_SETTLE_DELAY if not is_mom else 0.24).timeout
+	await wait_animation(MONEY_SETTLE_DELAY if not is_mom else 0.24)
 	await _fade_ceremony(MONEY_CEREMONY_FADE_DURATION)
 	sync_wallet(target_wallet_vnd)
 	presentation_active = false
@@ -405,6 +444,7 @@ func hide_ceremony() -> void:
 	_clear_major_event()
 	ceremony.visible = false
 	presentation_active = false
+	reset_fast_forward()
 
 
 static func denomination_breakdown(amount_vnd: int) -> Array[Dictionary]:
@@ -511,7 +551,7 @@ func _set_label_text(label: Label, text_value: String, color: Color) -> void:
 func _pop_label(label: Label, duration: float, peak_scale: float) -> void:
 	label.modulate = Color.WHITE
 	label.scale = Vector2(0.62, 0.62)
-	var tween := create_tween()
+	var tween := animation_tween()
 	tween.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	tween.tween_property(label, "scale", Vector2.ONE * peak_scale, duration)
 	tween.tween_property(label, "scale", Vector2.ONE, duration * 0.72).set_trans(Tween.TRANS_QUAD)
@@ -525,7 +565,7 @@ func _replace_label(label: Label, duration: float, peak_scale: float) -> void:
 
 
 func _fade_ceremony(duration: float) -> void:
-	var tween := create_tween().set_parallel(true)
+	var tween := animation_tween().set_parallel(true)
 	tween.tween_property(score_panel, "modulate", Color(1, 1, 1, 0), duration)
 	tween.tween_property(score_panel, "scale", Vector2(1.04, 1.04), duration)
 	await tween.finished
@@ -534,7 +574,7 @@ func _fade_ceremony(duration: float) -> void:
 
 func _nudge_score_panel(intensity: float) -> void:
 	var start_y := score_panel.position.y
-	var stage_tween := create_tween()
+	var stage_tween := animation_tween()
 	stage_tween.tween_property(score_panel, "position:y", start_y + 3.0 * intensity, 0.035)
 	stage_tween.tween_property(score_panel, "position:y", start_y, 0.09)
 
@@ -566,13 +606,13 @@ func _move_money(amount_vnd: int, positive: bool, source: Control, destination: 
 		bill.modulate = Color(1, 1, 1, 0)
 		bill_layer.add_child(bill)
 		bill_nodes.append(bill)
-		var pop := create_tween().set_parallel(true)
+		var pop := animation_tween().set_parallel(true)
 		var pop_delay := index * MONEY_REVEAL_GAP
 		pop.tween_property(bill, "modulate", Color.WHITE, 0.09).set_delay(pop_delay)
 		pop.tween_property(bill, "scale", Vector2.ONE * (1.08 + 0.04 * intensity), 0.14).set_delay(pop_delay).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	await get_tree().create_timer(MONEY_REVEAL_LEAD_IN + object_count * MONEY_REVEAL_GAP).timeout
+	await wait_animation(MONEY_REVEAL_LEAD_IN + object_count * MONEY_REVEAL_GAP)
 	var flight_duration := MONEY_FLIGHT_DURATION
-	var wallet_tween := create_tween()
+	var wallet_tween := animation_tween()
 	wallet_tween.tween_method(_set_wallet_number, float(start_wallet_vnd), float(target_wallet_vnd), flight_duration).set_delay(flight_duration * 0.32)
 	for index in bill_nodes.size():
 		var bill := bill_nodes[index]
@@ -580,14 +620,14 @@ func _move_money(amount_vnd: int, positive: bool, source: Control, destination: 
 		var end := to - bill.size * 0.5 + Vector2(_rng.randf_range(-18.0, 18.0), _rng.randf_range(-10.0, 10.0))
 		var arc_height := (62.0 + 18.0 * intensity) * (-1.0 if positive else 1.0)
 		var curve_control := (start + end) * 0.5 + Vector2(_rng.randf_range(-28.0, 28.0), arc_height)
-		var travel := create_tween().set_parallel(true)
+		var travel := animation_tween().set_parallel(true)
 		var delay := index * MONEY_BILL_STAGGER
 		travel.tween_method(_set_bill_curve_position.bind(bill, start, curve_control, end), 0.0, 1.0, flight_duration).set_delay(delay).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN_OUT)
 		travel.tween_property(bill, "rotation", bill.rotation + deg_to_rad(_rng.randf_range(-22.0, 22.0)), flight_duration).set_delay(delay)
 		travel.tween_property(bill, "scale", Vector2(0.64, 0.64), flight_duration).set_delay(delay).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 		travel.tween_property(bill, "modulate:a", 0.0, MONEY_BILL_FADE_DURATION).set_delay(delay + flight_duration - MONEY_BILL_FADE_DURATION)
 		travel.chain().tween_callback(bill.queue_free)
-	await get_tree().create_timer(flight_duration + bill_nodes.size() * MONEY_BILL_STAGGER).timeout
+	await wait_animation(flight_duration + bill_nodes.size() * MONEY_BILL_STAGGER)
 	_set_wallet_number(target_wallet_vnd)
 	_wallet_impact(positive, intensity)
 
@@ -604,7 +644,7 @@ func _pulse_source(source: Control, positive: bool, intensity: float) -> void:
 		return
 	var original := source.modulate
 	source.modulate = original.lerp(PresentationTheme.MONEY_GAIN if positive else PresentationTheme.MONEY_COST, 0.34)
-	var tween := create_tween()
+	var tween := animation_tween()
 	tween.tween_property(source, "modulate", original, 0.22 + 0.05 * intensity).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 
 
@@ -618,12 +658,12 @@ func _wallet_impact(positive: bool, intensity: float) -> void:
 	if target == null:
 		return
 	var original_scale := target.scale
-	var tween := create_tween()
+	var tween := animation_tween()
 	tween.tween_property(target, "scale", original_scale * (1.0 + 0.12 * intensity), 0.07).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	tween.tween_property(target, "scale", original_scale, 0.15).set_trans(Tween.TRANS_QUAD)
 	if wallet_label != null:
 		wallet_label.add_theme_color_override("font_color", PresentationTheme.MONEY_GAIN if positive else PresentationTheme.MONEY_COST)
-		var color_tween := create_tween()
+		var color_tween := animation_tween()
 		color_tween.tween_interval(0.16)
 		color_tween.tween_callback(wallet_label.add_theme_color_override.bind("font_color", PresentationTheme.WALLET))
 
@@ -737,7 +777,7 @@ func present_major_event(event: Dictionary) -> void:
 	payout_label.scale = Vector2.ONE
 	line_b_label.position.y = 60
 	payout_label.position.y = 104
-	var pop := create_tween()
+	var pop := animation_tween()
 	_major_tweens.append(pop)
 	heading.scale = Vector2.ONE * 0.45
 	pop.tween_property(heading, "scale", Vector2.ONE, 0.25).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
@@ -758,7 +798,7 @@ func present_major_event(event: Dictionary) -> void:
 			var angle := TAU * float(index) / 13.0
 			var spread := center + Vector2(cos(angle) * size.x * 0.40, sin(angle) * size.y * 0.37) - note.size * 0.5
 			var delay := float(index) * 0.025
-			var burst := note.create_tween().set_parallel(true)
+			var burst := animation_tween(note).set_parallel(true)
 			_major_tweens.append(burst)
 			burst.tween_property(note, "modulate:a", 1.0, 0.08).set_delay(delay)
 			burst.tween_property(note, "position", spread, 0.42).set_delay(delay).set_trans(Tween.TRANS_QUART).set_ease(Tween.EASE_OUT)
@@ -768,12 +808,12 @@ func present_major_event(event: Dictionary) -> void:
 			burst.tween_property(note, "scale", Vector2.ONE * 0.25, 0.55).set_delay(delay + 0.80)
 			burst.tween_property(note, "modulate:a", 0.0, 0.12).set_delay(delay + 1.23)
 			burst.chain().tween_callback(note.queue_free)
-	var wallet_tween := create_tween()
+	var wallet_tween := animation_tween()
 	wallet_tween.tween_method(_set_wallet_number, float(event.get("start_wallet_vnd", 0)), float(event.get("target_wallet_vnd", 0)), 1.0).set_delay(0.95)
 	_major_tweens.append(wallet_tween)
 	if not await _wait_scoring_tail(2.3, generation):
 		return
-	var fade := create_tween().set_parallel(true)
+	var fade := animation_tween().set_parallel(true)
 	_major_tweens.append(fade)
 	fade.tween_property(score_panel, "modulate:a", 0.0, 0.18)
 	fade.tween_property(heading, "modulate:a", 0.0, 0.18)
@@ -792,8 +832,8 @@ static func scoring_hit_interval(triggered_cards: int) -> float:
 	return maxf(0.045, 0.36 * pow(0.91, maxi(triggered_cards - 2, 0)))
 
 
-static func scoring_resolve_interval(base_interval: float, elapsed_seconds: float) -> float:
-	if elapsed_seconds >= SCORING_FAST_FORWARD_AFTER_SECONDS:
+static func scoring_resolve_interval(base_interval: float, fast_forward: bool) -> float:
+	if fast_forward:
 		return minf(base_interval, SCORING_FAST_FORWARD_INTERVAL)
 	return base_interval
 

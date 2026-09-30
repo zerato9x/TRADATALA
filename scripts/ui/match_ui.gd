@@ -101,7 +101,6 @@ var pending_exhaustion_presentations: Array[Dictionary] = []
 var money_jobs: Array[Dictionary] = []
 var completed_money_jobs: Dictionary = {}
 var money_queue_running: bool = false
-var money_queue_started_msec: int = 0
 var money_queue_generation := 0
 var next_money_job_id: int = 1
 var money_queue_wallet_vnd: int = 0
@@ -144,7 +143,6 @@ var music_time_label: Label
 var music_up_next_label: Label
 var music_play_pause_button: Button
 var music_system_selector: OptionButton
-var authored_music_set_selector: OptionButton
 var music_track_list: OptionButton
 var music_shuffle_button: Button
 var music_repeat_button: Button
@@ -366,6 +364,14 @@ func _ready() -> void:
 	_sync_all(result, true)
 	_set_hand_interaction_enabled(false)
 	_park_game_layer()
+	_initialize_jukebox.call_deferred()
+
+
+func _initialize_jukebox() -> void:
+	if not game_started and settings.music_system == settings.MUSIC_SYSTEM_AUTHORED_DJ and not music_controller.dj_mode:
+		if not _activate_selected_authored_set():
+			settings.set_music_system(settings.MUSIC_SYSTEM_PLAYING_TRACKS)
+	_sync_music_player()
 
 
 func _process(_delta: float) -> void:
@@ -493,7 +499,6 @@ func _connect_editor_interface_signals() -> void:
 	_connect_signal_once(music_controller.playback_options_changed, _on_music_playback_options_changed)
 	_connect_signal_once(music_play_pause_button.pressed, _on_music_play_pause_pressed)
 	_connect_signal_once(music_system_selector.item_selected, _on_music_system_selected)
-	_connect_signal_once(authored_music_set_selector.item_selected, _on_authored_music_set_selected)
 	_connect_signal_once(music_track_list.item_selected, _on_music_track_selected)
 	_connect_signal_once(music_shuffle_button.pressed, _on_music_shuffle_pressed)
 	_connect_signal_once(music_repeat_button.pressed, _on_music_repeat_pressed)
@@ -576,18 +581,24 @@ func _on_music_play_pause_pressed() -> void:
 
 func _on_music_mix_started(_mix_path: String, _theme_id: StringName, _variant: int) -> void:
 	_sync_music_player()
+	_queue_run_save()
 
 
 func _on_music_pause_changed(_paused: bool) -> void:
 	_sync_music_player()
+	_queue_run_save()
 
 
 func _on_music_playback_options_changed() -> void:
 	_sync_music_player()
+	_queue_run_save()
 
 
 func _on_music_track_selected(track_index: int) -> void:
-	if music_track_list_syncing or settings.music_system != settings.MUSIC_SYSTEM_PLAYING_TRACKS:
+	if music_track_list_syncing:
+		return
+	if settings.music_system == settings.MUSIC_SYSTEM_AUTHORED_DJ:
+		_on_authored_music_set_selected(track_index)
 		return
 	if gameplay_music != null:
 		gameplay_music.stop_campaign()
@@ -597,33 +608,62 @@ func _on_music_track_selected(track_index: int) -> void:
 func _on_music_system_selected(index: int) -> void:
 	if music_policy_syncing or index < 0 or index >= settings.SUPPORTED_MUSIC_SYSTEMS.size():
 		return
+	var previous_system: String = settings.music_system
 	settings.set_music_system(settings.SUPPORTED_MUSIC_SYSTEMS[index])
 	if settings.music_system == settings.MUSIC_SYSTEM_PLAYING_TRACKS and music_controller.dj_mode:
 		if gameplay_music != null:
 			gameplay_music.stop_campaign()
 		music_controller.play_track(music_controller.current_track_index, false)
+	elif settings.music_system == settings.MUSIC_SYSTEM_AUTHORED_DJ and not music_controller.dj_mode:
+		if not _activate_selected_authored_set():
+			settings.set_music_system(previous_system)
 	_sync_music_player()
+	_queue_run_save()
 
 
 func _on_authored_music_set_selected(index: int) -> void:
 	if music_policy_syncing or index < 0 or index >= settings.SUPPORTED_AUTHORED_SETS.size():
 		return
+	var previous_set: String = settings.authored_music_set
 	settings.set_authored_music_set(settings.SUPPORTED_AUTHORED_SETS[index])
+	if settings.music_system == settings.MUSIC_SYSTEM_AUTHORED_DJ \
+			and (not music_controller.dj_mode or gameplay_music == null or gameplay_music.active_set_id != settings.authored_music_set):
+		if not _activate_selected_authored_set():
+			settings.set_authored_music_set(previous_set)
 	_sync_music_player()
+	_queue_run_save()
+
+
+func _activate_selected_authored_set() -> bool:
+	var period := "starter_event"
+	if game_started and not campaign.run_seed.is_empty():
+		period = String(CampaignManager.DEAL_PHASE_TO_PERIOD.get(campaign.current_phase, ""))
+		if period.is_empty():
+			match campaign.current_phase:
+				CampaignManager.CampaignPhase.DAY_START, CampaignManager.CampaignPhase.STARTER_EVENT: period = "starter_event"
+				CampaignManager.CampaignPhase.MORNING_EVENT: period = "morning_event"
+				CampaignManager.CampaignPhase.NOON_EVENT: period = "noon_event"
+				CampaignManager.CampaignPhase.AFTERNOON_EVENT: period = "afternoon_event"
+				_: period = "collection"
+	var previous_transport := music_controller.snapshot_state()
+	var conductor := GAMEPLAY_MUSIC_CONDUCTOR_SCRIPT.new(music_controller)
+	if not conductor.start_at_state(settings.authored_music_set, period, deal.current_phase,
+			deal.phase_new_meld_count, deal.state == DealState.STATE_DEAL_OVER):
+		music_controller.restore_snapshot(previous_transport)
+		_show_banner(_run_words("Could not start DJ set: ", "Không thể bắt đầu DJ set: ") + conductor.last_error)
+		return false
+	gameplay_music = conductor
+	return true
 
 
 func _refresh_music_policy_controls() -> void:
-	if music_system_selector == null or authored_music_set_selector == null or settings == null:
+	if music_system_selector == null or settings == null:
 		return
 	music_policy_syncing = true
 	music_system_selector.clear()
 	music_system_selector.add_item(tr("MUSIC_SYSTEM_PLAYING_TRACKS"))
 	music_system_selector.add_item(tr("MUSIC_SYSTEM_AUTHORED_DJ"))
 	music_system_selector.select(maxi(settings.SUPPORTED_MUSIC_SYSTEMS.find(settings.music_system), 0))
-	authored_music_set_selector.clear()
-	for set_id in settings.SUPPORTED_AUTHORED_SETS:
-		authored_music_set_selector.add_item(tr("MUSIC_AUTHORED_SET_%s" % set_id.to_upper()))
-	authored_music_set_selector.select(maxi(settings.SUPPORTED_AUTHORED_SETS.find(settings.authored_music_set), 0))
 	music_policy_syncing = false
 
 
@@ -640,39 +680,47 @@ func _sync_music_player() -> void:
 		return
 	_refresh_music_policy_controls()
 	var playing_tracks: bool = settings.music_system == settings.MUSIC_SYSTEM_PLAYING_TRACKS
-	authored_music_set_selector.disabled = playing_tracks
-	music_track_list.disabled = not playing_tracks
+	music_track_list.disabled = false
 	music_shuffle_button.disabled = not playing_tracks
 	music_repeat_button.disabled = not playing_tracks
+	music_shuffle_button.visible = playing_tracks
+	music_repeat_button.visible = playing_tracks
 	music_track_list_syncing = true
-	if music_track_list.item_count != music_controller.playlist.size():
-		music_track_list.clear()
+	music_track_list.clear()
+	if playing_tracks:
 		for track_index in music_controller.playlist.size():
 			music_track_list.add_item(music_controller.track_label(track_index))
+		music_track_list.select(music_controller.current_track_index)
+		music_track_list.tooltip_text = tr("MUSIC_SYSTEM_PLAYING_TRACKS")
+	else:
+		for set_id in settings.SUPPORTED_AUTHORED_SETS:
+			music_track_list.add_item(tr("MUSIC_AUTHORED_SET_%s" % set_id.to_upper()))
+		var selected_set: String = gameplay_music.active_set_id if gameplay_music != null and gameplay_music.active else settings.authored_music_set
+		music_track_list.select(maxi(settings.SUPPORTED_AUTHORED_SETS.find(selected_set), 0))
+		music_track_list.tooltip_text = tr("MUSIC_SYSTEM_AUTHORED_DJ")
 	var theme_id := music_controller.current_theme_id
 	var cover_path := "res://assets/audio/covers/%s.png" % theme_id
 	music_cover.texture = load(cover_path) as Texture2D
 	music_track_title.text = ReactiveMusicController.display_title_for_theme(theme_id)
-	music_track_list.select(music_controller.current_track_index)
 	music_track_list_syncing = false
 	music_variant_label.text = "%s  ·  %s" % [
 		String(theme_id).to_upper(),
 		tr("MUSIC_PLAYER_SIDE") % music_controller.current_variant,
 	]
-	var next_request := music_controller.next_mix_request()
 	if not playing_tracks:
 		var authored_set: String = String(settings.authored_music_set)
 		if gameplay_music != null and gameplay_music.active and not gameplay_music.active_set_id.is_empty():
 			authored_set = gameplay_music.active_set_id
-		music_up_next_label.text = "%s: %s" % [tr("MUSIC_PLAYER_AUTHORED_READY"), authored_set.to_upper()]
-	elif next_request.is_empty():
-		music_up_next_label.text = tr("MUSIC_PLAYER_UP_NEXT") + ": -"
+		var status := "MUSIC_PLAYER_DJ_ACTIVE" if music_controller.dj_mode else "MUSIC_PLAYER_DJ_SELECT"
+		music_up_next_label.text = "%s: %s" % [tr(status), tr("MUSIC_AUTHORED_SET_%s" % authored_set.to_upper())]
 	else:
-		music_up_next_label.text = "%s: %s · %s" % [
-			tr("MUSIC_PLAYER_UP_NEXT"),
-			String(next_request["theme_id"]).to_upper(),
-			tr("MUSIC_PLAYER_SIDE") % int(next_request["variant"]),
-		]
+		var next_request := music_controller.next_mix_request()
+		if next_request.is_empty():
+			music_up_next_label.text = tr("MUSIC_PLAYER_UP_NEXT") + ": -"
+		else:
+			music_up_next_label.text = "%s: %s · %s" % [
+				tr("MUSIC_PLAYER_UP_NEXT"), String(next_request["theme_id"]).to_upper(),
+				tr("MUSIC_PLAYER_SIDE") % int(next_request["variant"])]
 	music_play_pause_button.text = tr("MUSIC_PLAYER_PLAY") if music_controller.music_paused else tr("MUSIC_PLAYER_PAUSE")
 	music_shuffle_button.text = tr("MUSIC_PLAYER_SHUFFLE_ON") if music_controller.shuffle_enabled else tr("MUSIC_PLAYER_SHUFFLE_OFF")
 	match music_controller.repeat_mode:
@@ -1016,7 +1064,7 @@ func _reset_tutorial_ui_state() -> void:
 	money_jobs.clear()
 	completed_money_jobs.clear()
 	money_queue_running = false
-	money_queue_started_msec = 0
+	money_presentation.reset_fast_forward()
 	money_queue_wallet_vnd = displayed_wallet_vnd
 
 
@@ -1206,6 +1254,7 @@ func _on_menu_pressed() -> void:
 	if _collection_departing: return
 	if not game_started or menu_transitioning or (interaction_locked and current_campaign_event == null) or modal_overlay.visible or score_overlay.visible or discard_archive_overlay.visible:
 		return
+	_flush_run_save()
 	_menu_interaction_was_locked = interaction_locked
 	event_table.collector_arrival.stop()
 	return_to_game_button.show()
@@ -2397,6 +2446,8 @@ func _try_wallet_easter_egg(source: Control = null) -> void:
 func _input(event: InputEvent) -> void:
 	if get_tree().root.has_node("GameGlossary"):
 		return
+	if _try_fast_forward_money(event):
+		return
 	if event.is_action_pressed("ui_cancel") and event_table != null and event_table.is_visible_in_tree() and event_table.overview.expanded:
 		event_table.overview._set_expanded(false)
 		event_table.overview._refresh_journey()
@@ -3376,6 +3427,27 @@ func _show_turn_deadwood(resolution: Dictionary) -> void:
 	_enqueue_money_job("transaction", event)
 
 
+func _try_fast_forward_money(event: InputEvent) -> bool:
+	if not money_queue_running or money_presentation.fast_forward_enabled or menu_layer.visible or is_instance_valid(_run_menu) \
+			or modal_overlay.visible or discard_archive_overlay.visible or is_instance_valid(wallet_spiral) \
+			or (event_table != null and event_table.overview.expanded):
+		return false
+	var pressed := false
+	if event is InputEventKey:
+		pressed = event.pressed and not event.echo
+	elif event is InputEventMouseButton:
+		pressed = event.pressed and event.button_index in [MOUSE_BUTTON_LEFT, MOUSE_BUTTON_RIGHT, MOUSE_BUTTON_MIDDLE]
+	elif event is InputEventJoypadButton or event is InputEventScreenTouch or event is InputEventAction:
+		pressed = event.is_pressed()
+	if not pressed:
+		return false
+	money_presentation.request_fast_forward()
+	# This press only speeds up committed feedback; it cannot activate a card or
+	# the focused action button underneath. Later inputs keep their normal meaning.
+	get_viewport().set_input_as_handled()
+	return true
+
+
 func _enqueue_money_job(kind: String, event: Dictionary, recycle_visual: Dictionary = {}) -> int:
 	var job_id := next_money_job_id
 	next_money_job_id += 1
@@ -3387,7 +3459,7 @@ func _enqueue_money_job(kind: String, event: Dictionary, recycle_visual: Diction
 	})
 	if not money_queue_running:
 		money_queue_running = true
-		money_queue_started_msec = Time.get_ticks_msec()
+		money_presentation.reset_fast_forward()
 		call_deferred("_drain_money_jobs")
 	return job_id
 
@@ -3398,7 +3470,6 @@ func _drain_money_jobs() -> void:
 		var job: Dictionary = money_jobs.pop_front()
 		var event: Dictionary = job["event"]
 		if String(job["kind"]) == "scoring":
-			event["queue_elapsed_seconds"] = float(Time.get_ticks_msec() - money_queue_started_msec) / 1000.0
 			await money_presentation.present_scoring(event)
 		elif String(job["kind"]) == "phase":
 			await money_presentation.present_phase(event)
@@ -3421,7 +3492,7 @@ func _drain_money_jobs() -> void:
 		completed_money_jobs[job_id] = true
 		money_job_completed.emit(job_id)
 	money_queue_running = false
-	money_queue_started_msec = 0
+	money_presentation.reset_fast_forward()
 
 
 func _wait_for_money_job(job_id: int) -> void:
@@ -3584,7 +3655,7 @@ func _on_campaign_day_started(_day: Dictionary) -> void:
 	if gameplay_music == null:
 		gameplay_music = GAMEPLAY_MUSIC_CONDUCTOR_SCRIPT.new(music_controller)
 	if settings.music_system == settings.MUSIC_SYSTEM_AUTHORED_DJ:
-		gameplay_music.start_campaign(GAMEPLAY_MUSIC_CONDUCTOR_SCRIPT.set_for_day(campaign.current_day_index))
+		gameplay_music.start_campaign(settings.authored_music_set)
 	_sync_music_player()
 
 
@@ -3619,10 +3690,7 @@ func _on_campaign_deal_requested(day: Dictionary, period: String, drink_id: Stri
 		tr(_campaign_period_key(period)),
 	])
 
-   
-
-
-,'.":vb  vb cv cv func _on_deal_new_phom_scored(_context: ScoringContext) -> void:
+func _on_deal_new_phom_scored(_context: ScoringContext) -> void:
 	if gameplay_music != null:
 		gameplay_music.on_new_phom(deal.current_phase, deal.phase_new_meld_count)
 
@@ -3742,18 +3810,19 @@ func _return_exhaustion_visual(visual: Dictionary) -> void:
 		var card := card_value as Control
 		if card == null or not is_instance_valid(card):
 			continue
-		await _reveal_scoring_card(card)
+		if not money_presentation.fast_forward_enabled:
+			await _reveal_scoring_card(card)
 		if not is_instance_valid(card):
 			continue
 		card.reparent(particle_layer, true)
-		var tween := card.create_tween().set_parallel(true)
+		var tween := money_presentation.animation_tween(card).set_parallel(true)
 		tween.tween_property(card, "position", target - card.size * 0.5, 0.18).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 		tween.tween_property(card, "rotation", card.rotation + 0.12, 0.18)
 		tween.tween_property(card, "scale", Vector2(0.72, 0.72), 0.18)
 		tween.tween_property(card, "modulate:a", 0.0, 0.07).set_delay(0.12)
 		tween.chain().tween_callback(card.queue_free)
 		last_tween = tween
-		await get_tree().create_timer(gap).timeout
+		await money_presentation.wait_animation(gap)
 	if last_tween != null and last_tween.is_running():
 		await last_tween.finished
 	var anchor := visual.get("anchor") as Control
@@ -4256,7 +4325,7 @@ func _reveal_scoring_card(card_control: Control) -> void:
 		offset = card_rect.position.x - viewport_rect.position.x - 18.0
 	elif card_rect.end.x > viewport_rect.end.x:
 		offset = card_rect.end.x - viewport_rect.end.x + 18.0
-	var tween := create_tween()
+	var tween := money_presentation.animation_tween(self)
 	tween.tween_property(meld_scroll, "scroll_horizontal", maxi(0, meld_scroll.scroll_horizontal + roundi(offset)), 0.18).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN_OUT)
 	await tween.finished
 
@@ -4348,6 +4417,16 @@ func _setup_run_saving() -> void:
 	campaign.event_manager.interaction_completed.connect(func(_event, _interaction): _queue_run_save())
 	campaign.gieo_que.state_changed.connect(func(_state, _payload): _queue_run_save())
 	campaign.relic_shop.changed.connect(_queue_run_save)
+	music_controller.music_director.state_changed.connect(func(_state): _queue_run_save())
+	music_controller.music_director.cue_held.connect(func(_track, _cue): _queue_run_save())
+	music_controller.anti_fatigue.state_changed.connect(func(_state): _queue_run_save())
+	get_tree().auto_accept_quit = false
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_CLOSE_REQUEST:
+		_flush_run_save()
+		get_tree().quit()
 
 
 func _queue_run_save() -> void:
@@ -4361,7 +4440,7 @@ func _flush_run_save() -> void:
 	_run_save_pending = false
 	if _restoring_run or tutorial_active or not game_started or campaign.run_seed.is_empty():
 		return
-	if not run_save.save_run(campaign, deal):
+	if not run_save.save_run(campaign, deal, _music_checkpoint()):
 		_show_banner(_run_words("Could not save: ", "Không thể lưu: ") + run_save.error)
 
 
@@ -4388,7 +4467,6 @@ func _show_run_menu() -> void:
 		layer.queue_free()
 		_on_play_pressed())
 	_run_menu.resume_run.connect(func():
-		_apply_run_music_choice()
 		if _resume_saved_run(saved):
 			layer.queue_free())
 
@@ -4439,7 +4517,7 @@ func _resume_saved_run(saved: Dictionary) -> bool:
 	displayed_wallet_vnd = deal.wallet.balance_vnd
 	money_queue_wallet_vnd = displayed_wallet_vnd
 	_on_campaign_started()
-	_on_campaign_day_started(campaign.current_day())
+	_restore_run_music(saved.get("music", {}))
 	_sync_all()
 	_refresh_relics()
 	event_table.table_state = EventTableController.TABLE_STATE_DEAL
@@ -4462,6 +4540,31 @@ func _resume_saved_run(saved: Dictionary) -> bool:
 	_restoring_run = false
 	_queue_run_save()
 	return true
+
+
+func _music_checkpoint() -> Dictionary:
+	return {"system": settings.music_system, "set": settings.authored_music_set, "controller": music_controller.snapshot_state(),
+		"conductor": gameplay_music.snapshot_state() if gameplay_music != null else {"active": false}}
+
+
+func _restore_run_music(data: Variant) -> void:
+	# Missing legacy transport cannot be reconstructed from a round's phase.
+	# Explicit jukebox switches can start a new DJ route after a legacy resume.
+	if data is Dictionary and data.get("controller") is Dictionary and data.get("conductor") is Dictionary:
+		var system := String(data.get("system", ""))
+		if system in settings.SUPPORTED_MUSIC_SYSTEMS \
+				and music_controller.restore_snapshot(data.controller) \
+				and gameplay_music.restore_snapshot(data.conductor):
+			settings.set_music_system(settings.MUSIC_SYSTEM_AUTHORED_DJ if music_controller.dj_mode else settings.MUSIC_SYSTEM_PLAYING_TRACKS)
+			settings.set_authored_music_set(String(data.conductor.get("set", "")) if gameplay_music.active else String(data.get("set", settings.authored_music_set)))
+			_sync_music_player()
+			return
+	gameplay_music.stop_campaign()
+	settings.set_music_system(settings.MUSIC_SYSTEM_PLAYING_TRACKS)
+	music_controller.play_track(music_controller.current_track_index, false)
+	_sync_music_player()
+	_show_banner(_run_words("This save has no usable music checkpoint. Playlist continues; choose a DJ set to start one.",
+		"Bản lưu không có trạng thái nhạc hợp lệ. Tiếp tục danh sách; chọn DJ set để bắt đầu."))
 
 
 func _on_endless_requested() -> void:

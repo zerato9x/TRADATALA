@@ -11,6 +11,17 @@ func check(value: bool, message: String) -> void:
 func pause(seconds: float = 0.55) -> void:
 	await create_timer(seconds).timeout
 
+func wait_for_phase(phase: int, report_count: int) -> void:
+	var deadline := Time.get_ticks_msec() + 10_000
+	while scene.campaign.current_phase != phase or scene.campaign.deal_reports.size() != report_count:
+		if Time.get_ticks_msec() >= deadline:
+			push_error("Timed out waiting for phase %d and %d archived deals" % [phase, report_count])
+			quit(1)
+			return
+		await process_frame
+	check(scene.deal.physical_card_accounting_is_valid(), "automatic archive preserves 52 identities")
+	await pause()
+
 func capture(label: String) -> void:
 	if DisplayServer.get_name() != "headless":
 		await RenderingServer.frame_post_draw
@@ -94,10 +105,8 @@ func _run() -> void:
 	# Complete the real rules loop, freely choosing legal actions.
 	_play_deal()
 	scene._show_deal_over({})
-	await pause()
-	await capture("deal-receipt")
-	await click(scene.resolve_receipt.primary)
-	await pause()
+	await wait_for_phase(CampaignManager.CampaignPhase.MORNING_EVENT, 1)
+	await capture("morning-event")
 	check(scene.campaign.current_phase == CampaignManager.CampaignPhase.MORNING_EVENT, "Morning resolves into event")
 	if not DemoBuild.enabled():
 		scene.event_table.focus_npc("hang_rong")
@@ -141,16 +150,13 @@ func _run() -> void:
 	await pause()
 	_play_deal()
 	scene._show_deal_over({})
-	await pause()
-	await click(scene.resolve_receipt.primary)
-	await pause()
+	await wait_for_phase(CampaignManager.CampaignPhase.NOON_EVENT, 2)
 	scene._on_campaign_drink_pressed(2, "choose_drink", DrinkCatalog.TRA_DA)
 	scene._on_campaign_continue_pressed()
 	await pause()
 	_play_deal()
 	scene._show_deal_over({})
-	await pause()
-	await click(scene.resolve_receipt.primary)
+	await wait_for_phase(CampaignManager.CampaignPhase.AFTERNOON_EVENT, 3)
 	await pause(1.5)
 	check(scene.campaign.current_phase == CampaignManager.CampaignPhase.AFTERNOON_EVENT, "results before Evening")
 	await capture("lottery-results")
@@ -166,9 +172,7 @@ func _run() -> void:
 	await pause()
 	_play_deal()
 	scene._show_deal_over({})
-	await pause()
-	await click(scene.resolve_receipt.primary)
-	await pause(2.8)
+	await wait_for_phase(CampaignManager.CampaignPhase.MONEY_REQUIREMENT_CHECK, 4)
 	check(scene.resolve_mode == "collection", "evening reaches explicit collection")
 	await capture("collection")
 	var before := scene.deal.wallet.balance_vnd
@@ -202,7 +206,7 @@ func _run() -> void:
 	print("MONDAY_WALLET before_collection=%d due=%d" % [before, due])
 	await capture("tuesday-or-outcome")
 	scene.queue_free()
-	await process_frame
+	await create_timer(0.25).timeout
 	for failure in failures: push_error(failure)
 	print("CAMPAIGN_OVERHAUL_SCENE: %d failures" % failures.size())
 	quit(0 if failures.is_empty() else 1)

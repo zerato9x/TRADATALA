@@ -59,6 +59,7 @@ func _initialize() -> void:
 func _run() -> void:
 	_test_locked_route()
 	_test_cat_route()
+	_test_manual_entry()
 	await _test_runtime_bridge()
 	if failures.is_empty():
 		print("GAMEPLAY_MUSIC_SMOKE: PASS selectable-dog-and-cat-authored-routes authoritative-phom-triggers forward-overlap optional-cleanup runtime-dj-bridge")
@@ -160,6 +161,49 @@ func _test_cat_route() -> void:
 		{"action": "release"},
 	]
 	_check(fake.actions == expected, "CAT_1 opening half and CAT_2 closing half sequence is exact")
+
+
+func _test_manual_entry() -> void:
+	# Golden approved cue IDs from both authored plans, including their different
+	# Morning cleanup behavior and opening/closing source ordering.
+	var cases := [
+		["starter_event", 1, 0, false, CAT_STARTER, STARTER, false],
+		["morning", 1, 0, false, CAT_MORNING_1, MORNING_1, false],
+		["morning", 2, 0, false, CAT_MORNING_2_SUSTAIN, MORNING_2, false],
+		["morning", 2, 1, false, CAT_MORNING_2, MORNING_2, false],
+		["morning_event", 2, 0, false, CAT_MORNING_EVENT, MORNING_EVENT, false],
+		["noon", 1, 0, false, CAT_NOON_1, NOON_1, false],
+		["noon", 2, 0, false, CAT_NOON_2_SUSTAIN, NOON_2, false],
+		["noon", 2, 1, false, CAT_NOON_2, NOON_FINAL, false],
+		["noon_event", 2, 0, false, CAT_NOON_EVENT, DOG_1_NOON_EVENT, true],
+		["afternoon", 1, 0, false, CAT_AFTERNOON_1, AFTERNOON_1, true],
+		["afternoon", 2, 0, false, CAT_AFTERNOON_2, AFTERNOON_2, true],
+		["afternoon_event", 2, 0, false, CAT_AFTERNOON_EVENT, AFTERNOON_EVENT, true],
+		["evening", 1, 0, false, CAT_EVENING_1, BOSS_1, true],
+		["evening", 2, 0, false, CAT_EVENING_2_SUSTAIN, BOSS_2, true],
+		["evening", 2, 1, false, CAT_EVENING_2, BOSS_CLEANUP, true],
+		["collection", 2, 0, false, CAT_EVENING_2, BOSS_CLEANUP, true],
+		["morning", 2, 0, true, CAT_MORNING_EVENT, MORNING_EVENT, false],
+		["noon", 2, 0, true, CAT_NOON_2_SUSTAIN, NOON_2, false],
+		["evening", 2, 0, true, CAT_EVENING_2_SUSTAIN, BOSS_2, true],
+	]
+	for set_id in ["cat", "dog"]:
+		for fixture: Array in cases:
+			var fake := FakeMusicController.new()
+			var conductor := GameplayMusicConductor.new(fake)
+			_check(conductor.start_at_state(set_id, fixture[0], fixture[1], fixture[2], fixture[3]), "manual %s entry: %s" % [set_id, fixture[0]])
+			var track: String = ("cat_2" if fixture[6] else "cat_1") if set_id == "cat" else ("dog_1" if fixture[6] else "dog_2")
+			_check(fake.actions[0] == {"action": "start", "track": track, "cue": fixture[4] if set_id == "cat" else fixture[5]}, "manual entry selects the correct approved cue/source")
+			_check(conductor.active and conductor.active_period == fixture[0], "manual entry retains live period authority")
+			var releases: bool = fixture[0] == "collection" or (fixture[3] and fixture[0] in ["noon", "evening"])
+			_check(fake.actions.size() == (2 if releases else 1), "entry uses one direct start and only the intended ending release")
+			if releases:
+				_check(fake.actions[-1].action == "release", "resolved entry releases the source ending")
+			if fixture[2] > 0:
+				_check(not conductor.on_new_phom(2, 2), "entry after a committed Phom does not retrigger cleanup")
+	var invalid := FakeMusicController.new()
+	_check(not GameplayMusicConductor.new(invalid).start_at_state("cat", "unknown"), "invalid entry fails before starting audio")
+	_check(invalid.actions.is_empty(), "invalid entry leaves the previous transport alone")
 
 
 func _test_runtime_bridge() -> void:

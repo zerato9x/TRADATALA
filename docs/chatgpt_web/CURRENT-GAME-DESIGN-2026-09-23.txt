@@ -1,13 +1,21 @@
 TRADATALA / TRÀ ĐÁ TÁ LẢ — CURRENT GAME DESIGN AND RELEASE
-Snapshot: 2026-09-23
-Authority: the v1.0.3 release tag and verified build artifacts describe the shipped baseline. The current working tree has post-release uncommitted changes; do not attribute them to v1.0.3.
+Release-baseline snapshot: 2026-09-23. Workspace status refreshed: 2026-09-29.
+Authority: the v1.0.3 release tag and verified build artifacts describe the shipped baseline. September 29 source changes were checkpointed to `main` on September 30 and remain WIP outside that release.
+
+WORKSPACE STATUS — 2026-09-29
+- The audit snapshot was `ad5d604` on 2026-09-29. Post-release repairs and follow-up work were checkpointed to `main` and pushed to `origin/main` on 2026-09-30. No new package or release tag was created; the source checkpoint is not part of the public v1.0.3 build.
+- The commit subject includes “1.0.3.1”, but project/export version metadata remains 1.0.3. Treat 1.0.3.1 as a commit label, not a released version.
+- The authoritative audit and detailed evidence are in `docs/CODEBASE_AUDIT_2026-09-29.md`. A bounded Windows validation gate completed all 28 checks; the deterministic core suite passed 205/205. This is local source/runtime evidence, not export or public-release acceptance.
+- The repair protects active and backup saves from oversized replacements, keeps the version-2 save envelope backward-readable for versions 1 and 2, and optionally checkpoints actual music transport for Continue.
+- The jukebox now switches between Authored DJ and Playlist through one mode/source chooser. DJ entry or set changes start the approved cue for the current event/deal/phase immediately, while Continue restores the saved transport. Money-feedback fast-forward is manual and presentation-only; its activating press is consumed.
+- Full/demo campaign, save/resume, jukebox, money presentation, and broader focused scene checks are included in the passing gate. See the audit for exact caveats, including known teardown diagnostics and untested human/device acceptance.
 
 RELEASE STATUS
 - Official game website: https://naixdev.itch.io/tradatala
 - The page was directly accessible on 2026-09-23. It displayed an embedded browser game and the downloadable file TRADATALA-v1.0.3-windows-itch.zip (197 MB), with “Name your own price” pricing. The visible update time was 2026-09-21 14:31 UTC.
 - The local v1.0.3 build manifest records clean source commit 5260e37511224f066ba1f9f7ee227d4101a590f9 and verified Web and Windows ZIPs. Web SHA-256: CAE784C20DBFA1082372E16991A62FED964A8747B839A00A028F0B99A2F0AC4E. Windows SHA-256: 713136B775605A20F08669359D80D0F99B5DF572BA2C07FB4757D0205E2B99A4.
-- The local release receipt was generated at 2026-09-21 21:25 +07 and recorded that no itch.io upload had yet occurred. The official game website was updated at 21:31 +07. The later page verifies that v1.0.3 is listed; the page does not expose the live file hash, so the listed Windows file has not been matched byte-for-byte to the local archive. The local Web ZIP and browser startup checks do not prove that exact ZIP is hosted.
-- The official game website still calls the embedded game a demo and says a later full release will add NPCs, items and mechanics, including a daily Zodiac modifier and boss. That copy is stale against the released v1.0.3 build and should be corrected in a separate page-edit task.
+- External website facts in this release section were checked on 2026-09-23 and were not refreshed by the September 29 source audit. At that check, the page listed v1.0.3, but its live file hash was not visible, so the hosted Windows ZIP was not matched byte-for-byte to the local archive.
+- The official page's “demo” wording and promised future content were also observed on 2026-09-23. Recheck the page before treating that wording as current or scheduling a separate copy-edit task.
 
 SHIPPED GAMEPLAY BASELINE
 TRADATALA is a single-player Phỏm roguelike at a Vietnamese sidewalk table. The release combines card play, a seven-day debt campaign, persistent deck changes, NPC services, Drinks, relics, seeded runs and an Endless continuation.
@@ -32,15 +40,14 @@ Build systems:
 - The released v1.0.3 tag includes fixes for Tuesday progression, collector audio lifecycle, NPC interaction, Handbook input blocking, money HUD hierarchy, major payout cues and SET-extension scoring. It also adds debt-based repeat pricing for polish, tips and lottery tickets. See the release record for exact price formulas and acceptance evidence.
 
 NOT IN v1.0.3
-- Zodiac bosses and daily Zodiac gameplay modifiers.
+- Zodiac bosses, daily Zodiac gameplay modifiers and the planned boss relationship / persuasion system.
 - Special weekday mechanics and story chains.
-- AI opponents and multiplayer.
-- 3D presentation.
-These items are not implemented at the tagged baseline. The first three groups are part of premium full-mechanics planning; 3D remains a presentation decision.
+- AI opponents, multiplayer and 3D presentation were absent from the tagged release. The September 23 product direction removed them from active scope; they are not current premium requirements.
+These items are not implemented at the tagged baseline. See the premium plan for the current full-mechanics direction and which work remains planned.
 
 SOURCE AND VALIDATION BOUNDARIES
 - Release tag: v1.0.3 at 5260e37511224f066ba1f9f7ee227d4101a590f9.
 - Build manifest and receipt: build/TRADATALA-v1.0.3/manifest.json and release-receipt.json.
 - The release receipt records archive hashes, pack checks, Windows startup and a fresh browser startup flow. These checks are not a human full-campaign acceptance run, extended balance study or physical listening review.
-- The working tree currently contains uncommitted changes after the v1.0.3 tag, including localization, project settings, card/UI presentation, event-table, wallet, scoring/text display and smoke sources. Treat them as WIP only. Do not call them shipped or include them in a premium feature claim without a separate review.
+- The September 29 source checkpoint contains changes to gameplay/UI, persistence/music, scoring presentation, validation, docs and locale resources. Treat them as WIP only. Do not call them shipped or include them in a premium feature claim without a separate review.
 - Premium design is not present in this current-state source. Use the dedicated premium plan for intended future scope.

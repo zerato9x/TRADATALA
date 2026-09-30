@@ -1,24 +1,28 @@
 TRADATALA — CHATGPT PROJECT DOCUMENTATION UPDATE
-Updated: 2026-09-23
+Updated: 2026-09-30 (the filenames retain their original September 23 snapshot dates for continuity).
 Project: TRADATALA (ChatGPT Project g-p-6a8da900214c8191b183ba68463eed12)
 
-CURRENT SOURCE SET
-1. CURRENT-GAME-DESIGN-2026-09-23.txt — released v1.0.3 facts, implemented mechanics, official-website status and evidence boundaries.
-2. PREMIUM-EDITION-FULL-MECHANICS-PLAN-2026-09-23.txt — future premium scope and unimplemented mechanics. Treat it as planning, not shipping evidence.
-3. TRADATALA-AUDIO-CURRENT-2026-09-23.txt — shipped soundtrack/music behavior, authoring tools and listening-evidence boundaries.
+CURRENT SOURCE SET TO ADD
+The three design/audio documents below and this source map are refreshed copies of the September 23 files. Add them with a “2026-09-30 checkpoint update” suffix in their ChatGPT Project titles so they remain distinguishable from the older attached snapshots.
+1. CURRENT-GAME-DESIGN-2026-09-23.txt — v1.0.3 release baseline plus September 29 local WIP status and evidence boundary.
+2. PREMIUM-EDITION-FULL-MECHANICS-PLAN-2026-09-23.txt — current future scope and unimplemented mechanics. Treat it as planning, not shipping evidence.
+3. TRADATALA-AUDIO-CURRENT-2026-09-23.txt — v1.0.3 audio baseline plus local jukebox/transport WIP and listening-evidence boundaries.
 4. This file — source map, cleanup record and project-level status.
+5. `docs/CODEBASE_AUDIT_2026-09-29.md` — detailed checkout audit, repairs, validation results, limitations and dirty-tree boundary. Add this as the current WIP evidence source.
 
 SOURCE PRECEDENCE
-- For shipped behavior, use the v1.0.3 tag/build manifest and current-state document.
-- The official game website is https://naixdev.itch.io/tradatala. The local release receipt's “itchPublished: false” reflects its 2026-09-21 21:25 +07 checkpoint and is superseded as a current-status claim by the website updated at 21:31 +07. The hosted file's exact hash is not visible.
+- For shipped behavior, use the v1.0.3 tag/build manifest and current-state document. The 2026-09-29 audit documents source-tree WIP only; do not attribute it to that release.
+- The official game website is https://naixdev.itch.io/tradatala. Its status and copy were last checked on 2026-09-23, not during the September 29 code audit. At that time the site listed v1.0.3, but the hosted file's exact hash was not visible.
 - For premium features, use the premium plan only as intent/backlog. Mark every not-yet-implemented feature as planned.
-- Uncommitted local changes are workspace WIP and are not evidence about the public archive.
+- The current premium direction adds Zodiac boss relationships, persuasion and in-game gifting; AI opponents, multiplayer and 3D are out of active scope. The boss relationship system is planned, not implemented.
+- Project/export version metadata remains 1.0.3. The `1.0.3.1` text in the latest commit subject is not a release declaration.
+- September 29 source changes were checkpointed to `main` and pushed to `origin/main` on 2026-09-30. The full validation gate remains local source evidence, not evidence about the public archive. No new export, release tag or game publication is claimed.
 
 PROJECT SOURCE CLEANUP
-These four dated files replaced the earlier dated design/audio/documentation snapshots from September 3, 5, 16 and 18, plus the separate September 5 Gieo Quẻ mechanics source. Those 11 older document sources have been removed from the TRADATALA Project. Keep sidewalk_table_full_reference.png because it is a visual reference, not an outdated document. Project conversations are not being deleted.
+The four September 23 source documents replaced earlier dated design/audio/documentation snapshots from September 3, 5, 16 and 18, plus the separate September 5 Gieo Quẻ mechanics source. Those 11 older document sources were removed from the TRADATALA Project. This September 30 refresh adds clearly titled checkpoint copies of the four current documents plus the codebase audit; the September 23 and September 29 attachments remain as historical snapshots and are superseded by these updates. Keep `sidewalk_table_full_reference.png` as a visual reference. Project conversations are not being deleted.
 
 RELEASE-PAGE COPY FOLLOW-UP
-The official game website embeds the browser game and lists TRADATALA-v1.0.3-windows-itch.zip, but still describes the embed as a demo and promises a future full release. This is a visible copy mismatch. Update it in a separate, explicitly scoped website-edit task; this document update did not change the website.
+The official game website was observed to embed the browser game and list TRADATALA-v1.0.3-windows-itch.zip on 2026-09-23, while describing the embed as a demo and promising a future full release. This possible copy mismatch has not been rechecked on September 29. This documentation update does not change the website.
 
 VALIDATION LANGUAGE
-Only say what the evidence shows. The v1.0.3 release pack checks and local browser startup passed; the official game website currently lists v1.0.3. The live hosted ZIP has not been hash-matched to the local artifact. No new full-campaign balance study, human listening review, multiplayer/AI acceptance or premium-feature validation was done in this documentation update.
+Only say what the evidence shows. The v1.0.3 release pack checks and local browser startup passed; the official page listing was observed on September 23, but the live hosted ZIP has not been hash-matched to the local artifact. The September 29 Windows validation gate passed all 28 checks, with 205/205 deterministic core tests, for the local working tree only. No new package was exported or published, and no full-campaign balance study, human listening review, multiplayer/AI acceptance or premium-feature validation was performed.

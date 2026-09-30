@@ -141,10 +141,11 @@ func test_scoring_accelerates_only_after_cards_have_triggered() -> void:
 	assert_eq(MoneyPresentation.scoring_hit_interval(1000), 0.045)
 
 
-func test_long_scoring_resolution_fast_forwards_every_hit_kind() -> void:
-	assert_eq(MoneyPresentation.scoring_resolve_interval(0.36, 3.99), 0.36)
-	assert_eq(MoneyPresentation.scoring_resolve_interval(0.36, 4.0), 0.012)
-	assert_eq(MoneyPresentation.scoring_resolve_interval(0.65, 12.0), 0.012)
+func test_scoring_fast_forward_requires_a_player_request() -> void:
+	assert_eq(MoneyPresentation.scoring_resolve_interval(0.36, false), 0.36)
+	assert_eq(MoneyPresentation.scoring_resolve_interval(0.65, false), 0.65)
+	assert_eq(MoneyPresentation.scoring_resolve_interval(0.36, true), 0.012)
+	assert_eq(MoneyPresentation.scoring_resolve_interval(0.65, true), 0.012)
 
 func _assert_receipt_total(context: ScoringContext) -> void:
 	var points := 0

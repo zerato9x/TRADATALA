@@ -1,6 +1,6 @@
 # Campaign overhaul acceptance ledger — 2026-09-20
 
-Implemented against the supplied 24-section campaign/presentation/onboarding plan. Local gameplay services remain authoritative. No exports, commits or pushes were performed.
+Implemented against the supplied 24-section campaign/presentation/onboarding plan. Local gameplay services remain authoritative. At the time of this September 20 checkpoint, no exports, commits or pushes had been performed; see the September 29 audit for later checkout state.
 
 ## Completed scope
 
@@ -20,7 +20,7 @@ Implemented against the supplied 24-section campaign/presentation/onboarding pla
 
 ## Intentional economy and onboarding choices
 
-New full/demo runs start with VNĐ25,000 so optional Starter polish is affordable. Monday still owes VNĐ250,000. Introductory relic prices remain the existing campaign shop's 5% of debt (VNĐ12,500 on Monday), not the legacy standalone relic-runtime minimum. All daily service quotes are independent of current wallet balance. The normal free Trà Đá route remains available.
+New full/demo runs start with VNĐ25,000 so optional Starter polish is affordable. Monday still owes VNĐ250,000. Introductory relic prices remain the campaign shop's 5% of debt (VNĐ12,500 on Monday), not the legacy standalone relic-runtime minimum. Historical pricing note for this September 20 checkpoint: daily service quotes were independent of current wallet balance. The current service pricing contract also uses wallet-based repeat quotes for polish, tips and lottery; see [resolve accounting](RESOLVE_ACCOUNTING.md). The normal free Trà Đá route remains available.
 
 Monday curates physical card order, not outcomes. Players may ignore hints, skip optional services, lose money, or fail debt collection. The small lottery win suggested in the plan was optional; draws and prize rules remain unchanged. Random two-card shoe polish is retained and documented accurately. Onboarding knowledge is run-local, not a permanent unlock profile.
 

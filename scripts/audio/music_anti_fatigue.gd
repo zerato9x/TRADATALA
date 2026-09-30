@@ -106,6 +106,41 @@ func set_enabled(value: bool) -> void:
 		low_pass_filter = null
 
 
+func snapshot_state() -> Dictionary:
+	return {"enabled": enabled, "cue": current_cue_id, "passes": loop_pass_count,
+		"state": String(current_state), "high": _current_high_pass_hz, "low": _current_low_pass_hz,
+		"target_high": _target_high_pass_hz, "target_low": _target_low_pass_hz,
+		"start_high": _transition_start_high_pass_hz, "start_low": _transition_start_low_pass_hz,
+		"elapsed": _transition_elapsed, "duration": _transition_duration}
+
+
+func restore_snapshot(data: Dictionary) -> bool:
+	if StringName(data.get("state", "")) not in [STATE_FULL, STATE_DARK] or int(data.get("passes", -1)) < 0:
+		return false
+	for key in ["high", "low", "target_high", "target_low", "start_high", "start_low"]:
+		var hz := float(data.get(key, -1.0))
+		if not is_finite(hz) or hz < 20.0 or hz > 20_000.0:
+			return false
+	var duration := float(data.get("duration", -1.0))
+	var elapsed := float(data.get("elapsed", -1.0))
+	if not is_finite(duration) or not is_finite(elapsed) or duration < 0.0 or duration > 60.0 or elapsed < 0.0 or elapsed > 60.0:
+		return false
+	set_enabled(bool(data.get("enabled", true)))
+	current_cue_id = String(data.get("cue", ""))
+	loop_pass_count = int(data.passes)
+	current_state = StringName(data.state)
+	_current_high_pass_hz = float(data.high)
+	_current_low_pass_hz = float(data.low)
+	_target_high_pass_hz = float(data.target_high)
+	_target_low_pass_hz = float(data.target_low)
+	_transition_start_high_pass_hz = float(data.start_high)
+	_transition_start_low_pass_hz = float(data.start_low)
+	_transition_elapsed = elapsed
+	_transition_duration = duration
+	_apply_filter_cutoffs()
+	return true
+
+
 func _set_state(next_state: StringName, immediate: bool) -> void:
 	if not _has_state(next_state):
 		next_state = STATE_FULL

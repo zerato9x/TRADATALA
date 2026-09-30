@@ -50,6 +50,34 @@ func test_exact_day_and_branch_gates_independent_of_unlocks() -> void:
 	m.begin_event(EventManager.EventSlot.NOON)
 	assert_false(m.available_drink_ids().has(DrinkCatalog.MIA_TAC))
 
+func test_oversized_save_preserves_active_and_backup_repeatedly() -> void:
+	var d := DealState.new()
+	var c := make_campaign(d)
+	var save := RunSave.new("user://size-limit-test.save")
+	assert_true(save.save_run(c, d))
+	d.wallet.apply_vnd(777, "fixture")
+	assert_true(save.save_run(c, d))
+	var active := FileAccess.get_file_as_bytes(save.path)
+	var backup := FileAccess.get_file_as_bytes(save.path + ".bak")
+	# Test the complete envelope at the exact boundary, not merely payload size.
+	save.max_file_bytes = active.size()
+	assert_false(save.load_run().is_empty())
+	save.max_file_bytes = active.size() - 1
+	for attempt in 2:
+		assert_false(save.save_run(c, d))
+		assert_true(save.error.contains("file size limit"))
+		assert_eq(FileAccess.get_file_as_bytes(save.path), active)
+		assert_eq(FileAccess.get_file_as_bytes(save.path + ".bak"), backup)
+		assert_false(FileAccess.file_exists(save.path + ".tmp"))
+	save.max_file_bytes = RunSave.MAX_FILE_BYTES
+	assert_eq(save.load_run().deal.wallet_balance_vnd, d.wallet.balance_vnd)
+	save.max_objects = 0
+	assert_false(save.save_run(c, d))
+	assert_true(save.error.contains("object limit"))
+	assert_eq(FileAccess.get_file_as_bytes(save.path), active)
+	assert_eq(FileAccess.get_file_as_bytes(save.path + ".bak"), backup)
+	assert_false(RunSave.new(save.path).load_run().is_empty())
+
 func test_goal_prices_and_sunday_debt() -> void:
 	var m := DrinkManager.new()
 	m.day_target_vnd = 16_000_000

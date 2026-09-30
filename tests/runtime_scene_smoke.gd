@@ -20,6 +20,7 @@ func _run() -> void:
 	_check(root_settings != null, "GameSettings autoload exists before MatchUI startup")
 	if root_settings != null:
 		root_settings.set_locale("en")
+		root_settings.set_music_system("playing_tracks")
 	var startup_probe := packed.instantiate() as MatchUI
 	root.add_child(startup_probe)
 	await process_frame
@@ -60,7 +61,7 @@ func _run() -> void:
 	_check(scene.music_track_title != null and scene.music_track_title.text == ReactiveMusicController.display_title_for_theme(&"main"), "the player reports the authoritative current track title")
 	_check(scene.music_progress != null and scene.music_time_label != null, "the player exposes playback progress and elapsed time")
 	_check(scene.music_system_selector != null and scene.music_system_selector.item_count == 2, "music player offers Playing Tracks and Authored DJ systems")
-	_check(scene.authored_music_set_selector != null and scene.authored_music_set_selector.item_count == 2, "Authored DJ offers both DOG and CAT playtest sets")
+	_check(scene.music_track_list != null and scene.music_track_list.item_count == 26, "Playlist mode exposes all tracks through one chooser")
 	_check(scene.play_button != null and scene.play_button.text == "VÁN MỚI", "Vietnamese New Game action exists on the main menu")
 	_check(scene.how_to_play_button != null and scene.how_to_play_button.text == "SỔ TAY", "main menu exposes the localized How to Play section")
 	_check(scene.tutorial_button != null and scene.tutorial_button.text == "SỔ TAY HÀNH TRÌNH", "main menu exposes the campaign Handbook")
@@ -173,10 +174,11 @@ func _run() -> void:
 	_check(scene.music_cover.texture.resource_path == "res://assets/audio/covers/mouse.png", "track selection updates the album cover")
 	scene.music_system_selector.select(1)
 	scene.music_system_selector.item_selected.emit(1)
-	scene.authored_music_set_selector.select(1)
-	scene.authored_music_set_selector.item_selected.emit(1)
-	_check(settings.music_system == settings.MUSIC_SYSTEM_AUTHORED_DJ and settings.authored_music_set == "cat", "menu can arm the CAT authored system for the next playtest")
-	_check(scene.music_track_list.disabled and not scene.authored_music_set_selector.disabled, "Authored DJ disables manual track selection and enables set selection")
+	scene.music_track_list.select(1)
+	scene.music_track_list.item_selected.emit(1)
+	_check(settings.music_system == settings.MUSIC_SYSTEM_AUTHORED_DJ and settings.authored_music_set == "cat" and scene.music_controller.dj_mode, "menu immediately plays the selected CAT authored set")
+	_check(scene.music_track_list.item_count == 2 and not scene.music_track_list.disabled, "Authored DJ reuses the chooser for DOG and CAT")
+	_check(not scene.music_shuffle_button.visible and not scene.music_repeat_button.visible, "DJ hides Playlist-only controls")
 	var saved_music_policy := ConfigFile.new()
 	_check(saved_music_policy.load(settings.SETTINGS_PATH) == OK and String(saved_music_policy.get_value("music", "system", "")) == settings.MUSIC_SYSTEM_AUTHORED_DJ and String(saved_music_policy.get_value("music", "authored_set", "")) == "cat", "selected music system and authored set persist for later playtests")
 	_check(AudioServer.get_bus_index(&"Music") >= 0, "Music bus exists")
