@@ -89,6 +89,7 @@ var deal := DealState.new()
 var event_manager: EventManager
 var drink_manager: DrinkManager
 var campaign: CampaignManager
+var zodiac_table: Control
 var gameplay_music: RefCounted
 var current_campaign_event: EventInstance
 var selected_card_ids: Dictionary = {}
@@ -342,6 +343,8 @@ func _ready() -> void:
 	drink_manager.progress.drink_unlocked.connect(_on_drink_unlocked)
 	deal.state_changed.connect(_on_demo_progress_action)
 	campaign = CampaignManager.new(deal.wallet, event_manager, drink_manager)
+	campaign.zodiac.progress = ZodiacProgress.new()
+	campaign.zodiac.bind(campaign, deal)
 	campaign.relic_shop.runtime = deal.relics
 	_setup_run_saving()
 	campaign.lottery.settled.connect(_on_lottery_settled)
@@ -361,6 +364,9 @@ func _ready() -> void:
 	campaign_coach = preload("res://scripts/ui/campaign_coach.gd").new()
 	add_child(campaign_coach)
 	campaign_coach.configure(self)
+	zodiac_table = preload("res://scripts/ui/zodiac_table.gd").new()
+	game_layer.add_child(zodiac_table)
+	zodiac_table.configure(self)
 	_sync_all(result, true)
 	_set_hand_interaction_enabled(false)
 	_park_game_layer()
@@ -837,6 +843,7 @@ func _on_locale_changed(_locale_code: String) -> void:
 
 
 func _refresh_localized_ui() -> void:
+	if zodiac_table != null: zodiac_table.refresh()
 	for control in menu_localized_controls:
 		if is_instance_valid(control):
 			control.set("text", tr(String(menu_localized_controls[control])))
@@ -1866,6 +1873,7 @@ func _sync_hand(animated_cards: Array[CardData]) -> void:
 			view.card_drag_started.connect(_on_card_drag_started.bind(view))
 			hand_views[card.unique_id] = view
 		view.set_card(card)
+		view.set_zodiac_locked(deal.zodiac_boss.is_locked(card))
 		if is_new and animated_ids.has(card.unique_id):
 			var origin := draw_pile_visual.get_global_rect().get_center() - hand_layer.global_position
 			view.spawn_from(origin)
@@ -2375,6 +2383,7 @@ func _refresh_actions() -> void:
 	elif deal.can_create_meld(selected) or quick_drink_meld:
 		var kind: String = deal.meld_creation_rule(selected, quick_drink_meld)["type"]
 		var points := deal.scoring.preview_new_meld(selected, kind, deal.current_phase, deal.phase_new_meld_count, deal.state == DealState.STATE_FINAL_COMMIT_WINDOW).final_points
+		if deal.zodiac_boss.suppresses(deal.current_phase): points = 0
 		status_label.text = tr("STATUS_VALID_MELD") % [
 			tr("MELD_RUN") if kind == MeldRules.TYPE_RUN else tr("MELD_SET"),
 			points,
@@ -2391,6 +2400,7 @@ func _refresh_actions() -> void:
 			VndWallet.format_vnd(_points_to_vnd(points), true),
 		]
 		status_label.add_theme_color_override("font_color", PresentationTheme.WARNING)
+		if deal.zodiac_boss.suppresses(deal.current_phase): status_label.text = ZodiacCatalog.words("Legal Extension · REGISTER CLOSED · 0 VNĐ", "Nối Phỏm hợp lệ · ĐÃ ĐÓNG SỔ · 0 VNĐ")
 	elif selected.size() == 1:
 		status_label.text = tr("STATUS_ONE_SELECTED")
 		status_label.add_theme_color_override("font_color", PresentationTheme.INK)
@@ -2444,6 +2454,7 @@ func _try_wallet_easter_egg(source: Control = null) -> void:
 
 
 func _input(event: InputEvent) -> void:
+	if zodiac_table != null and zodiac_table.shade.visible: return
 	if get_tree().root.has_node("GameGlossary"):
 		return
 	if _try_fast_forward_money(event):
@@ -3314,6 +3325,9 @@ func _show_scoring(context: ScoringContext, source_override: Control = null) -> 
 
 
 func _queue_scoring(context: ScoringContext, source_override: Control = null, recycle_visual: Dictionary = {}) -> int:
+	if not context.suppression_reason.is_empty():
+		_show_banner(ZodiacCatalog.words("REGISTER CLOSED · legal play, no payout", "ĐÃ ĐÓNG SỔ · bài hợp lệ, không trả thưởng"))
+		return 0
 	var passes: Array = context.scoring_passes if not context.scoring_passes.is_empty() else [context]
 	var gross_multiplier := deal.gross_payout_multiplier()
 	var hits: Array[Dictionary] = []
@@ -4225,6 +4239,12 @@ func _rewind_tutorial_selection() -> void:
 
 
 func _unhandled_key_input(event: InputEvent) -> void:
+	if zodiac_table != null and zodiac_table.shade.visible:
+		if event.is_action_pressed(&"ui_cancel"):
+			zodiac_table.shade.hide()
+			zodiac_table.scene_page = -1
+		get_viewport().set_input_as_handled()
+		return
 	if get_tree().root.has_node("GameGlossary"):
 		return
 	if is_instance_valid(_run_menu):
@@ -4410,6 +4430,7 @@ func _sync_passive_drink_sound(result: Dictionary) -> void:
 			ui_feedback.play_drink(deal.current_drink_id)
 
 func _setup_run_saving() -> void:
+	campaign.zodiac.changed.connect(_queue_run_save)
 	deal.state_changed.connect(func(_result: Dictionary): _queue_run_save())
 	deal.wallet.balance_changed.connect(func(_a: int, _b: int, _c: int, _reason: String): _queue_run_save())
 	deal.relics.inventory_changed.connect(_queue_run_save)
@@ -4458,6 +4479,7 @@ func _show_run_menu() -> void:
 	_run_menu = preload("res://scripts/ui/run_menu.gd").new()
 	layer.add_child(_run_menu)
 	var note := _run_words("Recovered the previous backup save.", "Đã khôi phục bản lưu dự phòng.") if run_save.recovered_backup else run_save.error
+	_run_menu.emblem_service = campaign.zodiac
 	_run_menu.configure(drink_manager.progress, saved, note, campaign.difficulty_progress.unlocked)
 	_run_menu.dismissed.connect(func(): layer.queue_free())
 	_run_menu.new_run.connect(func(seed_text: String):

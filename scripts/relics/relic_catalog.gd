@@ -19,5 +19,8 @@ static func effect(id: String) -> String:
 	var definition: Dictionary = DEFINITIONS[id]
 	return TranslationServer.translate(StringName(definition.effect)) % int(definition.points)
 
+static func flavor_tags(id: String) -> Array:
+	return {"hair_clip": ["adornment"], "lipstick": ["adornment"], "sunglasses": ["adornment"], "toothpicks": ["practical"], "rubber_band": ["practical"]}.get(id, [])
+
 static func icon_path(id: String) -> String:
 	return "res://assets/relics/basic_%s.png" % DEFINITIONS[id].asset

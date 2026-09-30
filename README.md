@@ -4,6 +4,8 @@ A Godot 4.7.1 solo Phỏm roguelike with a seven-day campaign and Endless contin
 
 The official presentation uses the generated Vietnamese sidewalk-table plate at `res://assets/environment/sidewalk_table.png`, with `DFVN Pexel Grotesk` as the global game font. Cards and HUD elements remain live Godot controls layered over the environment.
 
+The current full-build working tree includes the first [Zodiac Boss / Persuasion / Emblem slice](docs/ZODIAC_VERTICAL_SLICE.md): seeded Rooster/Cat visits on Monday and Sunday, optional character-interpreted requests, real Deal skipping, evening register/lock rules, permanent history and Emblems. Both characters use temporary existing NPC sprites. The other ten bosses remain unauthored, and existing published release notes describe their historical builds.
+
 The project opens on a dedicated title menu over the fixed sidewalk-table background. Choosing **VÁN MỚI** opens the run menu: continue the autosave, enter a seed, or start a random run. A new run begins with VNĐ25,000 at Monday's Starter Event: Đòi Nợ presents the day's debt, Đánh Giày offers polish, and Cô Trà Đá supplies the Drink used by the Morning and Noon Deals. Monday teaches through real curated hands and optional contextual hints; the bilingual searchable Handbook replaces the standalone tutorial. The same table then carries the player through four Deals and four Event slots per day for seven days. The match layout uses a compact top status strip, a lower-right active Drink beside the hand, and a separate Relics rail with four equipped slots.
 
 ## Run
@@ -61,6 +63,7 @@ Buttons remain disabled until their action is legal. The footer explains the cur
 - `scripts/scoring/` — reusable scoring contexts, the Drink catalog, extension deltas, settlement deadwood, and controlled modifier hooks.
 - `scripts/economy/` — 64-bit integer VND wallet and point conversion.
 - `scripts/campaign/` — seven-day state machine, data-configured requirements, generic Event/NPC interactions, Drink purchase windows, and progression signals.
+- `scripts/zodiac/` — Zodiac definitions, daily negotiation, permanent concrete history/Emblems, and Deal-owned boss rules with independent saved RNG.
 - `scripts/gameplay/` — the authoritative two-Phase Deal state machine, read-only hand advisor, and exact meld-probability analysis.
 - `scenes/match.tscn` — editor-authored composition root: stationary café background plus instanced board, menu, and reactive-music scenes.
 - `scenes/ui/match_board.tscn` and `scenes/ui/main_menu.tscn` — static match HUD/overlay and menu ownership. The board keeps status at the top, passive Relics on the right, the interactive Drink and hand near the bottom, and context/utility/core actions in stable dock groups. Named bindings are resolved by `MatchUI`; cards, Melds, discard history, campaign participants, archive contents, and audio players remain runtime-generated because their counts depend on game state.

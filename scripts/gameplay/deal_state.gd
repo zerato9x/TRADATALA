@@ -37,6 +37,7 @@ var deck := DeckManager.new()
 var scoring := ScoringPipeline.new()
 var wallet := VndWallet.new()
 var relics := RelicRuntime.new()
+var zodiac_boss := ZodiacBossRule.new()
 var vnd_per_point: int:
 	get:
 		return wallet.vnd_per_point
@@ -129,6 +130,7 @@ func start_deal(shuffle_seed: int = -1, reset_wallet: bool = false, opening_ids:
 
 
 func start_tutorial_deal() -> Dictionary:
+	zodiac_boss.configure()
 	action_counts.clear()
 	action_history.clear()
 	deal_journal_cursor = wallet.journal.size()
@@ -183,6 +185,7 @@ func snapshot_state(copy_history: bool = true) -> Dictionary:
 		"wallet_journal": wallet.journal.duplicate(true) if copy_history else wallet.journal,
 		"wallet_journal_opening": wallet.journal_opening_vnd,
 		"deck": deck.snapshot_state(),
+		"zodiac_boss": zodiac_boss.snapshot(),
 		"relics": relics.snapshot(),
 		"hand": hand.duplicate(),
 		"melds": melds.duplicate(),
@@ -223,6 +226,7 @@ func restore_snapshot(snapshot: Dictionary) -> void:
 	if snapshot.is_empty():
 		return
 	deck.restore_snapshot(snapshot.get("deck", {}) as Dictionary)
+	zodiac_boss.restore(snapshot.get("zodiac_boss", {}))
 	relics.restore(snapshot.get("relics", {}))
 	_restore_card_array(hand, snapshot.get("hand", []))
 	_restore_meld_array(snapshot.get("melds", []))
@@ -364,6 +368,7 @@ func physical_card_accounting_is_valid() -> bool:
 
 
 func can_use_nhan_tran(card: CardData, record: DiscardRecord) -> bool:
+	if zodiac_boss.is_locked(card): return false
 	if current_drink_id != DrinkCatalog.NHAN_TRAN or not _card_actions_available() or nhan_tran_used_this_phase:
 		return false
 	if card == null or not hand.has(card) or record == null:
@@ -376,6 +381,7 @@ func can_use_nhan_tran(card: CardData, record: DiscardRecord) -> bool:
 
 
 func can_use_den_da(card: CardData, record: DiscardRecord) -> bool:
+	if zodiac_boss.is_locked(card): return false
 	return current_drink_id == DrinkCatalog.DEN_DA and _card_actions_available() and not den_da_used_this_turn and card != null and hand.has(card) and record != null and discard_history.has(record) and (_discard_pile_index(record.card) >= 0 or recyclable_spent_cards.has(record.card))
 
 
@@ -439,6 +445,7 @@ func use_nhan_tran(card: CardData, record: DiscardRecord) -> Dictionary:
 
 
 func can_use_nuoc_voi(meld_id: int, card: CardData) -> bool:
+	if zodiac_boss.is_locked(card): return false
 	if current_drink_id != DrinkCatalog.NUOC_VOI or not _card_actions_available():
 		return false
 	if nuoc_voi_used_phases.has(current_phase):
@@ -488,6 +495,7 @@ func select_sam_dua_preserves(cards: Array[CardData]) -> Dictionary:
 	for card in cards:
 		if card == null or not hand.has(card) or seen_ids.has(card.unique_id):
 			return _failure("Sâm dứa can preserve only distinct loose hand cards.")
+		if zodiac_boss.is_locked(card): return _failure("Cat has locked this card until the next turn.")
 		seen_ids[card.unique_id] = true
 	sam_dua_preserved_cards.clear()
 	sam_dua_preserved_cards.append_array(cards)
@@ -636,6 +644,7 @@ func extend_meld(meld_id: int, selected_cards: Array[CardData]) -> Dictionary:
 
 
 func discard_card(card: CardData) -> Dictionary:
+	if zodiac_boss.is_locked(card): return _failure("Cat has locked this card until the next turn.")
 	if state != STATE_ACTIVE:
 		return _failure("Discarding is unavailable right now.")
 	if card == null or not hand.has(card):
@@ -650,6 +659,7 @@ func discard_card(card: CardData) -> Dictionary:
 		discard_history.append(DiscardRecord.new(card, current_phase, discard_count, DiscardRecord.KIND_DRINK_EXTRA))
 	else:
 		discard_count += 1
+		zodiac_boss.mandatory_discard(current_phase, discard_count)
 		discard_history.append(DiscardRecord.new(card, current_phase, discard_count, DiscardRecord.KIND_MANDATORY))
 		if current_drink_id == DrinkCatalog.TRA_DA and not hand.is_empty():
 			tra_da_extra_discard_pending = true
@@ -1134,6 +1144,7 @@ func _begin_active_turn() -> Array[CardData]:
 			break
 	_turn_started_with_ten = hand.size() == ACTIVE_HAND_TARGET
 	_turn_committed_card_count = 0
+	zodiac_boss.begin_turn(current_phase, hand)
 	return all_drawn
 
 
@@ -1216,6 +1227,7 @@ func _validate_loose_selection(selected_cards: Array[CardData]) -> String:
 	for card in selected_cards:
 		if card == null or not hand.has(card):
 			return "Selection contains a card outside the loose hand."
+		if zodiac_boss.is_locked(card): return "Cat has locked this card until the next turn."
 		if seen_ids.has(card.unique_id):
 			return "The same card cannot be selected twice."
 		seen_ids[card.unique_id] = true
@@ -1228,6 +1240,11 @@ func _validate_commit_selection(selected_cards: Array[CardData]) -> String:
 		return guard
 	if state != STATE_FINAL_COMMIT_WINDOW and selected_cards.size() > hand.size() - 1:
 		return "Keep at least one loose card for the mandatory discard."
+	if state == STATE_ACTIVE and not zodiac_boss.locked_ids.is_empty():
+		var has_discard := false
+		for card in hand:
+			if not selected_cards.has(card) and not zodiac_boss.is_locked(card): has_discard = true
+		if not has_discard: return "Keep an unlocked card for the mandatory discard."
 	return ""
 
 
@@ -1268,6 +1285,14 @@ func _deduct_turn_deadwood() -> Dictionary:
 
 
 func _apply_scoring_passes(context: ScoringContext) -> void:
+	if zodiac_boss.suppresses(current_phase) and context.action_type in ["new_meld", "extension"]:
+		context.suppression_reason = "rooster_register_closed"
+		context.final_points = 0
+		for scoring_pass: ScoringContext in context.scoring_passes:
+			scoring_pass.final_points = 0
+			scoring_pass.suppression_reason = context.suppression_reason
+			scoring_pass.presentation_hits.clear()
+		return
 	for scoring_pass: ScoringContext in context.scoring_passes:
 		action_counts["card_triggers"] = int(action_counts.get("card_triggers", 0)) + scoring_pass.presentation_hits.size()
 		if scoring_pass.trigger_index > 0:
@@ -1278,6 +1303,9 @@ func _apply_scoring_passes(context: ScoringContext) -> void:
 
 func _apply_relic_bonuses(context: ScoringContext, meld_id: int) -> void:
 	context.relic_bonuses = relics.resolve(context, meld_id)
+	if not context.suppression_reason.is_empty():
+		context.relic_bonuses.clear()
+		return
 	for bonus in context.relic_bonuses:
 		_record_phase_points(int(bonus.points), "relic:" + String(bonus.id))
 
@@ -1428,6 +1456,7 @@ func _count_action(result: Dictionary) -> void:
 	var event := {"action": action, "phase": current_phase, "turn": discard_count, "wallet_vnd": wallet.balance_vnd}
 	var context := result.get("context") as ScoringContext
 	if context != null:
+		event["suppression_reason"] = context.suppression_reason
 		event["points"] = context.final_points
 		event["hits"] = context.presentation_hits.duplicate(true)
 		event["relics"] = context.relic_bonuses.duplicate(true)

@@ -27,6 +27,7 @@ var enhancements: Array[String] = []
 var gieo_properties: Array[String] = []
 # Separate day-scoped polish; excluded from permanent snapshots.
 var shiny: bool = false
+var transformation_locked: bool = false
 
 
 func _init(
@@ -51,16 +52,19 @@ func score_value() -> int:
 
 
 func apply_rank(p_rank: String, p_rank_index: int) -> void:
+	if transformation_locked: return
 	rank = p_rank
 	rank_index = p_rank_index
 	base_value = p_rank_index
 
 
 func apply_suit(p_suit: String) -> void:
+	if transformation_locked: return
 	suit = p_suit
 
 
 func add_gieo_property(property_id: String) -> bool:
+	if transformation_locked: return false
 	if property_id.is_empty() or gieo_properties.has(property_id):
 		return false
 	gieo_properties.append(property_id)
@@ -78,6 +82,7 @@ func permanent_snapshot() -> Dictionary:
 		"rank_index": rank_index,
 		"suit": suit,
 		"gieo_properties": gieo_properties.duplicate(),
+		"transformation_locked": transformation_locked,
 	}
 
 
@@ -85,7 +90,32 @@ func copy_for_deal() -> CardData:
 	var deal_copy := CardData.new(unique_id, rank, rank_index, suit, base_value)
 	deal_copy.gieo_properties.append_array(gieo_properties)
 	deal_copy.shiny = shiny
+	deal_copy.transformation_locked = transformation_locked
 	return deal_copy
+
+
+func alter_for_zodiac(operation: String) -> void:
+	match operation:
+		"remove_property":
+			if not gieo_properties.is_empty(): gieo_properties.pop_back()
+		"seal": transformation_locked = true
+		"reset":
+			# Canonical identity is stable even after rank/suit transformations.
+			var identity := unique_id.split("_")
+			if identity.size() != 3 or identity[0] != "standard": return
+			rank = identity[1].to_upper()
+			rank_index = DeckManager.RANKS.find(rank) + 1
+			base_value = rank_index
+			suit = identity[2].capitalize()
+			gieo_properties.clear()
+			value_modifiers.clear()
+			enhancements.clear()
+			shiny = false
+
+func has_permanent_changes() -> bool:
+	var identity := unique_id.split("_")
+	if identity.size() != 3 or identity[0] != "standard": return false
+	return rank != identity[1].to_upper() or suit.to_lower() != identity[2] or not gieo_properties.is_empty() or not value_modifiers.is_empty() or not enhancements.is_empty() or shiny
 
 
 func gieo_property_descriptions() -> Array[String]:

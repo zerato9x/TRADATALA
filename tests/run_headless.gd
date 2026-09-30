@@ -11,6 +11,7 @@ const MusicAntiFatigueTestSuiteScript := preload("res://tests/test_music_anti_fa
 func _initialize() -> void:
 	var runner := McpTestRunner.new()
 	var result := runner.run_suites([
+		preload("res://tests/test_zodiac.gd").new(),
 		preload("res://tests/test_presentation_text.gd").new(),
 		preload("res://tests/test_campaign_overhaul.gd").new(),
 		preload("res://tests/test_run_progression.gd").new(),

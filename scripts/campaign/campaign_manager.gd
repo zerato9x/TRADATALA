@@ -57,6 +57,7 @@ const NEXT_PHASE := {
 
 var run_seed := ""
 var onboarding := CampaignOnboarding.new()
+var zodiac := ZodiacService.new()
 var endless := false
 var difficulty := 1
 var difficulty_progress = preload("res://scripts/campaign/difficulty_progress.gd").new()
@@ -91,6 +92,7 @@ func _init(
 	p_days: Array[Dictionary] = []
 ) -> void:
 	wallet = p_wallet if p_wallet != null else VndWallet.new()
+	zodiac._campaign_ref = weakref(self)
 	event_manager = p_event_manager if p_event_manager != null else EventManager.new()
 	drink_manager = p_drink_manager if p_drink_manager != null else DrinkManager.new(wallet)
 	campaign_days = CampaignConfig.day_definitions() if p_days.is_empty() else p_days.duplicate(true)
@@ -127,6 +129,7 @@ func select_difficulty(level: int) -> bool:
 
 func start_campaign(reset_wallet: bool = true, seed_text: String = "") -> void:
 	onboarding.reset()
+	zodiac.reset_run()
 	run_seed = seed_text.strip_edges().left(64)
 	if run_seed.is_empty():
 		var random := RandomNumberGenerator.new()
@@ -172,6 +175,8 @@ func daily_requirement() -> int:
 func complete_deal(extra_result: Dictionary = {}) -> bool:
 	if not DEAL_PHASE_TO_PERIOD.has(current_phase) or campaign_complete or run_failed:
 		return false
+	if current_phase == CampaignPhase.EVENING_DEAL and zodiac.deal != null and zodiac.deal.state == DealState.STATE_DEAL_OVER:
+		zodiac.finish_boss()
 	var result := extra_result.duplicate(true)
 	result.merge({
 		"day_id": String(current_day().get("id", "")),
@@ -212,6 +217,7 @@ func _begin_current_day() -> void:
 	gieo_que.begin_day(current_day_index)
 	lottery.begin_day(current_day_index)
 	shoe_shine.begin_day(current_day_index, gieo_que.persistent_deck)
+	zodiac.begin_day(current_day_index, seed_for("zodiac_selection", current_day_index))
 	day_started.emit(current_day())
 	_enter_phase(CampaignPhase.STARTER_EVENT)
 
@@ -220,6 +226,7 @@ func _enter_phase(phase: int) -> void:
 	_set_phase(phase)
 	if EVENT_PHASE_TO_SLOT.has(phase):
 		var slot := int(EVENT_PHASE_TO_SLOT[phase])
+		zodiac.enter_event(slot)
 		drink_manager.begin_event(slot)
 		if slot in [EventManager.EventSlot.MORNING, EventManager.EventSlot.AFTERNOON] and not DemoBuild.enabled():
 			relic_shop.begin_visit("%d:%d" % [current_day_index, slot], seed_for("relic", current_day_index * 4 + slot), daily_requirement())
@@ -233,8 +240,13 @@ func _enter_phase(phase: int) -> void:
 		})
 		event_started.emit(event)
 	elif DEAL_PHASE_TO_PERIOD.has(phase):
+		if zodiac.consume_skip(phase):
+			activities.append({"action": "zodiac_spend_time", "day": current_day_index, "period": DEAL_PHASE_TO_PERIOD[phase], "payout_vnd": 0})
+			_advance_from_current_phase()
+			return
 		deal_cursor = wallet.journal.size()
 		active_deal_wallet_before_vnd = wallet.balance_vnd
+		zodiac.prepare_deal(String(DEAL_PHASE_TO_PERIOD[phase]))
 		deal_requested.emit(
 			current_day().duplicate(true),
 			String(DEAL_PHASE_TO_PERIOD[phase]),

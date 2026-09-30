@@ -46,6 +46,7 @@ func _process(_delta: float) -> void:
 	if host == null or host.campaign == null:
 		return
 	box.visible = host.game_started and not host.menu_layer.visible and host.campaign.current_day_index == 0
+	if host.zodiac_table != null and host.zodiac_table.shade.visible: box.hide()
 	if not box.visible:
 		return
 	if not host.selected_card_ids.is_empty():

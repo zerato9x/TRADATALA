@@ -55,6 +55,7 @@ func capture(campaign: CampaignManager, deal: DealState, copy_history: bool = tr
 	var event := campaign.event_manager.current_event
 	return {
 		"music": music,
+		"zodiac": campaign.zodiac.snapshot(),
 		"onboarding": {"learned": campaign.onboarding.learned.duplicate(), "dismissed": campaign.onboarding.dismissed.duplicate()},
 		"campaign": fields(campaign, CAMPAIGN_FIELDS), "deal": deal.snapshot_state(copy_history),
 		"drinks": fields(campaign.drink_manager, DRINK_FIELDS),
@@ -71,6 +72,7 @@ func restore(data: Dictionary, campaign: CampaignManager, deal: DealState) -> bo
 		return false
 	campaign.difficulty = int(data.campaign.get("difficulty", 1))
 	apply_fields(campaign, data.campaign, CAMPAIGN_FIELDS)
+	campaign.zodiac.restore(data.get("zodiac", {}))
 	campaign.onboarding.reset()
 	campaign.onboarding.learned = data.get("onboarding", {}).get("learned", {}).duplicate()
 	campaign.onboarding.dismissed = data.get("onboarding", {}).get("dismissed", {}).duplicate()

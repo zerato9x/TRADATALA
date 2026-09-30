@@ -35,6 +35,30 @@ var _press_active: bool = false
 var _dragging: bool = false
 var _press_position := Vector2.ZERO
 var drag_enabled: bool = true
+var zodiac_locked := false
+var _zodiac_lock: Panel
+
+func set_zodiac_locked(value: bool) -> void:
+	zodiac_locked = value
+	if _zodiac_lock == null:
+		_zodiac_lock = Panel.new()
+		_zodiac_lock.name = "CatLock"
+		_zodiac_lock.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		_zodiac_lock.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_zodiac_lock.add_theme_stylebox_override("panel", PresentationTheme.panel_style(Color(0.12, 0.04, 0.24, 0.10), Color("bc8dff"), 3, 4, 0))
+		add_child(_zodiac_lock)
+		var label := Label.new()
+		label.position = Vector2(5, 48)
+		label.size = Vector2(76, 24)
+		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		label.text = ZodiacCatalog.words("LOCKED", "BỊ KHÓA")
+		label.add_theme_font_size_override("font_size", 13)
+		label.add_theme_color_override("font_color", Color("bc8dff"))
+		label.add_theme_color_override("font_shadow_color", Color.BLACK)
+		label.add_theme_stylebox_override("normal", PresentationTheme.panel_style(Color("27123df2"), Color("bc8dff"), 1, 2))
+		label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_zodiac_lock.add_child(label)
+	_zodiac_lock.visible = value
 
 
 func _ready() -> void:
@@ -266,7 +290,7 @@ func _refresh_tooltip() -> void:
 
 
 func _gui_input(event: InputEvent) -> void:
-	if not _interaction_enabled:
+	if not _interaction_enabled or zodiac_locked:
 		return
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		accept_event()

@@ -167,6 +167,8 @@ func can_afford_pull() -> bool:
 
 
 func cast(forced_lines: Array[String] = []) -> Dictionary:
+	if persistent_deck.all(func(card: CardData): return card.transformation_locked):
+		return _failure("Every card is sealed against transformations this run.")
 	if state not in [STATE_READY, STATE_RESULT, STATE_COMPLETE]:
 		return _failure("A committed cast must finish before another pull.")
 	var price := current_pull_cost()
@@ -256,7 +258,7 @@ func choose_target(card_id: String) -> Dictionary:
 		return _failure("No card target is being selected.")
 	var legal_targets: Array[CardData] = resolved_targets if not resolved_targets.is_empty() else persistent_deck
 	for card in legal_targets:
-		if card.unique_id == card_id:
+		if card.unique_id == card_id and not card.transformation_locked:
 			resolved_targets = [card]
 			return apply_resolved_targets()
 	return _failure("Choose one of the displayed physical cards.")
@@ -269,6 +271,7 @@ func apply_resolved_targets() -> Dictionary:
 		return _failure("The cast has no physical card target.")
 	last_transformations.clear()
 	for card in resolved_targets:
+		if card.transformation_locked: continue
 		var before := card.permanent_snapshot()
 		_apply_effect(card)
 		last_transformations.append({
@@ -356,6 +359,7 @@ func _resolve_targeting_after_accept() -> Dictionary:
 
 
 func _apply_effect(card: CardData) -> void:
+	if card.transformation_locked: return
 	var jackpot := String(current_result.get("jackpot", ""))
 	if jackpot == JACKPOT_THUAN_DUONG:
 		_apply_rank(card, resolved_destination)
@@ -393,6 +397,7 @@ func _apply_rank(card: CardData, rank: String) -> void:
 func _random_cards(count: int, source: Array[CardData] = []) -> Array[CardData]:
 	var pool: Array[CardData] = []
 	pool.append_array(persistent_deck if source.is_empty() else source)
+	pool = pool.filter(func(card: CardData): return not card.transformation_locked)
 	_shuffle_cards(pool)
 	var picked: Array[CardData] = []
 	for index in range(mini(count, pool.size())):
@@ -437,7 +442,7 @@ func _random_consecutive_group(requested_count: int) -> Array[CardData]:
 func _cards_with_suit(suit: String) -> Array[CardData]:
 	var cards: Array[CardData] = []
 	for card in persistent_deck:
-		if card.suit == suit:
+		if card.suit == suit and not card.transformation_locked:
 			cards.append(card)
 	return cards
 
@@ -445,7 +450,7 @@ func _cards_with_suit(suit: String) -> Array[CardData]:
 func _cards_with_rank_index(rank_index: int) -> Array[CardData]:
 	var cards: Array[CardData] = []
 	for card in persistent_deck:
-		if card.rank_index == rank_index:
+		if card.rank_index == rank_index and not card.transformation_locked:
 			cards.append(card)
 	return cards
 

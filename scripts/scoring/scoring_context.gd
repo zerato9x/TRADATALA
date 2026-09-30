@@ -2,6 +2,7 @@ class_name ScoringContext
 extends RefCounted
 
 var action_type: String = ""
+var suppression_reason: String = ""
 var meld_type: String = ""
 var cards: Array[CardData] = []
 var added_cards: Array[CardData] = []

@@ -12,6 +12,9 @@ func _ready() -> void:
 func _input(event: InputEvent) -> void:
 	if ui == null:
 		return
+	if ui.zodiac_table != null and ui.zodiac_table.shade.visible:
+		cancel()
+		return
 	if get_tree().root.has_node("GameGlossary") or not ui.game_started or ui.tutorial_active or ui.interaction_locked or ui.menu_layer.visible or ui.modal_overlay.visible:
 		cancel()
 		return

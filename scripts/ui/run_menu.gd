@@ -9,6 +9,7 @@ var difficulty_selector: OptionButton
 var music_choice: OptionButton
 var selected_difficulty := 1
 var selected_music := ""
+var emblem_service: ZodiacService
 
 func words(en: String, vi: String) -> String:
 	return vi if TranslationServer.get_locale().begins_with("vi") else en
@@ -98,6 +99,20 @@ func configure(progress: DrinkProgress, saved: Dictionary, message: String = "",
 	collection.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	collection.add_theme_constant_override("separation", 8)
 	scroll.add_child(collection)
+	if emblem_service != null and not DemoBuild.enabled():
+		collection.add_child(_label(words("ZODIAC EMBLEMS · appearance on matching days", "HUY HIỆU CON GIÁP · xuất hiện vào ngày tương ứng"), 20))
+		var selector := OptionButton.new()
+		selector.name = "EmblemChoice"
+		selector.add_item(words("Seeded appearance", "Xuất hiện theo hạt giống"))
+		selector.set_item_metadata(0, "")
+		for id: String in ZodiacCatalog.DEFINITIONS:
+			if emblem_service.progress.owns(id):
+				selector.add_item(ZodiacCatalog.display_name(id))
+				selector.set_item_metadata(selector.item_count - 1, id)
+				if emblem_service.forced.get("pair:0", "") == id: selector.select(selector.item_count - 1)
+		selector.item_selected.connect(func(index: int): emblem_service.prefer_emblem(String(selector.get_item_metadata(index))))
+		collection.add_child(selector)
+		collection.add_child(_label(words("Rooster / Cat: Monday and Sunday. Other pairs are not yet authored. Emblems and concrete history persist across runs.", "Dậu / Mão: Thứ hai và Chủ nhật. Các cặp khác chưa được xây dựng. Huy hiệu và lịch sử hành động được giữ qua các lượt chơi."), 14))
 	for id in DrinkCatalog.all_ids():
 		var row := HBoxContainer.new()
 		collection.add_child(row)

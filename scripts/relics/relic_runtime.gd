@@ -53,6 +53,14 @@ func remove(id: String) -> void:
 	equipped.erase(id)
 	inventory_changed.emit()
 
+
+func gift(id: String) -> bool:
+	if not inventory.has(id): return false
+	inventory.erase(id)
+	equipped.erase(id)
+	inventory_changed.emit()
+	return true
+
 func reset_run() -> void:
 	inventory.clear()
 	equipped.clear()
