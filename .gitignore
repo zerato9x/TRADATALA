@@ -2,3 +2,6 @@
 *.log
 build/
 .tmp-*/
+
+# Generated from the tracked localization CSV during Godot import.
+*.translation
