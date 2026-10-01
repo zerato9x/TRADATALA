@@ -83,6 +83,39 @@ static func create_game_theme() -> Theme:
 	game_theme.set_color("font_disabled_color", "Button", MUTED)
 	game_theme.set_color("font_color", "Button", ACTION)
 	game_theme.set_font_size("normal_font_size", "RichTextLabel", 16)
+	# Keep form controls legible on the same dark surfaces as the game panels.
+	for control_type in ["LineEdit", "OptionButton"]:
+		game_theme.set_color("font_color", control_type, INK)
+		game_theme.set_color("font_placeholder_color", control_type, MUTED)
+		game_theme.set_color("font_disabled_color", control_type, MUTED)
+		game_theme.set_font_size("font_size", control_type, 17)
+		for state in ["normal", "hover", "pressed", "read_only", "disabled", "focus"]:
+			var color := Color("#142435") if state != "hover" else Color("#263f57")
+			var outline := GOLD if state == "focus" else Color("#6884a1")
+			var form_style := panel_style(Color.TRANSPARENT if state == "focus" else color, outline, 2 if state == "focus" else 1, 2)
+			form_style.content_margin_left = 12
+			form_style.content_margin_right = 16
+			form_style.content_margin_top = 10
+			form_style.content_margin_bottom = 10
+			game_theme.set_stylebox(state, control_type, form_style)
+	game_theme.set_stylebox("panel", "PopupMenu", panel_style(Color("#142435"), Color("#6884a1"), 1, 2, 4))
+	game_theme.set_stylebox("hover", "PopupMenu", panel_style(Color("#34527a")))
+	game_theme.set_color("font_color", "PopupMenu", INK)
+	game_theme.set_color("font_hover_color", "PopupMenu", Color.WHITE)
+	game_theme.set_font_size("font_size", "PopupMenu", 17)
+	for bar_type in ["VScrollBar", "HScrollBar"]:
+		for state in ["scroll", "grabber", "grabber_highlight", "grabber_pressed"]:
+			var fill := Color("#101c29") if state == "scroll" else GOLD if state != "grabber" else Color("#6884a1")
+			var bar := panel_style(fill, Color("#b3c8da") if state == "grabber" else Color.TRANSPARENT, 1 if state == "grabber" else 0, 2)
+			for side in ["left", "right", "top", "bottom"]:
+				bar.set("content_margin_" + side, 5.0)
+			game_theme.set_stylebox(state, bar_type, bar)
+	var track := panel_style(Color("#263f57"), Color("#6884a1"), 1, 2)
+	track.content_margin_top = 4
+	track.content_margin_bottom = 4
+	game_theme.set_stylebox("slider", "HSlider", track)
+	game_theme.set_stylebox("grabber_area", "HSlider", panel_style(TEA))
+	game_theme.set_stylebox("grabber_area_highlight", "HSlider", panel_style(GOLD))
 	var tooltip_style := panel_style(PANEL_SOLID, GOLD_DARK, 1, 3, 3)
 	tooltip_style.content_margin_left = 12
 	tooltip_style.content_margin_right = 12

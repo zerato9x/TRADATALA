@@ -17,7 +17,11 @@ func _run() -> void:
 	root.add_child(scene)
 	current_scene = scene
 	await process_frame
-	var nav := scene.front_end.home_body.get_child(2) as HFlowContainer
+	var nav := scene.front_end.home_body.find_child("HomeNavigation", true, false) as GridContainer
+	if nav == null:
+		push_error("Home navigation is missing")
+		quit(1)
+		return
 	await _click(nav.get_child(1) as Control)
 	_check(root.get_node_or_null("GameGlossary") != null, "viewport click opens the handbook")
 	var handbook := root.get_node_or_null("GameGlossary")

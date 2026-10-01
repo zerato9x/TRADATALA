@@ -61,7 +61,6 @@ func _ready() -> void:
 	_purpose = Label.new()
 	_purpose.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_purpose.add_theme_font_size_override("font_size", 16)
-	body.add_child(_purpose)
 	var tools_row := HBoxContainer.new()
 	tools_row.add_theme_constant_override("separation", 12)
 	body.add_child(tools_row)
@@ -106,6 +105,7 @@ func _ready() -> void:
 	_detail.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_detail.add_theme_constant_override("separation", 10)
 	detail_scroll.add_child(_detail)
+	body.add_child(_purpose)
 	_confirm = Button.new()
 	_confirm.name = "DeckChoose"
 	_confirm.custom_minimum_size.y = 48
@@ -113,7 +113,11 @@ func _ready() -> void:
 	PresentationTheme.configure_button(_confirm, "gold")
 	_confirm.pressed.connect(_choose)
 	body.add_child(_confirm)
+	_scroll.resized.connect(_fit_grid)
 	hide()
+
+func _fit_grid() -> void:
+	_grid.columns = maxi(1, floori((_scroll.size.x - 12) / 78.0))
 
 func open_deck(cards: Array[CardData], title_text: String, purpose_text: String, allowed_cards: Array[CardData] = [], on_choose: Callable = Callable()) -> void:
 	_cards = cards.duplicate()
@@ -125,7 +129,10 @@ func open_deck(cards: Array[CardData], title_text: String, purpose_text: String,
 	_title.text = title_text + "  ·  %d" % _cards.size()
 	if on_choose.is_valid() and _allowed.size() < _cards.size():
 		_title.text += "  ·  " + (_words("%d offered", "%d lá có thể chọn") % _allowed.size())
-	_purpose.text = purpose_text
+	# Selection consequences belong to the picker; browsing needs no tagline.
+	_purpose.text = purpose_text if on_choose.is_valid() else ""
+	_purpose.visible = on_choose.is_valid() and not purpose_text.is_empty()
+	_title.tooltip_text = purpose_text
 	_search.clear()
 	_sort.select(0)
 	_rebuild_cards()

@@ -265,7 +265,7 @@ func _overview() -> void:
 			collector.add_child(portrait)
 		portrait.visible = _mode == "collection"
 		var debt := _panel(collector)
-		debt.add_child(_label(words("ĐÒI NỢ · TONIGHT'S COLLECTION", "ĐÒI NỢ · THU NỢ TỐI NAY"), 20))
+		debt.add_child(_label("ĐÒI NỢ", 20))
 		debt.add_child(_label(words("AMOUNT DUE", "NỢ PHẢI TRẢ"), 16, MUTED))
 		debt.add_child(_label(VndWallet.format_vnd(int(_report.due_vnd)), 32, RED))
 		var shortfall := int(_report.get("shortfall_vnd", 0))
@@ -279,7 +279,7 @@ func _overview() -> void:
 	columns.add_theme_constant_override("separation", 14)
 	rows.add_child(columns)
 	var earnings := _panel(columns)
-	earnings.add_child(_label(words("AT THE TABLE", "TRÊN BÀN BÀI"), 20))
+	earnings.add_child(_label(words("EARNINGS", "THU NHẬP"), 20))
 	var categories: Dictionary = _report.get("categories", {})
 	if categories.is_empty():
 		earnings.add_child(_label(words("No money changed hands.", "Chưa có thu chi."), 17, MUTED))
@@ -287,7 +287,7 @@ func _overview() -> void:
 		var amount := int(categories[reason])
 		line(reason_name(reason), VndWallet.format_vnd(amount, true), GREEN if amount >= 0 else RED, earnings)
 	var activity := _panel(columns)
-	activity.add_child(_label(words("YOUR PLAY", "VÁN BÀI CỦA BẠN"), 20))
+	activity.add_child(_label(words("ACTIONS", "LƯỢT CHƠI"), 20))
 	var counts: Dictionary = _report.get("counts", {})
 	var shown := 0
 	for key: String in counts:
@@ -374,7 +374,7 @@ func _cards() -> void:
 			arrival.tween_interval(minf(flow.get_child_count() * 0.045, 0.35))
 			arrival.tween_property(face, "scale", Vector2.ONE, 0.3).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 		if not passes.is_empty():
-			box.add_child(_label(words("Scoring breakdown · included above", "Chi tiết tính điểm · đã gồm ở trên"), 15, MUTED))
+			box.add_child(_label(words("Scoring breakdown", "Chi tiết tính điểm"), 15, MUTED))
 			for scoring_pass: Dictionary in passes:
 				line(reason_name(str(scoring_pass.origin)), str(scoring_pass.points) + words(" points", " điểm"), INK, box)
 		for bonus: Dictionary in action.get("relics", []):
@@ -386,7 +386,6 @@ func _cards() -> void:
 	if not found:
 		var empty := _panel(rows)
 		empty.add_child(_label(words("No scoring cards in this report", "Chưa có bài ghi điểm trong báo cáo này"), 24))
-		empty.add_child(_label(words("Cards appear here after a meld or extension scores. Your complete money history is in Transactions.", "Bài sẽ hiện ở đây sau khi hạ hoặc nối phỏm ghi điểm. Xem toàn bộ thu chi trong Giao dịch."), 18, MUTED))
 
 func _ledger() -> void:
 	var box := _panel(rows)
@@ -448,7 +447,6 @@ func _endless() -> void:
 
 func _chronicle() -> void:
 	var hero := _panel(rows)
-	hero.add_child(_label(words("THE WEEK IS YOURS", "BẠN ĐÃ CHINH PHỤC TUẦN NÀY") if _report.get("won", false) else words("EVERY RUN TELLS A STORY", "MỖI VÁN ĐỀU CÓ MỘT CÂU CHUYỆN"), 28))
 	var seed_row := HBoxContainer.new()
 	hero.add_child(seed_row)
 	var seed_text := _label(words("SEED · ", "HẠT GIỐNG · ") + str(_report.get("seed", "")), 16, MUTED)
@@ -485,8 +483,8 @@ func _chronicle() -> void:
 	var ranked: Array = card_totals.values()
 	ranked.sort_custom(func(a: Dictionary, b: Dictionary): return int(a.points) > int(b.points) if a.points != b.points else str(a.id) < str(b.id))
 	var awards := _panel(rows)
-	awards.add_child(_label(words("THE MVPs · YOUR HARDEST-WORKING CARDS", "NHỮNG LÁ BÀI XUẤT SẮC NHẤT"), 22))
-	awards.add_child(_label(words("Card contributions across this run, including retriggers. Shared adjustments and relic bonuses are counted separately.", "Tổng đóng góp của bài, gồm kích hoạt lại. Điều chỉnh chung và thưởng di vật được tính riêng."), 15, MUTED))
+	awards.add_child(_label(words("TOP CARDS", "BÀI NỔI BẬT"), 22))
+	awards.tooltip_text = words("Includes retriggers. Shared adjustments and relic bonuses are counted separately.", "Gồm kích hoạt lại. Điều chỉnh chung và thưởng di vật được tính riêng.")
 	var podium := HBoxContainer.new()
 	podium.add_theme_constant_override("separation", 18)
 	awards.add_child(podium)
@@ -511,7 +509,7 @@ func _chronicle() -> void:
 		awards.add_child(_label(words("No scored cards recorded this run.", "Chưa có bài ghi điểm trong lượt chơi này."), 18, MUTED))
 	line(words("Strongest play", "Lượt đánh mạnh nhất"), str(best_action) + words(" points", " điểm"), INK, awards)
 	var records := _panel(rows)
-	records.add_child(_label(words("THE WHOLE JOURNEY", "TOÀN BỘ HÀNH TRÌNH"), 22))
+	records.add_child(_label(words("DAYS", "CÁC NGÀY"), 22))
 	for index in days.size():
 		var day: Dictionary = days[index]
 		line(words("Day ", "Ngày ") + str(index + 1) + (words(" · PAID", " · ĐÃ TRẢ") if day.get("paid", false) else words(" · SHORTFALL", " · THIẾU NỢ")), VndWallet.format_vnd(int(day.get("due_vnd", 0))), INK if day.get("paid", false) else RED, records)
@@ -526,7 +524,7 @@ func _chronicle() -> void:
 		for id: String in drinks:
 			line(DrinkCatalog.display_name(id), str(drinks[id]), INK, drinks_box)
 	var totals := _panel(rows)
-	totals.add_child(_label(words("EVERY TRIGGER COUNTS", "MỖI LƯỢT ĐỀU ĐÁNG GIÁ"), 22))
+	totals.add_child(_label(words("TOTALS", "TỔNG CỘNG"), 22))
 	for key: String in _report.get("counts", {}):
 		line(reason_name(key), str(_report.counts[key]), INK, totals)
 	for reason: String in _report.get("categories", {}):

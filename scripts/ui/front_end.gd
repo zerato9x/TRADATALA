@@ -6,8 +6,7 @@ signal resume_requested()
 signal return_requested()
 signal handbook_requested()
 
-const BG := Color("#101f37")
-const CARD := Color("#203656")
+const CARD := Color("#121e2aee")
 const GOLD := Color("#f5bf42")
 const CREAM := Color("#f8edcf")
 const MUTED := Color("#c6b896")
@@ -35,6 +34,8 @@ var title_label: Label
 var music_page: VBoxContainer
 var settings_page: VBoxContainer
 var _previous_focus: Control
+var _now_playing: Label
+var _layout_width := 0
 
 func words(en: String, vi: String) -> String:
 	return vi if TranslationServer.get_locale().begins_with("vi") else en
@@ -45,12 +46,13 @@ func configure(owner: MatchUI) -> void:
 	footer = $SafeArea/Frame/Footer
 	title_label = $SafeArea/Frame/Header/PageTitle
 	var logo: HBoxContainer = $SafeArea/Frame/Header/Logo
-	logo.custom_minimum_size.x = 410
-	for word in ["TRA", "DA", "TA", "LA"]:
-		var label := _label(word, 38, GOLD)
-		label.autowrap_mode = TextServer.AUTOWRAP_OFF
-		label.custom_minimum_size.x = 96
-		logo.add_child(label)
+	for label: Label in logo.get_children():
+		label.add_theme_color_override("font_color", GOLD)
+		label.add_theme_color_override("font_shadow_color", Color("#06101c"))
+		label.add_theme_color_override("font_outline_color", Color("#17273b"))
+		label.add_theme_constant_override("outline_size", 3)
+		label.add_theme_constant_override("shadow_offset_x", 3)
+		label.add_theme_constant_override("shadow_offset_y", 5)
 		logo_words.append(label)
 	var stage: Control = $SafeArea/Frame/Main
 	for id in ["home", "setup", "collections", "music", "settings"]:
@@ -78,6 +80,14 @@ func configure(owner: MatchUI) -> void:
 	# Keep the existing, wired jukebox and settings controls in the new navigation.
 	host.music_player_panel.reparent(music_page)
 	host.music_player_panel.custom_minimum_size = Vector2.ZERO
+	for label: Label in host.music_player_panel.find_children("*", "Label", true, false):
+		label.add_theme_font_size_override("font_size", 14)
+		label.add_theme_color_override("font_color", CREAM)
+	host.music_track_title.add_theme_font_size_override("font_size", 24)
+	host.music_track_title.add_theme_color_override("font_color", GOLD)
+	for button: Button in host.music_player_panel.find_children("*", "Button", true, false):
+		PresentationTheme.configure_button(button)
+		button.custom_minimum_size.y = 42
 	_render_settings()
 	host.menu_layer.get_node("MenuCenter").hide()
 	host.return_to_game_button.hide()
@@ -88,18 +98,42 @@ func configure(owner: MatchUI) -> void:
 	show_home()
 
 func _on_size_changed() -> void:
-	var margin := 16 if size.x < 900 else 30
+	var margin := 20 if size.x < 900 else 40
 	for side in ["left", "right"]:
 		$SafeArea.add_theme_constant_override("margin_" + side, margin)
+	$SafeArea/Frame.custom_minimum_size.x = minf(1040, size.x - margin * 2)
+	_apply_page_layout()
+	var compact := 1 if size.x < 900 else 2
+	if _layout_width != 0 and compact != _layout_width:
+		refresh.call_deferred()
+	_layout_width = compact
+	for label in logo_words:
+		label.pivot_offset = label.size * 0.5
+
+func _apply_page_layout() -> void:
+	var home := page == "home"
+	$SafeArea/Frame/Header/Logo.visible = home
+	title_label.visible = not home
+	$SafeArea/Frame/Header.custom_minimum_size.y = (160 if size.y >= 650 else 100) if home else 60
+	for label in logo_words:
+		label.add_theme_font_size_override("font_size", 88 if size.y >= 650 else 66)
+	$Shade.color.a = 0.3 if home else 0.55
+	if pages.has("home"):
+		var inset := maxi(0, roundi(($SafeArea/Frame.custom_minimum_size.x - 500) * 0.5))
+		for side in ["left", "right"]:
+			pages.home.add_theme_constant_override("margin_" + side, inset)
 
 func _on_beat(band: int, strength: float) -> void:
 	if band >= 0 and band < 4:
 		pulse_values[band] = maxf(pulse_values[band], strength)
 
 func _process(delta: float) -> void:
-	for index in 4:
+	for index in logo_words.size():
 		pulse_values[index] = move_toward(pulse_values[index], 0.0, delta * 3.5)
+		logo_words[index].pivot_offset = logo_words[index].size * 0.5
 		logo_words[index].scale = Vector2.ONE * (1.0 + pulse_values[index] * 0.08)
+	if is_instance_valid(_now_playing) and host != null and host.music_track_title != null:
+		_now_playing.text = words("♫  ", "♫  ") + host.music_track_title.text
 
 func refresh() -> void:
 	match page:
@@ -119,42 +153,36 @@ func show_home() -> void:
 		save_message = transient_error
 		transient_error = ""
 	_clear(home_body)
-	home_body.add_child(_label(words("THE TABLE IS READY", "BÀN BÀI ĐÃ SẴN SÀNG"), 30, CREAM))
-	var cards := GridContainer.new()
-	cards.columns = 1 if size.x < 860 else 2
-	cards.add_theme_constant_override("h_separation", 18)
-	cards.add_theme_constant_override("v_separation", 18)
-	home_body.add_child(cards)
-	var new_card := _card(cards)
-	new_card.add_child(_label(words("NEW RUN", "VÁN MỚI"), 25, GOLD))
-	new_card.add_child(_label(words("Choose your week's debt and take your seat.", "Chọn mức nợ trong tuần rồi vào bàn."), 17))
-	new_card.add_child(_button(words("SET UP RUN", "CHUẨN BỊ VÁN"), show_setup, "gold"))
-	var other := _card(cards)
+	home_body.alignment = BoxContainer.ALIGNMENT_CENTER
+	home_body.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	home_body.add_theme_constant_override("separation", 14)
 	if host.game_started:
-		other.add_child(_label(words("YOUR TABLE", "BÀN CỦA BẠN"), 25, GOLD))
-		other.add_child(_label(words("Your current game is waiting.", "Ván đang chơi vẫn đang chờ."), 17))
-		other.add_child(_button(words("BACK TO GAME", "TRỞ LẠI BÀN"), func(): return_requested.emit(), "tea"))
+		home_body.add_child(_button(words("BACK TO GAME", "TRỞ LẠI BÀN"), func(): return_requested.emit(), "tea"))
 	elif not saved.is_empty():
-		other.add_child(_label(words("CONTINUE", "TIẾP TỤC"), 25, GOLD))
-		other.add_child(_label(_save_summary(), 17))
-		other.add_child(_button(words("RESUME RUN", "TIẾP TỤC VÁN"), func(): resume_requested.emit(), "tea"))
-	else:
-		other.add_child(_label(words("FIRST VISIT", "LẦN ĐẦU ĐẾN BÀN"), 25, GOLD))
-		other.add_child(_label(words("Start a new run or read the handbook.", "Bắt đầu ván mới hoặc xem sổ tay."), 17))
+		var resume := _button(words("CONTINUE", "TIẾP TỤC"), func(): resume_requested.emit(), "tea")
+		resume.tooltip_text = _save_summary()
+		home_body.add_child(resume)
+	var new_run := _button(words("NEW RUN", "VÁN MỚI"), show_setup, "gold")
+	new_run.custom_minimum_size.y = 56
+	home_body.add_child(new_run)
 	if not save_message.is_empty(): home_body.add_child(_label(save_message, 15, GOLD))
-	var nav := HFlowContainer.new()
+	var nav := GridContainer.new()
+	nav.name = "HomeNavigation"
+	nav.columns = 2
 	nav.add_theme_constant_override("h_separation", 12)
-	nav.add_theme_constant_override("v_separation", 10)
+	nav.add_theme_constant_override("v_separation", 12)
 	home_body.add_child(nav)
 	nav.add_child(_button(words("COLLECTIONS", "BỘ SƯU TẬP"), show_collections))
 	nav.add_child(_button(words("HANDBOOK", "SỔ TAY"), func(): handbook_requested.emit()))
 	nav.add_child(_button(words("MUSIC", "ÂM NHẠC"), func(): _show_page("music")))
 	nav.add_child(_button(words("SETTINGS", "TÙY CHỌN"), func(): _show_page("settings")))
-	var now := host.music_track_title.text if host.music_track_title != null else ""
-	home_body.add_child(_label(words("NOW PLAYING  ·  ", "ĐANG PHÁT  ·  ") + now, 15, MUTED))
+	_now_playing = _label("", 15, CREAM)
+	_now_playing.name = "NowPlaying"
+	_now_playing.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_now_playing.add_theme_color_override("font_outline_color", Color("#081525"))
+	_now_playing.add_theme_constant_override("outline_size", 3)
+	home_body.add_child(_now_playing)
 	_show_page("home")
-	var first := new_card.get_child(new_card.get_child_count() - 1) as Button
-	if is_inside_tree(): first.grab_focus()
 
 func _save_summary() -> String:
 	if saved.is_empty(): return words("No saved run", "Chưa có ván đã lưu")
@@ -186,10 +214,12 @@ func _render_setup() -> void:
 	columns.add_theme_constant_override("v_separation", 18)
 	setup_body.add_child(columns)
 	var challenge := _card(columns)
-	challenge.add_child(_label(words("CHALLENGE", "THỬ THÁCH"), 21, GOLD))
+	challenge.add_child(_label(words("DIFFICULTY", "ĐỘ KHÓ"), 21, GOLD))
 	var stepper := HBoxContainer.new()
 	challenge.add_child(stepper)
 	var previous := _button("◀", func(): _change_difficulty(-1))
+	previous.custom_minimum_size = Vector2(52, 52)
+	previous.size_flags_horizontal = Control.SIZE_FILL
 	previous.disabled = draft.difficulty <= 1
 	stepper.add_child(previous)
 	var level := _label("%02d" % draft.difficulty, 58, CREAM)
@@ -197,9 +227,10 @@ func _render_setup() -> void:
 	level.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	stepper.add_child(level)
 	var next := _button("▶", func(): _change_difficulty(1))
+	next.custom_minimum_size = Vector2(52, 52)
+	next.size_flags_horizontal = Control.SIZE_FILL
 	next.disabled = draft.difficulty >= host.campaign.difficulty_progress.unlocked
 	stepper.add_child(next)
-	challenge.add_child(_label(words("DIFFICULTY %d · UNLOCKED", "ĐỘ KHÓ %d · ĐÃ MỞ") % draft.difficulty, 16))
 	challenge.add_child(_label(words("Starting wallet: ", "Ví ban đầu: ") + VndWallet.format_vnd(CampaignConfig.STARTING_WALLET_VND), 17, GOLD))
 	challenge.add_child(_label(words("Earn enough to pay each day's debt. Clear Sunday to unlock the next difficulty.", "Kiếm đủ tiền trả nợ mỗi ngày. Trả xong Chủ nhật để mở độ khó tiếp theo."), 16))
 	var unlocked: int = host.campaign.difficulty_progress.unlocked
@@ -207,7 +238,7 @@ func _render_setup() -> void:
 		var next_days := CampaignConfig.day_definitions(unlocked + 1)
 		challenge.add_child(_label(words("NEXT LOCKED  ·  %d  ·  SUNDAY %s", "MỨC KẾ TIẾP  ·  %d  ·  CHỦ NHẬT %s") % [unlocked + 1, VndWallet.format_vnd(int(next_days[-1].required_vnd))], 15, MUTED))
 	var week := _card(columns)
-	week.add_child(_label(words("YOUR WEEK", "TUẦN CỦA BẠN"), 21, GOLD))
+	week.add_child(_label(words("DAILY DEBT", "NỢ MỖI NGÀY"), 21, GOLD))
 	var days := CampaignConfig.day_definitions(draft.difficulty)
 	for i in days.size():
 		var item: Dictionary = days[i]
@@ -298,9 +329,23 @@ func _render_collections() -> void:
 	if not DemoBuild.enabled(): tabs.add_child(_button(words("ZODIAC", "CON GIÁP") + ("  ◆" if collection_tab == "zodiac" else ""), func(): collection_tab = "zodiac"; selected_collection = ""; _render_collections()))
 	var columns := GridContainer.new()
 	columns.columns = 1 if size.x < 900 else 2
+	columns.add_theme_constant_override("h_separation", 18)
+	columns.add_theme_constant_override("v_separation", 18)
 	collection_body.add_child(columns)
 	var tiles := _card(columns)
 	var detail := _card(columns)
+	if columns.columns == 1:
+		columns.move_child(detail.get_parent().get_parent(), 0)
+	var tile_scroll := ScrollContainer.new()
+	tile_scroll.name = "CollectionListScroll"
+	tile_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	tile_scroll.follow_focus = true
+	tile_scroll.custom_minimum_size.y = clampf(size.y - 300, 220, 480)
+	tiles.add_child(tile_scroll)
+	var tile_list := VBoxContainer.new()
+	tile_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	tile_list.add_theme_constant_override("separation", 10)
+	tile_scroll.add_child(tile_list)
 	var ids: Array[String] = DrinkCatalog.basic_ids() if DemoBuild.enabled() else DrinkCatalog.all_ids()
 	if collection_tab == "zodiac":
 		ids.clear()
@@ -313,8 +358,9 @@ func _render_collections() -> void:
 		else:
 			status = words("OWNED", "ĐÃ CÓ") if host.campaign.zodiac.progress.owns(id) else words("PROGRESS", "TIẾN ĐỘ")
 		var name := DrinkCatalog.display_name(id) if collection_tab == "drinks" else ZodiacCatalog.display_name(id)
-		var tile := _button(("◆  " if id == selected_collection else "◇  ") + name + "  ·  " + status, func(): selected_collection = id; _render_collections())
-		tiles.add_child(tile)
+		var tile := _button(name + "  ·  " + status, func(): selected_collection = id; _render_collections(), "gold" if id == selected_collection else "neutral")
+		tile.name = "Collection_" + id
+		tile_list.add_child(tile)
 	if collection_tab == "drinks":
 		_render_drink_detail(detail)
 	else:
@@ -324,6 +370,14 @@ func _render_collections() -> void:
 func _render_drink_detail(detail: VBoxContainer) -> void:
 	var id := selected_collection
 	detail.add_child(_label(DrinkCatalog.display_name(id), 24, GOLD))
+	var sprite := TextureRect.new()
+	var asset_path := "res://assets/drinks/%s_full.png" % id
+	sprite.texture = load(asset_path) if ResourceLoader.exists(asset_path) else preload("res://assets/drinks/tra_da_full.png")
+	sprite.custom_minimum_size = Vector2(0, 100)
+	sprite.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	sprite.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	detail.add_child(sprite)
 	detail.add_child(_label(host.drink_manager.progress.goal_text(id), 17))
 	detail.add_child(_label(DrinkCatalog.effect_text(id), 17))
 	detail.add_child(_label(words("Price: %d%% of today's debt", "Giá: %d%% nợ hôm nay") % int(DrinkManager.PRICE_PERCENT[id]), 16, MUTED))
@@ -340,17 +394,17 @@ func _render_zodiac_detail(detail: VBoxContainer) -> void:
 	detail.add_child(sprite)
 	var progress := host.campaign.zodiac.progress
 	var record := progress.record(id)
+	var metric_labels := {"requests_resolved": words("Requests completed", "Yêu cầu hoàn thành"), "requests_refused_successfully": words("Respected refusals", "Từ chối được tôn trọng"), "pleased_victories": words("Pleased boss victories", "Thắng boss hài lòng"), "restraint_kept": words("Promises kept", "Cam kết đã giữ")}
 	for metric: String in definition.unlock:
 		var required := int(definition.unlock[metric])
 		var current := mini(int(record.get(metric, 0)), required)
-		detail.add_child(_label("%s  ·  %d/%d" % [metric.replace("_", " ").capitalize(), current, required], 16))
+		detail.add_child(_label("%s  ·  %d/%d" % [metric_labels.get(metric, metric.replace("_", " ").capitalize()), current, required], 16))
 	var state := words("EMBLEM OWNED", "ĐÃ CÓ HUY HIỆU") if progress.owns(id) else words("SPECIAL SCENE READY", "ĐÃ MỞ CẢNH ĐẶC BIỆT") if progress.eligible(id) else words("REQUIREMENTS IN PROGRESS", "ĐANG HOÀN THÀNH ĐIỀU KIỆN")
 	detail.add_child(_label(state, 17, GOLD))
 
 func _render_settings() -> void:
 	_clear(settings_page)
 	var panel := _card(settings_page)
-	panel.add_child(_label(words("AUDIO & LANGUAGE", "ÂM THANH & NGÔN NGỮ"), 23, GOLD))
 	for setting in [[words("MUSIC", "NHẠC"), host.settings.music_volume_percent, true], [words("SOUND", "ÂM THANH"), host.settings.sound_volume_percent, false]]:
 		var row := HBoxContainer.new()
 		row.add_theme_constant_override("separation", 16)
@@ -364,9 +418,13 @@ func _render_settings() -> void:
 		slider.step = 1
 		slider.value = float(setting[1])
 		slider.custom_minimum_size.x = 260
+		slider.custom_minimum_size.y = 40
 		slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		row.add_child(slider)
 		var amount := _label("%d%%" % int(setting[1]), 16, GOLD)
+		amount.autowrap_mode = TextServer.AUTOWRAP_OFF
+		amount.custom_minimum_size.x = 65
+		amount.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		row.add_child(amount)
 		if bool(setting[2]):
 			slider.value_changed.connect(func(value: float): amount.text = "%d%%" % roundi(value); host._on_music_volume_changed(value))
@@ -388,6 +446,7 @@ func _show_page(id: String) -> void:
 	host.menu_page = StringName(id)
 	for key in pages: (pages[key] as Control).visible = key == id
 	title_label.text = {"home": "", "setup": words("NEW RUN", "VÁN MỚI"), "collections": words("COLLECTIONS", "BỘ SƯU TẬP"), "music": words("MUSIC", "ÂM NHẠC"), "settings": words("SETTINGS", "TÙY CHỌN")}.get(id, "")
+	_apply_page_layout()
 	_clear(footer)
 	if id != "home": footer.add_child(_button(words("BACK", "QUAY LẠI"), go_back))
 	var spacer := Control.new()
@@ -405,6 +464,11 @@ func _show_page(id: String) -> void:
 
 func _focus_page(id: String) -> void:
 	if not is_inside_tree() or page != id: return
+	if id == "collections":
+		var selected := (pages[id] as Control).find_child("Collection_" + selected_collection, true, false) as Button
+		if selected != null:
+			selected.grab_focus()
+			return
 	var candidates := (pages[id] as Control).find_children("*", "Button", true, false)
 	for control in candidates:
 		if control is Button and control.is_visible_in_tree() and not control.disabled:
@@ -437,7 +501,7 @@ func _unhandled_key_input(event: InputEvent) -> void:
 func _card(parent: Node) -> VBoxContainer:
 	var panel := PanelContainer.new()
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	panel.add_theme_stylebox_override("panel", PresentationTheme.panel_style(CARD, Color("#55749d"), 1, 5, 3))
+	panel.add_theme_stylebox_override("panel", PresentationTheme.panel_style(CARD, Color("#8f7752"), 1, 3, 4))
 	parent.add_child(panel)
 	var margin := MarginContainer.new()
 	for side in ["left", "right"]: margin.add_theme_constant_override("margin_" + side, 18)
@@ -451,9 +515,11 @@ func _card(parent: Node) -> VBoxContainer:
 func _button(caption: String, action: Callable, tone: String = "neutral") -> Button:
 	var button := Button.new()
 	button.text = caption
-	button.custom_minimum_size = Vector2(145, 44)
+	button.custom_minimum_size = Vector2(145, 48)
+	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	PresentationTheme.configure_button(button, tone)
+	button.add_theme_font_size_override("font_size", 18)
 	button.pressed.connect(action)
 	return button
 

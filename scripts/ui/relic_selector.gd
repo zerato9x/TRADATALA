@@ -19,11 +19,7 @@ func configure(value: RelicRuntime, p_shop: RelicShop = null) -> void:
 	status = Label.new()
 	status.add_theme_color_override("font_color", PresentationTheme.GOLD)
 	add_child(status)
-	var note := Label.new()
-	note.text = words("Choose one. The other offers leave when you buy.\nReroll before buying; owned relics stay in your collection.", "Chọn một. Hai món còn lại rời đi khi mua.\nĐổi hàng trước khi mua; di vật đã mua vẫn thuộc về bạn.")
-	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	note.add_theme_font_size_override("font_size", 13)
-	add_child(note)
+	status.tooltip_text = words("One purchase per visit. Reroll before buying.", "Mỗi lần ghé mua một món. Đổi hàng trước khi mua.")
 	reroll_button = Button.new()
 	PresentationTheme.configure_button(reroll_button)
 	reroll_button.pressed.connect(_reroll)
@@ -66,7 +62,7 @@ func _refresh() -> void:
 			_add_item(id, false)
 	if not runtime.inventory.is_empty():
 		var title := Label.new()
-		title.text = words("YOUR COLLECTION · FREE TO EQUIP", "BỘ SƯU TẬP · TRANG BỊ MIỄN PHÍ")
+		title.text = words("COLLECTION", "BỘ SƯU TẬP")
 		title.add_theme_font_size_override("font_size", 13)
 		_list.add_child(title)
 		for id in runtime.inventory:

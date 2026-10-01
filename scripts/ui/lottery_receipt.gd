@@ -72,7 +72,6 @@ func _build(receipt: Dictionary) -> void:
 	box.add_theme_constant_override("separation", 8)
 	margin.add_child(box)
 	_add_label(box, tr("LOTTO_RESULTS") % (int(receipt.day_index) + 1), 26, PresentationTheme.GOLD)
-	_add_label(box, _words("The numbers are in. Let's see your tickets.", "Ra số rồi. Để chú dò vé cho nhé."), 17, PresentationTheme.INK)
 	var draw := VBoxContainer.new()
 	draw.name = "DrawnNumbers"
 	draw.add_theme_constant_override("separation", 3)

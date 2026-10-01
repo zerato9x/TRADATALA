@@ -6,7 +6,7 @@ The official presentation uses the generated Vietnamese sidewalk-table plate at 
 
 The current full-build working tree includes the first [Zodiac Boss / Persuasion / Emblem slice](docs/ZODIAC_VERTICAL_SLICE.md): seeded Rooster/Cat visits on Monday and Sunday, optional character-interpreted requests, real Deal skipping, evening register/lock rules, permanent history and Emblems. Both characters use temporary existing NPC sprites. The other ten bosses remain unauthored, and existing published release notes describe their historical builds.
 
-The project opens on a dedicated title menu over the fixed sidewalk-table background. Choosing **VÁN MỚI** opens the run menu: continue the autosave, enter a seed, or start a random run. A new run begins with VNĐ25,000 at Monday's Starter Event: Đòi Nợ presents the day's debt, Đánh Giày offers polish, and Cô Trà Đá supplies the Drink used by the Morning and Noon Deals. Monday teaches through real curated hands and optional contextual hints; the bilingual searchable Handbook replaces the standalone tutorial. The same table then carries the player through four Deals and four Event slots per day for seven days. The match layout uses a compact top status strip, a lower-right active Drink beside the hand, and a separate Relics rail with four equipped slots.
+The project opens on a centered gold TRADATALA title over the original sidewalk-table background. **VÁN MỚI** opens difficulty selection and the seven daily debts; **TÙY CHỈNH** holds the optional seed, music mode, and owned Zodiac Emblem preference. Continue is available directly on Home when an autosave exists, and replacing it requires confirmation. Collections, Handbook, Music, and Settings have separate pages. A new run begins with VNĐ25,000 at Monday's Starter Event: Đòi Nợ presents the day's debt, Đánh Giày offers polish, and Cô Trà Đá supplies the Drink used by the Morning and Noon Deals. Monday teaches through real curated hands and optional contextual hints; the bilingual searchable Handbook replaces the standalone tutorial. The same table then carries the player through four Deals and four Event slots per day for seven days. The match layout uses a compact top status strip, a lower-right active Drink beside the hand, and a separate Relics rail with four equipped slots.
 
 ## Run
 
@@ -37,7 +37,7 @@ See [the 1.0.2 release checkpoint](docs/releases/2026-09-19-v1.0.2.md) for relea
 ## Controls
 
 - Click cards to select/deselect them; selected cards lift and glow.
-- `Enter` / `Space`: start from the title menu.
+- `Enter` / `Space`: activate the focused menu control.
 - `H`: HẠ a legal new Set or Run.
 - Click a table Meld to target it, then `E`: EXTEND it with the selected legal card(s).
 - `D`: DISCARD exactly one selected loose card and end the turn. Discard #4 opens LAST CALL instead of settling immediately.
@@ -66,7 +66,7 @@ Buttons remain disabled until their action is legal. The footer explains the cur
 - `scripts/zodiac/` — Zodiac definitions, daily negotiation, permanent concrete history/Emblems, and Deal-owned boss rules with independent saved RNG.
 - `scripts/gameplay/` — the authoritative two-Phase Deal state machine, read-only hand advisor, and exact meld-probability analysis.
 - `scenes/match.tscn` — editor-authored composition root: stationary café background plus instanced board, menu, and reactive-music scenes.
-- `scenes/ui/match_board.tscn` and `scenes/ui/main_menu.tscn` — static match HUD/overlay and menu ownership. The board keeps status at the top, passive Relics on the right, the interactive Drink and hand near the bottom, and context/utility/core actions in stable dock groups. Named bindings are resolved by `MatchUI`; cards, Melds, discard history, campaign participants, archive contents, and audio players remain runtime-generated because their counts depend on game state.
+- `scenes/ui/match_board.tscn`, `scenes/ui/main_menu.tscn`, and `scenes/ui/front_end.tscn` — static match HUD/overlay, wired jukebox/legacy controls, and current menu shell. `FrontEnd` renders menu content and emits navigation/start requests to `MatchUI`. The board keeps status at the top, passive Relics on the right, the interactive Drink and hand near the bottom, and context/utility/core actions in stable dock groups. Named bindings are resolved by `MatchUI`; cards, Melds, discard history, campaign participants, archive contents, and audio players remain runtime-generated because their counts depend on game state.
 - `scripts/ui/` — match coordination and dynamic card/Meld presentation, staged equations, wallet tweening, card travel, banners, and settlements. `match_ui.gd` no longer constructs the static interface.
 - `tests/` — pure-rule suite plus a runtime scene smoke.
 

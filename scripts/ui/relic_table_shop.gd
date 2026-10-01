@@ -30,7 +30,7 @@ func _refresh() -> void:
 		child.queue_free()
 	_tiles.clear()
 	var heading := Label.new()
-	heading.text = GameGlossary.words("HÀNG RONG · PICK SOMETHING UP", "HÀNG RONG · CẦM LÊN XEM NÀO")
+	heading.text = "HÀNG RONG"
 	PresentationTheme.style_text(heading, &"speaker", 23)
 	add_child(heading)
 	_objects = HBoxContainer.new()
@@ -137,7 +137,7 @@ func _inspect() -> void:
 	_buy.text = GameGlossary.words("BUY · ", "MUA · ") + VndWallet.format_vnd(-shop.price())
 	_detail.text = (str(RelicCatalog.DEFINITIONS[selected].name) + " · " + RelicCatalog.effect(selected)) if valid else GameGlossary.words("Select an object to inspect it. One purchase per visit.", "Chọn một món để xem. Mỗi lần ghé mua một món.")
 	if shop.purchased:
-		_detail.text = GameGlossary.words("Purchased. The remaining offers have left; your collection stays with you.", "Đã mua. Các món còn lại rời đi; bộ sưu tập vẫn ở bên bạn.")
+		_detail.text = GameGlossary.words("Purchased.", "Đã mua.")
 	_detail.text += "\n" + GameGlossary.words("EQUIPPED %d / 4 · ", "ĐANG DÙNG %d / 4 · ") % runtime.equipped.size() + (GameGlossary.words("Purchase equips automatically.", "Mua tự trang bị vào ô trống.") if runtime.equipped.size() < 4 else GameGlossary.words("Full: purchase goes to inventory. Remove a relic to equip it.", "Đầy: mua vào bộ sưu tập. Tháo một món để trang bị."))
 	_detail.text = ActionVocabulary.colorize(_detail.text)
 	for id: String in _tiles:

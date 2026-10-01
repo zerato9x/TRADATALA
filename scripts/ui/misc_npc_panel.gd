@@ -40,7 +40,6 @@ func _label(text: String, font_size: int = 16) -> Label:
 func _build_shoe() -> void:
 	_clear()
 	_label(tr("SHOE_CHOOSE"), 21)
-	_label(tr("CARD_SHINY_DESC"), 15)
 	var display := HBoxContainer.new()
 	display.name = "PolishedCards"
 	display.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -79,6 +78,7 @@ func _build_shoe() -> void:
 	_polish_button.name = "PolishConfirm"
 	_polish_button.tooltip_text = GameGlossary.words("2% of current wallet (minimum 10.000 VNĐ), rounded to 500 VNĐ; daily purchase multiplier: ", "2% ví hiện tại (tối thiểu 10.000 VNĐ), làm tròn 500 VNĐ; hệ số mua trong ngày: ") + str(shoe.polish_count_today + 1) + "×"
 	_polish_button.text = tr("SHOE_POLISH") % VndWallet.format_vnd(-shoe.polish_cost())
+	_polish_button.tooltip_text = tr("CARD_SHINY_DESC")
 	_polish_button.custom_minimum_size = Vector2(300, 44)
 	row.add_child(_polish_button)
 	_polish_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -139,7 +139,7 @@ func _build_lottery() -> void:
 	add_child(heading)
 	var title := _label(tr("LOTTO_CHOOSE"), 23)
 	title.reparent(heading)
-	_label(tr("LOTTO_RULES"), 15)
+	title.tooltip_text = tr("LOTTO_RULES")
 	var quote := lottery.buy_all_quote()
 	var all := Button.new()
 	all.name = "BuyAll"

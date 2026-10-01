@@ -1821,10 +1821,11 @@ offset_top = 16.0
 offset_right = -260.0
 offset_bottom = -10.0
 theme_override_colors/font_color = Color(0.8980392, 0.8352941, 0.63529414, 1)
-theme_override_font_sizes/font_size = 14
-text = "CHƯA CÓ PHỎM TRÊN BÀN
-
-Chọn từ 3 lá hợp lệ rồi nhấn HẠ."
+theme_override_font_sizes/font_size = 18
+theme_override_colors/font_shadow_color = Color(0.025, 0.06, 0.12, 1)
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_offset_y = 2
+text = "CHƯA CÓ PHỎM"
 horizontal_alignment = 1
 vertical_alignment = 1
 metadata/match_binding = "empty_meld_label"
@@ -1857,8 +1858,8 @@ theme_override_constants/separation = 1
 [node name="DiscardHistoryTitle" type="Label" parent="TableSurface/DiscardHistoryHUD/MarginContainer/VBoxContainer" unique_id=297747614]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.9607843, 0.7490196, 0.25882354, 1)
-theme_override_font_sizes/font_size = 8
-text = "LÁ ĐÃ BỎ  •  GIAI ĐOẠN + THỨ TỰ"
+theme_override_font_sizes/font_size = 11
+text = "LÁ ĐÃ BỎ"
 horizontal_alignment = 1
 metadata/match_binding = "discard_history_title"
 

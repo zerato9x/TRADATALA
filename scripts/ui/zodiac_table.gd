@@ -191,7 +191,8 @@ func refresh() -> void:
 		else:
 			state_text = ZodiacCatalog.words("WATCHING", "ĐANG QUAN SÁT") if host.deal.current_phase == 1 else ZodiacCatalog.words("THE STALK · %d LOCKED", "RÌNH MỒI · KHÓA %d LÁ") % boss.locked_ids.size()
 	badge.text = ""
-	nameplate.text = ZodiacCatalog.display_name(id) + "\n" + ZodiacCatalog.disposition_label(service.mood())
+	nameplate.text = ZodiacCatalog.display_name(id)
+	nameplate.tooltip_text = state_text + "\n" + ZodiacCatalog.rule_text(id, service.mood())
 	badge.tooltip_text = state_text + "\n" + ZodiacCatalog.rule_text(id, service.mood())
 	portrait.texture = load(ZodiacCatalog.DEFINITIONS[id].sprite)
 	var telegraph := "%s:%s" % [id, state_text]
@@ -356,11 +357,12 @@ func _respond(response: String) -> void:
 
 func _show_history() -> void:
 	_clear_choices()
+	mechanics.show()
 	targets.hide()
 	alterations.hide()
 	var id := service.active_id()
 	var history := service.progress.record(id)
-	dialogue.text = ZodiacCatalog.words("An Emblem remembers deeds.", "Huy hiệu ghi nhớ hành động.")
+	dialogue.text = ZodiacCatalog.words("EMBLEM", "HUY HIỆU")
 	mechanics.text = ""
 	var labels := {"requests_resolved": ZodiacCatalog.words("Requests resolved", "Yêu cầu hoàn thành"), "requests_refused_successfully": ZodiacCatalog.words("Respected refusals", "Từ chối được tôn trọng"), "pleased_victories": ZodiacCatalog.words("Pleased boss victories", "Thắng boss hài lòng"), "restraint_kept": ZodiacCatalog.words("Restraint promises kept", "Cam kết kiềm chế đã giữ")}
 	for metric in ZodiacCatalog.DEFINITIONS[id].unlock:
@@ -384,7 +386,8 @@ func _show_scene() -> void:
 		ZodiacCatalog.words("He slides a small brass rooster across the wood. “Next time, put this on the table. I'll find the time.”", "Anh đẩy con gà bằng đồng nhỏ qua mặt bàn. “Lần tới đặt nó ở đây. Tôi sẽ dành thời gian.”") if rooster else ZodiacCatalog.words("She leaves a small cat-shaped token beside your glass. “When our day comes, set it here. I'll be watching.”", "Cô để huy hiệu hình mèo cạnh ly. “Tới ngày của chúng ta, đặt nó ở đây. Tôi sẽ nhìn thấy.”"),
 	]
 	dialogue.text = pages[scene_page]
-	mechanics.text = ZodiacCatalog.words("The table keeps its own kind of history.", "Chiếc bàn giữ một lịch sử rất riêng.")
+	mechanics.text = ""
+	mechanics.hide()
 	status.text = "%d / 3" % (scene_page + 1)
 	_button(ZodiacCatalog.words("Continue", "Tiếp tục") if scene_page < 2 else ZodiacCatalog.words("Accept the Emblem", "Nhận Huy hiệu"), func():
 		if scene_page < 2:

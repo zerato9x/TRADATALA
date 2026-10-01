@@ -25,7 +25,7 @@ static func open(parent: Node, section: String = "all") -> void:
 func _ready() -> void:
 	layer = 280
 	var shade := ColorRect.new()
-	shade.color = Color("101e30f5")
+	shade.color = Color("101e30")
 	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(shade)
 	var margin := MarginContainer.new()
@@ -40,13 +40,15 @@ func _ready() -> void:
 	var header := HBoxContainer.new()
 	box.add_child(header)
 	var title := Label.new()
-	title.text = words("THE TABLE HANDBOOK", "SỔ TAY BÀN TRÀ")
+	title.text = words("HANDBOOK", "SỔ TAY")
 	title.add_theme_font_size_override("font_size", 28)
+	title.add_theme_color_override("font_color", PresentationTheme.GOLD)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header.add_child(title)
 	var close := Button.new()
 	close.name = "CloseHandbook"
 	close.text = words("BACK TO TABLE", "VỀ BÀN")
+	PresentationTheme.configure_button(close)
 	close.pressed.connect(queue_free)
 	header.add_child(close)
 	_search = LineEdit.new()
@@ -58,6 +60,8 @@ func _ready() -> void:
 	for spec in [["all", "ALL", "TẤT CẢ"], ["core", "PLAY", "CHƠI"], ["scoring", "SCORING", "ĐIỂM"], ["campaign", "CAMPAIGN / ECONOMY", "HÀNH TRÌNH / TIỀN"], ["cards", "CARDS", "BÀI"], ["drinks", "DRINKS", "ĐỒ UỐNG"], ["gieo", "GIEO QUẺ", "GIEO QUẺ"], ["relics", "RELICS", "DI VẬT"], ["npcs", "NPCs", "NHÂN VẬT"], ["lottery", "LOTTERY", "VÉ SỐ"], ["controls", "CONTROLS", "THAO TÁC"]]:
 		var button := Button.new()
 		button.text = words(spec[1], spec[2])
+		PresentationTheme.configure_button(button)
+		button.custom_minimum_size.y = 40
 		button.pressed.connect(func(): _section = spec[0]; _refresh())
 		tabs.add_child(button)
 	var columns := HBoxContainer.new()
@@ -105,6 +109,7 @@ func _refresh() -> void:
 			continue
 		var button := Button.new()
 		button.text = entry.title
+		PresentationTheme.configure_button(button)
 		if entry.has("relic_id"):
 			button.icon = load(RelicCatalog.icon_path(entry.relic_id))
 			button.expand_icon = true
