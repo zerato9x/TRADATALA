@@ -33,11 +33,12 @@ func _run() -> void:
 			await _finish()
 			return
 		scene._show_run_menu()
-		check(not scene._run_menu.resume_button.disabled, "Continue needs no new music selection")
+		check(not scene.front_end.saved.is_empty(), "Continue needs no new music selection")
 		# A new-run choice must not replace the saved authored transport.
-		scene._run_menu.music_choice.select(1)
-		scene._run_menu.music_choice.item_selected.emit(1)
-		scene._run_menu.resume_run.emit()
+		scene.front_end.show_setup()
+		scene.front_end.draft.music_system = "playing_tracks"
+		scene.front_end.show_home()
+		scene.front_end.resume_requested.emit()
 		var restored := scene._music_checkpoint()
 		check(scene.game_started and scene.deal.current_phase == 2, "fresh Continue restores Morning Phase 2")
 		check(restored.system == saved.music.system and restored.controller.dj, "Continue restores saved mode despite new-run choice")

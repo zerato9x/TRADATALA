@@ -13,8 +13,11 @@ var logo: Control
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	mouse_filter = Control.MOUSE_FILTER_STOP
-	_setup.call_deferred()
+	# The front end is usable immediately; its four logo labels respond to beats.
+	opened = true
+	unfold = 1.0
+	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hide()
 
 func _setup() -> void:
 	if not is_instance_valid(owner): return
@@ -33,6 +36,7 @@ func _pulse(band: int, strength: float) -> void:
 	if band >= 0 and band < pulses.size(): pulses[band] = clampf(strength, 0.0, 1.0)
 
 func _process(delta: float) -> void:
+	if opened and not visible: return
 	elapsed += delta
 	for index in pulses.size(): pulses[index] = move_toward(pulses[index], 0.0, delta * 3.0)
 	if is_instance_valid(menu):

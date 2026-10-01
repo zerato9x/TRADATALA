@@ -35,7 +35,7 @@ func _ready() -> void:
 	_build_objects()
 	inspect_card = PanelContainer.new()
 	inspect_card.name = "TableItemEffect"
-	inspect_card.position = Vector2(710, 164)
+	inspect_card.position = Vector2(790, 164)
 	inspect_card.size = Vector2(286, 84)
 	inspect_card.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	inspect_card.z_index = 30

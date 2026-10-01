@@ -1371,6 +1371,7 @@ func test_u_earnings_include_previous_phase_and_deducted_deadwood_not_wallet() -
 	deal._record_phase_points(50, "test")
 	deal.phase_metrics.deadwood_total = 20
 	deal.wallet.reset(9000000)
+	deal.deal_earnings_vnd = 110000
 	assert_eq(deal.current_deal_earnings_points(), 110)
 	for expected_bonus in [110, 220]:
 		deal.state = DealState.STATE_ACTIVE
@@ -1392,6 +1393,7 @@ func test_u_doubles_the_signed_current_deal_earning_exactly() -> void:
 	var deal := _fresh_deal(209)
 	deal.phase_metrics.reset()
 	deal.phase_metrics.deadwood_total = 20
+	deal.deal_earnings_vnd = -20000
 	deal._turn_started_with_ten = true
 	deal._turn_committed_card_count = 9
 	deal.hand.clear()

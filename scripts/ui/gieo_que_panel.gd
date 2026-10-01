@@ -5,6 +5,7 @@ signal wallet_changed()
 signal feedback_requested(message: String)
 signal impact_requested(kind: StringName)
 signal commitment_changed(committed: bool)
+signal card_pick_requested(cards: Array[CardData], reason: String, callback: Callable)
 
 enum PresentationState {
 	IDLE,
@@ -452,17 +453,38 @@ func _build_destination_selection() -> void:
 
 func _build_target_selection() -> void:
 	var box := _build_flow_shell(tr("GIEO_CHOOSE_TARGET"))
+	_build_compact_result(box)
 	var offered_only := not service.resolved_targets.is_empty()
 	var instruction := _label(tr("GIEO_CHOOSE_OFFER") if offered_only else tr("GIEO_CHOOSE_DECK_CARD"), 16, PresentationTheme.GOLD, HORIZONTAL_ALIGNMENT_CENTER)
 	box.add_child(instruction)
 	var cards: Array[CardData] = service.resolved_targets if offered_only else service.persistent_deck
-	_build_card_picker(box, cards, offered_only)
+	var browse := _button(GameGlossary.words("Open deck · inspect and choose a card", "Mở bộ bài · xem và chọn một lá"), "gold", Vector2(0, 54))
+	browse.name = "OpenDeckPicker"
+	browse.pressed.connect(_request_card_picker.bind(cards))
+	box.add_child(browse)
+	var reminder := _label(_target_reason(), 15, PresentationTheme.INK, HORIZONTAL_ALIGNMENT_CENTER)
+	reminder.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	box.add_child(reminder)
 	var locked := _label(tr("GIEO_COMMITTED_LOCK"), 10, PresentationTheme.RED.lightened(0.2), HORIZONTAL_ALIGNMENT_CENTER)
 	box.add_child(locked)
+	call_deferred("_request_card_picker", cards)
+
+
+func _target_reason() -> String:
+	var action := _effect_text()
+	if not service.resolved_destination.is_empty():
+		action += " · " + (_suit_label(service.resolved_destination) if DeckManager.SUITS.has(service.resolved_destination) else service.resolved_destination.to_upper())
+	return GameGlossary.words("This card will receive: ", "Lá được chọn sẽ nhận: ") + action + "\n" + GameGlossary.words("The cast offered: ", "Quẻ đã chọn: ") + tr(service.targeting_label_key())
+
+
+func _request_card_picker(cards: Array[CardData]) -> void:
+	if not is_inside_tree() or service.state != GieoQueService.STATE_TARGET_SELECTION: return
+	card_pick_requested.emit(cards, _target_reason(), _on_target_pressed)
 
 
 func _build_target_reveal() -> void:
 	var box := _build_flow_shell(tr("GIEO_TARGETS_REVEALED"))
+	_build_compact_result(box)
 	var title := _label(tr("GIEO_PRESENT_TARGETS"), 15, Color("#fff0bd"), HORIZONTAL_ALIGNMENT_CENTER)
 	box.add_child(title)
 	_build_card_picker(box, service.resolved_targets, true, false)
@@ -472,12 +494,14 @@ func _build_target_reveal() -> void:
 
 func _build_transform() -> void:
 	var box := _build_flow_shell(tr("GIEO_FATE_REWRITTEN"))
+	_build_compact_result(box)
 	for transformation in service.last_transformations:
 		_build_transformation_row(box, transformation)
 
 
 func _build_complete() -> void:
 	var box := _build_flow_shell(tr("GIEO_FATE_SEALED"))
+	_build_compact_result(box)
 	var summary := _label(_trf("GIEO_COMPLETE_SUMMARY", service.last_transformations.size()), 16, PresentationTheme.TEA, HORIZONTAL_ALIGNMENT_CENTER)
 	summary.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	box.add_child(summary)

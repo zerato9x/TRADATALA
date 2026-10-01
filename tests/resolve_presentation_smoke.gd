@@ -15,6 +15,8 @@ func _run() -> void:
 	for card in deal.hand:
 		if card.rank_index == 9:
 			cards.append(card)
+	deal.relics.acquire("hair_clip")
+	deal.relics.equip("hair_clip")
 	deal.create_meld(cards)
 	var report := deal.accounting_report()
 	var before := deal.wallet.balance_vnd
@@ -22,6 +24,11 @@ func _run() -> void:
 	receipt._show_page("cards")
 	var faces: Array = receipt.rows.find_children("*", "TextureRect", true, false)
 	check(faces.size() == 3, "pass snapshots supply real cards")
+	var saw_rate := false
+	for label: Label in receipt.rows.find_children("*", "Label", true, false):
+		if label.text.contains("VNĐ/PTS"):
+			saw_rate = true
+	check(saw_rate, "relic receipt explains the committed rate payout")
 	# Switching during the deal-in animation must not leave tweens on freed faces.
 	for i in 8:
 		receipt._show_page("cards" if i % 2 == 0 else "ledger")

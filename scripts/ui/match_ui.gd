@@ -90,6 +90,8 @@ var event_manager: EventManager
 var drink_manager: DrinkManager
 var campaign: CampaignManager
 var zodiac_table: Control
+var deck_screen: DeckScreen
+var deck_canvas_layer: CanvasLayer
 var gameplay_music: RefCounted
 var current_campaign_event: EventInstance
 var selected_card_ids: Dictionary = {}
@@ -206,6 +208,7 @@ var card_sfx_play_counts := {
 
 var earnings_value: Label
 var vnd_per_point_value: Label
+var _scoring_rate_override_vnd := 0
 var wallet_value: Label
 var wallet_pile_anchor: Control
 var campaign_value: Label
@@ -278,7 +281,7 @@ var run_save := RunSave.new()
 var run_seed_input := ""
 var _run_save_pending := false
 var _restoring_run := false
-var _run_menu: Control
+var front_end: FrontEnd
 var resolve_receipt: Control
 var campaign_money_hud: CanvasLayer
 var campaign_coach: CanvasLayer
@@ -361,12 +364,26 @@ func _ready() -> void:
 	add_child(campaign_money_hud)
 	campaign_money_hud.configure(self)
 	_setup_return_navigation()
+	front_end = preload("res://scenes/ui/front_end.tscn").instantiate() as FrontEnd
+	menu_layer.add_child(front_end)
+	front_end.configure(self)
+	front_end.start_requested.connect(_on_front_start_requested)
+	front_end.resume_requested.connect(_on_front_resume_requested)
+	front_end.return_requested.connect(_close_menu_to_game)
+	front_end.handbook_requested.connect(_open_glossary)
 	campaign_coach = preload("res://scripts/ui/campaign_coach.gd").new()
 	add_child(campaign_coach)
 	campaign_coach.configure(self)
 	zodiac_table = preload("res://scripts/ui/zodiac_table.gd").new()
 	game_layer.add_child(zodiac_table)
 	zodiac_table.configure(self)
+	deck_canvas_layer = CanvasLayer.new()
+	deck_canvas_layer.name = "DeckCanvasLayer"
+	deck_canvas_layer.layer = 310
+	add_child(deck_canvas_layer)
+	deck_screen = preload("res://scripts/ui/deck_screen.gd").new()
+	deck_canvas_layer.add_child(deck_screen)
+	deck_screen.closed.connect(_on_deck_screen_closed)
 	_sync_all(result, true)
 	_set_hand_interaction_enabled(false)
 	_park_game_layer()
@@ -381,7 +398,7 @@ func _initialize_jukebox() -> void:
 
 
 func _process(_delta: float) -> void:
-	if menu_layer != null and menu_layer.visible and menu_page == &"home":
+	if menu_layer != null and menu_layer.visible and (menu_page == &"home" or menu_page == &"music"):
 		_sync_music_player_progress()
 
 
@@ -560,6 +577,15 @@ func _show_how_tab(tab_id: StringName) -> void:
 
 
 func _show_menu_page(page: StringName) -> void:
+	if front_end != null:
+		if page == &"how_to_play":
+			_open_glossary()
+		elif page == &"options":
+			front_end._show_page("settings")
+		else:
+			front_end.show_home()
+		menu_page = page
+		return
 	if ui_feedback != null and menu_page != page:
 		ui_feedback.play(&"transition")
 	menu_page = page
@@ -1330,54 +1356,20 @@ func _show_discard_archive() -> void:
 func _on_event_deck_inspect_requested() -> void:
 	if current_campaign_event == null or event_table == null or not event_table.visible:
 		return
-	_clear_campaign_participants()
-	_restore_event_content_frame()
-	event_table.content_panel.position = Vector2(250, 120)
-	event_table.content_panel.size = Vector2(950, 520)
-	event_table.continue_button.visible = false
-	_build_event_deck_inspector()
+	deck_screen.open_deck(campaign.gieo_que.persistent_deck, GameGlossary.words("Your deck", "Bộ bài của bạn"),
+		GameGlossary.words("Your 52 physical campaign cards. Sort, search, and inspect permanent changes.", "52 lá bài thật của chiến dịch. Sắp xếp, tìm kiếm và xem biến đổi vĩnh viễn."))
 
 
-func _build_event_deck_inspector() -> void:
-	var deck_cards: Array[CardData] = campaign.gieo_que.persistent_deck
-	var heading := Label.new()
-	heading.text = "%s  ·  %s" % [tr("ARCHIVE_DRAW_TITLE"), tr("ARCHIVE_COUNT") % deck_cards.size()]
-	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	heading.add_theme_font_size_override("font_size", 23)
-	heading.add_theme_color_override("font_color", PresentationTheme.GOLD)
-	campaign_participants.add_child(heading)
-	var scroll := ScrollContainer.new()
-	scroll.custom_minimum_size = Vector2(880, 430)
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	campaign_participants.add_child(scroll)
-	var rows := VBoxContainer.new()
-	rows.add_theme_constant_override("separation", 8)
-	scroll.add_child(rows)
-	for suit in DeckManager.SUITS:
-		var suit_row := HBoxContainer.new()
-		suit_row.add_theme_constant_override("separation", 5)
-		rows.add_child(suit_row)
-		var suit_label := HBoxContainer.new()
-		suit_label.custom_minimum_size = Vector2(92, 75)
-		suit_label.alignment = BoxContainer.ALIGNMENT_CENTER
-		suit_label.add_theme_constant_override("separation", 5)
-		var suit_title := Label.new()
-		suit_title.name = "Title"
-		suit_title.text = _discard_suit_title(suit)
-		suit_title.add_theme_font_size_override("font_size", 14)
-		suit_title.add_theme_color_override("font_color", PresentationTheme.MUTED)
-		suit_label.add_child(suit_title)
-		var suit_icon := CARD_SYMBOL_ART_SCRIPT.create_suit_icon(suit, Vector2(12, 12), _discard_suit_color(suit))
-		suit_icon.name = "Icon"
-		suit_label.add_child(suit_icon)
-		suit_row.add_child(suit_label)
-		var suit_cards: Array[CardData] = []
-		for card in deck_cards:
-			if card.suit == suit:
-				suit_cards.append(card)
-		suit_cards.sort_custom(_discard_card_less)
-		for card in suit_cards:
-			suit_row.add_child(_build_discard_archive_card(card))
+func _on_deck_screen_closed() -> void:
+	if event_table != null and event_table.deck_focused:
+		event_table.unfocus_npc()
+
+
+func _open_gieo_card_picker(cards: Array[CardData], reason: String, callback: Callable) -> void:
+	var available: Array[CardData] = []
+	for card in cards:
+		if not card.transformation_locked: available.append(card)
+	deck_screen.open_deck(campaign.gieo_que.persistent_deck, tr("GIEO_CHOOSE_TARGET"), reason, available, callback)
 
 
 func _hide_discard_archive() -> void:
@@ -1498,6 +1490,21 @@ func _make_action_button(parent: Container, text_value: String, tone: String, wi
 
 
 
+func _sync_event_continue(committed: bool = false) -> void:
+	if current_campaign_event == null or event_table == null:
+		return
+	var reason := ""
+	var required_npc := ""
+	for interaction in current_campaign_event.interactions:
+		if not interaction.mandatory or interaction.completed:
+			continue
+		required_npc = interaction.participant_id
+		reason = ZodiacCatalog.words("Buy a drink from Auntie to continue.", "Mua nước ở quán cô để tiếp tục.") if interaction.action_type == "choose_drink" else ZodiacCatalog.words("Finish the required visit to continue.", "Hoàn thành cuộc gặp bắt buộc để tiếp tục.")
+		break
+	if committed and reason.is_empty():
+		reason = ZodiacCatalog.words("Finish this reading before continuing.", "Xong lượt gieo quẻ rồi hãy tiếp tục.")
+	event_table.set_continue_enabled(current_campaign_event.can_exit and not committed, reason, required_npc)
+
 func _show_campaign_event(event: EventInstance) -> void:
 	current_campaign_event = event
 	interaction_locked = true
@@ -1513,7 +1520,7 @@ func _show_campaign_event(event: EventInstance) -> void:
 	)
 	if not event_table.cash_clicked.is_connected(_on_event_cash_clicked):
 		event_table.cash_clicked.connect(_on_event_cash_clicked)
-	event_table.set_continue_enabled(event.can_exit)
+	_sync_event_continue()
 	_refresh_stats()
 	if event.slot == EventManager.EventSlot.STARTER and not event.completed_interactions.has("debt_intro"):
 		event_table.focus_npc(EventTableController.NPC_DOI_NO)
@@ -1565,7 +1572,7 @@ func _build_misc_npc_service(npc_id: String) -> void:
 	var service_rect: Rect2 = EventTableController.MISC_SERVICE_RECTS[npc_id]
 	event_table.content_panel.position = service_rect.position
 	event_table.content_panel.size = service_rect.size
-	event_table.content_panel.add_theme_stylebox_override("panel", PresentationTheme.panel_style(PresentationTheme.PANEL, PresentationTheme.GOLD_DARK, 1, 4))
+	event_table.content_panel.add_theme_stylebox_override("panel", PresentationTheme.panel_style(Color("#102338c8"), PresentationTheme.GOLD_DARK, 1, 4))
 	var margin := event_table.content_panel.get_child(0) as MarginContainer
 	for side in ["left", "top", "right", "bottom"]:
 		margin.add_theme_constant_override("margin_" + side, 0)
@@ -1613,6 +1620,7 @@ func _build_gieo_que_service() -> void:
 	panel.impact_requested.connect(_on_gieo_impact_requested)
 	panel.tree_exiting.connect(ui_feedback.stop.bind(&"reels"))
 	panel.commitment_changed.connect(_on_gieo_commitment_changed)
+	panel.card_pick_requested.connect(_open_gieo_card_picker)
 	var committed := campaign.gieo_que.state not in [GieoQueService.STATE_READY, GieoQueService.STATE_COMPLETE]
 	_on_gieo_commitment_changed(committed)
 
@@ -1620,7 +1628,7 @@ func _build_gieo_que_service() -> void:
 func _restore_event_content_frame() -> void:
 	if event_table == null or event_table.content_panel == null:
 		return
-	var style := PresentationTheme.panel_style(Color("#19130ff0"), Color("#8d5b30"), 2, 2, 4)
+	var style := PresentationTheme.panel_style(Color("#102338c8"), Color("#8d5b30"), 1, 3, 3)
 	style.content_margin_left = 22
 	style.content_margin_top = 18
 	style.content_margin_right = 22
@@ -1670,7 +1678,7 @@ func _on_gieo_commitment_changed(committed: bool) -> void:
 	event_table.back_button.disabled = committed
 	event_table.conversation.show_responses(true, not committed)
 	if current_campaign_event != null:
-		event_table.set_continue_enabled(current_campaign_event.can_exit and not committed)
+		_sync_event_continue(committed)
 
 
 func _build_event_placeholder(npc_id: String) -> void:
@@ -1755,7 +1763,7 @@ func _build_campaign_participant(participant: NPCDefinition, event: EventInstanc
 				_build_drink_choices(campaign_participants, event, interaction)
 		return
 	var panel := PanelContainer.new()
-	panel.add_theme_stylebox_override("panel", PresentationTheme.panel_style(Color("#231c17f0"), Color("#8d5b30"), 1, 8, 5))
+	panel.add_theme_stylebox_override("panel", PresentationTheme.panel_style(Color("#102338c8"), Color("#8d5b30"), 1, 8, 4))
 	campaign_participants.add_child(panel)
 	var margin := MarginContainer.new()
 	for side in ["left", "top", "right", "bottom"]:
@@ -2244,11 +2252,18 @@ func _pulse_relic(id: String) -> void:
 	for slot in relic_grid.get_children():
 		if slot is RelicSlot and slot.relic_id == id:
 			slot.trigger()
+			money_presentation._shake_scoring_card(slot, Color("#f5bf42"), 0.65)
+
+
+func _show_scoring_rate(rate_vnd: int) -> void:
+	_scoring_rate_override_vnd = rate_vnd if rate_vnd != deal.vnd_per_point else 0
+	vnd_per_point_value.text = VndWallet.format_vnd(rate_vnd)
+	vnd_per_point_value.tooltip_text = tr("HUD_VND_PER_POINT") + " · " + VndWallet.format_vnd(deal.vnd_per_point)
 
 
 func _refresh_stats() -> void:
-	vnd_per_point_value.text = VndWallet.format_vnd(deal.vnd_per_point)
-	earnings_value.text = VndWallet.format_amount(_points_to_vnd(deal.current_deal_earnings_points()), true)
+	vnd_per_point_value.text = VndWallet.format_vnd(_scoring_rate_override_vnd if _scoring_rate_override_vnd != 0 else deal.vnd_per_point)
+	earnings_value.text = VndWallet.format_amount(deal.current_deal_earnings_vnd(), true)
 	wallet_value.text = VndWallet.format_amount(displayed_wallet_vnd)
 	money_presentation.sync_wallet(displayed_wallet_vnd)
 	if campaign_value != null:
@@ -3327,7 +3342,7 @@ func _show_scoring(context: ScoringContext, source_override: Control = null) -> 
 func _queue_scoring(context: ScoringContext, source_override: Control = null, recycle_visual: Dictionary = {}) -> int:
 	if not context.suppression_reason.is_empty():
 		_show_banner(ZodiacCatalog.words("REGISTER CLOSED · legal play, no payout", "ĐÃ ĐÓNG SỔ · bài hợp lệ, không trả thưởng"))
-		return 0
+		return -1
 	var passes: Array = context.scoring_passes if not context.scoring_passes.is_empty() else [context]
 	var gross_multiplier := deal.gross_payout_multiplier()
 	var hits: Array[Dictionary] = []
@@ -3355,10 +3370,12 @@ func _queue_scoring(context: ScoringContext, source_override: Control = null, re
 			hits.append(receipt)
 	var amount_vnd := _points_to_vnd(context.final_points * gross_multiplier)
 	for bonus in context.relic_bonuses:
-		var relic_vnd := _points_to_vnd(int(bonus.points) * gross_multiplier)
+		var relic_vnd := int(bonus.amount_vnd)
 		amount_vnd += relic_vnd
 		hits.append({"kind": "relic", "relic_id": bonus.id, "label": bonus.name,
-			"points": bonus.points, "amount_vnd": relic_vnd})
+			"action_points": bonus.action_points, "base_rate_vnd": bonus.base_rate_vnd,
+			"rate_bonus_vnd": bonus.rate_bonus_vnd, "rate_percent": bonus.rate_percent,
+			"amount_vnd": relic_vnd})
 	var start_wallet := money_queue_wallet_vnd
 	money_queue_wallet_vnd += amount_vnd
 	var event := {
@@ -3367,6 +3384,8 @@ func _queue_scoring(context: ScoringContext, source_override: Control = null, re
 		"source_control": source_override if is_instance_valid(source_override) else meld_scroll,
 		"card_locator": _scoring_card_control, "reveal_card": _reveal_scoring_card,
 		"relic_cue": _pulse_relic,
+		"rate_cue": _show_scoring_rate,
+		"base_rate_vnd": deal.vnd_per_point,
 		"title": tr("EXTEND_ACTION") if context.action_type == "extension" else tr("MELD_ACTION"),
 	}
 	return _enqueue_money_job("scoring", event, recycle_visual)
@@ -3398,12 +3417,12 @@ func _show_phase_resolution(resolution: Dictionary) -> void:
 		"mom": bool(resolution.get("mom", false)),
 		"u": bool(resolution.get("u", false)),
 		"raw_gross_vnd": _points_to_vnd(int(resolution.get("raw_gross", 0))),
-		"gross_vnd": _points_to_vnd(int(resolution.get("gross_after_u", 0))),
+		"gross_vnd": int(resolution.get("net_vnd", _points_to_vnd(int(resolution.get("net", 0))))) + _points_to_vnd(int(resolution.get("deadwood_points", 0))),
 		"deadwood_value_sum": int(resolution.get("deadwood_value_sum", 0)),
 		"deadwood_multiplier": int(resolution.get("deadwood_multiplier", 1)),
 		"deadwood_vnd": _points_to_vnd(int(resolution.get("turn_deadwood", resolution.get("deadwood_points", 0)))),
 		"deadwood_total_vnd": _points_to_vnd(int(resolution.get("deadwood_points", 0))),
-		"net_vnd": _points_to_vnd(int(resolution.get("net", 0))),
+		"net_vnd": int(resolution.get("net_vnd", _points_to_vnd(int(resolution.get("net", 0))))),
 		"u_bonus_paid_early": bool(resolution.get("u_bonus_paid_early", false)),
 		"start_wallet_vnd": money_queue_wallet_vnd,
 		"target_wallet_vnd": target_wallet,
@@ -3442,7 +3461,7 @@ func _show_turn_deadwood(resolution: Dictionary) -> void:
 
 
 func _try_fast_forward_money(event: InputEvent) -> bool:
-	if not money_queue_running or money_presentation.fast_forward_enabled or menu_layer.visible or is_instance_valid(_run_menu) \
+	if not money_queue_running or money_presentation.fast_forward_enabled or menu_layer.visible \
 			or modal_overlay.visible or discard_archive_overlay.visible or is_instance_valid(wallet_spiral) \
 			or (event_table != null and event_table.overview.expanded):
 		return false
@@ -3724,8 +3743,8 @@ func _on_deal_u_triggered(context: Dictionary) -> void:
 func _drain_pending_u_presentations() -> void:
 	while not pending_u_presentations.is_empty():
 		var context: Dictionary = pending_u_presentations.pop_front()
-		var amount_vnd := _points_to_vnd(int(context.get("payout", 0)))
-		var deal_earnings_vnd := _points_to_vnd(int(context.get("deal_earnings", context.get("payout", 0))))
+		var amount_vnd := int(context.get("payout_vnd", _points_to_vnd(int(context.get("payout", 0)))))
+		var deal_earnings_vnd := int(context.get("deal_earnings_vnd", amount_vnd))
 		var start_wallet := money_queue_wallet_vnd
 		var target_wallet := start_wallet + amount_vnd
 		var event := {
@@ -3888,7 +3907,7 @@ func _on_campaign_drink_pressed(event_slot: int, interaction_id: String, drink_i
 	money_queue_wallet_vnd = target_wallet
 	event_table.event_money_feedback(_event_money_text(target_wallet))
 	if current_campaign_event != null:
-		event_table.set_continue_enabled(current_campaign_event.can_exit)
+		_sync_event_continue()
 		_on_event_table_npc_focused(event_table.focused_npc_id)
 	_refresh_stats()
 
@@ -3896,7 +3915,7 @@ func _on_campaign_drink_pressed(event_slot: int, interaction_id: String, drink_i
 func _on_campaign_interaction_pressed(interaction_id: String) -> void:
 	event_manager.complete_interaction(interaction_id)
 	if current_campaign_event != null:
-		event_table.set_continue_enabled(current_campaign_event.can_exit)
+		_sync_event_continue()
 		_on_event_table_npc_focused(event_table.focused_npc_id)
 
 
@@ -4241,25 +4260,22 @@ func _rewind_tutorial_selection() -> void:
 func _unhandled_key_input(event: InputEvent) -> void:
 	if zodiac_table != null and zodiac_table.shade.visible:
 		if event.is_action_pressed(&"ui_cancel"):
-			zodiac_table.shade.hide()
-			zodiac_table.scene_page = -1
+			zodiac_table._close_conversation()
 		get_viewport().set_input_as_handled()
 		return
 	if get_tree().root.has_node("GameGlossary"):
-		return
-	if is_instance_valid(_run_menu):
 		return
 	if is_instance_valid(resolve_receipt) and resolve_receipt.visible:
 		return
 	if not event is InputEventKey or not event.pressed or event.echo:
 		return
 	if menu_layer.visible:
+		if front_end != null and front_end.page != "home":
+			return
 		if event.is_action_pressed(&"ui_cancel") and menu_page != &"home":
 			_show_menu_page(&"home")
 		elif game_started and event.is_action_pressed(&"ui_cancel"):
 			_close_menu_to_game()
-		elif menu_page == &"home" and not menu_transitioning and event.is_action_pressed(&"ui_accept"):
-			_show_run_menu()
 		return
 	if event_table != null and event_table.visible and not event_table.focused_npc_id.is_empty():
 		if event.is_action_pressed(&"ui_cancel"):
@@ -4470,33 +4486,33 @@ func _run_words(en: String, vi: String) -> String:
 
 
 func _show_run_menu() -> void:
-	if is_instance_valid(_run_menu):
+	front_end.show_setup()
+
+
+func _on_front_start_requested(draft: RunSetupDraft) -> void:
+	if not campaign.select_difficulty(draft.difficulty):
+		front_end.start_failed(_run_words("Difficulty is locked.", "Độ khó chưa được mở."))
 		return
+	if not draft.emblem_id.is_empty() and not campaign.zodiac.progress.owns(draft.emblem_id):
+		front_end.start_failed(_run_words("Emblem is locked.", "Huy hiệu chưa được mở."))
+		return
+	if draft.music_system not in settings.SUPPORTED_MUSIC_SYSTEMS:
+		front_end.start_failed(_run_words("Music choice is unavailable.", "Chế độ nhạc không khả dụng."))
+		return
+	campaign.zodiac.prefer_emblem(draft.emblem_id)
+	if settings.music_system != draft.music_system:
+		_on_music_system_selected(settings.SUPPORTED_MUSIC_SYSTEMS.find(draft.music_system))
+	run_seed_input = draft.seed
+	_on_play_pressed()
+
+
+func _on_front_resume_requested() -> void:
 	var saved := run_save.load_run()
-	var layer := CanvasLayer.new()
-	layer.layer = 250
-	add_child(layer)
-	_run_menu = preload("res://scripts/ui/run_menu.gd").new()
-	layer.add_child(_run_menu)
-	var note := _run_words("Recovered the previous backup save.", "Đã khôi phục bản lưu dự phòng.") if run_save.recovered_backup else run_save.error
-	_run_menu.emblem_service = campaign.zodiac
-	_run_menu.configure(drink_manager.progress, saved, note, campaign.difficulty_progress.unlocked)
-	_run_menu.dismissed.connect(func(): layer.queue_free())
-	_run_menu.new_run.connect(func(seed_text: String):
-		if not campaign.select_difficulty(_run_menu.selected_difficulty): return
-		_apply_run_music_choice()
-		run_seed_input = seed_text
-		layer.queue_free()
-		_on_play_pressed())
-	_run_menu.resume_run.connect(func():
-		if _resume_saved_run(saved):
-			layer.queue_free())
-
-
-func _apply_run_music_choice() -> void:
-	if _run_menu.selected_music.is_empty(): return
-	var index: int = settings.SUPPORTED_MUSIC_SYSTEMS.find(_run_menu.selected_music)
-	_on_music_system_selected(index)
+	if saved.is_empty():
+		front_end.show_error(run_save.error if not run_save.error.is_empty() else _run_words("Saved run is unavailable.", "Không tìm thấy ván đã lưu."))
+		return
+	if not _resume_saved_run(saved):
+		front_end.show_error(_run_words("Could not resume this saved run.", "Không thể tiếp tục ván đã lưu."))
 
 func _exit_completed_run() -> void:
 	_flush_run_save()

@@ -85,19 +85,19 @@ func quote() -> Dictionary:
 	var speech := ""
 	match kind:
 		"pay":
-			speech = ZodiacCatalog.words("Five thousand. Now. A short answer will do.", "Năm nghìn. Ngay bây giờ. Trả lời gọn thôi.") if active_id() == "rooster" else ZodiacCatalog.words("Put five thousand on the table. Is every demand worth obeying?", "Đặt năm nghìn lên bàn. Ai đòi gì cũng nghe sao?")
+			speech = ZodiacCatalog.words("You came early. Sit with me a moment. Can you spare 5,000 VNĐ?", "Đến sớm thế. Ngồi với tôi một lát đi. Có thể để lại 5.000 VNĐ không?") if active_id() == "rooster" else ZodiacCatalog.words("You look worried about that money. If I asked for 5,000 VNĐ, what would you say?", "Nhìn bạn giữ tiền kỹ ghê. Nếu tôi xin 5.000 VNĐ, bạn sẽ nói sao?")
 			text = ZodiacCatalog.words("Accept: pay 5,000 VNĐ now. Counteroffer: pay 2,500 VNĐ. Refuse/Bargain: free.", "Đồng ý: trả ngay 5.000 VNĐ. Đề nghị khác: 2.500 VNĐ. Từ chối/Mặc cả: miễn phí.")
 		"early_score":
-			speech = ZodiacCatalog.words("Let the cards speak before you throw one away.", "Để bài lên tiếng trước khi bỏ một lá.")
+			speech = ZodiacCatalog.words("Next Deal, try making a meld before you throw anything away. Think you can?", "Ván tới, thử hạ một Phỏm trước khi bỏ bài nhé. Làm được không?")
 			text = ZodiacCatalog.words("Promise: score a Meld or Extension before the first mandatory discard of the next Deal.", "Cam kết: ghi điểm tạo/nối Phỏm trước lần bỏ bài bắt buộc đầu tiên ở Ván kế.")
 		"restraint":
-			speech = ZodiacCatalog.words("Keep something for later. I can wait. Can you?", "Để dành một chút. Tôi chờ được. Còn bạn?")
+			speech = ZodiacCatalog.words("I want to see if you can keep 5,000 VNĐ untouched until this afternoon.", "Tôi muốn xem bạn có giữ nguyên 5.000 VNĐ đến chiều được không.")
 			text = ZodiacCatalog.words("Promise: keep at least 5,000 VNĐ until the Afternoon event. Every wallet change counts, including deadwood.", "Cam kết: luôn giữ ít nhất 5.000 VNĐ tới sự kiện Buổi chiều. Tính mọi thay đổi tiền, kể cả bài rác.")
 		"alter":
-			speech = ZodiacCatalog.words("A good card is a comfortable excuse. Give up an advantage.", "Bài đẹp là cái cớ dễ chịu. Bỏ một lợi thế đi.") if active_id() == "rooster" else ZodiacCatalog.words("Would you spoil a good card just because I asked?", "Tôi bảo là bạn chịu làm hỏng bài đẹp sao?")
+			speech = ZodiacCatalog.words("Show me a card you've grown fond of. I want to see what you're willing to change.", "Cho tôi xem lá bạn quý nhất đi. Tôi muốn biết bạn dám đổi điều gì.") if active_id() == "rooster" else ZodiacCatalog.words("There must be a card you keep coming back to. Let me see it.", "Chắc có một lá bạn cứ muốn giữ mãi. Cho tôi xem nhé.")
 			text = ZodiacCatalog.words("Choose a physical card: remove its last property, reset it, or seal it against transformations for this run. No card leaves the deck.", "Chọn lá bài: bỏ thuộc tính cuối, hoàn nguyên, hoặc khóa biến đổi tới hết lượt chơi. Bộ bài không mất lá nào.")
 		"gift":
-			speech = ZodiacCatalog.words("Leave me something useful before the table opens.", "Để lại món gì hữu ích trước khi vào bàn.") if active_id() == "rooster" else ZodiacCatalog.words("That little treasure. Would you really part with it?", "Món đồ quý ấy. Bạn thật sự nỡ cho sao?")
+			speech = ZodiacCatalog.words("Before we play, would you leave me one of your relics? Only if you can part with it.", "Trước khi chơi, bạn tặng tôi một món di vật được không? Nếu bạn thấy tiếc thì thôi.") if active_id() == "rooster" else ZodiacCatalog.words("That relic caught my eye. Would you let me keep it?", "Tôi thích món di vật ấy. Bạn để lại cho tôi được không?")
 			text = ZodiacCatalog.words("Gift: the selected owned Relic leaves this run, including its equipped effect. Refusing costs nothing.", "Tặng: mất Di vật đã chọn trong lượt chơi này, kể cả hiệu ứng đang đeo. Từ chối không tốn gì.")
 	return {"kind": kind, "speech": speech, "contract": text, "status": daily.requests.get(daily.slot, {}).get("status", "unavailable"), "can_time": int(daily.slot) in [0, 1, 2]}
 

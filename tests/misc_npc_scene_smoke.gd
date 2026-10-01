@@ -163,6 +163,13 @@ func _run() -> void:
 	check(scene.campaign.wallet.balance_vnd == before_payout + expected_payout, "real payout reaches wallet once")
 	var result_view := root.get_node_or_null("LotteryReceipt")
 	check(result_view != null, "Afternoon settlement creates result receipt")
+	await create_timer(0.9).timeout
+	if result_view != null:
+		var receipt_host := result_view.find_child("LotteryHost", true, false) as TextureRect
+		var receipt_text := result_view.find_child("ResultText", true, false) as PanelContainer
+		check(receipt_host != null and receipt_host.get_global_rect().size.y >= 600, "result gives lottery host full-height side presence")
+		check(receipt_text != null and (receipt_text.get_theme_stylebox("panel") as StyleBoxFlat).bg_color.a < 0.95, "result uses translucent text backing")
+		check(result_view.find_child("DrawnNumbers", true, false).get_child_count() == MiscServiceConfig.PRIZES.size(), "all drawn prize tiers remain visible")
 	await capture("misc_lottery_result")
 	if result_view != null:
 		await click(result_view.find_child("CloseReceipt", true, false) as Button)

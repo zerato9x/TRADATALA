@@ -37,6 +37,9 @@ func apply_vnd(amount_vnd: int, reason: String = "adjustment") -> int:
 static func points_to_vnd(points: int, rate_vnd_per_point: int = VND_PER_POINT) -> int:
 	return points * rate_vnd_per_point
 
+static func percent_rate_bonus(rate_vnd_per_point: int, percent: int) -> int:
+	return int((rate_vnd_per_point * percent + 50) / 100.0)
+
 
 static func format_vnd(amount_vnd: int, include_sign: bool = false) -> String:
 	var sign_text := ""

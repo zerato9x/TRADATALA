@@ -51,7 +51,7 @@ Save additions are backward-compatible optional fields in the existing version-2
 
 ## Presentation and assets
 
-Rooster temporarily uses Đánh Giày; Cat uses Hàng Rong. Replace the two `sprite` paths in `ZodiacCatalog.DEFINITIONS` when final sprites arrive. Rank/suit corners remain readable under the purple Cat lock treatment. Register/phase changes pulse the nameplate and use the existing transition SFX. Existing authored music routing receives the normal evening and Phase 2 events; no tracks, cue timings, vocal layers, or fabricated Rooster DJ plan were created. The current catalog has Cat and Dog authored routes, and the player's jukebox choice remains intact.
+Rooster and Cat use their dedicated sprites from `assets/zodiacboss/`. Rank/suit corners remain readable under the purple Cat lock treatment. Register/phase changes pulse the nameplate and use the existing transition SFX. Existing authored music routing receives the normal evening and Phase 2 events; no tracks, cue timings, vocal layers, or fabricated Rooster DJ plan were created. The current catalog has Cat and Dog authored routes, and the player's jukebox choice remains intact.
 
 English and Vietnamese text are supplied at the feature boundary. The modal blocks underlying keyboard/Drink input and suppresses the onboarding hint while open. Emblem choice is also available before starting a new run.
 

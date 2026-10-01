@@ -22,7 +22,7 @@ func gameplay_bytes() -> PackedByteArray:
 
 func observe_receipts() -> void:
 	if not is_instance_valid(scene) or not scene.money_presentation.presentation_active \
-			or scene.money_presentation.title_label.text != "MONEY PACING":
+			or not scene.money_presentation.title_label.text.contains("PACE FIXTURE"):
 		return
 	var receipt := scene.money_presentation.payout_label.text
 	if not receipt.is_empty() and receipt != last_receipt:
@@ -32,7 +32,8 @@ func observe_receipts() -> void:
 func scoring_event(count: int, start: int) -> Dictionary:
 	var hits: Array[Dictionary] = []
 	for index in count:
-		hits.append({"kind": "relic", "label": "PACE FIXTURE", "points": 1, "amount_vnd": 1_000})
+		hits.append({"kind": "relic", "label": "PACE FIXTURE", "action_points": 1,
+			"rate_bonus_vnd": 1_000, "amount_vnd": 1_000})
 	return {"hits": hits, "start_wallet_vnd": start, "target_wallet_vnd": start + count * 1_000,
 		"title": "MONEY PACING", "queue_elapsed_seconds": 99.0}
 

@@ -49,6 +49,9 @@ func _process(_delta: float) -> void:
 	if host.zodiac_table != null and host.zodiac_table.shade.visible: box.hide()
 	if not box.visible:
 		return
+	if host.money_presentation != null and host.money_presentation.presentation_active:
+		box.hide()
+		return
 	if not host.selected_card_ids.is_empty():
 		host.campaign.onboarding.mark("selection")
 	if host.campaign.current_phase == CampaignManager.CampaignPhase.NOON_DEAL and host.deal.action_counts.get("new_meld", 0) > 0:

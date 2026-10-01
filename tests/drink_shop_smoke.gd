@@ -17,19 +17,17 @@ func _run() -> void:
 	root.add_child(scene)
 	current_scene = scene
 	await process_frame
-	# Dismiss the opening title before testing menu pointer targets.
-	await _click(scene.get_node("TitleScreen/TitleDisc") as Control)
-	await create_timer(0.5).timeout
-	await _click(scene.how_to_play_button)
+	var nav := scene.front_end.home_body.get_child(2) as HFlowContainer
+	await _click(nav.get_child(1) as Control)
 	_check(root.get_node_or_null("GameGlossary") != null, "viewport click opens the handbook")
 	var handbook := root.get_node_or_null("GameGlossary")
 	if handbook != null:
 		await _click(handbook.find_child("CloseHandbook", true, false))
 	_check(root.get_node_or_null("GameGlossary") == null and scene.menu_page == &"home", "handbook Back returns to menu")
-	await _click(scene.options_button)
-	_check(scene.menu_page == &"options", "viewport click opens Options")
-	await _click(scene.options_back_button)
-	_check(scene.menu_page == &"home", "viewport click activates Options Back")
+	await _click(nav.get_child(3) as Control)
+	_check(scene.front_end.page == "settings", "viewport click opens Settings")
+	await _click(scene.front_end.footer.get_child(0) as Control)
+	_check(scene.front_end.page == "home", "viewport click activates Settings Back")
 	# This roster/input smoke deliberately exposes all drinks; progression gates have their own suite.
 	scene.drink_manager.test_all_drinks_available = true
 	scene.drink_manager.progress.save_path = ""

@@ -34,6 +34,8 @@ func _run() -> void:
 		root_settings.set_locale("vi")
 	var scene := packed.instantiate() as MatchUI
 	root.add_child(scene)
+	scene.run_save = RunSave.new("user://runtime-front-%d.save" % Time.get_ticks_usec())
+	scene.front_end.show_home()
 	current_scene = scene
 	await process_frame
 	await process_frame
@@ -111,7 +113,7 @@ func _run() -> void:
 	scene.how_to_play_back_button.pressed.emit()
 	_check(menu_home.visible and not how_panel.visible, "How to Play Back returns to the main actions")
 	scene.options_button.pressed.emit()
-	_check(options_panel.visible and not menu_home.visible, "Options owns the audio and language controls")
+	_check(scene.front_end.page == "settings", "Settings page opens in the front end")
 	_check(scene.music_slider != null and is_equal_approx(scene.music_slider.value, settings.music_volume_percent), "Music slider reflects the persisted Music volume")
 	_check(scene.sound_slider != null and is_equal_approx(scene.sound_slider.value, settings.sound_volume_percent), "Sound slider reflects the persisted Sound volume")
 	_check(scene.language_selector != null and scene.language_selector.item_count == 2 and scene.language_selector.selected == 0, "language selector offers Vietnamese and English with Vietnamese as default")
@@ -140,7 +142,7 @@ func _run() -> void:
 	var saved_settings := ConfigFile.new()
 	_check(saved_settings.load(settings.SETTINGS_PATH) == OK and String(saved_settings.get_value("localization", "locale", "")) == "vi", "audio and language preferences persist to the player settings file")
 	scene.options_back_button.pressed.emit()
-	_check(menu_home.visible and not options_panel.visible, "Options Back returns to the main actions")
+	_check(scene.front_end.page == "home", "Settings Back returns to Home")
 	_check(scene.music_controller != null, "reactive music controller exists")
 	_check(scene.music_controller.full_mix_player != null and scene.music_controller.full_mix_player.stream != null, "current full mix is loaded")
 	_check(scene.music_controller.mix_players.size() == 2, "music queue owns two playback decks for preloaded boundary transitions")
@@ -201,11 +203,12 @@ func _run() -> void:
 	_check(game_layer != null and game_layer.position.x > 0.0, "game layer begins parked beyond the right screen edge")
 	scene.play_button.pressed.emit()
 	await process_frame
-	_check(is_instance_valid(scene._run_menu), "New Game opens the run selection menu")
-	if not is_instance_valid(scene._run_menu):
+	_check(scene.front_end.page == "setup", "New Game opens run setup")
+	if scene.front_end.page != "setup":
 		_finish()
 		return
-	scene._run_menu.new_run.emit("release-runtime-smoke")
+	scene.front_end.draft.seed = "release-runtime-smoke"
+	scene.front_end._start_pressed()
 	await create_timer(0.82).timeout
 	_check(scene.game_started and not menu.visible, "play hides the menu after its exit transition")
 	_check(scene.music_controller.dj_mode and scene.music_controller.current_mix_path == "res://assets/audio/ost/cat_1.wav", "starting a CAT playtest hands playback to CAT_1")
@@ -233,8 +236,8 @@ func _run() -> void:
 	var starter_right_overlay := scene.event_table.get_node("TraDaAuntieOverlay") as TextureRect
 	_check(scene.event_table.deck_focused and scene.event_table.day_label.get_parent().position.y < 20.0, "selecting the Event Deck uses the standard focus transition and moves the money header to the top")
 	_check(starter_left_overlay.modulate.a < 0.5 and starter_right_overlay.modulate.a < 0.5, "selecting the Event Deck dims the other Event participants")
-	_check(scene.event_table.content_panel.visible and scene.campaign_participants.get_child_count() > 1 and not scene.discard_archive_overlay.visible, "Deck contents render inside the Event table instead of opening the gameplay archive modal")
-	scene.event_table.unfocus_npc()
+	_check(scene.deck_screen.visible and scene.deck_screen._cards.size() == 52 and not scene.discard_archive_overlay.visible, "Event Deck opens the shared full-screen browser with all physical cards")
+	scene.deck_screen.close()
 	await create_timer(EventTableController.TRANSITION_SECONDS + 0.05).timeout
 	_check(starter_left_overlay.visible and starter_right_overlay.visible, "Starter Event composes Đánh Giày at left and Cô Trà Đá at right from frame-registered overlays")
 	var starter_tea_selector := scene.event_table.get_node("TraDaAuntieSelect") as Button

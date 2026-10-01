@@ -49,6 +49,8 @@ var _scoring_layout: Array[Vector2] = []
 var _scoring_face: TextureRect
 var _scoring_fade: Tween
 var _scoring_shakes: Dictionary = {}
+var _rate_reset: Callable
+var _base_scoring_rate_vnd := 0
 var _stacked_gain := 0
 var _major_tweens: Array[Tween] = []
 var _major_nodes: Array[Node] = []
@@ -105,6 +107,12 @@ func wait_animation(seconds: float) -> void:
 func present_scoring(event: Dictionary) -> void:
 	_scoring_generation += 1
 	var generation := _scoring_generation
+	var rate_cue: Callable = event.get("rate_cue", Callable())
+	_base_scoring_rate_vnd = int(event.get("base_rate_vnd", 0))
+	_rate_reset = rate_cue
+	var cumulative_rate_bonus := 0
+	if rate_cue.is_valid():
+		rate_cue.call(_base_scoring_rate_vnd)
 	presentation_active = true
 	ceremony.visible = true
 	_reset_ceremony()
@@ -154,6 +162,9 @@ func present_scoring(event: Dictionary) -> void:
 			var relic_cue: Callable = event.get("relic_cue", Callable())
 			if relic_cue.is_valid():
 				relic_cue.call(String(hit.relic_id))
+			cumulative_rate_bonus += int(hit.get("rate_bonus_vnd", 0))
+			if rate_cue.is_valid():
+				rate_cue.call(_base_scoring_rate_vnd + cumulative_rate_bonus)
 		var replay := String(hit.get("kind", "")) == "meld_retrigger"
 		var card_trigger := String(hit.get("kind", "")) in ["card", "card_retrigger"]
 		var interval := 0.65 if relic_hit else scoring_hit_interval(triggered_cards)
@@ -177,6 +188,8 @@ func present_scoring(event: Dictionary) -> void:
 		var heading := String(event.get("title", ""))
 		if pass_number > 1:
 			heading += "  /  " + tr("SCORE_PASS") % pass_number
+		if relic_hit:
+			heading = tr("RELIC_RATE_TITLE") % [hit.label, int(hit.action_points)]
 		_set_label_text(title_label, heading, PresentationTheme.MUTED)
 		var cue := String(hit.get("label", ""))
 		if replay:
@@ -188,12 +201,21 @@ func present_scoring(event: Dictionary) -> void:
 		elif String(hit.get("kind", "")) == "modifier":
 			cue = tr("SCORE_ADJUSTMENT")
 		if relic_hit:
-			cue = tr("RELIC_BONUS_RECEIPT") % [hit.label, int(hit.points)]
+			var previous_rate := _base_scoring_rate_vnd + cumulative_rate_bonus - int(hit.rate_bonus_vnd)
+			cue = tr("RELIC_BONUS_RECEIPT") % [
+				VndWallet.format_amount(previous_rate),
+				VndWallet.format_amount(int(hit.rate_bonus_vnd)),
+				VndWallet.format_amount(_base_scoring_rate_vnd + cumulative_rate_bonus),
+			]
 		_set_label_text(line_a_label, cue if relic_hit or replay or not property_id.is_empty() else "", accent if relic_hit or replay or not property_id.is_empty() else Color("#f8edd0"))
 		var amount := int(hit.get("amount_vnd", 0))
 		running_wallet += amount
 		running_gain += amount
-		_set_label_text(line_b_label, VndWallet.format_vnd(amount, true) if not replay else "", accent)
+		line_b_label.add_theme_font_size_override("font_size", 21 if relic_hit else 27)
+		var payout_line := VndWallet.format_vnd(amount, true) if not replay else ""
+		if relic_hit:
+			payout_line = String(hit.label) + " · " + VndWallet.format_vnd(amount, true)
+		_set_label_text(line_b_label, payout_line, accent)
 		_set_label_text(payout_label, VndWallet.format_vnd(running_gain, true), PresentationTheme.TEA)
 		for label: Label in labels:
 			label.modulate = Color.WHITE
@@ -241,6 +263,9 @@ func _wait_scoring_tail(seconds: float, generation: int, scoring_beat: bool = fa
 
 
 func _restore_scoring_layout() -> void:
+	if _rate_reset.is_valid():
+		_rate_reset.call(_base_scoring_rate_vnd)
+	_rate_reset = Callable()
 	for card_id in _scoring_shakes.keys():
 		_finish_scoring_shake(card_id)
 	for tween: Tween in [_scoring_fade]:

@@ -102,10 +102,7 @@ func resolve(context: ScoringContext, meld_id: int) -> Array[Dictionary]:
 				matches = false
 		if not matches:
 			continue
-		var points := int(definition.points)
-		if definition.get("per_card", false):
-			points *= context.cards.size()
-		if definition.get("escalating", false):
-			points *= int(extension_counts[meld_id])
-		bonuses.append({"id": id, "name": definition.name, "points": points, "meld_id": meld_id})
+		var extension_count := int(extension_counts.get(meld_id, 1))
+		bonuses.append({"id": id, "name": definition.name,
+			"rate_percent": RelicCatalog.rate_bonus(id, context.cards.size(), extension_count), "meld_id": meld_id})
 	return bonuses

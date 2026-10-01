@@ -25,7 +25,7 @@ func _bonus(context: ScoringContext, id: String) -> int:
 	var total := 0
 	for bonus in context.relic_bonuses:
 		if bonus.id == id:
-			total += int(bonus.points)
+			total += int(bonus.rate_percent)
 	return total
 
 func _creation(id: String, count: int, kind: String = "set", suit: String = "Spades") -> ScoringContext:
@@ -137,10 +137,90 @@ func test_four_compatible_relics_stack_and_use_wallet_conversion() -> void:
 	var deal := _deal(["hair_clip", "buttons", "hard_candy", "sunflower_seeds"], cards)
 	var context: ScoringContext = deal.create_meld(cards).context
 	assert_eq(context.relic_bonuses.size(), 4)
-	var expected := context.final_points + 30 + 75 + 50 + 20
-	assert_eq(deal.phase_metrics.raw_gross, expected)
-	assert_eq(deal.wallet.balance_vnd, expected * deal.vnd_per_point)
+	var expected_rate := deal.vnd_per_point + VndWallet.percent_rate_bonus(deal.vnd_per_point, 30 + 75 + 50 + 20)
+	assert_eq(deal.phase_metrics.raw_gross, context.final_points)
+	assert_eq(deal.wallet.balance_vnd, context.final_points * expected_rate)
+	assert_eq(deal.current_deal_earnings_vnd(), deal.wallet.balance_vnd)
 	assert_eq(deal.get_meld(1).scored_points, ScoringPipeline.meld_value(cards))
+
+func test_relic_rate_scales_with_scoring_without_changing_points() -> void:
+	var plain_cards := _cards(3)
+	var powered_cards := _cards(3)
+	powered_cards[0].add_gieo_property(GieoQueService.PROPERTY_MELD_RETRIGGER)
+	var plain := _deal(["hair_clip"], plain_cards)
+	var powered := _deal(["hair_clip"], powered_cards)
+	var plain_context: ScoringContext = plain.create_meld(plain_cards).context
+	var powered_context: ScoringContext = powered.create_meld(powered_cards).context
+	assert_true(powered_context.final_points > plain_context.final_points)
+	assert_eq(plain_context.relic_bonuses.size(), 1)
+	assert_eq(powered_context.relic_bonuses.size(), 1)
+	assert_eq(plain_context.relic_bonuses[0].rate_bonus_vnd, 300)
+	assert_eq(powered_context.relic_bonuses[0].amount_vnd, powered_context.final_points * 300)
+	assert_true(powered_context.relic_bonuses[0].amount_vnd > plain_context.relic_bonuses[0].amount_vnd)
+	assert_eq(powered.phase_metrics.raw_gross, powered_context.final_points)
+	assert_eq(powered.wallet.journal[-1].reason, "relic:hair_clip")
+
+func test_relic_rate_uses_base_rate_and_expires_after_action() -> void:
+	var set_cards := _cards(3)
+	var deal := _deal(["hair_clip"], set_cards)
+	deal.vnd_per_point = 2500
+	var context: ScoringContext = deal.create_meld(set_cards).context
+	assert_eq(context.relic_bonuses[0].rate_bonus_vnd, 750)
+	assert_eq(context.relic_bonuses[0].amount_vnd, context.final_points * 750)
+	var before := deal.wallet.balance_vnd
+	deal.vnd_per_point = 4000
+	var run_cards := _cards(3, "run", "Hearts")
+	deal.hand.assign(run_cards + [CardData.new("next_spare", "K", 13, "Clubs", 13)])
+	var next: ScoringContext = deal.create_meld(run_cards).context
+	assert_true(next.relic_bonuses.is_empty())
+	assert_eq(deal.wallet.balance_vnd - before, next.final_points * 4000)
+	assert_eq(deal.vnd_per_point, 4000)
+	assert_eq(deal.current_deal_earnings_vnd(), deal.wallet.balance_vnd)
+	var earned_before_u := deal.current_deal_earnings_vnd()
+	deal._turn_started_with_ten = true
+	deal._turn_committed_card_count = 9
+	deal.hand.assign([CardData.new("rate_u_spare", "K", 13, "Clubs", 13)])
+	deal.discard_count = DealState.DISCARDS_PER_PHASE - 1
+	assert_true(deal.discard_card(deal.hand[0]).u_triggered)
+	assert_eq(deal.wallet.balance_vnd, earned_before_u * 2)
+
+func test_u_doubles_committed_relic_vnd_and_resume_keeps_rate_totals() -> void:
+	var cards := _cards(3)
+	var deal := _deal(["hair_clip"], cards)
+	deal.create_meld(cards)
+	var earned_before := deal.current_deal_earnings_vnd()
+	var snapshot := deal.snapshot_state()
+	var restored := DealState.new()
+	restored.restore_snapshot(snapshot)
+	assert_eq(restored.current_deal_earnings_vnd(), earned_before)
+	assert_eq(restored.phase_relic_rate_vnd, deal.phase_relic_rate_vnd)
+	assert_eq(restored.deal_relic_rate_vnd, deal.deal_relic_rate_vnd)
+	restored._turn_started_with_ten = true
+	restored._turn_committed_card_count = 9
+	restored.hand.assign([CardData.new("u_spare", "K", 13, "Clubs", 13)])
+	restored.discard_count = DealState.DISCARDS_PER_PHASE - 1
+	assert_true(restored.discard_card(restored.hand[0]).u_triggered)
+	assert_eq(restored.current_deal_earnings_vnd(), earned_before * 2)
+	assert_eq(restored.wallet.balance_vnd, earned_before * 2)
+	assert_eq(restored.wallet.journal[-1].reason, "u_bonus")
+	var later_cards := _cards(3, "set", "Hearts")
+	restored.hand.assign(later_cards + [CardData.new("later_spare", "K", 13, "Clubs", 13)])
+	var later_context: ScoringContext = restored.create_meld(later_cards).context
+	var later_vnd := later_context.final_points * restored.vnd_per_point + int(later_context.relic_bonuses[0].amount_vnd)
+	assert_eq(restored.wallet.balance_vnd, earned_before * 2 + later_vnd)
+	restored.state = DealState.STATE_FINAL_COMMIT_WINDOW
+	restored.hand.clear()
+	var resolution: Dictionary = restored.settle_phase().phase_resolution
+	assert_eq(resolution.net_vnd, restored.wallet.balance_vnd)
+	assert_eq(restored.accounting_report().phases[0].net_vnd, resolution.net_vnd)
+	var legacy := snapshot.duplicate(true)
+	legacy.erase("phase_relic_rate_vnd")
+	legacy.erase("deal_relic_rate_vnd")
+	legacy.erase("phase_earnings_vnd")
+	legacy.erase("deal_earnings_vnd")
+	var old_save := DealState.new()
+	old_save.restore_snapshot(legacy)
+	assert_eq(old_save.current_deal_earnings_vnd(), VndWallet.points_to_vnd(old_save.current_deal_earnings_points(), old_save.vnd_per_point))
 
 func test_relics_leave_intrinsic_delta_and_all_passes_unchanged() -> void:
 	var cards := _cards(4)

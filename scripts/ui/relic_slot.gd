@@ -40,7 +40,6 @@ func trigger() -> void:
 	if pulse != null and pulse.is_valid():
 		pulse.kill()
 	outline.set_drink_cue(true)
-	modulate = Color(1.3, 1.2, 1.0)
 	pulse = create_tween()
-	pulse.tween_property(self, "modulate", Color.WHITE, 0.6)
+	pulse.tween_interval(0.6)
 	pulse.tween_callback(outline.set_drink_cue.bind(false))

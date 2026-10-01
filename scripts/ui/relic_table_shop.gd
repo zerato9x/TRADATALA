@@ -12,7 +12,7 @@ var _tiles: Dictionary = {}
 func configure(value: RelicRuntime, service: RelicShop) -> void:
 	runtime = value
 	shop = service
-	add_theme_constant_override("separation", 12)
+	add_theme_constant_override("separation", 9)
 	shop.changed.connect(_queue_refresh)
 	runtime.inventory_changed.connect(_queue_refresh)
 	_refresh()
@@ -39,17 +39,16 @@ func _refresh() -> void:
 	for id in shop.offers:
 		var tile := Button.new()
 		tile.name = "Inspect_" + id
-		tile.custom_minimum_size = Vector2(208, 174)
-		tile.flat = true
+		tile.custom_minimum_size = Vector2(208, 176)
 		tile.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+		tile.tooltip_text = RelicCatalog.effect(id)
 		_objects.add_child(tile)
 		_tiles[id] = tile
 		var icon := TextureRect.new()
 		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		icon.texture = load(RelicCatalog.icon_path(id))
-		icon.position = Vector2(44, 2)
-		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		icon.size = Vector2(120, 112)
+		icon.position = Vector2(47, 1)
+		icon.size = Vector2(114, 103)
 		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		icon.pivot_offset = icon.size * 0.5
@@ -58,15 +57,19 @@ func _refresh() -> void:
 		var tag := RichTextLabel.new()
 		tag.bbcode_enabled = true
 		tag.scroll_active = false
-		tag.position = Vector2(0, 118)
-		tag.size = Vector2(208, 54)
-		tag.text = "[center]" + str(RelicCatalog.DEFINITIONS[id].name) + "\n" + PresentationTheme.emphasis(VndWallet.format_vnd(-shop.price()), &"cost") + "[/center]"
-		PresentationTheme.style_text(tag, &"body", 18)
-		tag.add_theme_stylebox_override("normal", PresentationTheme.panel_style(PresentationTheme.PANEL))
+		tag.position = Vector2(0, 104)
+		tag.size = Vector2(208, 70)
+		tag.text = "[center]" + str(RelicCatalog.DEFINITIONS[id].name) + "\n[color=#f5bf42]" + _offer_rate_text(id) + "[/color]\n" + PresentationTheme.emphasis(VndWallet.format_vnd(-shop.price()), &"cost") + "[/center]"
+		PresentationTheme.style_text(tag, &"body", 16)
+		tag.add_theme_stylebox_override("normal", PresentationTheme.panel_style(Color("#111923e8")))
 		tag.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		tile.add_child(tag)
-		tile.pressed.connect(func(): selected = id; _inspect())
-		tile.mouse_entered.connect(func(): icon.create_tween().tween_property(icon, "scale", Vector2(1.12, 1.12), 0.14))
+		tile.pressed.connect(_select_offer.bind(id))
+		tile.mouse_entered.connect(func():
+			_select_offer(id)
+			icon.create_tween().tween_property(icon, "scale", Vector2(1.12, 1.12), 0.14)
+		)
+		tile.focus_entered.connect(_select_offer.bind(id))
 		tile.mouse_exited.connect(func(): icon.create_tween().tween_property(icon, "scale", Vector2.ONE, 0.14))
 	_detail = RichTextLabel.new()
 	_detail.bbcode_enabled = true
@@ -115,6 +118,19 @@ func _refresh() -> void:
 		inventory.add_child(equip)
 	_inspect()
 
+func _offer_rate_text(id: String) -> String:
+	var definition: Dictionary = RelicCatalog.DEFINITIONS[id]
+	var amount := int(definition.percent)
+	if definition.get("per_card", false):
+		return GameGlossary.words("+%d%% × CARD", "+%d%% × LÁ") % amount
+	if definition.get("escalating", false):
+		return GameGlossary.words("+%d%% × EXTEND", "+%d%% × NỐI") % amount
+	return "+%d%% VNĐ/PTS" % amount
+
+func _select_offer(id: String) -> void:
+	selected = id
+	_inspect()
+
 func _inspect() -> void:
 	var valid := shop.offers.has(selected)
 	_buy.disabled = not valid or shop.wallet.balance_vnd < shop.price()
@@ -125,7 +141,11 @@ func _inspect() -> void:
 	_detail.text += "\n" + GameGlossary.words("EQUIPPED %d / 4 · ", "ĐANG DÙNG %d / 4 · ") % runtime.equipped.size() + (GameGlossary.words("Purchase equips automatically.", "Mua tự trang bị vào ô trống.") if runtime.equipped.size() < 4 else GameGlossary.words("Full: purchase goes to inventory. Remove a relic to equip it.", "Đầy: mua vào bộ sưu tập. Tháo một món để trang bị."))
 	_detail.text = ActionVocabulary.colorize(_detail.text)
 	for id: String in _tiles:
-		_tiles[id].modulate = Color.WHITE if id == selected or not valid else Color(0.7, 0.7, 0.7)
+		var tile: Button = _tiles[id]
+		var active := valid and id == selected
+		tile.add_theme_stylebox_override("normal", PresentationTheme.panel_style(Color("#192333e8"), PresentationTheme.GOLD if active else PresentationTheme.GOLD_DARK, 2 if active else 1, 5))
+		tile.add_theme_stylebox_override("hover", PresentationTheme.panel_style(Color("#263954f2"), PresentationTheme.GOLD, 2, 5))
+		tile.add_theme_stylebox_override("pressed", PresentationTheme.panel_style(Color("#354b62f2"), PresentationTheme.GOLD, 2, 5))
 
 func _purchase() -> void:
 	if not shop.offers.has(selected):

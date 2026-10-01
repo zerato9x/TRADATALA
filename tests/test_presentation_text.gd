@@ -15,9 +15,9 @@ func test_bilingual_csv_has_exactly_three_columns() -> void:
 func test_fortune_teller_greeting_uses_selected_language() -> void:
 	var previous := TranslationServer.get_locale()
 	TranslationServer.set_locale("en")
-	assert_true(TranslationServer.translate("NPC_GREETING_THAY_BOI").begins_with("Pull the lever"))
+	assert_true(TranslationServer.translate("NPC_GREETING_THAY_BOI").begins_with("Want to try a reading?"))
 	TranslationServer.set_locale("vi")
-	assert_true(TranslationServer.translate("NPC_GREETING_THAY_BOI").begins_with("Kéo cần trước,"))
+	assert_true(TranslationServer.translate("NPC_GREETING_THAY_BOI").begins_with("Muốn thử một quẻ không?"))
 	TranslationServer.set_locale(previous)
 
 func test_money_emphasis_preserves_signs_and_prose() -> void:

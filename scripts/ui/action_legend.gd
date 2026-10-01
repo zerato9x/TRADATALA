@@ -5,6 +5,12 @@ func _ready() -> void:
 	%Close.pressed.connect(func() -> void: %Shade.visible = false)
 	%Toggle.tooltip_text = tr("VERB_LEGEND_TITLE")
 
+func _process(_delta: float) -> void:
+	var menu: Control = get_parent().get("menu_layer")
+	if menu == null: return
+	%Toggle.visible = not menu.visible
+	if menu.visible and %Shade.visible: %Shade.visible = false
+
 func _toggle() -> void:
 	%Shade.visible = not %Shade.visible
 	%Title.text = tr("VERB_LEGEND_TITLE")

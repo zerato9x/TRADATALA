@@ -1,6 +1,8 @@
 class_name PhaseSettlement
 extends RefCounted
 
+const UNSET_VND := -9223372036854775807
+
 var phase: int = 1
 var raw_gross: int = 0
 var gross_after_u: int = 0
@@ -9,6 +11,8 @@ var deadwood_multiplier: int = 1
 var deadwood: int = 0
 var turn_deadwood: int = 0
 var net: int = 0
+var net_vnd: int = UNSET_VND
+var relic_rate_vnd: int = 0
 var new_phom_count: int = 0
 var extension_count: int = 0
 var mom: bool = false
@@ -29,6 +33,8 @@ func to_dictionary() -> Dictionary:
 		"deadwood_points": deadwood,
 		"turn_deadwood": turn_deadwood,
 		"net": net,
+		"net_vnd": net_vnd,
+		"relic_rate_vnd": relic_rate_vnd,
 		"new_phom_count": new_phom_count,
 		"extension_count": extension_count,
 		"mom": mom,

@@ -81,6 +81,9 @@ var money_label: Label
 var money_row: HBoxContainer
 var participants_container: VBoxContainer
 var continue_button: Button
+var continue_hint: Label
+var _required_npc_id := ""
+var _required_reason := ""
 var back_button: Button
 var content_panel: PanelContainer
 var conversation: NpcConversation
@@ -129,6 +132,14 @@ func _ready() -> void:
 	menu_button.pressed.connect(func(): menu_requested.emit())
 	add_child(menu_button)
 	visible = false
+
+func _process(_delta: float) -> void:
+	if continue_hint != null:
+		continue_hint.visible = visible and continue_button.visible and continue_button.disabled and not _required_reason.is_empty()
+	if not _required_npc_id.is_empty() and _npc_layers.has(_required_npc_id):
+		var marker := _npc_layers[_required_npc_id]["name_tag"] as Label
+		marker.visible = visible and table_state == TABLE_STATE_EVENT and focused_npc_id.is_empty() and not deck_focused
+		marker.modulate.a = 0.8 + 0.2 * sin(Time.get_ticks_msec() * 0.006)
 
 
 func configure_deal_nodes(nodes: Array[Control]) -> void:
@@ -206,8 +217,30 @@ func enter_deal() -> void:
 	_transition.chain().tween_callback(_finish_event_exit)
 
 
-func set_continue_enabled(enabled: bool) -> void:
+func set_continue_enabled(enabled: bool, reason: String = "", required_npc_id: String = "") -> void:
+	var previous_reason := _required_reason
 	continue_button.disabled = not enabled
+	_required_reason = reason if not enabled else ""
+	_required_npc_id = required_npc_id if not enabled else ""
+	continue_button.tooltip_text = _required_reason
+	continue_hint.text = _required_reason
+	if not _required_reason.is_empty() and _required_reason != previous_reason:
+		continue_hint.pivot_offset = continue_hint.size * 0.5
+		continue_hint.modulate.a = 0.0
+		continue_hint.scale = Vector2(0.96, 0.96)
+		var pop := create_tween().set_parallel(true)
+		pop.tween_property(continue_hint, "modulate:a", 1.0, 0.2)
+		pop.tween_property(continue_hint, "scale", Vector2.ONE, 0.25).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	for npc_id in _npc_layers:
+		var npc_layer: Dictionary = _npc_layers[npc_id]
+		(npc_layer["button"] as Button).tooltip_text = npc_display_name(String(npc_id))
+		(npc_layer["name_tag"] as Label).text = npc_display_name(String(npc_id))
+		if focused_npc_id.is_empty():
+			(npc_layer["name_tag"] as Label).visible = false
+	if not _required_npc_id.is_empty() and _npc_layers.has(_required_npc_id):
+		var layer: Dictionary = _npc_layers[_required_npc_id]
+		(layer["button"] as Button).tooltip_text = _required_reason
+		(layer["name_tag"] as Label).text = "↓ " + npc_display_name(_required_npc_id)
 
 
 func refresh_localized_ui() -> void:
@@ -455,7 +488,7 @@ func _build_content() -> void:
 	content_panel.size = Vector2(580, 360)
 	content_panel.visible = false
 	content_panel.mouse_filter = Control.MOUSE_FILTER_STOP
-	var style := PresentationTheme.panel_style(Color("#19130ff0"), Color("#8d5b30"), 2, 2, 4)
+	var style := PresentationTheme.panel_style(Color("#102338c8"), Color("#8d5b30"), 1, 3, 3)
 	style.content_margin_left = 22
 	style.content_margin_top = 18
 	style.content_margin_right = 22
@@ -493,7 +526,22 @@ func _build_continue() -> void:
 	continue_button.size = Vector2(240, 54)
 	continue_button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	continue_button.set_meta("match_binding", "campaign_continue_button")
+	PresentationTheme.configure_button(continue_button, "gold")
 	add_child(continue_button)
+	continue_hint = Label.new()
+	continue_hint.name = "ContinueRequirement"
+	continue_hint.position = Vector2(370, 606)
+	continue_hint.size = Vector2(540, 30)
+	continue_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	continue_hint.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	continue_hint.add_theme_font_size_override("font_size", 16)
+	continue_hint.add_theme_color_override("font_color", PresentationTheme.WARNING)
+	continue_hint.add_theme_color_override("font_shadow_color", Color.BLACK)
+	continue_hint.add_theme_constant_override("shadow_offset_x", 1)
+	continue_hint.add_theme_constant_override("shadow_offset_y", 2)
+	continue_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	continue_hint.visible = false
+	add_child(continue_hint)
 
 
 func _build_event_deck() -> void:
@@ -566,6 +614,8 @@ func _build_npc_layers() -> void:
 		sprite.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		sprite.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		sprite.material = ShaderMaterial.new()
+		(sprite.material as ShaderMaterial).shader = preload("res://shaders/npc_focus.gdshader")
 		sprite.visible = false
 		add_child(sprite)
 		move_child(sprite, 2)
@@ -576,6 +626,7 @@ func _build_npc_layers() -> void:
 		button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 		button.position = _slot_hit_rect(slot).position
 		button.size = _slot_hit_rect(slot).size
+		button.tooltip_text = npc_display_name(npc_id)
 		button.visible = false
 		button.pressed.connect(focus_npc.bind(npc_id))
 		add_child(button)

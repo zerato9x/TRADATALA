@@ -377,11 +377,11 @@ DRINK_TEST_PRICE,Thử món: miễn phí (tạm thời),Tasting: free (temporary
 DRINK_EXPLAIN,%s à? %s,%s? %s
 DRINK_RECEIPT,%s của cháu đây. Cứ thong thả chơi nhé. Muốn đổi món thì ghé cô buổi sau.,Here’s your %s. Take your time at the table. Come back next service to try something else.
 DRINK_CONFIRM_HINT,Chọn bài rồi bấm DÙNG NƯỚC để xác nhận. Esc để hủy.,"Choose cards, then click the glass again to confirm. Esc cancels."
-NPC_GREETING_TRA_DA_AUNTIE,"Ngồi xuống đi cháu. Thích ly nào cứ chỉ, cô kể cho nghe rồi hãy chọn.",Have a seat. Point to any drink and I’ll tell you what it does before you choose.
-NPC_GREETING_DANH_GIAY,"Đưa bộ bài đây chú, em lấy ngẫu nhiên hai lá đánh bóng cho!","Hand me the deck. I will pick two random cards to polish for you!"
-NPC_GREETING_HANG_RONG,"Thử vài món nhé. Mang tối đa bốn bảo vật, thích đổi thì tháo ra trước.","Try a few things. Carry up to four relics; remove one before choosing another."
-NPC_GREETING_LOTTO,"Vé hôm nay đây chú. Thích số nào thì lấy tờ đó, chiều nay mình dò!","Here are today’s tickets. Pick one you like and we’ll check it this afternoon!"
-NPC_GREETING_THAY_BOI,"Kéo cần trước, xem hiệu ứng và mục tiêu rồi hãy nhận.","Pull the lever first. Read the effect and target before accepting."
+NPC_GREETING_TRA_DA_AUNTIE,"Ngồi đi cháu. Hôm nay muốn uống gì? Cứ chỉ, cô kể từng món cho nghe.","Sit down, dear. What would you like today? Point to a drink and I'll tell you about it."
+NPC_GREETING_DANH_GIAY,"Bài đi đường cả ngày cũng bụi chứ bộ. Để em đánh bóng hai lá cho; em bốc ngẫu nhiên nhé!","Your cards get dusty on the road too. Let me polish two for you; I'll draw them at random!"
+NPC_GREETING_HANG_RONG,"Mới gánh đến, còn mấy món hay lắm. Cứ xem thoải mái, ưng gì thì bảo tôi.","Just got here with a few good things. Have a look; tell me if anything catches your eye."
+NPC_GREETING_LOTTO,"Có vé mới đây! Chọn một tờ lấy hên đi, chiều quay lại tôi dò cùng.","Fresh tickets! Pick one for luck and come back this afternoon. We'll check it together."
+NPC_GREETING_THAY_BOI,"Muốn thử một quẻ không? Kéo cần đi. Tôi sẽ nói rõ quẻ đổi gì trước khi cháu nhận.","Want to try a reading? Pull the lever. I'll tell you what it changes before you accept."
 DRINK_EFFECT_TRA_DA,Miễn phí. Mỗi lượt có thể bỏ thêm một lá sau lá bắt buộc. Bấm Kết lượt nếu không muốn dùng.,"Free. After each mandatory discard, you may discard one extra card. Choose End Turn to skip the extra discard."
 DRINK_EFFECT_NHAN_TRAN,"Mỗi lượt đổi một lá rác trên tay với một lá bỏ bắt buộc của hiệp này. Last Call dùng lượt còn lại, không thêm lượt.","Once per Turn, swap a loose card with a mandatory discard from this Phase. Last Call shares your final Turn’s unused charge."
 DRINK_EFFECT_NUOC_VOI,"Mỗi hiệp lấy lại một lá từ Phỏm, miễn phần còn lại vẫn hợp lệ và có ít nhất ba lá. Tiền đã ăn vẫn giữ.","Once per Phase, take one card back from a Meld if at least three cards remain legal. Your earned score stays banked."
@@ -394,12 +394,12 @@ DRINK_EFFECT_BO_HUC,Mỗi lượt hạ được một đôi đồng hạng thàn
 DRINK_EFFECT_C2_ICED_TEA,"Mỗi ván tạo một Dây không cần đồng chất: ít nhất ba hạng liền nhau, Át thấp, không vòng. Dây đó gửi thêm khác chất được cả ván.","Once per Deal, create a Run ignoring suit: at least three unique consecutive ranks, Ace low, no wrap. That Run keeps accepting off-suit endpoints for the rest of the Deal."
 DRINK_EFFECT_MIA_TAC,"Dây được trộn Cơ với Rô, kể cả khi gửi. Hạng vẫn liền nhau, Át thấp, không vòng. Không trộn hai chất đen.","Runs may mix Hearts and Diamonds, including extensions. Ranks stay unique and consecutive, Ace low, no wrap. Black suits gain no compatibility."
 DRINK_EFFECT_MIA_SAU_RIENG,"Dây được trộn Bích với Tép, kể cả khi gửi. Hạng vẫn liền nhau, Át thấp, không vòng. Không trộn hai chất đỏ.","Runs may mix Spades and Clubs, including extensions. Ranks stay unique and consecutive, Ace low, no wrap. Red suits gain no compatibility."
-NPC_ASK_BUSINESS,Hôm nay thế nào?,How is business?
+NPC_ASK_BUSINESS,Hôm nay có gì vui?,How's your day going?
 NPC_LEAVE,Tạm biệt nhé.,I'll let you work.
-NPC_CHAT_DANH_GIAY,Sáng giờ ai cũng đi vội hết á. Em đang để dành tiền mua quả bóng mới. Anh chị biết đá bóng không?,Everyone keeps rushing past! I’m saving up for a new football. Do you play?
-NPC_CHAT_HANG_RONG,Sáng gánh đi đầy cả hai đầu. Chiều nhẹ vai là mừng rồi.,I carry a full load out each morning. A lighter load home is a good day.
-NPC_CHAT_LOTTO,Người trúng thì kể cả tuần. Người trượt thì bảo mai sẽ khác.,A winner tells the story all week. Everyone else says tomorrow will be different.
-NPC_CHAT_THAY_BOI,Quẻ chỉ là lời gợi. Bài nằm trong tay cháu thì cháu tự quyết.,A reading is only a suggestion. The cards are in your hands; the choice is yours.
+NPC_CHAT_DANH_GIAY,"Sáng nay em suýt bắt trượt quả bóng xuống mương. May còn đôi giày này để chạy theo!","I nearly lost my ball down the drain this morning. Good thing these shoes can still run!"
+NPC_CHAT_HANG_RONG,"Sáng gánh đi nặng trĩu. Chiều mà nhẹ vai thì tôi về sớm ăn cơm với nhà.","The baskets were heavy this morning. If they're lighter by evening, I might get home for dinner."
+NPC_CHAT_LOTTO,"Có ông khách mua đúng một tờ mỗi tuần. Ổng bảo thích cái lúc mở vé hơn cả chuyện trúng.","One regular buys a single ticket every week. Says he likes the moment before checking it best."
+NPC_CHAT_THAY_BOI,"Tôi xem quẻ cho người ta bao năm rồi. Có lúc điều họ cần nhất chỉ là ngồi nghĩ thêm một chút.","I've read fortunes for years. Sometimes people just need a moment to think before they choose."
 DRINK_TARGET_ANY_DISCARD,"Kéo lá trên tay vào lá bỏ để đổi. Hoặc chọn một lá rồi nhấn cốc.","Drop a hand card onto a discard to swap. Or select a card and click the cup."
 DRINK_TARGET_WHOLE_MELD,"Kéo phỏm về tay hoặc kéo cốc vào phỏm.","Drag a meld back to your hand, or drop the cup onto it."
 DRINK_TARGET_PAIR,"Chọn hai lá đồng hạng: tự hạ. Hoặc kéo cả đôi ra bàn / vào cốc.","Choose two matching cards to lay the pair. Or drag the pair to the table / cup."
@@ -488,21 +488,22 @@ SHOE_CHOOSE,"Em đánh bóng 2 lá ngẫu nhiên nhé!","Two random cards, fresh
 "LOTTO_PAID","Đã trả thưởng: %s","Paid to wallet: %s"
 SHOE_RANDOM_READY,"Hai lá được lấy ngẫu nhiên từ bộ bài sau khi trả tiền.","Two cards are picked randomly from your deck after payment."
 SHOE_RANDOM_DONE,"Hai lá này đã sạch bóng cho hôm nay.","These two cards are polished for today."
-RELIC_EFFECT_HAIR_CLIP,"SET mới: +%d điểm.","New SET: +%d Points."
-RELIC_EFFECT_COMB,"RUN mới: +%d điểm mỗi lá.","New RUN: +%d Points per card."
-RELIC_EFFECT_RUBBER_BAND,"Mỗi lần nối Phỏm: +%d điểm.","Each Extension action: +%d Points."
-RELIC_EFFECT_CHEWING_GUM,"Nối cùng Phỏm trong pha: +%d × lần nối điểm.","Same meld this Phase: +%d Points × Extension number."
-RELIC_EFFECT_SUNFLOWER_SEEDS,"Phỏm mới: +%d điểm mỗi lá.","New meld: +%d Points per card."
-RELIC_EFFECT_TOOTHPICKS,"Phỏm mới đúng 3 lá: +%d điểm.","New meld with exactly 3 cards: +%d Points."
-RELIC_EFFECT_HARD_CANDY,"Phỏm mới từ 4 lá: +%d điểm.","New meld with 4+ cards: +%d Points."
-RELIC_EFFECT_SUNGLASSES,"Phỏm mới toàn lá đen: +%d điểm.","New all-black meld: +%d Points."
-RELIC_EFFECT_LIPSTICK,"Phỏm mới toàn lá đỏ: +%d điểm.","New all-red meld: +%d Points."
-RELIC_EFFECT_BUTTONS,"SET mới đúng 4 lá: +%d điểm.","New SET with exactly 4 cards: +%d Points."
+RELIC_EFFECT_HAIR_CLIP,"SET mới: +%d%% VNĐ/PTS cho lần hạ này.","New SET: +%d%% VNĐ/PTS for this action."
+RELIC_EFFECT_COMB,"RUN mới: +%d%% VNĐ/PTS mỗi lá cho lần hạ này.","New RUN: +%d%% VNĐ/PTS per card for this action."
+RELIC_EFFECT_RUBBER_BAND,"Mỗi lần nối Phỏm: +%d%% VNĐ/PTS cho lần nối này.","Each Extension: +%d%% VNĐ/PTS for this action."
+RELIC_EFFECT_CHEWING_GUM,"Nối cùng Phỏm trong pha: +%d%% VNĐ/PTS × số lần nối cho lần này.","Same meld this Phase: +%d%% VNĐ/PTS × Extension number for this action."
+RELIC_EFFECT_SUNFLOWER_SEEDS,"Phỏm mới: +%d%% VNĐ/PTS mỗi lá cho lần hạ này.","New meld: +%d%% VNĐ/PTS per card for this action."
+RELIC_EFFECT_TOOTHPICKS,"Phỏm mới đúng 3 lá: +%d%% VNĐ/PTS cho lần hạ này.","New meld with exactly 3 cards: +%d%% VNĐ/PTS for this action."
+RELIC_EFFECT_HARD_CANDY,"Phỏm mới từ 4 lá: +%d%% VNĐ/PTS cho lần hạ này.","New meld with 4+ cards: +%d%% VNĐ/PTS for this action."
+RELIC_EFFECT_SUNGLASSES,"Phỏm mới toàn lá đen: +%d%% VNĐ/PTS cho lần hạ này.","New all-black meld: +%d%% VNĐ/PTS for this action."
+RELIC_EFFECT_LIPSTICK,"Phỏm mới toàn lá đỏ: +%d%% VNĐ/PTS cho lần hạ này.","New all-red meld: +%d%% VNĐ/PTS for this action."
+RELIC_EFFECT_BUTTONS,"SET mới đúng 4 lá: +%d%% VNĐ/PTS cho lần hạ này.","New SET with exactly 4 cards: +%d%% VNĐ/PTS for this action."
 RELIC_SELECTOR_NOTE,"Mua di vật cho chuyến đi • mang tối đa 4 món.","Buy relics for this run • carry up to 4."
 RELIC_REMOVE,"Tháo","Remove"
 RELIC_EQUIP,"Mang","Equip"
 RELIC_FULL,"Tháo một bảo vật trước.","Remove a relic first."
-RELIC_BONUS_RECEIPT,"%s  +%d điểm","%s  +%d Points"
+RELIC_RATE_TITLE,"%s · %d ĐIỂM","%s · %d POINTS"
+RELIC_BONUS_RECEIPT,"%s + %s = %s VNĐ/PTS","%s + %s = %s VNĐ/PTS"
 
 DRINK_UNLOCKED,"ĐÃ MỞ KHÓA","UNLOCKED"
 DRINK_GOAL_MELDS,"Hạ 5 phỏm","Create 5 melds"
@@ -518,8 +519,8 @@ DRINK_GOAL_RED_RUNS,"Hạ 15 sảnh đỏ","Create 15 red runs"
 DRINK_GOAL_BLACK_RUNS,"Hạ 15 sảnh đen","Create 15 black runs"
 
 NPC_DOI_NO,"ĐÒI NỢ","ĐÒI NỢ"
-NPC_GREETING_DOI_NO,"Nợ hôm nay ghi trong sổ. Tối anh quay lại thu.","Today’s debt is in the ledger. I return tonight to collect."
-NPC_CHAT_DOI_NO,"Kiếm đủ tiền rồi gặp anh tối nay.","Earn enough and meet me tonight."
+NPC_GREETING_DOI_NO,"Anh ghi khoản hôm nay vào sổ rồi. Tối anh ghé lại, mình tính cho xong nhé.","I've put today's amount in the ledger. I'll come by tonight and we'll settle it."
+NPC_CHAT_DOI_NO,"Cứ lo ván bài của em đi. Tối gặp lại, anh mang sổ theo.","Take care of your game. I'll bring the ledger when I return tonight."
 
 DEBT_INTRO_REQUIRED,"NỢ PHẢI TRẢ TỐI NAY","DUE AFTER THE EVENING DEAL"
 DEBT_INTRO_ACKNOWLEDGE,"ĐÃ HIỂU · HẸN ANH TỐI NAY","UNDERSTOOD · SEE YOU TONIGHT"

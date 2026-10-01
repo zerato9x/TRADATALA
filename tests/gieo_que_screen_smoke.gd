@@ -74,6 +74,8 @@ func _run() -> void:
 	_check(service.state == GieoQueService.STATE_READY, "hidden screen cannot cast with keyboard")
 	panel.show()
 	# Every effect and targeting composition, including both jackpots.
+	var picker_captured := false
+	var selected_through_deck := false
 	for bits in range(64):
 		service.reset_campaign()
 		var lines: Array[String] = []
@@ -87,7 +89,21 @@ func _run() -> void:
 			await panel._on_destination_pressed("K" if rank else "Hearts")
 		if service.state == GieoQueService.STATE_TARGET_SELECTION:
 			var cards: Array[CardData] = service.resolved_targets if not service.resolved_targets.is_empty() else service.persistent_deck
-			await panel._on_target_pressed(cards[0].unique_id)
+			await process_frame
+			_check(scene.deck_screen.visible and scene.deck_screen._cards.size() == 52, "composition %d offers shared deck with full inspection" % bits)
+			_check(scene.deck_screen._purpose.text.contains(tr(service.effect_label_key())), "composition %d repeats rolled effect while choosing" % bits)
+			if not picker_captured and DisplayServer.get_name() != "headless":
+				picker_captured = true
+				await _capture("deck_choice")
+			if not selected_through_deck:
+				selected_through_deck = true
+				scene.deck_screen._inspect(cards[0])
+				scene.deck_screen._choose()
+				await _wait_idle(panel)
+				_check(not scene.deck_screen.visible, "shared deck closes after committing a card")
+			else:
+				scene.deck_screen.close()
+				await panel._on_target_pressed(cards[0].unique_id)
 		_check(service.state == GieoQueService.STATE_COMPLETE and not panel.is_interaction_locked(), "composition %d completes and unlocks" % bits)
 		_check(not scene.event_table.back_button.disabled, "composition %d releases campaign Back" % bits)
 		_check(service.last_transformations.size() >= 1 and service.persistent_deck.size() == 52, "composition %d preserves physical deck" % bits)

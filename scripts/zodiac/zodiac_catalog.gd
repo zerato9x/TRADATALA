@@ -7,11 +7,11 @@ const DEFINITIONS := {
 	"rooster": {"thresholds": [1, 2], "deadlines": {"PLEASED": 3, "NEUTRAL": 2, "UNPLEASED": 1},
 		"favorites": ["toothpicks", "sunflower_seeds"], "favorite_tags": ["practical"],
 		"unlock": {"requests_resolved": 4, "requests_refused_successfully": 1, "pleased_victories": 1},
-		"sprite": "res://assets/environment/npcs/danhgiay.png", "emblem": {"id": "rooster", "extensions": {}}},
+		"sprite": "res://assets/zodiacboss/rooster.png", "emblem": {"id": "rooster", "extensions": {}}},
 	"cat": {"thresholds": [1, 2], "locks": {"PLEASED": 1, "NEUTRAL": 2, "UNPLEASED": 3},
 		"favorites": ["hair_clip", "sunglasses"], "favorite_tags": ["adornment"],
 		"unlock": {"requests_resolved": 4, "restraint_kept": 1, "pleased_victories": 1},
-		"sprite": "res://assets/environment/npcs/hangrong.png", "emblem": {"id": "cat", "extensions": {}}},
+		"sprite": "res://assets/zodiacboss/cat.png", "emblem": {"id": "cat", "extensions": {}}},
 }
 
 static func words(en: String, vi: String) -> String:

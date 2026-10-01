@@ -1,5 +1,7 @@
 > Updated 2026-09-18: acquisition now uses wallet-priced purchases; see [Resolve accounting](RESOLVE_ACCOUNTING.md). Historical free-selector notes below describe the original implementation.
 
+> Updated 2026-09-30: the fixed point rewards in the historical table below are replaced by action-only VNĐ/point boosts. The same numeric values are percentages: 30% for Kẹp Tóc, 8% per card for Lược, 20% for Dây Thun, 10% times that meld's extension count for Kẹo Cao Su, 5% per card for Hạt Hướng Dương, 20% for Que Tăm, 50% for Kẹo Cứng, 40% for Kính Râm and Son Môi, and 75% for Cúc Áo. Each boost applies once to all committed points in its qualifying action, including retriggers. Boosts add together; they do not change intrinsic points or the base rate of later actions. Each extra VNĐ amount is journaled under `relic:<id>`, counted in deal/phase earnings, and doubled by Ù if earned before its trigger.
+
 # First relic set — implemented 2026-09-17
 
 ## Implemented now

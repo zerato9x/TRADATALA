@@ -39,9 +39,11 @@ func _capture(file: String) -> void:
 	if DisplayServer.get_name() == "headless":
 		return
 	await RenderingServer.frame_post_draw
-	root.get_texture().get_image().save_png("res://.godot/" + file)
+	var suffix := "-vi" if OS.get_cmdline_user_args().has("--vietnamese") else "-en"
+	root.get_texture().get_image().save_png("res://.godot/" + file.trim_suffix(".png") + suffix + ".png")
 
 func _run() -> void:
+	TranslationServer.set_locale("vi" if OS.get_cmdline_user_args().has("--vietnamese") else "en")
 	root.size = Vector2i(1280, 720)
 	scene = load("res://scenes/match.tscn").instantiate()
 	root.add_child(scene)
@@ -94,7 +96,7 @@ func _run() -> void:
 	scene._sync_all(result)
 	_check(scene.relic_grid.get_child_count() == 4, "four HUD slots")
 	for slot: RelicSlot in scene.relic_grid.get_children():
-		_check(not slot.tooltip_text.is_empty(), "equipped relic tooltip")
+		_check(slot.tooltip_text.contains("VNĐ/PTS"), "equipped relic tooltip explains rate")
 	var job_id := scene._queue_scoring(result.context)
 	var job: Dictionary = scene.money_jobs.back()
 	var hits: Array = job.event.hits
@@ -109,18 +111,46 @@ func _run() -> void:
 	_check(relic_count == 4, "four queued relic receipts")
 	var wallet_after_commit := scene.deal.wallet.balance_vnd
 	var pulsed: Dictionary = {}
+	var shook: Dictionary = {}
+	var saw_rate := false
+	var saw_rate_receipt := false
+	var saw_named_payout := false
+	var receipt_above_cards := false
+	var coach_cleared := false
+	var captured_receipt := false
 	var deadline := Time.get_ticks_msec() + 16000
 	var captured := false
 	while not scene.completed_money_jobs.has(job_id) and Time.get_ticks_msec() < deadline:
+		if scene.vnd_per_point_value.text != VndWallet.format_vnd(scene.deal.vnd_per_point):
+			saw_rate = true
+		if scene.money_presentation.line_a_label.text.contains("VNĐ/PTS"):
+			saw_rate_receipt = true
+			receipt_above_cards = receipt_above_cards or scene.money_presentation.score_panel.global_position.y < scene.meld_scroll.global_position.y
+			coach_cleared = coach_cleared or not scene.campaign_coach.box.visible
+			for hit: Dictionary in hits:
+				if hit.kind == "relic" and scene.money_presentation.line_b_label.text.begins_with(String(hit.label)):
+					saw_named_payout = true
+			if not captured_receipt:
+				captured_receipt = true
+				await _capture("relic_rate_receipt.png")
 		for slot: RelicSlot in scene.relic_grid.get_children():
 			if slot.outline.cue_mode() == CardActionOutline.CUE_DRINK:
 				pulsed[slot.relic_id] = true
+				if absf(slot.rotation) > 0.001:
+					shook[slot.relic_id] = true
 				if not captured:
 					captured = true
 					await _capture("relic_trigger.png")
 		await process_frame
 	_check(scene.completed_money_jobs.has(job_id), "money playback completes")
 	_check(pulsed.size() == 4, "every triggering relic receives the shared outline cue")
+	_check(shook.size() == 4, "every triggering relic uses the scoring card shake")
+	_check(saw_rate, "rate HUD shows an action-only relic boost")
+	_check(saw_rate_receipt, "receipt explains VNĐ/PTS boost")
+	_check(saw_named_payout, "above-card payout names the triggering relic")
+	_check(receipt_above_cards, "relic money receipt stays above the cards")
+	_check(coach_cleared, "campaign hint clears the scoring receipt")
+	_check(scene.vnd_per_point_value.text == VndWallet.format_vnd(scene.deal.vnd_per_point), "rate HUD returns to base after scoring")
 	_check(scene.deal.wallet.balance_vnd == wallet_after_commit, "presentation never changes wallet authority")
 	_check(scene.displayed_wallet_vnd == wallet_after_commit, "displayed wallet reconciles all relic payouts")
 	await _capture("relic_hud.png")

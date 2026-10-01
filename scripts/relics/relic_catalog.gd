@@ -1,23 +1,32 @@
 class_name RelicCatalog
 extends RefCounted
 
-# Temporary first-pass balance; values belong here, never in handlers.
+# Rate boosts are percentages of the base VNĐ/point rate for one committed action.
 const DEFINITIONS := {
-	"hair_clip": {"name": "Kẹp Tóc", "event": "new_meld", "type": "set", "points": 30, "asset": "hairclip", "effect": "RELIC_EFFECT_HAIR_CLIP"},
-	"comb": {"name": "Lược", "event": "new_meld", "type": "run", "points": 8, "per_card": true, "asset": "comb", "effect": "RELIC_EFFECT_COMB"},
-	"rubber_band": {"name": "Dây Thun", "event": "extension", "points": 20, "asset": "rubberband", "effect": "RELIC_EFFECT_RUBBER_BAND"},
-	"chewing_gum": {"name": "Kẹo Cao Su", "event": "extension", "points": 10, "escalating": true, "asset": "gum", "effect": "RELIC_EFFECT_CHEWING_GUM"},
-	"sunflower_seeds": {"name": "Hạt Hướng Dương", "event": "new_meld", "points": 5, "per_card": true, "asset": "sunflowerseeds", "effect": "RELIC_EFFECT_SUNFLOWER_SEEDS"},
-	"toothpicks": {"name": "Que Tăm", "event": "new_meld", "exact": 3, "points": 20, "asset": "toothpick", "effect": "RELIC_EFFECT_TOOTHPICKS"},
-	"hard_candy": {"name": "Kẹo Cứng", "event": "new_meld", "minimum": 4, "points": 50, "asset": "hardcandy", "effect": "RELIC_EFFECT_HARD_CANDY"},
-	"sunglasses": {"name": "Kính Râm", "event": "new_meld", "suits": ["Spades", "Clubs"], "points": 40, "asset": "sunglasses", "effect": "RELIC_EFFECT_SUNGLASSES"},
-	"lipstick": {"name": "Son Môi", "event": "new_meld", "suits": ["Hearts", "Diamonds"], "points": 40, "asset": "lipstick", "effect": "RELIC_EFFECT_LIPSTICK"},
-	"buttons": {"name": "Cúc Áo", "event": "new_meld", "type": "set", "exact": 4, "points": 75, "asset": "buttons", "effect": "RELIC_EFFECT_BUTTONS"},
+	"hair_clip": {"name": "Kẹp Tóc", "event": "new_meld", "type": "set", "percent": 30, "asset": "hairclip", "effect": "RELIC_EFFECT_HAIR_CLIP"},
+	"comb": {"name": "Lược", "event": "new_meld", "type": "run", "percent": 8, "per_card": true, "asset": "comb", "effect": "RELIC_EFFECT_COMB"},
+	"rubber_band": {"name": "Dây Thun", "event": "extension", "percent": 20, "asset": "rubberband", "effect": "RELIC_EFFECT_RUBBER_BAND"},
+	"chewing_gum": {"name": "Kẹo Cao Su", "event": "extension", "percent": 10, "escalating": true, "asset": "gum", "effect": "RELIC_EFFECT_CHEWING_GUM"},
+	"sunflower_seeds": {"name": "Hạt Hướng Dương", "event": "new_meld", "percent": 5, "per_card": true, "asset": "sunflowerseeds", "effect": "RELIC_EFFECT_SUNFLOWER_SEEDS"},
+	"toothpicks": {"name": "Que Tăm", "event": "new_meld", "exact": 3, "percent": 20, "asset": "toothpick", "effect": "RELIC_EFFECT_TOOTHPICKS"},
+	"hard_candy": {"name": "Kẹo Cứng", "event": "new_meld", "minimum": 4, "percent": 50, "asset": "hardcandy", "effect": "RELIC_EFFECT_HARD_CANDY"},
+	"sunglasses": {"name": "Kính Râm", "event": "new_meld", "suits": ["Spades", "Clubs"], "percent": 40, "asset": "sunglasses", "effect": "RELIC_EFFECT_SUNGLASSES"},
+	"lipstick": {"name": "Son Môi", "event": "new_meld", "suits": ["Hearts", "Diamonds"], "percent": 40, "asset": "lipstick", "effect": "RELIC_EFFECT_LIPSTICK"},
+	"buttons": {"name": "Cúc Áo", "event": "new_meld", "type": "set", "exact": 4, "percent": 75, "asset": "buttons", "effect": "RELIC_EFFECT_BUTTONS"},
 }
 
 static func effect(id: String) -> String:
 	var definition: Dictionary = DEFINITIONS[id]
-	return TranslationServer.translate(StringName(definition.effect)) % int(definition.points)
+	return TranslationServer.translate(StringName(definition.effect)) % int(definition.percent)
+
+static func rate_bonus(id: String, card_count: int, extension_count: int = 1) -> int:
+	var definition: Dictionary = DEFINITIONS[id]
+	var percent := int(definition.percent)
+	if definition.get("per_card", false):
+		percent *= card_count
+	if definition.get("escalating", false):
+		percent *= extension_count
+	return percent
 
 static func flavor_tags(id: String) -> Array:
 	return {"hair_clip": ["adornment"], "lipstick": ["adornment"], "sunglasses": ["adornment"], "toothpicks": ["practical"], "rubber_band": ["practical"]}.get(id, [])

@@ -181,6 +181,8 @@ func test_rooster_all_deadlines_and_extra_discards_do_not_count() -> void:
 
 func test_rooster_closed_meld_and_extension_move_cards_without_payout() -> void:
 	var deal := _tutorial("rooster", "UNPLEASED")
+	deal.relics.acquire("sunflower_seeds")
+	deal.relics.equip("sunflower_seeds")
 	deal.zodiac_boss.mandatory_discard(1, 1)
 	var before := deal.wallet.balance_vnd
 	var result := deal.create_meld(deal.hand.slice(0, 3))
@@ -190,6 +192,7 @@ func test_rooster_closed_meld_and_extension_move_cards_without_payout() -> void:
 	assert_eq(deal.wallet.balance_vnd, before)
 	assert_eq(result.context.final_points, 0)
 	assert_eq(result.context.suppression_reason, "rooster_register_closed")
+	assert_true(result.context.relic_bonuses.is_empty())
 	assert_eq(deal.phase_metrics.new_phom_count, 1)
 	# The authored tutorial's next draw is the legal 7H extension.
 	deal.discard_card(deal.hand[-1])

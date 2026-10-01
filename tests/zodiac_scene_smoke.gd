@@ -52,14 +52,21 @@ func _run() -> void:
 	var table: Control = scene.zodiac_table
 	table.refresh()
 	_check(table.visible, "Zodiac table appears in campaign")
-	_check(table.portrait.texture != null, "placeholder sprite loaded")
+	_check(table.portrait.texture != null and table.portrait.texture.resource_path == ZodiacCatalog.DEFINITIONS[service.active_id()].sprite, "boss sprite loaded")
+	_check(table.portrait.material is ShaderMaterial, "animal has animated spirit shader")
+	var start_y: float = table.portrait.position.y
+	await _frames(12)
+	_check(not is_equal_approx(table.portrait.position.y, start_y), "animal floats at the blue chair")
+	await _capture("zodiac_idle")
 	for locale in ["en", "vi"]:
 		TranslationServer.set_locale(locale)
-		table.open_conversation()
+		if locale == "en": await _click(table.badge)
+		else: table.open_conversation()
 		await _frames()
 		_check(table.shade.visible, "request can open during an event: " + locale)
 		_check(table.mechanics.text.contains("5.000") if locale == "vi" else table.mechanics.text.contains("5,000"), "cost is explicit: " + locale)
-		_check(table.choices.get_child_count() == 6, "all payment responses plus history rendered")
+		_check(table.choices.get_child_count() == 4, "two core responses, one encounter option, and history rendered")
+		_check(not table.badge.get_global_rect().intersects(scene.event_table.back_button.get_global_rect()), "animal hitbox clears EVENT Back: " + locale)
 		_check(table.shade.get_global_rect().encloses(table.body.get_global_rect()), "conversation body fits viewport: " + locale)
 		await _capture("zodiac_request_" + locale)
 	# Genuine response button -> service -> wallet/history -> presentation.
@@ -67,6 +74,8 @@ func _run() -> void:
 	await _frames()
 	_check(int(service.daily.successes) == 1, "UI refusal commits interpreted success")
 	_check(scene.deal.wallet.balance_vnd == 25000, "UI refusal keeps wallet intact")
+	await _click(table.close_button)
+	_check(not table.shade.visible and is_equal_approx(scene.event_table.modulate.a, 1.0), "closing conversation restores EVENT table visibility")
 	# Longer promises and card/relic selectors must not push actions out of the panel.
 	for slot in [1, 2, 3]:
 		var event_phases := [CampaignManager.CampaignPhase.STARTER_EVENT, CampaignManager.CampaignPhase.MORNING_EVENT, CampaignManager.CampaignPhase.NOON_EVENT, CampaignManager.CampaignPhase.AFTERNOON_EVENT]
@@ -76,9 +85,19 @@ func _run() -> void:
 		await _frames()
 		_check(table.body.get_global_rect().encloses(table.choices.get_global_rect()), "response buttons fit event " + str(slot))
 		_check(table.shade.get_global_rect().encloses(table.close_button.get_global_rect()), "close remains onscreen in event " + str(slot))
-		if slot == 2: await _capture("zodiac_card_cost")
-		table.shade.hide()
-	table.shade.hide()
+		if slot == 2:
+			(table.card_select_button as Button).pressed.emit()
+			await _frames()
+			_check(scene.deck_screen.visible and scene.deck_screen._cards.size() == 52, "zodiac uses shared physical deck")
+			var first_card: CardData = scene.campaign.gieo_que.persistent_deck[0]
+			scene.deck_screen._inspect(first_card)
+			_check(scene.deck_screen._selected == first_card, "deck inspection shows chosen physical card")
+			scene.deck_screen._choose()
+			await _frames()
+			_check(table.selected_card_id == first_card.unique_id and not scene.deck_screen.visible, "zodiac receives shared deck selection")
+			await _capture("zodiac_card_cost")
+		table._close_conversation()
+	table._close_conversation()
 	# Route through the authored noon-event handoff before entering the closing track.
 	scene.campaign._enter_phase(CampaignManager.CampaignPhase.NOON_EVENT)
 	scene.campaign._enter_phase(CampaignManager.CampaignPhase.EVENING_DEAL)
@@ -126,8 +145,13 @@ func _run() -> void:
 	await _frames(50)
 	scene.deal.zodiac_boss.mandatory_discard(1, 4)
 	table.refresh()
-	_check(table.badge.text.contains("ĐÃ ĐÓNG SỔ"), "Rooster closed register label")
+	_check(not table.visible, "Zodiac visitor stays on EVENT screens only")
+	_check(scene.deal.zodiac_boss.register_closed, "Rooster register closes in the deal")
 	await _capture("zodiac_rooster_closed")
+	scene.campaign._enter_phase(CampaignManager.CampaignPhase.AFTERNOON_EVENT)
+	await _frames(30)
+	scene.event_table.unfocus_npc()
+	table.refresh()
 	for viewport_size in [Vector2i(1280, 720), Vector2i(1920, 1080)]:
 		root.size = viewport_size
 		await _frames()

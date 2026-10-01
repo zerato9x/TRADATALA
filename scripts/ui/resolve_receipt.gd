@@ -378,7 +378,11 @@ func _cards() -> void:
 			for scoring_pass: Dictionary in passes:
 				line(reason_name(str(scoring_pass.origin)), str(scoring_pass.points) + words(" points", " điểm"), INK, box)
 		for bonus: Dictionary in action.get("relics", []):
-			line(words("Relic bonus · ", "Thưởng di vật · ") + _relic_name(str(bonus.id)), "+" + str(bonus.points) + words(" points", " điểm"), GREEN, box)
+			var amount := int(bonus.get("amount_vnd", VndWallet.points_to_vnd(int(bonus.get("points", 0)))))
+			var detail := VndWallet.format_vnd(amount, true)
+			if bonus.has("rate_bonus_vnd"):
+				detail = "+%s/PTS × %d PTS = %s" % [VndWallet.format_vnd(int(bonus.rate_bonus_vnd)), int(bonus.action_points), VndWallet.format_vnd(amount, true)]
+			line(words("Relic bonus · ", "Thưởng di vật · ") + _relic_name(str(bonus.id)), detail, GREEN, box)
 	if not found:
 		var empty := _panel(rows)
 		empty.add_child(_label(words("No scoring cards in this report", "Chưa có bài ghi điểm trong báo cáo này"), 24))

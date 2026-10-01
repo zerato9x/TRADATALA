@@ -117,6 +117,7 @@ func _run() -> void:
 		await click(first)
 		await capture("relics")
 		check(not shop.selected.is_empty(), "pointer selects relic without buying")
+		check(shop._detail.text.contains("VNĐ/PTS"), "relic shop explains the action rate boost")
 		if not shop._buy.disabled:
 			await click(shop._buy)
 			check(not scene.deal.relics.inventory.is_empty(), "pointer purchase enters inventory")

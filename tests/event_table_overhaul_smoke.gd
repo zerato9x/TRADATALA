@@ -24,6 +24,7 @@ func hover(control: Control) -> void:
 	event.position = control.get_global_transform_with_canvas() * (control.size * 0.5)
 	root.push_input(event, true)
 	await process_frame
+	await pause(0.04)
 
 func click(control: Control) -> void:
 	await hover(control)
@@ -54,6 +55,10 @@ func _run() -> void:
 	await scene._on_play_pressed()
 	scene.event_table.unfocus_npc()
 	await pause(0.4)
+	check(scene.event_table.continue_button.disabled, "Continue waits for the mandatory drink")
+	check(scene.event_table.continue_hint.visible and not scene.event_table.continue_hint.text.is_empty(), "Continue explains the drink requirement beside the button")
+	check(scene.event_table.continue_button.tooltip_text == scene.event_table.continue_hint.text, "disabled Continue repeats the reason in its tooltip")
+	check(scene.event_table._npc_layers[EventTableController.NPC_TRA_DA].name_tag.visible, "Auntie is highlighted while the drink is required")
 	for id in ["hair_clip", "comb", "sunglasses", "chewing_gum"]:
 		scene.deal.relics.acquire(id)
 		scene.deal.relics.equip(id)
@@ -79,6 +84,7 @@ func _run() -> void:
 	await hover(overview.relic_buttons[0])
 	check(overview.inspect_card.is_visible_in_tree(), "pointer hover reveals effect card")
 	check(overview.inspect_copy.text.contains(RelicCatalog.effect("hair_clip")), "hover shows authoritative relic effect")
+	check(overview.inspect_copy.text.contains("VNĐ/PTS"), "table relic hover explains the rate boost")
 	await capture("event-table-relic-hover")
 	for index in overview.relic_buttons.size():
 		await hover(overview.relic_buttons[index])
@@ -107,9 +113,26 @@ func _run() -> void:
 	await click(scene.event_table.event_deck.get_child(2))
 	await pause(0.4)
 	check(scene.event_table.deck_focused, "table deck remains pointer actionable")
+	check(scene.deck_screen.visible and scene.deck_screen._cards.size() == 52, "shared deck opens all physical cards")
+	check(scene.deck_screen.theme.default_font == PresentationTheme.official_font(), "deck uses the official game font")
+	check(scene.deck_screen._grid.get_child(0).find_child("CardState", true, false) != null, "deck cards label their color-coded state")
 	check(not overview.visible, "inventory clears space for focused service")
 	await capture("event-table-deck")
-	await click(scene.event_table.back_button)
+	scene.deck_screen._sort.select(1)
+	scene.deck_screen._rebuild_cards()
+	check(scene.deck_screen._grid.get_child(1).name == "Card_standard_a_hearts", "rank sorting groups physical Aces together")
+	scene.deck_screen._search.text = "diamonds"
+	scene.deck_screen._rebuild_cards()
+	check(scene.deck_screen._grid.get_child_count() == 13, "deck search narrows to a suit")
+	scene.deck_screen._search.clear()
+	scene.deck_screen._sort.select(0)
+	scene.deck_screen._rebuild_cards()
+	scene.deck_screen._inspect(scene.campaign.gieo_que.persistent_deck[0])
+	await pause(0.1)
+	check(scene.deck_screen._selected != null and scene.deck_screen._detail.get_child_count() >= 4, "deck shows card art and permanent details")
+	await capture("event-table-deck-detail")
+	var deck_back := scene.deck_screen.find_child("DeckBack", true, false) as Button
+	await click(deck_back)
 	await pause(0.4)
 	check(overview.visible and not scene.event_table.deck_focused, "Back restores table possessions")
 	for slot in [1, 2, 3]:

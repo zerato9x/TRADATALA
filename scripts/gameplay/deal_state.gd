@@ -52,6 +52,10 @@ var phase_metrics := PhaseMetrics.new()
 var current_phase: int = 1
 var discard_count: int = 0
 var phase_earnings_points: int = 0
+var phase_earnings_vnd: int = 0
+var deal_earnings_vnd: int = 0
+var phase_relic_rate_vnd: int = 0
+var deal_relic_rate_vnd: int = 0
 var phase_new_meld_count: int = 0
 var state: String = STATE_ACTIVE
 var last_phase_resolution: Dictionary = {}
@@ -108,6 +112,8 @@ func start_deal(shuffle_seed: int = -1, reset_wallet: bool = false, opening_ids:
 	melds.clear()
 	discard_history.clear()
 	settlements.clear()
+	deal_earnings_vnd = 0
+	deal_relic_rate_vnd = 0
 	current_phase = 1
 	discard_count = 0
 	state = STATE_ACTIVE
@@ -141,6 +147,8 @@ func start_tutorial_deal() -> Dictionary:
 	melds.clear()
 	discard_history.clear()
 	settlements.clear()
+	deal_earnings_vnd = 0
+	deal_relic_rate_vnd = 0
 	current_phase = 1
 	discard_count = 0
 	state = STATE_ACTIVE
@@ -195,6 +203,10 @@ func snapshot_state(copy_history: bool = true) -> Dictionary:
 		"current_phase": current_phase,
 		"discard_count": discard_count,
 		"phase_earnings_points": phase_earnings_points,
+		"phase_earnings_vnd": phase_earnings_vnd,
+		"deal_earnings_vnd": deal_earnings_vnd,
+		"phase_relic_rate_vnd": phase_relic_rate_vnd,
+		"deal_relic_rate_vnd": deal_relic_rate_vnd,
 		"phase_new_meld_count": phase_new_meld_count,
 		"state": state,
 		"last_phase_resolution": last_phase_resolution.duplicate(true),
@@ -247,6 +259,9 @@ func restore_snapshot(snapshot: Dictionary) -> void:
 	current_phase = int(snapshot.get("current_phase", 1))
 	discard_count = int(snapshot.get("discard_count", 0))
 	phase_earnings_points = int(snapshot.get("phase_earnings_points", 0))
+	# Older saves already counted fixed relic points in the point ledger.
+	phase_relic_rate_vnd = int(snapshot.get("phase_relic_rate_vnd", 0))
+	deal_relic_rate_vnd = int(snapshot.get("deal_relic_rate_vnd", 0))
 	phase_new_meld_count = int(snapshot.get("phase_new_meld_count", 0))
 	state = String(snapshot.get("state", STATE_ACTIVE))
 	last_phase_resolution = (snapshot.get("last_phase_resolution", {}) as Dictionary).duplicate(true)
@@ -270,6 +285,8 @@ func restore_snapshot(snapshot: Dictionary) -> void:
 	wallet.reset(int(snapshot.get("wallet_balance_vnd", 0)))
 	wallet.journal.assign(snapshot.get("wallet_journal", []))
 	wallet.journal_opening_vnd = int(snapshot.get("wallet_journal_opening", wallet.balance_vnd))
+	phase_earnings_vnd = int(snapshot.get("phase_earnings_vnd", VndWallet.points_to_vnd(phase_earnings_points, vnd_per_point) + phase_relic_rate_vnd))
+	deal_earnings_vnd = int(snapshot.get("deal_earnings_vnd", VndWallet.points_to_vnd(current_deal_earnings_points(), vnd_per_point) + deal_relic_rate_vnd))
 	action_history.assign(snapshot.get("action_history", []))
 	action_counts = snapshot.get("action_counts", {}).duplicate(true)
 	deal_journal_cursor = int(snapshot.get("deal_journal_cursor", 0))
@@ -667,13 +684,18 @@ func discard_card(card: CardData) -> Dictionary:
 	if u_triggered_now:
 		phase_metrics.u = true
 		var u_bonus := current_deal_earnings_points()
+		var u_bonus_vnd := current_deal_earnings_vnd()
 		_record_phase_points(u_bonus, "u_bonus")
+		var u_rate_adjustment := u_bonus_vnd - VndWallet.points_to_vnd(u_bonus, vnd_per_point)
+		_record_relic_rate_vnd(u_rate_adjustment, "u_bonus")
 		phase_metrics.u_bonus_paid = true
 		u_triggered.emit({
 			"phase": current_phase,
 			"card": card,
 			"payout": u_bonus,
+			"payout_vnd": u_bonus_vnd,
 			"deal_earnings": u_bonus,
+			"deal_earnings_vnd": u_bonus_vnd,
 			"gross_multiplier": gross_payout_multiplier(),
 		})
 	var result := {
@@ -998,6 +1020,14 @@ func current_deal_earnings_points() -> int:
 	return total
 
 
+func current_deal_earnings_vnd() -> int:
+	return deal_earnings_vnd
+
+
+func current_phase_earnings_vnd() -> int:
+	return phase_earnings_vnd
+
+
 func discard_history_for_phase(phase: int) -> Array[DiscardRecord]:
 	var records: Array[DiscardRecord] = []
 	for record in discard_history:
@@ -1183,7 +1213,9 @@ func _finish_phase() -> Dictionary:
 	deadwood_calculated.emit(deadwood_context)
 	var turn_deadwood: int = maxi(int(deadwood_context.get("deadwood", 0)), 0)
 	if turn_deadwood > 0:
-		wallet.apply_points(-turn_deadwood, "deadwood")
+		var deadwood_vnd := wallet.apply_points(-turn_deadwood, "deadwood")
+		phase_earnings_vnd += deadwood_vnd
+		deal_earnings_vnd += deadwood_vnd
 	phase_metrics.deadwood_total += turn_deadwood
 	var deadwood_total := phase_metrics.deadwood_total
 	var settlement := PhaseSettlement.new()
@@ -1195,6 +1227,8 @@ func _finish_phase() -> Dictionary:
 	settlement.deadwood = deadwood_total
 	settlement.turn_deadwood = turn_deadwood
 	settlement.net = gross_after_u - deadwood_total
+	settlement.net_vnd = phase_earnings_vnd
+	settlement.relic_rate_vnd = phase_relic_rate_vnd
 	settlement.new_phom_count = phase_metrics.new_phom_count
 	settlement.extension_count = phase_metrics.extension_count
 	settlement.mom = is_mom
@@ -1255,8 +1289,20 @@ func _card_actions_available() -> bool:
 func _record_phase_points(points: int, reason: String) -> void:
 	phase_metrics.raw_gross += points
 	if points != 0:
-		wallet.apply_points(points * gross_payout_multiplier(), reason)
+		var amount_vnd := wallet.apply_points(points * gross_payout_multiplier(), reason)
+		phase_earnings_vnd += amount_vnd
+		deal_earnings_vnd += amount_vnd
 	phase_earnings_points = phase_metrics.raw_gross * gross_payout_multiplier() - phase_metrics.deadwood_total
+
+
+func _record_relic_rate_vnd(amount_vnd: int, reason: String) -> void:
+	if amount_vnd == 0:
+		return
+	phase_relic_rate_vnd += amount_vnd
+	deal_relic_rate_vnd += amount_vnd
+	phase_earnings_vnd += amount_vnd
+	deal_earnings_vnd += amount_vnd
+	wallet.apply_vnd(amount_vnd, reason)
 
 
 func _deduct_turn_deadwood() -> Dictionary:
@@ -1274,7 +1320,9 @@ func _deduct_turn_deadwood() -> Dictionary:
 	var turn_deadwood := maxi(int(context.get("deadwood", value_sum)), 0)
 	var wallet_before_vnd := wallet.balance_vnd
 	if turn_deadwood > 0:
-		wallet.apply_points(-turn_deadwood, "deadwood")
+		var deadwood_vnd := wallet.apply_points(-turn_deadwood, "deadwood")
+		phase_earnings_vnd += deadwood_vnd
+		deal_earnings_vnd += deadwood_vnd
 	phase_metrics.deadwood_total += turn_deadwood
 	phase_earnings_points = phase_metrics.raw_gross * gross_payout_multiplier() - phase_metrics.deadwood_total
 	context["deadwood"] = turn_deadwood
@@ -1303,11 +1351,18 @@ func _apply_scoring_passes(context: ScoringContext) -> void:
 
 func _apply_relic_bonuses(context: ScoringContext, meld_id: int) -> void:
 	context.relic_bonuses = relics.resolve(context, meld_id)
-	if not context.suppression_reason.is_empty():
+	var action_points := maxi(context.final_points, 0)
+	if not context.suppression_reason.is_empty() or action_points == 0:
 		context.relic_bonuses.clear()
 		return
 	for bonus in context.relic_bonuses:
-		_record_phase_points(int(bonus.points), "relic:" + String(bonus.id))
+		var rate_bonus := VndWallet.percent_rate_bonus(vnd_per_point, int(bonus.rate_percent))
+		var amount_vnd := action_points * rate_bonus
+		bonus["action_points"] = action_points
+		bonus["base_rate_vnd"] = vnd_per_point
+		bonus["rate_bonus_vnd"] = rate_bonus
+		bonus["amount_vnd"] = amount_vnd
+		_record_relic_rate_vnd(amount_vnd, "relic:" + String(bonus.id))
 
 
 func _reset_exhaustion_state() -> void:
@@ -1386,6 +1441,8 @@ func _reset_phase_metrics() -> void:
 	relics.phase_started()
 	phase_metrics.reset()
 	phase_earnings_points = 0
+	phase_earnings_vnd = 0
+	phase_relic_rate_vnd = 0
 	phase_new_meld_count = 0
 	nhan_tran_used_this_phase = false
 	_turn_started_with_ten = false
@@ -1483,7 +1540,7 @@ func accounting_report() -> Dictionary:
 	var phases: Array[Dictionary] = []
 	for settlement in settlements:
 		var phase := settlement.to_dictionary()
-		phase["net_vnd"] = VndWallet.points_to_vnd(settlement.net, vnd_per_point)
+		phase["net_vnd"] = settlement.net_vnd if settlement.net_vnd != PhaseSettlement.UNSET_VND else VndWallet.points_to_vnd(settlement.net, vnd_per_point)
 		phases.append(phase)
 		for key in ["u", "u_khan_count", "mom"]:
 			report.counts[key] = int(report.counts.get(key, 0)) + int(phase.get(key, 0))
