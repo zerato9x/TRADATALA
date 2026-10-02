@@ -1,0 +1,119 @@
+{
+  "date": "2026-10-02",
+  "project": "TRADATALA",
+  "engine": "Godot 4.7.1.stable.official.a13da4feb",
+  "runner": "tools/validate_zodiac_negotiation.ps1",
+  "rendering": "OpenGL compatibility, NVIDIA GeForce GTX 1070 Ti",
+  "isolation": "Fresh Godot processes with project-local APPDATA and LOCALAPPDATA. Only the intentional resume write/read pair shares its dedicated profile.",
+  "diff_check": "passed",
+  "asset_audit": { "placeholder_svg_files_and_sidecars": 0, "full_pngs": 12, "overlay_pngs": 11, "runtime_placeholder_references": 0 },
+  "results": [
+    {
+      "name": "complete_core",
+      "passed": 308,
+      "failed": 0,
+      "skipped": 0,
+      "log": ".godot/negotiation-validation/final-core.log",
+      "source_stage": "final production code"
+    },
+    {
+      "name": "focused_negotiation_and_gieo",
+      "passed": 46,
+      "failed": 0,
+      "log": ".godot/negotiation-validation/zodiac_negotiation_tests.log",
+      "source_stage": "final production code"
+    },
+    {
+      "name": "rendered_zodiac_ui",
+      "checks": 107,
+      "failures": 0,
+      "log": ".godot/negotiation-validation/zodiac_scene_smoke.log",
+      "source_stage": "final production code",
+      "covers": ["Morning Lottery Uncle roster", "Noon and Afternoon Zodiac slot", "English and Vietnamese terms", "explicit counteroffer confirmation", "shared physical-card selection", "wallet display after journaled payment", "save/load counteroffer", "720p and 1080p", "all eleven ordinary visitor silhouettes and synthetic native touch", "separate Afternoon lottery receipt", "Afternoon promise resolution", "existing evening disposition integration"]
+    },
+    {
+      "name": "separate_process_resume_write",
+      "checks": 5,
+      "failures": 0,
+      "log": ".godot/negotiation-validation/zodiac_negotiation_resume_smoke-write.log",
+      "source_stage": "final production code"
+    },
+    {
+      "name": "separate_process_resume_read",
+      "checks": 10,
+      "failures": 0,
+      "log": ".godot/negotiation-validation/zodiac_negotiation_resume_smoke-read.log",
+      "source_stage": "final production code",
+      "covers": ["counteroffer restored", "stable physical IDs and permanent mutations", "identical future seeded demand sequence", "mid-Afternoon promise observations restored", "observed wallet breach resolved once at Afternoon Event"]
+    },
+    {
+      "name": "gieo_helper_compatibility",
+      "checks": 45,
+      "failures": 0,
+      "evidence": "Direct Godot comparison marker: GIEO_QUERY_COMPATIBILITY checks=45 failures=0",
+      "covers": "Three seeds x pristine/modified/fully-sealed decks x random/same-suit-2/same-suit-3/consecutive-2/consecutive-3. Prior HEAD and extracted helper IDs and final RNG states were identical."
+    },
+    {
+      "name": "rendered_event_table",
+      "checks": 116,
+      "failures": 0,
+      "log": ".godot/negotiation-validation/event_table_overhaul_smoke.log",
+      "source_stage": "before final legacy-save adaptation; final core and focused checks cover that adaptation"
+    },
+    {
+      "name": "rendered_gieo_screen",
+      "checks": 474,
+      "failures": 0,
+      "log": ".godot/negotiation-validation/gieo_que_screen_smoke.log",
+      "source_stage": "before final legacy-save adaptation"
+    },
+    {
+      "name": "all_twelve_evening_bosses",
+      "checks": 746,
+      "failures": 0,
+      "log": ".godot/negotiation-validation/zodiac_full_roster_smoke.log",
+      "source_stage": "before final legacy-save adaptation"
+    },
+    {
+      "name": "rendered_runtime",
+      "status": "passed",
+      "log": ".godot/negotiation-validation/runtime_scene_smoke.log",
+      "source_stage": "before final legacy-save adaptation"
+    },
+    {
+      "name": "rendered_tutorial",
+      "failures": 0,
+      "log": ".godot/negotiation-validation/tutorial_scene_smoke.log",
+      "source_stage": "before final legacy-save adaptation"
+    },
+    {
+      "name": "rendered_campaign_progression",
+      "failures": 0,
+      "log": ".godot/negotiation-validation/campaign_overhaul_scene_smoke.log",
+      "source_stage": "before final legacy-save adaptation"
+    },
+    {
+      "name": "rendered_misc_npc",
+      "status": "passed",
+      "log": ".godot/negotiation-validation/misc_npc_scene_smoke.log",
+      "source_stage": "before final legacy-save adaptation"
+    }
+  ],
+  "screenshots": [
+    ".godot/negotiation-validation/screens/noon_cat_overview.png",
+    ".godot/negotiation-validation/screens/noon_counteroffer_en.png",
+    ".godot/negotiation-validation/screens/noon_counteroffer_vi.png",
+    ".godot/negotiation-validation/screens/noon_card_selection_OFFER_THREE.png",
+    ".godot/negotiation-validation/screens/noon_card_selection_SAME_SUIT_2.png",
+    ".godot/negotiation-validation/screens/afternoon_lottery_result.png",
+    ".godot/negotiation-validation/screens/afternoon_promise_result.png"
+  ],
+  "final_test_stderr": "Empty for the validator runs; no script or parse errors in final core output.",
+  "limitations": [
+    "Synthetic pointer/native-touch injection does not establish physical touchscreen hardware behavior.",
+    "Authored daytime profiles currently cover Rooster and Cat. Other ordinary visitors show real artwork with inert/default NORMAL daytime behavior.",
+    "Owned favorite Relic substitution is implemented; expanded Relic demand content and tolerance/weighting are deferred.",
+    "Extended balancing and full campaign playtesting remain manual work.",
+    "Audio used Dummy output; no listening, export, publication, or Git checkpoint validation is claimed."
+  ]
+}

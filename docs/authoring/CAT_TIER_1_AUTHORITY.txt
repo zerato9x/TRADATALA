@@ -1,0 +1,475 @@
+# CAT — TIER 1
+
+## QUESTION 1 — FAVORITE CARD
+
+**CAT:**  
+“You have a favorite card?”
+
+### A
+**PLAYER:**  
+“Obviously. The one that makes me the most money.”
+
+**Patience:** `0`
+
+**CAT:**  
+“Mm. Practical.”
+
+---
+
+### B
+**PLAYER:**  
+“Maybe. I just don’t like losing certain ones.”
+
+**Patience:** `+1`
+
+**CAT:**  
+“Oh?”
+
+**CAT:**  
+“So you do get attached.”
+
+---
+
+### C
+**PLAYER:**  
+“They’re cards.”
+
+**Patience:** `-1`
+
+**CAT:**  
+“That wasn’t what I asked.”
+
+---
+
+# QUESTION 2 — KEEPING THINGS
+
+**CAT:**  
+“If something stops being useful, do you still keep it?”
+
+### A
+**PLAYER:**  
+“If I like it.”
+
+**Patience:** `+1`
+
+**CAT:**  
+“Good.”
+
+**CAT:**  
+“Useful things are boring.”
+
+---
+
+### B
+**PLAYER:**  
+“Depends how much space it takes.”
+
+**Patience:** `0`
+
+**CAT:**  
+“Reasonable.”
+
+---
+
+### C
+**PLAYER:**  
+“No point keeping junk.”
+
+**Patience:** `-1`
+
+**CAT:**  
+“Junk.”
+
+**CAT:**  
+“Mean.”
+
+---
+
+# QUESTION 3 — CURIOSITY
+
+**CAT:**  
+“If someone tells you not to open something…”
+
+**CAT:**  
+“Do you?”
+
+### A
+**PLAYER:**  
+“Yes.”
+
+**Patience:** `+1`
+
+**CAT:**  
+“Obviously.”
+
+---
+
+### B
+**PLAYER:**  
+“Depends who told me not to.”
+
+**Patience:** `0`
+
+**CAT:**  
+“Hm.”
+
+**CAT:**  
+“That’s probably smarter.”
+
+---
+
+### C
+**PLAYER:**  
+“No.”
+
+**Patience:** `-1`
+
+**CAT:**  
+“Really?”
+
+**CAT:**  
+“How do you live like that?”
+
+---
+
+# CAT — TIER 1+
+
+At Tier 1+, Cat still asks simple questions.
+
+The difference is that she now starts turning those answers into actual **Requests and Promises**.
+
+---
+
+# TIER 1+ ENCOUNTER 1 — “THEN LEAVE IT ALONE”
+
+**CAT:**  
+“You still have a favorite card?”
+
+### A
+**PLAYER:**  
+“The one that makes me money.”
+
+`0`
+
+### B
+**PLAYER:**  
+“Maybe.”
+
+`+1`
+
+### C
+**PLAYER:**  
+“No.”
+
+`-1`
+
+Cat looks over the player’s cards.
+
+**CAT:**  
+“Mm.”
+
+**CAT:**  
+“Then leave this one alone.”
+
+---
+
+## PROMISE
+
+**Do not interact with the selected card during the next Deal.**
+
+### ACCEPT
+
+**PLAYER:**  
+“Fine.”
+
+**CAT:**  
+“Really?”
+
+**CAT:**  
+“Okay.”
+
+**CAT:**  
+“Don’t touch it.”
+
+If fulfilled:
+
+**CAT:**  
+“You really didn’t.”
+
+`Patience +1`
+
+If broken:
+
+**CAT:**  
+“There.”
+
+**PLAYER:**  
+“What?”
+
+**CAT:**  
+“You touched it.”
+
+`Patience -1`
+
+---
+
+### REFUSE
+
+**PLAYER:**  
+“No.”
+
+**CAT:**  
+“Mm.”
+
+She looks at the card again.
+
+**CAT:**  
+“So that one matters.”
+
+`Patience 0`
+
+---
+
+### HAGGLE
+
+**PLAYER:**  
+“Pick something else.”
+
+**CAT:**  
+“No.”
+
+Pause.
+
+**CAT:**  
+“…Actually.”
+
+Cat offers three cards.
+
+**CAT:**  
+“You pick.”
+
+> Choose one of three cards to leave untouched during the next Deal.
+
+If the player accepts the counteroffer:
+
+**CAT:**  
+“Interesting.”
+
+---
+
+# TIER 1+ ENCOUNTER 2 — “KEEP IT”
+
+Cat points toward one of the player’s Relics.
+
+**CAT:**  
+“You were going to sell that?”
+
+### A
+**PLAYER:**  
+“If I don’t need it.”
+
+`-1`
+
+### B
+**PLAYER:**  
+“Maybe.”
+
+`0`
+
+### C
+**PLAYER:**  
+“I like it.”
+
+`+1`
+
+Cat keeps looking at it.
+
+**CAT:**  
+“Then keep it.”
+
+---
+
+## PROMISE
+
+**Do not sell, give away, or lose the selected Relic before Cat returns.**
+
+### ACCEPT
+
+**PLAYER:**  
+“Okay.”
+
+**CAT:**  
+“Good.”
+
+If fulfilled:
+
+**CAT:**  
+“Still there.”
+
+`Patience +1`
+
+If failed:
+
+**CAT:**  
+“Oh.”
+
+**CAT:**  
+“You didn’t like it that much.”
+
+`Patience -1`
+
+---
+
+### REFUSE
+
+**PLAYER:**  
+“I might need the money.”
+
+**CAT:**  
+“Then sell it.”
+
+**CAT:**  
+“I just wanted to know.”
+
+`Patience 0`
+
+---
+
+### HAGGLE
+
+**PLAYER:**  
+“Can I keep something else instead?”
+
+**CAT:**  
+“…Sure.”
+
+> Cat chooses another owned Relic from a small valid set.
+
+**CAT:**  
+“But that one.”
+
+---
+
+# TIER 1+ ENCOUNTER 3 — “DON’T CHANGE IT”
+
+Cat notices a transformed card.
+
+**CAT:**  
+“That wasn’t always like that.”
+
+**PLAYER:**  
+“No.”
+
+**CAT:**  
+“Better now?”
+
+### A
+**PLAYER:**  
+“Much better.”
+
+`0`
+
+### B
+**PLAYER:**  
+“I just like what happened to it.”
+
+`+1`
+
+### C
+**PLAYER:**  
+“I’ll replace it when I find something stronger.”
+
+`-1`
+
+Cat stares at the card.
+
+**CAT:**  
+“Don’t.”
+
+---
+
+## PROMISE
+
+**Do not Reset, Reduce, transform, or otherwise alter the selected card before Cat returns.**
+
+### ACCEPT
+
+**PLAYER:**  
+“Fine.”
+
+**CAT:**  
+“Leave it.”
+
+If fulfilled:
+
+**CAT:**  
+“See?”
+
+**CAT:**  
+“It survived.”
+
+`Patience +1`
+
+If broken:
+
+**CAT:**  
+“You changed it.”
+
+`Patience -1`
+
+---
+
+### REFUSE
+
+**PLAYER:**  
+“It’s my card.”
+
+Cat looks at the player.
+
+**CAT:**  
+“I know.”
+
+`Patience 0`
+
+---
+
+### HAGGLE
+
+**PLAYER:**  
+“What if I change a different one?”
+
+**CAT:**  
+“…Why?”
+
+Pause.
+
+**CAT:**  
+“Fine.”
+
+> Counteroffer: another transformed card becomes the protected target.
+
+**CAT:**  
+“Leave that one alone instead.”
+
+---
+
+# CAT TIER 1 / 1+ VOICE RULE
+
+At this stage Cat should:
+
+- ask short questions
+- rarely explain why she is asking
+- notice what the player keeps, protects, modifies, or values
+- treat refusal as information, not automatically disrespect
+- enjoy Haggle when it reveals preference
+- dislike answers that reduce everything to usefulness
+- not yet become deeply personal
+- not openly accuse the player of patterns across multiple runs
+
+The core feeling is:
+
+**Tier 1:**  
+“What do you like?”
+
+**Tier 1+:**  
+“Okay. Then show me.”

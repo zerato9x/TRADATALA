@@ -45,7 +45,7 @@ static func register_initial_npcs(event_manager: EventManager) -> void:
 	for spec in [
 		["hang_rong", "NPC_HANG_RONG", [EventManager.EventSlot.MORNING, EventManager.EventSlot.AFTERNOON], "relic_shop"],
 		["danh_giay", "NPC_DANH_GIAY", [EventManager.EventSlot.STARTER], "polish"],
-		["lotto", "NPC_LOTTO", [EventManager.EventSlot.MORNING, EventManager.EventSlot.AFTERNOON], "lottery"],
+		["lotto", "NPC_LOTTO", [EventManager.EventSlot.MORNING], "lottery"],
 	]:
 		var slots: Array[int] = []
 		slots.assign(spec[2])

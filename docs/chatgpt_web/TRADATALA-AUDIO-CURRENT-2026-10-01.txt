@@ -1,0 +1,22 @@
+TRADATALA — CURRENT AUDIO DESIGN AND IMPLEMENTATION
+Release baseline: 2026-09-23. Workspace status: 2026-10-01.
+
+RELEASED V1.0.3 AUDIO
+- Authored DJ routing alternates Mèo/CAT on day one and Chó/DOG on day two, continuing by day.
+- Playlist exposes 26 OST tracks, cover art, track selection, progress, preview, play/pause, shuffle, and Repeat Off/All/One.
+- Four frequency bands drive presentation spectrum motion. Gameplay cue plans cover card actions, Drink opportunities, collector arrival, and Ù / Ù Khan / Exhaustion ceremonies.
+- MusicDirector supports approved bar-aligned cues, holds/releases, loop completion and reprises, intentional hard jumps, and return to the source track. Original WAV assets remain intact.
+
+CURRENT WORKSPACE MUSIC WIP
+- The Escape/Menu jukebox selects Authored DJ or Playlist through one mode/source chooser. DJ offers CAT/Mèo and DOG/Chó sets; Playlist retains the full 26-track controls.
+- Starting DJ or changing set during a run starts the approved cue for the current event/deal/phase. Switching mode or set preserves pause and does not affect gameplay, wallet, history, or gameplay RNG.
+- Continue restores a saved music checkpoint when available, including source, position, cue/transition, pause, playlist transport, and crossfade. Older saves still restore gameplay and fall back to Playlist with a notice.
+- The 2026-10-01 UI checkpoint enlarges music controls and adjusts presentation. It did not change MusicDirector routing or transport.
+- The WIP Rooster/Cat Zodiac slice uses existing evening/Phase 2 events and transition SFX. No new boss tracks or unique Rooster/Cat cue plans were created. Future unauthored Zodiac pairs and modifiers have no approved audio design. Do not imply every Zodiac has its own theme.
+- Post-v1.0.3 music code is source WIP; no new audio release/export or human listening sign-off is claimed.
+
+AUTHORING, OWNERSHIP, AND EVIDENCE
+- assets/audio/ost/ contains original music, measured timing, cue approvals, and arrangement data.
+- scripts/audio/gameplay_music_conductor.gd routes gameplay cues. audio_system/MusicDirector.gd owns DJ transport; MusicCueCatalog.gd owns cue review data; MusicArrangementCatalog.gd and MusicArrangementPlayer.gd own saved audition arrangements.
+- debug/MusicLoopAudition.tscn is an offline audition tool. Machine measurements may order listening work but do not approve a cue.
+- Automated routing, transport, and rendered checks prove code paths under their test conditions. They do not establish a correct full-campaign speaker/headphone mix, physical-device behavior, or human listening acceptance. Premium audio changes need listening review as well as code, export, and runtime acceptance.

@@ -320,4 +320,4 @@ static func localized_label(candidate: Dictionary) -> String:
 
 
 static func _suit_symbol(suit: String) -> String:
-	return {"Spades": "S", "Hearts": "H", "Diamonds": "D", "Clubs": "C"}.get(suit, "?")
+	return {"": "", "Spades": "S", "Hearts": "H", "Diamonds": "D", "Clubs": "C", "red": GameGlossary.words(" red", " đỏ"), "black": GameGlossary.words(" black", " đen"), "any": GameGlossary.words(" any suit", " mọi chất")}.get(suit, "?")

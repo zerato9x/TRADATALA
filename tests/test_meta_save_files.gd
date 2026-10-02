@@ -1,0 +1,246 @@
+@tool
+extends McpTestSuite
+
+func suite_name() -> String: return "meta_save_files"
+
+func _root(label: String) -> String:
+	return "user://meta-test-%s-%d" % [label, Time.get_ticks_usec()]
+
+func _campaign() -> CampaignManager:
+	var campaign := CampaignManager.new()
+	campaign.drink_manager.progress = DrinkProgress.new("")
+	campaign.zodiac.progress = ZodiacProgress.new("")
+	campaign.difficulty_progress = preload("res://scripts/campaign/difficulty_progress.gd").new("")
+	return campaign
+
+func _bytes(path: String) -> PackedByteArray:
+	return FileAccess.get_file_as_bytes(path)
+
+func _damage(path: String) -> void:
+	var file := FileAccess.open(path, FileAccess.WRITE)
+	file.store_string("damaged fixture")
+	file.close()
+
+func test_three_files_keep_immediate_unlocks_difficulty_emblems_and_endings_independent() -> void:
+	var directory := _root("isolation")
+	var saves := MetaSaveFiles.new(directory, "")
+	var campaign := _campaign()
+	saves.attach(campaign)
+	campaign.drink_manager.progress.add_progress("melds", 5)
+	campaign.difficulty_progress.complete_week(1)
+	campaign.zodiac.progress.commit("dragon", "ending-1", {"pleased_victories": 1}, ["emblem_unlocked", "ending_rong_ran_len_may"])
+	var file_one := _bytes(saves.meta_path(1))
+	assert_true(saves.rename_file("Zerato"))
+	assert_true(saves.select(2, campaign))
+	assert_false(campaign.drink_manager.progress.is_unlocked(DrinkCatalog.NUOC_VOI))
+	assert_eq(campaign.difficulty_progress.unlocked, 1)
+	assert_false(campaign.zodiac.progress.owns("dragon"))
+	campaign.drink_manager.progress.add_progress("runs", 10)
+	assert_true(saves.select(3, campaign))
+	assert_false(campaign.drink_manager.progress.is_unlocked(DrinkCatalog.C2_ICED_TEA))
+	assert_true(saves.select(1, campaign))
+	assert_eq(saves.data.name, "Zerato")
+	assert_eq(campaign.difficulty_progress.unlocked, 2)
+	assert_true(campaign.drink_manager.progress.is_unlocked(DrinkCatalog.NUOC_VOI))
+	assert_true(campaign.zodiac.progress.owns("dragon"))
+	assert_true(campaign.zodiac.progress.record("dragon").ending_rong_ran_len_may)
+	assert_gt(file_one.size(), 0)
+	assert_eq(saves.summaries().size(), 3)
+
+func test_fresh_service_loads_last_selected_file_and_committed_progress() -> void:
+	var directory := _root("restart")
+	var campaign := _campaign()
+	var saves := MetaSaveFiles.new(directory, "")
+	saves.attach(campaign)
+	assert_true(saves.select(2, campaign))
+	campaign.drink_manager.progress.add_progress("sets", 10)
+	campaign.zodiac.progress.commit("cat", "cat-victory", {"pleased_victories": 1}, ["emblem_unlocked"])
+	var restarted := MetaSaveFiles.new(directory, "")
+	assert_eq(restarted.active_slot, 2)
+	var next := _campaign()
+	restarted.attach(next)
+	assert_true(next.drink_manager.progress.is_unlocked(DrinkCatalog.STING))
+	assert_true(next.zodiac.progress.owns("cat"))
+	next.zodiac.progress.commit("cat", "cat-victory", {"pleased_victories": 1})
+	assert_eq(next.zodiac.progress.record("cat").pleased_victories, 1)
+
+func test_new_run_and_old_run_restore_never_regress_permanent_progress() -> void:
+	var saves := MetaSaveFiles.new(_root("old-run"), "")
+	var campaign := _campaign()
+	saves.attach(campaign)
+	var deal := DealState.new()
+	deal.start_tutorial_deal()
+	campaign.zodiac.bind(campaign, deal)
+	campaign.start_campaign(true, "META-RUN")
+	var codec := RunSave.new(saves.run_path())
+	assert_true(codec.save_run(campaign, deal))
+	campaign.drink_manager.progress.add_progress("runs", 10)
+	campaign.zodiac.progress.commit("dog", "permanent-dog", {}, ["emblem_unlocked"])
+	campaign.difficulty_progress.complete_week(1)
+	campaign.start_campaign(true, "NEXT-RUN")
+	assert_true(campaign.drink_manager.progress.is_unlocked(DrinkCatalog.C2_ICED_TEA))
+	assert_true(campaign.zodiac.progress.owns("dog"))
+	var old := codec.load_run()
+	assert_true(codec.restore(old, campaign, deal))
+	assert_eq(campaign.difficulty_progress.unlocked, 2)
+	assert_true(campaign.drink_manager.progress.is_unlocked(DrinkCatalog.C2_ICED_TEA))
+	assert_true(campaign.zodiac.progress.owns("dog"))
+	var restart := MetaSaveFiles.new(saves.root, "")
+	assert_eq(restart.data.drink_counters.runs, 10)
+	assert_true(restart.data.zodiac.records.dog.emblem_unlocked)
+
+func test_corrupt_primary_recovers_backup_and_does_not_replace_it_with_corruption() -> void:
+	var saves := MetaSaveFiles.new(_root("backup"), "")
+	var campaign := _campaign()
+	saves.attach(campaign)
+	campaign.drink_manager.progress.add_progress("melds", 1)
+	campaign.drink_manager.progress.add_progress("melds", 1)
+	var backup := _bytes(saves.meta_path() + ".bak")
+	_damage(saves.meta_path())
+	var recovered := MetaSaveFiles.new(saves.root, "")
+	assert_true(recovered.recovered_backup)
+	assert_eq(recovered.data.drink_counters.melds, 1)
+	recovered.attach(campaign)
+	campaign.drink_manager.progress.add_progress("melds", 2)
+	assert_eq(_bytes(recovered.meta_path() + ".bak"), backup)
+	assert_eq(MetaSaveFiles.new(saves.root, "").data.drink_counters.melds, 3)
+
+func test_both_damaged_files_are_preserved_and_another_file_can_be_selected() -> void:
+	var saves := MetaSaveFiles.new(_root("damaged"), "")
+	_damage(saves.meta_path())
+	_damage(saves.meta_path() + ".bak")
+	var before := _bytes(saves.meta_path())
+	var damaged := MetaSaveFiles.new(saves.root, "")
+	assert_false(damaged.error.is_empty())
+	var campaign := _campaign()
+	damaged.attach(campaign)
+	campaign.drink_manager.progress.add_progress("melds", 5)
+	assert_eq(_bytes(damaged.meta_path()), before)
+	assert_true(damaged.summaries()[0].damaged)
+	assert_true(damaged.select(2, campaign))
+	assert_eq(_bytes(damaged.meta_path(1)), before)
+
+func test_invalid_slot_choice_and_mismatched_identity_do_not_change_active_file() -> void:
+	var saves := MetaSaveFiles.new(_root("identity"), "")
+	var campaign := _campaign()
+	saves.attach(campaign)
+	assert_false(saves.select(0, campaign))
+	assert_false(saves.select(4, campaign))
+	assert_eq(saves.active_slot, 1)
+	var file := FileAccess.open(saves.meta_path(2), FileAccess.WRITE)
+	var payload := JSON.stringify(saves._pack_json(saves.data))
+	file.store_string(JSON.stringify({"version": 1, "payload": payload, "sha256": RunSave._digest(payload.to_utf8_buffer())}))
+	file.close()
+	assert_false(saves.select(2, campaign))
+	assert_eq(saves.active_slot, 1)
+	var summaries := saves.summaries()
+	assert_eq(summaries[1].slot, 2)
+	assert_true(summaries[1].damaged)
+
+func test_suspended_store_rejects_profile_changes_and_never_writes_debug_progress() -> void:
+	var saves := MetaSaveFiles.new(_root("sandbox"), "")
+	var campaign := _campaign()
+	saves.attach(campaign)
+	var before := _bytes(saves.meta_path())
+	saves.suspended = true
+	campaign.drink_manager.progress.add_progress("melds", 5)
+	campaign.zodiac.progress.commit("snake", "debug", {"pleased_victories": 99}, ["emblem_unlocked"])
+	assert_true(saves.save())
+	assert_false(saves.select(2, campaign))
+	assert_false(saves.rename_file("debug"))
+	assert_eq(_bytes(saves.meta_path()), before)
+	assert_true(MetaSaveFiles.new(saves.root, "").data.zodiac.records.is_empty())
+
+func test_legacy_files_migrate_once_without_modifying_sources() -> void:
+	var legacy := _root("legacy")
+	DirAccess.make_dir_recursive_absolute(legacy)
+	var drinks := DrinkProgress.new(legacy + "/demo_drink_progress.cfg")
+	drinks.add_progress("melds", 5)
+	var difficulty = preload("res://scripts/campaign/difficulty_progress.gd").new(legacy + "/difficulty_progress.cfg")
+	difficulty.complete_week(1)
+	var zodiac := ZodiacProgress.new(legacy + "/zodiac_progress_v1.cfg")
+	zodiac.commit("rooster", "legacy-emblem", {}, ["emblem_unlocked"])
+	var campaign := _campaign()
+	var deal := DealState.new()
+	deal.start_tutorial_deal()
+	campaign.zodiac.bind(campaign, deal)
+	campaign.start_campaign(true, "LEGACY-RUN")
+	var run := RunSave.new(legacy + "/run_v1.save")
+	assert_true(run.save_run(campaign, deal))
+	var originals := {}
+	for name in ["demo_drink_progress.cfg", "difficulty_progress.cfg", "zodiac_progress_v1.cfg", "run_v1.save"]: originals[name] = _bytes(legacy + "/" + name)
+	var saves := MetaSaveFiles.new(_root("imported"), legacy)
+	saves.attach(campaign)
+	assert_true(campaign.drink_manager.progress.is_unlocked(DrinkCatalog.NUOC_VOI))
+	assert_eq(campaign.difficulty_progress.unlocked, 2)
+	assert_true(campaign.zodiac.progress.owns("rooster"))
+	assert_eq(_bytes(saves.run_path()), originals["run_v1.save"])
+	assert_eq(RunSave.new(saves.run_path()).load_run().campaign.run_seed, "LEGACY-RUN")
+	for name in originals: assert_eq(_bytes(legacy + "/" + name), originals[name])
+	drinks.add_progress("runs", 10)
+	assert_eq(int(MetaSaveFiles.new(saves.root, legacy).data.drink_counters.get("runs", 0)), 0)
+
+func test_schema_rejects_nonprimitive_progress_and_summary_reads_do_not_replace_active_error() -> void:
+	var saves := MetaSaveFiles.new(_root("schema"), "")
+	var invalid := saves.data.duplicate(true)
+	invalid.drink_counters["melds"] = "five"
+	assert_false(saves._valid(invalid))
+	invalid = saves.data.duplicate(true)
+	invalid.zodiac.records["cat"] = {"emblem_unlocked": []}
+	assert_false(saves._valid(invalid))
+	saves.error = "keep this error"
+	saves.summaries()
+	assert_eq(saves.error, "keep this error")
+
+func test_legacy_and_live_request_history_accept_interned_text_keys() -> void:
+	var legacy := _root("interned-legacy")
+	DirAccess.make_dir_recursive_absolute(legacy)
+	var zodiac := ZodiacProgress.new(legacy + "/zodiac_progress_v1.cfg")
+	zodiac.commit("cat", "old-request", {&"requests_resolved": 4, &"requests_refused_successfully": 3}, [&"emblem_unlocked"])
+	var original := _bytes(zodiac.path)
+	var saves := MetaSaveFiles.new(_root("interned-profile"), legacy)
+	assert_true(saves.error.is_empty())
+	assert_true(FileAccess.file_exists(saves.meta_path()))
+	var campaign := _campaign()
+	saves.attach(campaign)
+	campaign.zodiac.progress.commit("cat", "new-request", {&"requests_resolved": 1}, [&"special_scene_completed"])
+	assert_true(saves.error.is_empty())
+	var restarted := MetaSaveFiles.new(saves.root, "")
+	assert_eq(restarted.data.zodiac.records.cat.requests_resolved, 5)
+	assert_eq(restarted.data.zodiac.records.cat.requests_refused_successfully, 3)
+	assert_true(restarted.data.zodiac.records.cat.emblem_unlocked)
+	assert_true(restarted.data.zodiac.records.cat.special_scene_completed)
+	assert_true(restarted.data.zodiac.seen.has("old-request") and restarted.data.zodiac.seen.has("new-request"))
+	assert_eq(_bytes(zodiac.path), original)
+
+
+func test_exact_64bit_summary_and_oversize_write_preserve_previous_primary_and_backup() -> void:
+	var saves := MetaSaveFiles.new(_root("bounds"), "")
+	var campaign := _campaign()
+	saves.attach(campaign)
+	saves.data.run_summary = {"wallet_vnd": 9_007_199_254_740_993}
+	assert_true(saves.rename_file("Exact integer"))
+	assert_eq(MetaSaveFiles.new(saves.root, "").data.run_summary.wallet_vnd, 9_007_199_254_740_993)
+	var before := _bytes(saves.meta_path())
+	var backup := _bytes(saves.meta_path() + ".bak")
+	saves.max_file_bytes = 8
+	assert_false(saves.rename_file("Too large"))
+	assert_eq(_bytes(saves.meta_path()), before)
+	assert_eq(_bytes(saves.meta_path() + ".bak"), backup)
+
+
+func test_damaged_selection_registry_recovers_without_poisoning_previous_backup() -> void:
+	var saves := MetaSaveFiles.new(_root("registry"), "")
+	var campaign := _campaign()
+	saves.attach(campaign)
+	assert_true(saves.select(2, campaign))
+	assert_true(saves.select(3, campaign))
+	var path := saves.root + "/active.cfg"
+	var backup := _bytes(path + ".bak")
+	_damage(path)
+	var recovered := MetaSaveFiles.new(saves.root, "")
+	assert_eq(recovered.active_slot, 2)
+	recovered.attach(campaign)
+	assert_true(recovered.select(1, campaign))
+	assert_eq(_bytes(path + ".bak"), backup)
+	assert_eq(MetaSaveFiles.new(saves.root, "").active_slot, 1)

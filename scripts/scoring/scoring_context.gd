@@ -20,6 +20,7 @@ var scoring_passes: Array = []
 var presentation_hits: Array[Dictionary] = []
 # Separate action receipts, excluded from intrinsic values and scoring passes.
 var relic_bonuses: Array[Dictionary] = []
+var boss_transactions: Array[Dictionary] = []
 var retrigger_source_id: String = ""
 var retrigger_property: String = ""
 var base_extension_score: int = 0

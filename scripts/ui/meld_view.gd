@@ -16,6 +16,7 @@ var _card_views: Dictionary = {}
 var _card_drink_outlines: Dictionary = {}
 var _card_beat_tweens: Dictionary = {}
 var _drink_eligible_card_ids: Dictionary = {}
+var _displayed_points := 0
 
 
 func _ready() -> void:
@@ -43,12 +44,14 @@ func set_meld(
 	if _title == null:
 		return
 	_title.text = "%s  %02d" % [tr("MELD_RUN") if meld.meld_type == MeldRules.TYPE_RUN else tr("MELD_SET"), meld.meld_id]
+	_displayed_points = meld.scored_points
 	_score.text = tr("MELD_POINTS") % [meld.scored_points, VndWallet.format_vnd(VndWallet.points_to_vnd(meld.scored_points, vnd_per_point))]
+	_score.add_theme_color_override("font_color", PresentationTheme.INK)
 	_hint.text = tr("MELD_READY_EXTEND") if extension_is_legal else (tr("MELD_SELECTED") if is_selected else tr("MELD_SELECT_EXTEND"))
 	_hint.add_theme_color_override("font_color", PresentationTheme.TEA if extension_is_legal else (PresentationTheme.GOLD if is_selected else PresentationTheme.MUTED))
 	var border := PresentationTheme.TEA if extension_is_legal else (PresentationTheme.GOLD if is_selected else Color("#8d5b30"))
-	var background := Color("#2d251eee") if is_selected else Color("#19130fe8")
-	add_theme_stylebox_override("panel", PresentationTheme.panel_style(background, border, 2 if is_selected or extension_is_legal else 1, 2, 4))
+	var background := Color("#2d251ed6") if is_selected else Color("#19130fae")
+	add_theme_stylebox_override("panel", PresentationTheme.panel_style(background, border, 2 if is_selected or extension_is_legal else 1, 2, 2))
 	_sync_cards(meld.cards, drink_highlight_enabled, drink_selection_enabled, drink_removable_card_ids, selected_drink_card_id)
 	if drink_highlight_enabled and not drink_removable_card_ids.is_empty():
 		_hint.text = tr("DRINK_RECOVER_MELD") if drink_returns_whole_meld else tr("DRINK_RECOVER_CARD")
@@ -56,6 +59,13 @@ func set_meld(
 			for texture: TextureRect in _card_views.values():
 				texture.tooltip_text = tr("DRINK_TARGET_WHOLE_MELD")
 	tooltip_text = tr("MELD_TOOLTIP") % (tr("MELD_RUN") if meld.meld_type == MeldRules.TYPE_RUN else tr("MELD_SET"))
+
+func set_boss_payout_suppressed(suppressed: bool) -> void:
+	if not suppressed: return
+	# Keep intrinsic card value visible without advertising a forbidden payout.
+	_score.text = ZodiacCatalog.words("VALUE %d · PAYS 0 VNĐ", "GIÁ TRỊ %d · TRẢ 0 VNĐ") % _displayed_points
+	_score.add_theme_color_override("font_color", PresentationTheme.DANGER)
+	tooltip_text += "\n" + ZodiacCatalog.words("Register closed. This Phase's legal scoring plays pay 0 VNĐ.", "Sổ đã đóng. Bài ghi điểm hợp lệ trong Hiệp này trả 0 VNĐ.")
 
 
 func play_card_beat_pulse(card_id: String, strength: float) -> void:

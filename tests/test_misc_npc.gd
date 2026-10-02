@@ -272,6 +272,7 @@ func test_campaign_settles_before_daily_requirement_and_closes_service_gates() -
 	c.complete_current_event()
 	c.complete_deal()
 	c.event_manager.complete_interaction("choose_drink")
+	preload("res://tests/zodiac_test_flow.gd").finish_noon(c.zodiac)
 	c.complete_current_event()
 	c.complete_deal()
 	c.complete_current_event()

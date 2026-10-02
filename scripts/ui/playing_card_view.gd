@@ -37,10 +37,14 @@ var _press_position := Vector2.ZERO
 var drag_enabled: bool = true
 var zodiac_locked := false
 var _zodiac_lock: Panel
+var _zodiac_smoke: ColorRect
 
 func set_zodiac_locked(value: bool) -> void:
 	zodiac_locked = value
+	if not value and _zodiac_lock == null: return
 	if _zodiac_lock == null:
+		_zodiac_smoke = preload("res://scripts/ui/zodiac_card_fx.gd").aura(self, CARD_SIZE, Color("bc78ff"), float(absi(card.unique_id.hash()) % 1000) * 0.01)
+		_zodiac_smoke.name = "CatLockSmoke"
 		_zodiac_lock = Panel.new()
 		_zodiac_lock.name = "CatLock"
 		_zodiac_lock.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -59,6 +63,8 @@ func set_zodiac_locked(value: bool) -> void:
 		label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_zodiac_lock.add_child(label)
 	_zodiac_lock.visible = value
+	_zodiac_smoke.visible = value
+	(_zodiac_lock.get_child(0) as Label).text = ZodiacCatalog.words("LOCKED", "BỊ KHÓA")
 
 
 func _ready() -> void:

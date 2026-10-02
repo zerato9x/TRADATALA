@@ -5,6 +5,7 @@ const SEED := 20092026
 const MORNING_IDS: Array[String] = ["standard_9_spades", "standard_9_hearts", "standard_9_diamonds", "standard_4_clubs", "standard_5_clubs", "standard_2_hearts", "standard_7_spades", "standard_j_diamonds", "standard_k_clubs", "standard_a_spades", "standard_9_clubs", "standard_6_clubs", "standard_3_hearts"]
 var learned: Dictionary = {}
 var dismissed: Dictionary = {}
+var first_seed_enabled := true
 
 func reset() -> void:
 	learned.clear()

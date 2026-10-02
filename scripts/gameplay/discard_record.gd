@@ -20,3 +20,5 @@ func _init(p_card: CardData = null, p_phase: int = 1, p_discard_number: int = 0,
 
 func short_label() -> String:
 	return "%s #%d" % [card.short_label() if card != null else "?", discard_number]
+
+const KIND_BOSS_FORCED := "boss_forced"

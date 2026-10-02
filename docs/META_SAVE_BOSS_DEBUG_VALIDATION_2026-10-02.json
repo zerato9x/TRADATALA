@@ -1,0 +1,138 @@
+{
+  "date": "2026-10-02",
+  "godot": "4.7.1-stable (official)",
+  "request": "Permanent save files for meta-progression and isolated boss debug mode",
+  "result": "PASS",
+  "fresh_process_checks": [
+    {
+      "label": "meta-debug-core-snake-fixed",
+      "completion": [
+        "TRADATALA_TESTS total=305 passed=305 failed=0 skipped=0"
+      ],
+      "error_log_empty": true,
+      "stdout": "G:\\PHOM\\TRADATALA\\.godot\\meta-debug-validation\\meta-debug-core-snake-fixed.out.log",
+      "stderr": "G:\\PHOM\\TRADATALA\\.godot\\meta-debug-validation\\meta-debug-core-snake-fixed.err.log"
+    },
+    {
+      "label": "meta-snake-fixed-rendered-write",
+      "completion": [
+        "META_DEBUG_SCENE_SMOKE checks=221 failures=0 mode=write"
+      ],
+      "error_log_empty": true,
+      "stdout": "G:\\PHOM\\TRADATALA\\.godot\\meta-debug-validation\\meta-snake-fixed-rendered-write.out.log",
+      "stderr": "G:\\PHOM\\TRADATALA\\.godot\\meta-debug-validation\\meta-snake-fixed-rendered-write.err.log"
+    },
+    {
+      "label": "meta-snake-fixed-rendered-read",
+      "completion": [
+        "META_DEBUG_SCENE_SMOKE checks=12 failures=0 mode=fresh-read"
+      ],
+      "error_log_empty": true,
+      "stdout": "G:\\PHOM\\TRADATALA\\.godot\\meta-debug-validation\\meta-snake-fixed-rendered-read.out.log",
+      "stderr": "G:\\PHOM\\TRADATALA\\.godot\\meta-debug-validation\\meta-snake-fixed-rendered-read.err.log"
+    },
+    {
+      "label": "meta-snake-fixed-roster",
+      "completion": [
+        "ZODIAC_FULL_ROSTER_SMOKE checks=746 failures=0"
+      ],
+      "error_log_empty": true,
+      "stdout": "G:\\PHOM\\TRADATALA\\.godot\\meta-debug-validation\\meta-snake-fixed-roster.out.log",
+      "stderr": "G:\\PHOM\\TRADATALA\\.godot\\meta-debug-validation\\meta-snake-fixed-roster.err.log"
+    },
+    {
+      "label": "meta-demo",
+      "completion": [
+        "DEMO_SMOKE: PASS checks=264 failures=0"
+      ],
+      "error_log_empty": true,
+      "stdout": "G:\\PHOM\\TRADATALA\\.godot\\meta-debug-validation\\meta-demo.out.log",
+      "stderr": "G:\\PHOM\\TRADATALA\\.godot\\meta-debug-validation\\meta-demo.err.log"
+    }
+  ],
+  "canonical_validator": {
+    "command": "tools/validate_project.ps1 -Strawy -Godot <Godot 4.7.1 console executable>",
+    "passed_stages": 26,
+    "core_at_canonical_run": 303,
+    "feature_ui_checks_at_canonical_run": 218,
+    "final_refinements_rechecked": [
+      "meta-debug-core-snake-fixed",
+      "meta-snake-fixed-rendered-write",
+      "meta-snake-fixed-rendered-read",
+      "meta-snake-fixed-roster"
+    ],
+    "stage_names": [
+      "parse",
+      "core",
+      "runtime",
+      "jukebox",
+      "money-fast-forward",
+      "music-transport",
+      "music-write",
+      "music-read",
+      "campaign",
+      "campaign-demo",
+      "progression-write",
+      "progression-read",
+      "meta-debug-write",
+      "meta-debug-read",
+      "front_end",
+      "tutorial_scene",
+      "event_table_overhaul",
+      "misc_npc_scene",
+      "gieo_que_screen",
+      "drink_shop",
+      "zodiac_scene",
+      "strawy_scene",
+      "strawy_commands",
+      "strawy_speech",
+      "strawy-settings-write",
+      "strawy-settings-read"
+    ]
+  },
+  "live_editor": {
+    "session": "tradatala@2ecf6ebb9d9ea961",
+    "boss": "snake",
+    "tier": 3,
+    "phase": 2,
+    "pointer_start": true,
+    "pointer_replay": true,
+    "physical_52": true,
+    "input_unlocked": true,
+    "replay_state_equal": true,
+    "meta_unchanged": true,
+    "normal_run_unchanged": true,
+    "pointer_exit": true,
+    "exit_preserved_meta": true,
+    "exit_preserved_normal": true,
+    "normal_seed": "42E9DF65",
+    "cat_emblem": true,
+    "cat_resolved": 14,
+    "left_page": "boss_lab",
+    "legacy_import_run_bytes_identical": true,
+    "migrated_meta_reopened": true,
+    "game_errors": 0,
+    "fresh_editor_errors_after_cursor_297": 0,
+    "verified_pointer_run": "r100392810-12",
+    "subsequent_live_error": {
+      "run": "r101091561-13",
+      "path": "res://scripts/zodiac/rules/snake.gd:28",
+      "message": "Single-card extension command passed an untyped Array to a typed CardData array argument.",
+      "status": "fixed",
+      "fix": "Use explicit Array[CardData] additions for legality and scoring preview.",
+      "regression": "test_snake_can_generate_next_turn_commands_with_a_real_meld_on_the_table covers NORMAL/UNPLEASED and Phase 1/2."
+    },
+    "following_run": "r101360365-14",
+    "following_run_game_errors_at_log_check": 0
+  },
+  "source_integrity": {
+    "git_diff_check": "PASS",
+    "committed": false,
+    "existing_mixed_work_preserved": true
+  },
+  "limits": [
+    "Synthetic pointer input is not physical touchscreen evidence.",
+    "Rendered and automated encounter tests are not a full manual campaign playthrough.",
+    "No new release executable was exported."
+  ]
+}

@@ -1,0 +1,34 @@
+TRADATALA — PROJECT SOURCE UPDATE MAP
+Prepared: 2026-10-01 after fast-forwarding main to 54c1797 (origin/main).
+
+NEW CURRENT SOURCES UPLOADED TO THE TRADATALA PROJECT
+- CURRENT-GAME-DESIGN-2026-10-01.txt
+- TRADATALA-AUDIO-CURRENT-2026-10-01.txt
+- PREMIUM-EDITION-FULL-MECHANICS-PLAN-2026-10-01.txt
+- UI_REFINEMENT_2026-10-01.txt
+- ZODIAC_VERTICAL_SLICE.txt
+
+The current game source separates the v1.0.3 release from later source WIP. The Zodiac source records the current Rooster/Cat slice, while the premium plan keeps the full Zodiac modifiers and broad dating-sim system as future scope. The UI report records the repository's current validation summary without claiming this doc refresh reran tests.
+
+LIVE PROJECT SOURCE AUDIT
+The Sources tab showed 18 files before this update. The five new sources now appear in the live list, for 23 total. Proposed retained sources: the five Oct 1 sources above, CODEBASE_AUDIT_2026-09-29-—-2026-09-30-checkpoint-update.txt, and sidewalk_table_full_reference.png. This leaves seven sources.
+
+PROPOSED OBSOLETE-SOURCE DELETIONS — PENDING USER CONFIRMATION
+1. TRADATALA-AUDIO-CURRENT-2026-09-23-—-2026-09-30-full-source-copy.txt
+2. PREMIUM-EDITION-FULL-MECHANICS-PLAN-2026-09-23-—-2026-09-30-full-source-copy.txt
+3. CURRENT-GAME-DESIGN-2026-09-23-—-2026-09-30-full-source-copy.txt
+4. TRADATALA-AUDIO-CURRENT-2026-09-23-—-2026-09-30-checkpoint-update.txt
+5. PREMIUM-EDITION-FULL-MECHANICS-PLAN-2026-09-23-—-2026-09-30-checkpoint-update.txt
+6. CURRENT-GAME-DESIGN-2026-09-23-—-2026-09-30-checkpoint-update.txt
+7. DOCUMENTATION-CHANGES-2026-09-23-—-2026-09-30-checkpoint-update.txt
+8. CODEBASE_AUDIT_2026-09-29-—-updated-2026-09-29.txt
+9. TRADATALA-AUDIO-CURRENT-2026-09-23-—-updated-2026-09-29.txt
+10. PREMIUM-EDITION-FULL-MECHANICS-PLAN-2026-09-23-—-2026-09-29-update.txt
+11. CURRENT-GAME-DESIGN-2026-09-23-—-2026-09-29-update.txt
+12. DOCUMENTATION-CHANGES-2026-09-23.txt-—-updated-2026-09-29.txt
+13. DOCUMENTATION-CHANGES-2026-09-23.txt
+14. PREMIUM-EDITION-FULL-MECHANICS-PLAN-2026-09-23.txt
+15. CURRENT-GAME-DESIGN-2026-09-23.txt
+16. TRADATALA-AUDIO-CURRENT-2026-09-23.txt
+
+No existing source has been deleted. Project conversations remain untouched.

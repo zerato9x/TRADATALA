@@ -2,6 +2,7 @@ extends Node
 
 signal locale_changed(locale_code: String)
 signal volume_changed(bus_name: StringName, percent: float)
+signal strawy_enabled_changed(enabled: bool)
 
 const SETTINGS_PATH := "user://settings.cfg"
 const MUSIC_BUS := &"Music"
@@ -19,6 +20,31 @@ var sound_volume_percent: float = 100.0
 var locale_code: String = "en"
 var music_system: String = DEFAULT_MUSIC_SYSTEM
 var authored_music_set: String = DEFAULT_AUTHORED_SET
+var tutorial_enabled := true
+var first_seed_enabled := true
+var strawy_enabled := true
+var strawy_choice_made := false
+var tutorial_completed := false
+
+func set_strawy_enabled(value: bool) -> void:
+	var changed := strawy_enabled != value
+	strawy_enabled = value
+	strawy_choice_made = true
+	_save_preferences()
+	if changed: strawy_enabled_changed.emit(value)
+
+func mark_tutorial_completed() -> void:
+	if tutorial_completed: return
+	tutorial_completed = true
+	_save_preferences()
+
+func set_tutorial_enabled(value: bool) -> void:
+	tutorial_enabled = value
+	_save_preferences()
+
+func set_first_seed_enabled(value: bool) -> void:
+	first_seed_enabled = value
+	_save_preferences()
 
 
 func _ready() -> void:
@@ -96,6 +122,11 @@ func _load_preferences() -> void:
 	var config := ConfigFile.new()
 	if config.load(SETTINGS_PATH) != OK:
 		return
+	tutorial_enabled = bool(config.get_value("help", "tutorial", true))
+	first_seed_enabled = bool(config.get_value("help", "first_seed", true))
+	strawy_enabled = bool(config.get_value("help", "strawy", true))
+	strawy_choice_made = bool(config.get_value("help", "strawy_choice_made", false))
+	tutorial_completed = bool(config.get_value("help", "tutorial_completed", false))
 	music_volume_percent = clampf(float(config.get_value("audio", "music_percent", music_volume_percent)), 0.0, 100.0)
 	sound_volume_percent = clampf(float(config.get_value("audio", "sound_percent", sound_volume_percent)), 0.0, 100.0)
 	var saved_locale := String(config.get_value("localization", "locale", locale_code)).to_lower()
@@ -108,6 +139,11 @@ func _load_preferences() -> void:
 
 func _save_preferences() -> void:
 	var config := ConfigFile.new()
+	config.set_value("help", "tutorial", tutorial_enabled)
+	config.set_value("help", "first_seed", first_seed_enabled)
+	config.set_value("help", "strawy", strawy_enabled)
+	config.set_value("help", "strawy_choice_made", strawy_choice_made)
+	config.set_value("help", "tutorial_completed", tutorial_completed)
 	config.set_value("audio", "music_percent", music_volume_percent)
 	config.set_value("audio", "sound_percent", sound_volume_percent)
 	config.set_value("localization", "locale", locale_code)

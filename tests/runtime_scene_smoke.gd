@@ -228,7 +228,7 @@ func _run() -> void:
 	var lotto_selector := scene.event_table.get_node("LottoSelect") as Button
 	var right_focus := scene.event_table._sprite_focus_position(&"right", Vector2(300, 590))
 	var lotto_focus := scene.event_table._sprite_focus_position(&"top_right", Vector2(300, 590))
-	_check(lotto_selector.position.x >= 850.0 and lotto_selector.position.y == 0.0, "top-right NPC is selected from the top-right NPC area rather than the top chair")
+	_check(lotto_selector.position.x >= 850.0 and lotto_selector.size.y >= 48.0, "lottery NPC has an explicit touch-sized name target")
 	_check(lotto_focus.is_equal_approx(right_focus), "top-right NPC focused sprite uses the same right-side presentation position as a right NPC")
 	scene.event_table.focus_deck()
 	await create_timer(EventTableController.TRANSITION_SECONDS + 0.05).timeout
@@ -314,7 +314,7 @@ func _run() -> void:
 	var discard_history_hud := scene.get_node_or_null("GameLayer/TableSurface/DiscardHistoryHUD") as PanelContainer
 	_check(discard_history_hud != null and scene.get_node_or_null("GameLayer/Header/HeaderRow/DiscardHistoryHUD") == null, "phase-grouped discard history is relocated below the table Phom")
 	_check(discard_history_hud != null and is_equal_approx(discard_history_hud.get_global_rect().get_center().x, scene.table_surface.get_global_rect().get_center().x) and discard_history_hud.position.y >= 270.0, "discard history is centered below the Phom region")
-	_check(scene.discard_history_row != null and scene.discard_history_row.get_child_count() == 1, "discard history HUD begins with its empty state")
+	_check(scene.discard_history_row != null and scene.discard_history_row.get_children().filter(func(slot: Node): return slot.has_meta("turn_number")).size() == 8, "turn register begins with eight persistent card slots")
 	_check(scene.get_node_or_null("GameLayer/Header/HeaderRow/IdentityPanel") == null, "game title and description panel is removed from gameplay")
 	var income_panel := scene.campaign_money_hud.income_panel as PanelContainer
 	_check(income_panel != null and income_panel.is_visible_in_tree() and income_panel.size.y <= 72.0, "Income remains in the compact top status strip")
@@ -346,7 +346,7 @@ func _run() -> void:
 	_check(wallet_pile.get_child_count() <= MoneyPresentation.MAX_WALLET_OBJECTS, "very large wallet pile stays capped")
 	scene.money_presentation.sync_wallet(scene.displayed_wallet_vnd)
 	_check(MoneyPresentation.denomination_breakdown(2_500_000).size() == 1 and int(MoneyPresentation.denomination_breakdown(2_500_000)[0]["count"]) == 5, "large repeated denominations compress into one logical bill bundle")
-	_check(scene.get_node_or_null("GameLayer/Header/HeaderRow/CampaignStat") != null and scene.campaign_value.text.contains("THỨ HAI"), "campaign day and requirement remain visible during the Deal")
+	_check(scene.get_node_or_null("GameLayer/Header/HeaderRow/CampaignStat") != null and scene.table_hud_presentation.day.text.contains("THỨ HAI") and scene.campaign_value.text.contains(VndWallet.format_vnd(scene.campaign.daily_requirement())), "campaign day and requirement remain visible during the Deal")
 	var campaign_panel := scene.get_node_or_null("GameLayer/Header/HeaderRow/CampaignStat") as PanelContainer
 	_check(campaign_panel != null and campaign_panel.get_index() == scene.menu_button.get_index() + 1, "objective panel sits immediately beside Menu")
 	_check(campaign_panel != null and campaign_panel.custom_minimum_size.x >= 240.0, "objective panel has room for day, requirement, and period")
@@ -692,7 +692,7 @@ func _run() -> void:
 	scene.deal.sam_dua_preserved_cards.clear()
 	scene.selected_card_ids.clear()
 	scene._sync_all()
-	_check(scene.discard_history_row.get_child_count() == 5, "center-table discard history shows its phase marker and all four discards")
+	_check(scene.discard_history_row.get_child_count() == 10, "turn register retains both phase markers and eight slots after four discards")
 	_check((scene.discard_history_row.get_child(0) as Label).text == "P1", "center-table discard history labels the owning phase")
 	_check(scene.discard_history_target_outlines.size() == 4, "each mandatory discard remains an independently addressable action target")
 	for discard_target in scene.discard_history_row.get_children().slice(1, 5):
@@ -709,7 +709,7 @@ func _run() -> void:
 	scene._cancel_drink_targeting()
 	scene.deal.discard_history.append(DiscardRecord.new(CardData.new("smoke_p2_discard", "A", 1, "Hearts", 1), 2, 1))
 	scene._sync_discard_history()
-	_check(scene.discard_history_row.get_child_count() == 7 and (scene.discard_history_row.get_child(5) as Label).text == "P2", "center-table discard history separates Phase 2 and restarts its turn order")
+	_check(scene.discard_history_row.get_child_count() == 10 and (scene.discard_history_row.get_child(5) as Label).text == "P2" and scene.discard_history_row.get_node("Phase2Turn1").get_meta("turn_filled"), "turn register fills Phase 2 in place and restarts its turn order")
 	archive_button.pressed.emit()
 	_check(scene.discard_archive_overlay.visible and scene.discard_archive_count.text.begins_with("8 LÁ"), "pile archive includes all four mandatory and four Trà đá extra discards")
 	scene.discard_archive_close.pressed.emit()

@@ -1,6 +1,7 @@
 param(
     [string]$Godot = $env:GODOT,
     [switch]$Full,
+    [switch]$Strawy,
     [int]$TimeoutSeconds = 120
 )
 
@@ -22,7 +23,7 @@ $previousLocalAppData = $env:LOCALAPPDATA
 
 function Invoke-Check([string]$Name, [string]$Script, [string[]]$UserArgs = @(), [switch]$Parse) {
     # A distinct profile prevents tests from touching saves/settings/unlocks.
-    # The two fresh-process pairs intentionally share only their own profile.
+    # Fresh-process write/read pairs intentionally share only their own profile.
     $profileName = $Name -replace '-(write|read)$', ''
     $env:APPDATA = Join-Path $profileRoot "$profileName-appdata"
     $env:LOCALAPPDATA = Join-Path $profileRoot "$profileName-localappdata"
@@ -75,7 +76,17 @@ try {
     Invoke-Check 'campaign-demo' 'res://tests/campaign_overhaul_scene_smoke.gd' @('--tradatala-demo')
     Invoke-Check 'progression-write' 'res://tests/progression_scene_smoke.gd'
     Invoke-Check 'progression-read' 'res://tests/progression_scene_smoke.gd' @('--resume-only')
+    Invoke-Check 'meta-debug-write' 'res://tests/meta_debug_scene_smoke.gd'
+    Invoke-Check 'meta-debug-read' 'res://tests/meta_debug_scene_smoke.gd' @('--resume-only')
+    if ($Strawy) {
+        foreach ($name in @('front_end', 'tutorial_scene', 'event_table_overhaul', 'misc_npc_scene', 'gieo_que_screen', 'drink_shop', 'zodiac_scene', 'strawy_scene', 'strawy_commands', 'strawy_speech')) {
+            Invoke-Check $name "res://tests/${name}_smoke.gd"
+        }
+        Invoke-Check 'strawy-settings-write' 'res://tests/strawy_settings_smoke.gd'
+        Invoke-Check 'strawy-settings-read' 'res://tests/strawy_settings_smoke.gd' @('--resume-only')
+    }
     if ($Full) {
+        Invoke-Check 'zodiac-full-roster' 'res://tests/zodiac_full_roster_smoke.gd'
         foreach ($name in @('menu_release', 'money_hud_103', 'release_103_qol', 'tutorial_scene', 'resolve_scene', 'gieo_que_screen', 'drink_shop', 'event_table_overhaul', 'misc_npc_scene', 'relic_scene', 'resolve_presentation')) {
             Invoke-Check $name "res://tests/${name}_smoke.gd"
         }

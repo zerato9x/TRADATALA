@@ -1,4 +1,6 @@
-# Zodiac vertical slice: Rooster / Cat
+# Zodiac vertical slice: Rooster / Cat (historical)
+
+This records the September 30 slice. Current Cat daytime behavior is documented in [Cat Tier 1 / Tier 1+ persuasion](CAT_PERSUASION_VERTICAL_SLICE_2026-10-03.md); Rooster retains the [Noon/Afternoon negotiation](ZODIAC_NEGOTIATION_2026-10-02.md) flow. Current evening rules are in [the runtime report](ZODIAC_RUNTIME_2026-10-02.md). The four-slot requests, Stay option, and Cat Special scene below are historical behavior.
 
 This document and the September 30 implementation brief supersede older Zodiac relationship/boss proposals for this slice. Full builds enable the feature; demo builds do not. No opponent AI, affection, degradation, invocation, curse, or additional boss mechanics are introduced.
 

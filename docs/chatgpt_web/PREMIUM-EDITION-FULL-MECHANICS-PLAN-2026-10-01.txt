@@ -1,0 +1,33 @@
+TRADATALA — PREMIUM EDITION / FULL-MECHANICS PLAN
+Planning basis: 2026-09-23. Release and WIP boundary refreshed: 2026-10-01.
+This is a future-scope plan. It is not evidence that a feature is included in v1.0.3 or ready to ship.
+
+PRODUCT DIRECTION
+- Build from the public v1.0.3 baseline and keep released behavior separate from main-branch WIP and backlog.
+- Main-branch WIP now contains the Rooster/Cat Zodiac vertical slice described in ZODIAC_VERTICAL_SLICE.md. The slice covers two signs and specified campaign/event/boss rules; the other five conceptual pairs are unauthored. It has saved selection/history and Emblems, but no affection, degradation, invocation, curse, or opponent AI.
+- The 2026-09-23 project decision established a broader Zodiac dating-sim/relationship system as future scope. The current slice intentionally adds no affection or degradation and does not implement that system. Its full interaction model still needs design; treat it as planned scope, not a current mechanic.
+- The official site was observed on 2026-09-23 promising a later full version with more NPCs, items, and mechanics. Recheck the page before using that as current marketing copy.
+- AI opponents, multiplayer, and 3D presentation are out of active scope.
+
+REMAINING FULL-MECHANICS WORK
+1. Complete Zodiac content. Author the remaining five conceptual pairs / ten signs, encounter timing, dialogue, requests, boss rules, success/refusal outcomes, persistence, and bilingual Handbook support. Specify the full daily modifier calendar and how modifiers interact with the existing Rooster/Cat rules and seed/save/economy authorities. The current Rooster/Cat details are in ZODIAC_VERTICAL_SLICE.md and should not be re-invented from this plan.
+2. Complete the calendar and special weekday mechanics/story chains: schedules, authored beats, player choices, state carried across days, NPC effects, rewards, and failure/skip behavior.
+3. Expand NPC and item content against the existing six service roles. Define service eligibility and timing, price/payment authority, repeat behavior, save/resume behavior, bilingual UI/Handbook copy, and item ownership/equip/effect rules.
+4. Specify the planned relationship/dating-sim model: recurring bosses, context-aware persuasion conversations, meaningful in-game gifts, relationship state and persistence, refusal outcomes, and rewards. Current request/disposition history and Emblem unlocks are not relationship mechanics.
+5. For every new rule, define exact timing, player-visible explanation, interaction with cards/Drinks/relics/scoring, seed/save/replay behavior, and rollback/failure outcomes before implementation.
+
+CORE AND OWNERSHIP TO PRESERVE
+Retain the Phỏm two-Phase Deal, seven-day debt campaign, integer-VND wallet journal, twelve Drinks, physical-card Gieo transformations, relic collection/equipment, seeded independent RNG, autosave/restore, Sunday report, and Endless. Preserve authority: DealState/scoring owns card rules; campaign services own day/event/request state; VndWallet owns committed money; RunSave owns committed run persistence; UI and Handbook explain state rather than create a second authority.
+
+DESIGN AND ACCEPTANCE ORDER
+A. Keep the v1.0.3 tag/build as the public baseline. Audit current source WIP before moving it into a release.
+B. Finish a single-source rule/content spec for Zodiac pairs, calendar effects, remaining NPC/items, and weekday stories. Mark unresolved mechanics as design-required.
+C. Define seed/save compatibility, campaign ordering, payment/scoring ownership, bilingual explanations, readability/accessibility, and migration behavior.
+D. Implement deterministic single-player additions with rule-level regression coverage before broader presentation.
+E. Accept the integrated campaign, save/resume, seed reproduction, balance, rendered UI, export, and human play before packaging. Audio changes also need human listening review.
+
+RELEASE BOUNDARY AND OPEN DECISIONS
+- The v1.0.3 release does not contain the Rooster/Cat Zodiac slice or any Zodiac gameplay.
+- The 2026-10-01 main-branch source is WIP; no new export, premium release, store setup, edition name/price, or launch date is established.
+- The full daily Zodiac modifier system remains planned and unimplemented. The broader relationship/affection system remains planned, with detailed rules still open.
+- Site facts in this file are observations from 2026-09-23, not verified current claims.

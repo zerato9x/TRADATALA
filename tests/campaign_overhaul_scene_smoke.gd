@@ -153,6 +153,7 @@ func _run() -> void:
 	scene._show_deal_over({})
 	await wait_for_phase(CampaignManager.CampaignPhase.NOON_EVENT, 2)
 	scene._on_campaign_drink_pressed(2, "choose_drink", DrinkCatalog.TRA_DA)
+	preload("res://tests/zodiac_test_flow.gd").finish_noon(scene.campaign.zodiac)
 	scene._on_campaign_continue_pressed()
 	await pause()
 	_play_deal()

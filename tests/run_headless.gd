@@ -9,9 +9,18 @@ const MusicAntiFatigueTestSuiteScript := preload("res://tests/test_music_anti_fa
 
 
 func _initialize() -> void:
+	call_deferred("_run")
+
+
+func _run() -> void:
 	var runner := McpTestRunner.new()
 	var result := runner.run_suites([
-		preload("res://tests/test_zodiac.gd").new(),
+		preload("res://tests/test_meta_save_files.gd").new(),
+		preload("res://tests/test_boss_debug.gd").new(),
+		preload("res://tests/test_hand_advice.gd").new(),
+		preload("res://tests/test_zodiac.gd").new(), preload("res://tests/test_cat_persuasion.gd").new(),
+		preload("res://tests/test_zodiac_runtime.gd").new(),
+		preload("res://tests/test_zodiac_endgame.gd").new(),
 		preload("res://tests/test_presentation_text.gd").new(),
 		preload("res://tests/test_campaign_overhaul.gd").new(),
 		preload("res://tests/test_run_progression.gd").new(),
@@ -21,6 +30,7 @@ func _initialize() -> void:
 		CampaignTestSuiteScript.new(),
 		MoneyPresentationTestSuiteScript.new(),
 		GieoQueTestSuiteScript.new(),
+		preload("res://tests/test_gieo_card_fx.gd").new(),
 		preload("res://tests/test_misc_npc.gd").new(),
 		MusicAntiFatigueTestSuiteScript.new(),
 		preload("res://tests/test_relics.gd").new(),

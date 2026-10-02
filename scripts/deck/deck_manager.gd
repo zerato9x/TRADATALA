@@ -102,3 +102,21 @@ func _shuffle_draw_pile() -> void:
 		var temporary := draw_pile[index]
 		draw_pile[index] = draw_pile[swap_index]
 		draw_pile[swap_index] = temporary
+
+
+# No exhaustion/refill and no deck RNG consumption during temporary boss borrowing.
+func borrow_available(count: int) -> Array[CardData]:
+	var borrowed: Array[CardData] = []
+	for _i in mini(maxi(count, 0), draw_pile.size()): borrowed.append(draw_pile.pop_back())
+	return borrowed
+
+func return_borrowed_with_seed(cards: Array[CardData], shuffle_seed: int) -> void:
+	if cards.is_empty(): return
+	draw_pile.append_array(cards)
+	var caller_rng := RandomNumberGenerator.new()
+	caller_rng.seed = shuffle_seed
+	for i in range(draw_pile.size() - 1, 0, -1):
+		var j := caller_rng.randi_range(0, i)
+		var temporary := draw_pile[i]
+		draw_pile[i] = draw_pile[j]
+		draw_pile[j] = temporary

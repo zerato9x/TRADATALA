@@ -1,6 +1,9 @@
 class_name CardData
 extends RefCounted
 
+signal permanent_changed(card_id: String, revision: int, operation: String)
+var mutation_revision := 0
+
 const RANK_FILE_NAMES := {
 	"A": "ace",
 	"2": "two",
@@ -53,21 +56,27 @@ func score_value() -> int:
 
 func apply_rank(p_rank: String, p_rank_index: int) -> void:
 	if transformation_locked: return
+	var before := persuasion_fingerprint()
 	rank = p_rank
 	rank_index = p_rank_index
 	base_value = p_rank_index
+	_notify_permanent(before, "rank")
 
 
 func apply_suit(p_suit: String) -> void:
 	if transformation_locked: return
+	var before := persuasion_fingerprint()
 	suit = p_suit
+	_notify_permanent(before, "suit")
 
 
 func add_gieo_property(property_id: String) -> bool:
 	if transformation_locked: return false
 	if property_id.is_empty() or gieo_properties.has(property_id):
 		return false
+	var before := persuasion_fingerprint()
 	gieo_properties.append(property_id)
+	_notify_permanent(before, "property")
 	return true
 
 
@@ -95,6 +104,7 @@ func copy_for_deal() -> CardData:
 
 
 func alter_for_zodiac(operation: String) -> void:
+	var before := persuasion_fingerprint()
 	match operation:
 		"remove_property":
 			if not gieo_properties.is_empty(): gieo_properties.pop_back()
@@ -111,6 +121,20 @@ func alter_for_zodiac(operation: String) -> void:
 			value_modifiers.clear()
 			enhancements.clear()
 			shiny = false
+	_notify_permanent(before, operation)
+
+func persuasion_fingerprint() -> Dictionary:
+	var data := permanent_snapshot()
+	data["base_value"] = base_value
+	data["value_modifiers"] = value_modifiers.duplicate()
+	data["enhancements"] = enhancements.duplicate()
+	data["shiny"] = shiny
+	return data
+
+func _notify_permanent(before: Dictionary, operation: String) -> void:
+	if before == persuasion_fingerprint(): return
+	mutation_revision += 1
+	permanent_changed.emit(unique_id, mutation_revision, operation)
 
 func has_permanent_changes() -> bool:
 	var identity := unique_id.split("_")

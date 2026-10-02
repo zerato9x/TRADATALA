@@ -17,6 +17,7 @@ var _confirm: Button
 var _sort: OptionButton
 var _search: LineEdit
 var _scroll: ScrollContainer
+var _back: Button
 
 func _ready() -> void:
 	name = "DeckScreen"
@@ -30,7 +31,7 @@ func _ready() -> void:
 	add_child(dim)
 	var panel := PanelContainer.new()
 	panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	panel.offset_left = 28
+	panel.offset_left = 164 # Strawy's dock remains clear even beside the last row.
 	panel.offset_top = 20
 	panel.offset_right = -28
 	panel.offset_bottom = -20
@@ -52,6 +53,7 @@ func _ready() -> void:
 	_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	top.add_child(_title)
 	var back := Button.new()
+	_back = back
 	back.name = "DeckBack"
 	back.text = _words("Back to the table", "Về bàn")
 	back.custom_minimum_size = Vector2(170, 44)
@@ -120,6 +122,7 @@ func _fit_grid() -> void:
 	_grid.columns = maxi(1, floori((_scroll.size.x - 12) / 78.0))
 
 func open_deck(cards: Array[CardData], title_text: String, purpose_text: String, allowed_cards: Array[CardData] = [], on_choose: Callable = Callable()) -> void:
+	_refresh_locale()
 	_cards = cards.duplicate()
 	_allowed.clear()
 	for card in allowed_cards:
@@ -140,6 +143,13 @@ func open_deck(cards: Array[CardData], title_text: String, purpose_text: String,
 	show()
 	move_to_front()
 	_search.grab_focus()
+
+func _refresh_locale() -> void:
+	_back.text = _words("Back to the table", "Về bàn")
+	_search.placeholder_text = _words("Find a card by rank, suit, or original identity", "Tìm theo số, chất hoặc lá gốc")
+	var captions := [_words("Suit, then rank", "Chất rồi số"), _words("Rank, then suit", "Số rồi chất"), _words("Changed first", "Lá đã đổi lên trước")]
+	for i in captions.size(): _sort.set_item_text(i,captions[i])
+	_confirm.text = _words("Choose this card", "Chọn lá này")
 
 func close() -> void:
 	if not visible: return

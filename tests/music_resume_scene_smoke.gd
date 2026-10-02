@@ -32,7 +32,7 @@ func _run() -> void:
 		if saved.is_empty():
 			await _finish()
 			return
-		scene._show_run_menu()
+		scene.front_end.show_home()
 		check(not scene.front_end.saved.is_empty(), "Continue needs no new music selection")
 		# A new-run choice must not replace the saved authored transport.
 		scene.front_end.show_setup()

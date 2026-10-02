@@ -398,69 +398,35 @@ func _random_cards(count: int, source: Array[CardData] = []) -> Array[CardData]:
 	var pool: Array[CardData] = []
 	pool.append_array(persistent_deck if source.is_empty() else source)
 	pool = pool.filter(func(card: CardData): return not card.transformation_locked)
-	_shuffle_cards(pool)
-	var picked: Array[CardData] = []
-	for index in range(mini(count, pool.size())):
-		picked.append(pool[index])
-	return picked
+	return CardTargetQuery.random_cards(pool, count, _rng)
 
 
 func _random_same_suit_group(requested_count: int) -> Array[CardData]:
+	var source: Array[CardData] = persistent_deck.filter(func(card: CardData): return not card.transformation_locked)
 	for target_count in range(requested_count, 0, -1):
-		var eligible_suits: Array[String] = []
-		for suit in DeckManager.SUITS:
-			var suit_cards := _cards_with_suit(suit)
-			if suit_cards.size() >= target_count:
-				eligible_suits.append(suit)
-		if not eligible_suits.is_empty():
-			var suit := eligible_suits[_rng.randi_range(0, eligible_suits.size() - 1)]
-			return _random_cards(target_count, _cards_with_suit(suit))
+		var picked := CardTargetQuery.random_same_suit(source, target_count, _rng)
+		if not picked.is_empty(): return picked
 	return []
 
 
 func _random_consecutive_group(requested_count: int) -> Array[CardData]:
+	var source: Array[CardData] = persistent_deck.filter(func(card: CardData): return not card.transformation_locked)
 	for target_count in range(requested_count, 1, -1):
-		var starts: Array[int] = []
-		for start_rank in range(1, 15 - target_count):
-			var valid := true
-			for offset in range(target_count):
-				if _cards_with_rank_index(start_rank + offset).is_empty():
-					valid = false
-					break
-			if valid:
-				starts.append(start_rank)
-		if not starts.is_empty():
-			var chosen_start := starts[_rng.randi_range(0, starts.size() - 1)]
-			var picked: Array[CardData] = []
-			for offset in range(target_count):
-				var candidates := _cards_with_rank_index(chosen_start + offset)
-				picked.append(candidates[_rng.randi_range(0, candidates.size() - 1)])
-			return picked
+		var picked := CardTargetQuery.random_consecutive(source, target_count, _rng)
+		if not picked.is_empty(): return picked
 	return _random_cards(1)
 
 
 func _cards_with_suit(suit: String) -> Array[CardData]:
-	var cards: Array[CardData] = []
-	for card in persistent_deck:
-		if card.suit == suit and not card.transformation_locked:
-			cards.append(card)
-	return cards
+	return CardTargetQuery.with_suit(persistent_deck, suit).filter(func(card: CardData): return not card.transformation_locked)
 
 
 func _cards_with_rank_index(rank_index: int) -> Array[CardData]:
-	var cards: Array[CardData] = []
-	for card in persistent_deck:
-		if card.rank_index == rank_index and not card.transformation_locked:
-			cards.append(card)
-	return cards
+	return CardTargetQuery.with_rank(persistent_deck, rank_index).filter(func(card: CardData): return not card.transformation_locked)
 
 
 func _shuffle_cards(cards: Array[CardData]) -> void:
-	for index in range(cards.size() - 1, 0, -1):
-		var swap_index := _rng.randi_range(0, index)
-		var temporary := cards[index]
-		cards[index] = cards[swap_index]
-		cards[swap_index] = temporary
+	cards.assign(CardTargetQuery.shuffled(cards, _rng))
 
 
 func _clear_operation() -> void:

@@ -1,0 +1,307 @@
+{
+  "date": "2026-10-02",
+  "engine": "Godot 4.7.1.stable.official.a13da4feb",
+  "core": {
+    "suites": 17,
+    "total": 287,
+    "passed": 287,
+    "failed": 0,
+    "skipped": 0,
+    "stdout": ".godot/zodiac-validation/core-all-suites-final.out.log",
+    "stderr": ".godot/zodiac-validation/core-all-suites-final.err.log"
+  },
+  "rendered_zodiac": {
+    "checks": 746,
+    "failures": 0,
+    "stdout": ".godot/zodiac-validation/roster-final-rendered.out.log",
+    "stderr": ".godot/zodiac-validation/roster-final-rendered.err.log",
+    "renderer": "OpenGL 3.3 Compatibility / NVIDIA GeForce GTX 1070 Ti"
+  },
+  "smoke_scripts": [
+    {
+      "script": "tests/campaign_overhaul_scene_smoke.gd",
+      "pass": true,
+      "stdout": ".godot/validation/campaign-demo.log",
+      "stderr": ".godot/validation/campaign-demo.err.log",
+      "completion": "CAMPAIGN_OVERHAUL_SCENE: 0 failures"
+    },
+    {
+      "script": "tests/card_symbol_render_smoke.gd",
+      "pass": true,
+      "stdout": ".godot/zodiac-validation/all-card-symbol.out.log",
+      "stderr": ".godot/zodiac-validation/all-card-symbol.err.log",
+      "completion": "CARD_SYMBOL_RENDER_SMOKE failures=0"
+    },
+    {
+      "script": "tests/demo_refinements_smoke.gd",
+      "pass": true,
+      "stdout": ".godot/zodiac-validation/all-demo-refinements.out.log",
+      "stderr": ".godot/zodiac-validation/all-demo-refinements.err.log",
+      "completion": "DEMO_REFINEMENTS_SMOKE: PASS checks=30 failures=0"
+    },
+    {
+      "script": "tests/demo_smoke.gd",
+      "pass": true,
+      "stdout": ".godot/zodiac-validation/all-demo.out.log",
+      "stderr": ".godot/zodiac-validation/all-demo.err.log",
+      "completion": "DEMO_SMOKE: PASS checks=264 failures=0"
+    },
+    {
+      "script": "tests/drink_quick_smoke.gd",
+      "pass": true,
+      "stdout": ".godot/zodiac-validation/all-drink-quick-final.out.log",
+      "stderr": ".godot/zodiac-validation/all-drink-quick-final.err.log",
+      "completion": "DRINK_QUICK_SMOKE checks=163 failed=0"
+    },
+    {
+      "script": "tests/drink_shop_smoke.gd",
+      "pass": true,
+      "stdout": ".godot/validation/drink_shop.log",
+      "stderr": ".godot/validation/drink_shop.err.log",
+      "completion": "DRINK_SHOP_SMOKE: PASS twelve-drinks inspect-order bilingual targets layouts"
+    },
+    {
+      "script": "tests/endless_history_smoke.gd",
+      "pass": true,
+      "stdout": ".godot/validation/history.log",
+      "stderr": ".godot/validation/history.err.log",
+      "completion": "ENDLESS_HISTORY_SMOKE: PASS"
+    },
+    {
+      "script": "tests/event_table_overhaul_smoke.gd",
+      "pass": true,
+      "stdout": ".godot/validation/event_table_overhaul.log",
+      "stderr": ".godot/validation/event_table_overhaul.err.log",
+      "completion": "EVENT_TABLE_OVERHAUL: 116 checks, 0 failures"
+    },
+    {
+      "script": "tests/front_end_smoke.gd",
+      "pass": true,
+      "stdout": ".godot/validation/front_end.log",
+      "stderr": ".godot/validation/front_end.err.log",
+      "completion": "FRONT_END_SMOKE failures=0"
+    },
+    {
+      "script": "tests/gieo_fx_smoke.gd",
+      "pass": true,
+      "stdout": ".godot/zodiac-validation/all-gieo-fx.out.log",
+      "stderr": ".godot/zodiac-validation/all-gieo-fx.err.log",
+      "completion": "GIEO_FX_SMOKE {\"duration_ms\":0,\"failed\":0,\"passed\":108,\"skipped\":0,\"suite_count\":4,\"suites_run\":[\"core_deal\",\"campaign\",\"gieo_que\",\"gieo_card_material\"],\"total\":108}"
+    },
+    {
+      "script": "tests/gieo_que_screen_smoke.gd",
+      "pass": true,
+      "stdout": ".godot/validation/gieo_que_screen.log",
+      "stderr": ".godot/validation/gieo_que_screen.err.log",
+      "completion": "GIEO_QUE_SCREEN_SMOKE checks=474 failures=0"
+    },
+    {
+      "script": "tests/jukebox_scene_smoke.gd",
+      "pass": true,
+      "stdout": ".godot/validation/jukebox.log",
+      "stderr": ".godot/validation/jukebox.err.log",
+      "completion": "JUKEBOX_SCENE_SMOKE: 0 failures"
+    },
+    {
+      "script": "tests/major_event_smoke.gd",
+      "pass": true,
+      "stdout": ".godot/zodiac-validation/all-major-event.out.log",
+      "stderr": ".godot/zodiac-validation/all-major-event.err.log",
+      "completion": "MAJOR_EVENT_SMOKE: PASS"
+    },
+    {
+      "script": "tests/menu_release_smoke.gd",
+      "pass": true,
+      "stdout": ".godot/validation/menu_release.log",
+      "stderr": ".godot/validation/menu_release.err.log",
+      "completion": "MENU_RELEASE_SMOKE failures=0"
+    },
+    {
+      "script": "tests/misc_npc_scene_smoke.gd",
+      "pass": true,
+      "stdout": ".godot/validation/misc_npc_scene.log",
+      "stderr": ".godot/validation/misc_npc_scene.err.log",
+      "completion": "MISC_NPC_SCENE_SMOKE PASS"
+    },
+    {
+      "script": "tests/money_fast_forward_smoke.gd",
+      "pass": true,
+      "stdout": ".godot/validation/money-fast-forward.log",
+      "stderr": ".godot/validation/money-fast-forward.err.log",
+      "completion": "MONEY_FAST_FORWARD_SMOKE: 0 failures"
+    },
+    {
+      "script": "tests/money_hud_103_smoke.gd",
+      "pass": true,
+      "stdout": ".godot/validation/money_hud_103.log",
+      "stderr": ".godot/validation/money_hud_103.err.log",
+      "completion": "MONEY_HUD_103 failures=0"
+    },
+    {
+      "script": "tests/music_resume_scene_smoke.gd",
+      "pass": true,
+      "stdout": ".godot/validation/music-read.log",
+      "stderr": ".godot/validation/music-read.err.log",
+      "completion": "MUSIC_RESUME_SCENE: 0 failures"
+    },
+    {
+      "script": "tests/music_transport_smoke.gd",
+      "pass": true,
+      "stdout": ".godot/validation/music-transport.log",
+      "stderr": ".godot/validation/music-transport.err.log",
+      "completion": "MUSIC_TRANSPORT_SMOKE: 0 failures"
+    },
+    {
+      "script": "tests/polished_card_render_smoke.gd",
+      "pass": true,
+      "stdout": ".godot/zodiac-validation/all-polished-card.out.log",
+      "stderr": ".godot/zodiac-validation/all-polished-card.err.log",
+      "completion": "POLISHED_CARD_RENDER: PASS"
+    },
+    {
+      "script": "tests/progression_scene_smoke.gd",
+      "pass": true,
+      "stdout": ".godot/validation/progression-read.log",
+      "stderr": ".godot/validation/progression-read.err.log",
+      "completion": "FRESH_PROCESS_RESUME: PASS"
+    },
+    {
+      "script": "tests/release_103_qol_smoke.gd",
+      "pass": true,
+      "stdout": ".godot/validation/release_103_qol.log",
+      "stderr": ".godot/validation/release_103_qol.err.log",
+      "completion": "RELEASE_103_QOL checks=13 failures=0"
+    },
+    {
+      "script": "tests/relic_scene_smoke.gd",
+      "pass": true,
+      "stdout": ".godot/validation/relic_scene.log",
+      "stderr": ".godot/validation/relic_scene.err.log",
+      "completion": "TRADATALA_RELIC_SMOKE passed"
+    },
+    {
+      "script": "tests/resolve_presentation_smoke.gd",
+      "pass": true,
+      "stdout": ".godot/validation/resolve_presentation.log",
+      "stderr": ".godot/validation/resolve_presentation.err.log",
+      "completion": "RESOLVE_PRESENTATION_SMOKE: PASS"
+    },
+    {
+      "script": "tests/resolve_scene_smoke.gd",
+      "pass": true,
+      "stdout": ".godot/validation/resolve_scene.log",
+      "stderr": ".godot/validation/resolve_scene.err.log",
+      "completion": "RESOLVE_SCENE_SMOKE: PASS"
+    },
+    {
+      "script": "tests/runtime_scene_smoke.gd",
+      "pass": true,
+      "stdout": ".godot/validation/runtime.log",
+      "stderr": ".godot/validation/runtime.err.log",
+      "completion": "TRADATALA_SCENE_SMOKE passed"
+    },
+    {
+      "script": "tests/strawy_commands_smoke.gd",
+      "pass": true,
+      "stdout": ".godot/validation/strawy_commands.log",
+      "stderr": ".godot/validation/strawy_commands.err.log",
+      "completion": "STRAWY_COMMANDS_SMOKE checks=36 failures=0"
+    },
+    {
+      "script": "tests/strawy_scene_smoke.gd",
+      "pass": true,
+      "stdout": ".godot/validation/strawy_scene.log",
+      "stderr": ".godot/validation/strawy_scene.err.log",
+      "completion": "STRAWY_SCENE_SMOKE checks=127 failures=0"
+    },
+    {
+      "script": "tests/strawy_settings_smoke.gd",
+      "pass": true,
+      "stdout": ".godot/validation/strawy-settings-read.log",
+      "stderr": ".godot/validation/strawy-settings-read.err.log",
+      "completion": "STRAWY_SETTINGS_SMOKE checks=3 failures=0"
+    },
+    {
+      "script": "tests/title_disc_smoke.gd",
+      "pass": true,
+      "stdout": ".godot/zodiac-validation/all-title-disc.out.log",
+      "stderr": ".godot/zodiac-validation/all-title-disc.err.log",
+      "completion": "TITLE_DISC_SMOKE passed"
+    },
+    {
+      "script": "tests/trigger_presentation_smoke.gd",
+      "pass": true,
+      "stdout": ".godot/zodiac-validation/all-trigger.out.log",
+      "stderr": ".godot/zodiac-validation/all-trigger.err.log",
+      "completion": "TRADATALA_TRIGGER_PRESENTATION_SMOKE passed"
+    },
+    {
+      "script": "tests/tutorial_scene_smoke.gd",
+      "pass": true,
+      "stdout": ".godot/validation/tutorial_scene.log",
+      "stderr": ".godot/validation/tutorial_scene.err.log",
+      "completion": "TUTORIAL_REPLACEMENT_SMOKE: 0 failures"
+    },
+    {
+      "script": "tests/ui_polish_layout_smoke.gd",
+      "pass": true,
+      "stdout": ".godot/zodiac-validation/all-ui-polish.out.log",
+      "stderr": ".godot/zodiac-validation/all-ui-polish.err.log",
+      "completion": "UI_POLISH_LAYOUT_SMOKE checks=139 failed=0"
+    },
+    {
+      "script": "tests/ui_refinement_smoke.gd",
+      "pass": true,
+      "stdout": ".godot/zodiac-validation/all-ui-refinement.out.log",
+      "stderr": ".godot/zodiac-validation/all-ui-refinement.err.log",
+      "completion": "UI_REFINEMENT_SMOKE checks=82 failed=0"
+    },
+    {
+      "script": "tests/zodiac_full_roster_smoke.gd",
+      "pass": true,
+      "stdout": ".godot/zodiac-validation/roster-final-rendered.out.log",
+      "stderr": ".godot/zodiac-validation/roster-final-rendered.err.log",
+      "completion": "ZODIAC_FULL_ROSTER_SMOKE checks=746 failures=0"
+    },
+    {
+      "script": "tests/zodiac_scene_smoke.gd",
+      "pass": true,
+      "stdout": ".godot/validation/zodiac_scene.log",
+      "stderr": ".godot/validation/zodiac_scene.err.log",
+      "completion": "ZODIAC_SCENE_SMOKE checks=42 failures=0"
+    },
+    {
+      "script": "tools/gameplay_music_smoke.gd",
+      "pass": true,
+      "stdout": ".godot/validation/gameplay_music.log",
+      "stderr": ".godot/validation/gameplay_music.err.log",
+      "completion": "GAMEPLAY_MUSIC_SMOKE: PASS selectable-dog-and-cat-authored-routes authoritative-phom-triggers forward-overlap optional-cleanup runtime-dj-bridge"
+    },
+    {
+      "script": "tools/music_arrangement_smoke.gd",
+      "pass": true,
+      "stdout": ".godot/validation/music_arrangement.log",
+      "stderr": ".godot/validation/music_arrangement.err.log",
+      "completion": "MUSIC_ARRANGEMENT_SMOKE: PASS section-insert-replace-reorder-repeat-save-play-source-preserved"
+    },
+    {
+      "script": "tools/music_director_smoke.gd",
+      "pass": true,
+      "stdout": ".godot/validation/music_director.log",
+      "stderr": ".godot/validation/music_director.err.log",
+      "completion": "MUSIC_DIRECTOR_SMOKE: PASS five-cue-ui bar-and-score-sort audition approval hold release catch reprise jump finish"
+    },
+    {
+      "script": "tools/ost_loop_catalog_smoke.gd",
+      "pass": true,
+      "stdout": ".godot/validation/ost_loop_catalog.log",
+      "stderr": ".godot/validation/ost_loop_catalog.err.log",
+      "completion": "OST_LOOP_CATALOG_SMOKE: PASS tracks=26 exhaustive=true roles=none"
+    }
+  ],
+  "notes": [
+    "Full -Strawy validation passed before the final main-runner inclusion of the six card-material tests; final combined core and rendered roster then passed.",
+    "Each smoke script has a passing final run. Failed earlier attempts remain in scratch logs for diagnosis.",
+    "Tests used isolated APPDATA and LOCALAPPDATA; the live MCP preview used nonpersistent test progress and was stopped."
+  ]
+}

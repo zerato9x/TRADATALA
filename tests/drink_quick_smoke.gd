@@ -102,6 +102,7 @@ func _run() -> void:
 	# Hover is inert; clicking selects/inspects, and the explicit Order button buys once.
 	for id in DrinkCatalog.all_ids():
 		var manager := DrinkManager.new()
+		manager.test_all_drinks_available = true
 		var shop := load("res://scenes/ui/drink_shop.tscn").instantiate() as DrinkShop
 		root.add_child(shop)
 		shop.position = Vector2(120, 160)

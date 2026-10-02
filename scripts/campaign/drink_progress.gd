@@ -22,6 +22,7 @@ const GOALS := {
 }
 var counters: Dictionary = {}
 var save_path: String
+var save_callback: Callable
 var _seen_melds: Dictionary = {}
 
 
@@ -123,6 +124,9 @@ func record_action(deal: DealState, result: Dictionary) -> void:
 
 func _save() -> void:
 	if save_path.is_empty():
+		return
+	if save_callback.is_valid():
+		save_callback.call()
 		return
 	var config := ConfigFile.new()
 	for metric: String in counters:

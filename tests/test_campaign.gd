@@ -96,7 +96,6 @@ func test_event_table_presentation_rosters_match_the_four_event_slots() -> void:
 	assert_eq(EventTableController.EVENT_ROSTERS[EventManager.EventSlot.AFTERNOON], [
 		EventTableController.NPC_THAY_BOI,
 		EventTableController.NPC_HANG_RONG,
-		EventTableController.NPC_LOTTO,
 	])
 
 
@@ -164,6 +163,7 @@ func test_campaign_completes_28_deals_and_28_event_slots_before_sunday_victory()
 			if event.interaction_by_id("choose_drink") != null:
 				assert_true(campaign.drink_manager.select_for_event(event.slot, DrinkCatalog.TRA_DA)["ok"])
 				assert_true(events.complete_interaction("choose_drink"))
+			preload("res://tests/zodiac_test_flow.gd").finish_noon(campaign.zodiac)
 			assert_true(campaign.complete_current_event())
 		elif CampaignManager.DEAL_PHASE_TO_PERIOD.has(campaign.current_phase):
 			wallet.apply_vnd(campaign.daily_requirement(), "campaign_test_deal")
@@ -190,12 +190,15 @@ func test_campaign_failure_stops_after_evening_deal_without_deducting_requiremen
 	campaign.start_campaign()
 	wallet.reset(0)
 	var deals := 0
-	while not campaign.run_failed:
+	var transitions := 0
+	while not campaign.run_failed and transitions < 20:
+		transitions += 1
 		if CampaignManager.EVENT_PHASE_TO_SLOT.has(campaign.current_phase):
 			var event := events.current_event
 			if event.interaction_by_id("choose_drink") != null:
 				campaign.drink_manager.select_for_event(event.slot, DrinkCatalog.TRA_DA)
 				events.complete_interaction("choose_drink")
+			preload("res://tests/zodiac_test_flow.gd").finish_noon(campaign.zodiac)
 			campaign.complete_current_event()
 		elif CampaignManager.DEAL_PHASE_TO_PERIOD.has(campaign.current_phase):
 			deals += 1

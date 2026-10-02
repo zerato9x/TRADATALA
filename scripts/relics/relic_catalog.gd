@@ -33,3 +33,7 @@ static func flavor_tags(id: String) -> Array:
 
 static func icon_path(id: String) -> String:
 	return "res://assets/relics/basic_%s.png" % DEFINITIONS[id].asset
+
+static func display_name(id: String) -> String:
+	var english := {"hair_clip": "Hair Clip", "comb": "Comb", "rubber_band": "Rubber Band", "chewing_gum": "Chewing Gum", "sunflower_seeds": "Sunflower Seeds", "toothpicks": "Toothpicks", "hard_candy": "Hard Candy", "sunglasses": "Sunglasses", "lipstick": "Lipstick", "buttons": "Buttons"}
+	return ZodiacCatalog.words(english.get(id, id), DEFINITIONS.get(id, {}).get("name", id))

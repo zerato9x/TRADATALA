@@ -16,7 +16,7 @@ const TYPES := {
 	"PhaseSettlement": preload("res://scripts/gameplay/phase_settlement.gd"),
 	"ScoringContext": preload("res://scripts/scoring/scoring_context.gd"),
 }
-const CAMPAIGN_FIELDS := ["difficulty", "run_seed", "endless", "_base_day_count", "current_day_index", "current_phase", "campaign_complete", "run_failed", "campaign_days", "active_deal_wallet_before_vnd", "deal_cursor", "day_cursor", "deal_reports", "day_reports", "collection_report", "activities", "day_activity_cursor"]
+const CAMPAIGN_FIELDS := ["debug_context", "difficulty", "run_seed", "endless", "_base_day_count", "current_day_index", "current_phase", "campaign_complete", "run_failed", "campaign_days", "active_deal_wallet_before_vnd", "deal_cursor", "day_cursor", "deal_reports", "day_reports", "collection_report", "activities", "day_activity_cursor"]
 const DRINK_FIELDS := ["day_index", "day_target_vnd", "empty_glasses", "current_event_slot", "event_ordered", "morning_drink_id", "afternoon_drink_id", "active_drink_id"]
 const GIEO_FIELDS := ["persistent_deck", "state", "current_day_index", "free_cast_used_today", "paid_cast_count_today", "current_result", "resolved_destination", "resolved_targets", "last_transformations"]
 const LOTTERY_FIELDS := ["day_index", "event_slot", "_draw", "_offers", "_tickets", "_settled", "last_receipt"]
@@ -56,7 +56,7 @@ func capture(campaign: CampaignManager, deal: DealState, copy_history: bool = tr
 	return {
 		"music": music,
 		"zodiac": campaign.zodiac.snapshot(),
-		"onboarding": {"learned": campaign.onboarding.learned.duplicate(), "dismissed": campaign.onboarding.dismissed.duplicate()},
+		"onboarding": {"learned": campaign.onboarding.learned.duplicate(), "dismissed": campaign.onboarding.dismissed.duplicate(), "first_seed_enabled": campaign.onboarding.first_seed_enabled},
 		"campaign": fields(campaign, CAMPAIGN_FIELDS), "deal": deal.snapshot_state(copy_history),
 		"drinks": fields(campaign.drink_manager, DRINK_FIELDS),
 		"progress": {"counters": campaign.drink_manager.progress.counters.duplicate(), "seen": campaign.drink_manager.progress._seen_melds.duplicate()} if campaign.drink_manager.progress != null else {},
@@ -70,10 +70,13 @@ func capture(campaign: CampaignManager, deal: DealState, copy_history: bool = tr
 func restore(data: Dictionary, campaign: CampaignManager, deal: DealState) -> bool:
 	if not valid_snapshot(data):
 		return false
+	campaign.zodiac._restoring = true
+	campaign.debug_context = data.campaign.get("debug_context", {}).duplicate(true)
 	campaign.difficulty = int(data.campaign.get("difficulty", 1))
 	apply_fields(campaign, data.campaign, CAMPAIGN_FIELDS)
 	campaign.zodiac.restore(data.get("zodiac", {}))
 	campaign.onboarding.reset()
+	campaign.onboarding.first_seed_enabled = bool(data.get("onboarding", {}).get("first_seed_enabled", true))
 	campaign.onboarding.learned = data.get("onboarding", {}).get("learned", {}).duplicate()
 	campaign.onboarding.dismissed = data.get("onboarding", {}).get("dismissed", {}).duplicate()
 	deal.restore_snapshot(data.deal)
@@ -114,6 +117,8 @@ func restore(data: Dictionary, campaign: CampaignManager, deal: DealState) -> bo
 			event.complete_interaction(id)
 		event.update_can_exit()
 		campaign.event_manager.current_event = event
+	campaign.zodiac.rebind_observers()
+	campaign.zodiac._restoring = false
 	return true
 
 func valid_snapshot(data: Dictionary) -> bool:
@@ -128,7 +133,7 @@ func valid_snapshot(data: Dictionary) -> bool:
 		return false
 	if int(c.get("current_day_index", -1)) < 0 or int(c.current_day_index) >= c.campaign_days.size():
 		return false
-	if int(c.get("current_phase", -1)) not in range(CampaignManager.CampaignPhase.CAMPAIGN_FAILURE + 1):
+	if int(c.get("current_phase", -1)) not in range(CampaignManager.CampaignPhase.DRAGON_DEAL + 1):
 		return false
 	return data.deal.get("hand") is Array and data.deal.get("deck") is Dictionary and data.gieo.get("persistent_deck", []).size() == 52
 

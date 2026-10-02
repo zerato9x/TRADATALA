@@ -1,5 +1,5 @@
 extends Control
-## Presentation only. All choices are validated and committed by ZodiacService.
+## The Event Table stages the character. This view sends negotiation intentions.
 var host: Control
 var service: ZodiacService
 var badge: Button
@@ -10,6 +10,7 @@ var body: VBoxContainer
 var copy_body: VBoxContainer
 var copy_scroll: ScrollContainer
 var dialogue: Label
+var contract_label: Label
 var mechanics: Label
 var status: Label
 var targets: OptionButton
@@ -18,32 +19,32 @@ var choices: GridContainer
 var close_button: Button
 var card_select_button: Button
 var selected_card_id := ""
+var selected_ids: Array[String] = []
+var target_preview: HBoxContainer
 var detail_button: Button
 var nameplate: Label
 var details_open := false
 var _clock := 0.0
 var _selection_offer_key := ""
 var scene_page := -1
-var _last_telegraph := ""
 
 func _process(delta: float) -> void:
 	if host == null: return
 	_clock += delta
-	var should_show := _event_overview_available()
-	if visible != should_show: refresh()
-	portrait.visible = should_show and not shade.visible
-	badge.visible = portrait.visible
-	nameplate.visible = portrait.visible
-	portrait.position.y = -4.0 + sin(_clock * 1.7) * 6.0
-	if character != null and shade.visible:
+	if visible != _event_available(): refresh()
+	if shade.visible:
 		character.rotation = sin(_clock * 1.25) * 0.012
 		character.scale = Vector2.ONE * (1.0 + sin(_clock * 1.6) * 0.012)
 
-func _event_overview_available() -> bool:
+func _event_available() -> bool:
 	return (host.game_started and not host.tutorial_active and not service.active_id().is_empty()
 		and not host.menu_layer.visible and host.current_campaign_event != null
+		and host.current_campaign_event.slot in [EventManager.EventSlot.NOON, EventManager.EventSlot.AFTERNOON]
 		and host.event_table.visible and host.event_table.table_state == EventTableController.TABLE_STATE_EVENT
-		and host.event_table.focused_npc_id.is_empty() and not host.event_table.deck_focused)
+		and host.event_table.focused_npc_id in ["", EventTableController.NPC_ZODIAC] and not host.event_table.deck_focused)
+
+func _event_overview_available() -> bool:
+	return _event_available() and host.event_table.focused_npc_id.is_empty()
 
 func configure(match_host: Control) -> void:
 	host = match_host
@@ -52,171 +53,121 @@ func configure(match_host: Control) -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	z_index = 210
-	badge = Button.new()
-	badge.name = "ZodiacStatus"
-	badge.position = Vector2(155, 8)
-	# The animal's head is clickable; EVENT Back occupies the strip beneath it.
-	badge.size = Vector2(172, 78)
-	badge.flat = true
-	badge.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	badge.pressed.connect(open_conversation)
-	add_child(badge)
-	portrait = TextureRect.new()
-	portrait.position = Vector2(130, -4)
-	portrait.size = Vector2(210, 210)
-	portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	portrait.material = ShaderMaterial.new()
-	(portrait.material as ShaderMaterial).shader = preload("res://shaders/zodiac_spirit.gdshader")
-	add_child(portrait)
-	nameplate = Label.new()
-	nameplate.name = "ZodiacNameplate"
-	nameplate.position = Vector2(130, 186)
-	nameplate.size = Vector2(210, 40)
-	nameplate.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	nameplate.add_theme_font_size_override("font_size", 15)
-	nameplate.add_theme_color_override("font_color", PresentationTheme.GOLD)
-	nameplate.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(nameplate)
+	var layer: Dictionary = host.event_table._npc_layers[EventTableController.NPC_ZODIAC]
+	badge = layer.button
+	portrait = layer.overlay
+	character = layer.sprite
+	nameplate = layer.name_tag
 	shade = ColorRect.new()
 	shade.name = "ZodiacConversation"
 	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	shade.color = Color(0.015, 0.025, 0.035, 0.48)
+	shade.color = Color.TRANSPARENT
+	shade.mouse_filter = Control.MOUSE_FILTER_STOP
 	shade.hide()
 	add_child(shade)
 	var panel := PanelContainer.new()
-	panel.position = Vector2(20, 90)
-	panel.size = Vector2(1240, 575)
-	var style := PresentationTheme.panel_style(Color.TRANSPARENT)
-	for side in ["left", "right", "top", "bottom"]: style.set("content_margin_" + side, 8.0)
-	panel.add_theme_stylebox_override("panel", style)
+	panel.position = Vector2(145, 80)
+	panel.size = Vector2(695, 605)
+	panel.add_theme_stylebox_override("panel", PresentationTheme.panel_style(Color("#102537e8"), PresentationTheme.GOLD_DARK, 1, 8, 3))
 	shade.add_child(panel)
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 22)
-	panel.add_child(row)
-	character = TextureRect.new()
-	character.name = "Character"
-	character.custom_minimum_size = Vector2(350, 540)
-	character.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	character.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	character.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	character.pivot_offset = Vector2(175, 270)
-	character.material = ShaderMaterial.new()
-	(character.material as ShaderMaterial).shader = preload("res://shaders/zodiac_spirit.gdshader")
-	row.add_child(character)
+	var margin := MarginContainer.new()
+	for side in ["left", "right", "top", "bottom"]: margin.add_theme_constant_override("margin_" + side, 16)
+	panel.add_child(margin)
 	body = VBoxContainer.new()
 	body.name = "ConversationBody"
-	body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	body.add_theme_constant_override("separation", 12)
-	row.add_child(body)
+	body.add_theme_constant_override("separation", 8)
+	margin.add_child(body)
 	copy_scroll = ScrollContainer.new()
 	copy_scroll.name = "DialogueScroll"
 	copy_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	copy_scroll.custom_minimum_size.y = 160
+	copy_scroll.custom_minimum_size.y = 124
 	copy_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	body.add_child(copy_scroll)
 	copy_body = VBoxContainer.new()
 	copy_body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	copy_body.add_theme_constant_override("separation", 12)
 	copy_scroll.add_child(copy_body)
-	dialogue = _label(23)
-	var speech_card := PanelContainer.new()
-	speech_card.name = "SpeechCard"
-	speech_card.add_theme_stylebox_override("panel", PresentationTheme.panel_style(Color("#102537b8"), PresentationTheme.TEA, 1, 8, 3))
-	copy_body.add_child(speech_card)
-	dialogue.reparent(speech_card)
-	mechanics = _label(17)
-	mechanics.visible = false
+	dialogue = _label(22)
+	contract_label = _label(17)
+	contract_label.name = "DemandTerms"
+	contract_label.add_theme_color_override("font_color", PresentationTheme.GOLD)
 	status = _label(16)
-	status.add_theme_color_override("font_color", PresentationTheme.GOLD)
-	targets = OptionButton.new()
-	targets.name = "CostTarget"
-	targets.item_selected.connect(func(_index): _update_card_cost())
-	body.add_child(targets)
+	mechanics = _label(16)
+	mechanics.hide()
+	target_preview = HBoxContainer.new()
+	target_preview.name = "DemandCards"
+	target_preview.add_theme_constant_override("separation", 8)
+	body.add_child(target_preview)
 	card_select_button = Button.new()
 	card_select_button.name = "ZodiacChooseCard"
 	card_select_button.pressed.connect(_open_card_deck)
 	PresentationTheme.configure_button(card_select_button, "gold")
 	body.add_child(card_select_button)
+	# Retain the history/scene view's simple visibility contract.
+	targets = OptionButton.new()
 	alterations = OptionButton.new()
-	alterations.name = "CardCost"
+	body.add_child(targets)
 	body.add_child(alterations)
+	targets.hide()
+	alterations.hide()
 	choices = GridContainer.new()
-	choices.columns = 2
-	choices.add_theme_constant_override("h_separation", 12)
+	choices.columns = 3
+	choices.add_theme_constant_override("h_separation", 8)
 	choices.add_theme_constant_override("v_separation", 8)
 	body.add_child(choices)
 	detail_button = Button.new()
 	detail_button.name = "ZodiacDetails"
-	detail_button.text = ZodiacCatalog.words("What does this mean?", "Chuyện này nghĩa là gì?")
 	detail_button.pressed.connect(func(): details_open = not details_open; mechanics.visible = details_open)
 	body.add_child(detail_button)
-	var close := Button.new()
-	close_button = close
-	close.name = "CloseConversation"
-	close.text = ZodiacCatalog.words("Back to the table", "Về bàn")
-	close.custom_minimum_size.y = 40
-	close.pressed.connect(_close_conversation)
-	body.add_child(close)
-	service.changed.connect(refresh)
-	host.deal.state_changed.connect(func(_result): refresh())
-	host.campaign.campaign_phase_changed.connect(func(_phase): shade.hide(); host.event_table.modulate.a = 1.0; refresh.call_deferred())
+	close_button = Button.new()
+	close_button.name = "CloseConversation"
+	close_button.custom_minimum_size.y = 40
+	close_button.pressed.connect(_close_conversation)
+	body.add_child(close_button)
+	service.changed.connect(func(): refresh(); host._sync_event_continue())
+	host.deal.wallet.balance_changed.connect(func(_before: int, _after: int, _delta: int, reason: String):
+		if reason.begins_with("zodiac_request:"): host._on_gieo_wallet_changed.call_deferred())
+	host.event_table.focus_cleared.connect(func(): shade.hide(); scene_page = -1; refresh())
+	host.campaign.campaign_phase_changed.connect(func(_phase): shade.hide(); scene_page = -1; refresh.call_deferred())
 	refresh()
 
 func _label(font_size: int) -> Label:
 	var label := Label.new()
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	label.add_theme_font_size_override("font_size", font_size)
 	copy_body.add_child(label)
 	return label
 
 func refresh() -> void:
-	var id := service.active_id()
-	visible = _event_overview_available()
-	if not visible:
-		shade.hide()
-		host.event_table.modulate.a = 1.0
-		return
+	var slot: int = host.current_campaign_event.slot if host.current_campaign_event != null else -1
+	host.event_table.set_zodiac_visitor(service.active_id(), service.visitor_available(slot))
+	visible = _event_available()
+	if not visible: shade.hide()
 	close_button.text = ZodiacCatalog.words("Back to the table", "Về bàn")
-	portrait.visible = not shade.visible
-	badge.visible = portrait.visible
-	nameplate.visible = portrait.visible
-	var boss: ZodiacBossRule = host.deal.zodiac_boss
-	var is_evening: bool = host.campaign.current_phase == CampaignManager.CampaignPhase.EVENING_DEAL
-	var state_text := ZodiacCatalog.disposition_label(service.mood())
-	if is_evening:
-		if id == "rooster":
-			state_text = ZodiacCatalog.words("PHASE 2 · NORMAL SCORING", "HIỆP 2 · TÍNH ĐIỂM THƯỜNG") if host.deal.current_phase == 2 else ZodiacCatalog.words("REGISTER CLOSED", "ĐÃ ĐÓNG SỔ") if boss.register_closed else ZodiacCatalog.words("REGISTER OPEN", "ĐANG MỞ SỔ")
-		else:
-			state_text = ZodiacCatalog.words("WATCHING", "ĐANG QUAN SÁT") if host.deal.current_phase == 1 else ZodiacCatalog.words("THE STALK · %d LOCKED", "RÌNH MỒI · KHÓA %d LÁ") % boss.locked_ids.size()
-	badge.text = ""
-	nameplate.text = ZodiacCatalog.display_name(id)
-	nameplate.tooltip_text = state_text + "\n" + ZodiacCatalog.rule_text(id, service.mood())
-	badge.tooltip_text = state_text + "\n" + ZodiacCatalog.rule_text(id, service.mood())
-	portrait.texture = load(ZodiacCatalog.DEFINITIONS[id].sprite)
-	var telegraph := "%s:%s" % [id, state_text]
-	if is_evening and telegraph != _last_telegraph:
-		_last_telegraph = telegraph
-		host.ui_feedback.play(&"transition")
-		var tween := create_tween()
-		badge.modulate = Color(1.8, 1.4, 0.8)
-		tween.tween_property(badge, "modulate", Color.WHITE, 0.7)
+	detail_button.text = ZodiacCatalog.words("Tonight's boss rule", "Luật boss tối nay")
 	if shade.visible and scene_page < 0: _build_conversation()
 
 func open_conversation() -> void:
-	if not _event_overview_available() or host.modal_overlay.visible or host.score_overlay.visible: return
-	if host.campaign.gieo_que.state not in [GieoQueService.STATE_READY, GieoQueService.STATE_COMPLETE]: return
-	if host.active_drag_payload != null: return
+	if not _event_available() or host.modal_overlay.visible or host.score_overlay.visible: return
+	if host.campaign.gieo_que.state not in [GieoQueService.STATE_READY, GieoQueService.STATE_COMPLETE] or host.active_drag_payload != null: return
+	if host.event_table.focused_npc_id.is_empty():
+		host.event_table.focus_npc(EventTableController.NPC_ZODIAC)
+		return
 	scene_page = -1
+	host.event_table.content_panel.hide()
+	host.event_table.conversation.hide()
 	shade.show()
-	host.event_table.modulate.a = 0.38
 	_build_conversation()
+	_focus_first_choice.call_deferred()
 
 func _close_conversation() -> void:
 	shade.hide()
 	scene_page = -1
-	host.event_table.modulate.a = 1.0
+	character.rotation = 0.0
+	character.scale = Vector2.ONE
+	if host.event_table.focused_npc_id == EventTableController.NPC_ZODIAC: host.event_table.unfocus_npc()
+	refresh()
 
 func _clear_choices() -> void:
 	copy_scroll.scroll_vertical = 0
@@ -224,139 +175,245 @@ func _clear_choices() -> void:
 		choices.remove_child(child)
 		child.queue_free()
 
-func _button(text: String, action: Callable) -> void:
+func _button(text: String, action: Callable) -> Button:
 	var button := Button.new()
 	button.text = text
-	button.custom_minimum_size = Vector2(300, 42)
+	button.custom_minimum_size = Vector2(210, 42)
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	PresentationTheme.configure_button(button, "tea")
-	button.pressed.connect(action)
+	if action.is_valid(): button.pressed.connect(action)
 	choices.add_child(button)
+	return button
 
 func _build_conversation() -> void:
 	_clear_choices()
+	choices.columns = 3
+	if service.uses_persuasion():
+		_build_persuasion()
+		return
+	if contract_label.get_parent() != copy_body:
+		contract_label.reparent(copy_body)
+		copy_body.move_child(contract_label, 1)
+		status.reparent(copy_body)
+		copy_body.move_child(status, 2)
+	copy_scroll.custom_minimum_size.y = 124
 	var id := service.active_id()
-	close_button.text = ZodiacCatalog.words("Back to the table", "Về bàn")
-	character.texture = load(ZodiacCatalog.DEFINITIONS[id].sprite)
 	var quote := service.quote()
-	var offer_key := "%s:%s:%s" % [service.daily.get("day", -1), service.daily.get("slot", -1), quote.get("status", "")]
+	var demand: Dictionary = quote.get("demand", {})
+	var offer_key := "%s:%s" % [demand.get("id", ""), quote.get("status", "")]
 	if offer_key != _selection_offer_key:
+		selected_ids.clear()
 		selected_card_id = ""
 		_selection_offer_key = offer_key
-	var history := service.progress.record(id)
+	var state := service.negotiation()
 	dialogue.text = ZodiacCatalog.display_name(id) + "\n“" + String(quote.get("speech", "")) + "”"
+	contract_label.text = String(quote.get("contract", ""))
+	contract_label.visible = not contract_label.text.is_empty()
 	mechanics.text = ZodiacCatalog.rule_text(id, service.mood())
-	status.text = ZodiacCatalog.words("You have met %d times today. %s is %s.", "Hôm nay hai người đã nói chuyện %d lần. %s đang %s.") % [service.daily.requests.size(), ZodiacCatalog.display_name(id), ZodiacCatalog.disposition_label(service.mood()).to_lower()]
-	for promise: Dictionary in service.daily.promises:
-		status.text += "\n" + ZodiacCatalog.words("ACTIVE PROMISE: ", "CAM KẾT ĐANG GIỮ: ") + (ZodiacCatalog.words("score before the next Deal's first discard", "ghi điểm trước lần bỏ đầu Ván kế") if promise.kind == "early_score" else ZodiacCatalog.words("keep 5,000 VNĐ until Afternoon", "giữ 5.000 VNĐ tới Buổi chiều"))
+	mechanics.visible = details_open
+	status.text = ZodiacCatalog.words("%s · %d pleasing · %d displeasing", "%s · %d vừa ý · %d không vừa ý") % [ZodiacCatalog.disposition_label(service.mood()), int(state.get("successful_responses", 0)), int(state.get("failed_responses", 0))]
+	if service.has_open_demand():
+		status.text += "\n" + (ZodiacCatalog.words("Demand %d of %d", "Yêu cầu %d / %d") % [int(state.cursor) + 1, int(state.demand_count)])
+		if quote.status == "counteroffer": status.text += "\n" + ZodiacCatalog.words("COUNTEROFFER · confirm with Accept. Nothing spent yet.", "ĐỀ NGHỊ KHÁC · bấm Đồng ý để xác nhận. Chưa mất gì.")
+	for promise: Dictionary in service.daily.get("promises", []):
+		status.text += "\n" + ZodiacCatalog.words("PENDING: ", "ĐANG CAM KẾT: ") + ZodiacDemand.describe(promise.get("demand", ZodiacDemand.make("PROMISE", "ANY", "PLAYER_CHOOSES", 1, "", 5000, {"condition": "wallet_floor"})))
+	if not state.get("history", []).is_empty():
+		for record: Dictionary in state.history:
+			var result: Dictionary = record.result
+			var label := ZodiacCatalog.words("Pending", "Chưa kiểm tra") if result.get("pending", false) else ZodiacCatalog.words("Kept", "Đã giữ") if result.get("resolved_successfully", false) else ZodiacCatalog.words("Broken", "Không giữ")
+			if int(service.daily.slot) == EventManager.EventSlot.AFTERNOON:
+				status.text += "\n%s · %s" % [label, ZodiacDemand.describe(record.demand)]
+	if service.has_open_demand() and not service.daily.get("last_result", {}).is_empty():
+		var last: Dictionary = service.daily.last_result
+		status.text += "\n" + (ZodiacCatalog.words("Last answer: promise reserved.", "Vừa đáp lời: đã nhận cam kết.") if last.get("pending", false) else ZodiacCatalog.words("Last answer: pleasing.", "Vừa đáp lời: vừa ý.") if last.get("resolved_successfully", false) else ZodiacCatalog.words("Last answer: displeasing.", "Vừa đáp lời: không vừa ý."))
 	targets.hide()
 	alterations.hide()
 	card_select_button.hide()
-	var event_active := CampaignManager.EVENT_PHASE_TO_SLOT.has(host.campaign.current_phase)
-	if event_active and quote.get("status", "") == "offered":
-		mechanics.text = quote.contract + "\n\n" + mechanics.text
-		if quote.kind in ["alter", "gift"]:
-			targets.clear()
-			if quote.kind == "alter":
-				card_select_button.show()
-				card_select_button.text = ZodiacCatalog.words("Choose a card from your deck", "Chọn lá từ bộ bài") if selected_card_id.is_empty() else ZodiacCatalog.words("Chosen: ", "Đã chọn: ") + _selected_card_label()
-				alterations.clear()
-				for entry in [["reset", ZodiacCatalog.words("Reset to original card", "Hoàn nguyên lá bài")], ["remove_property", ZodiacCatalog.words("Remove last property", "Bỏ thuộc tính cuối")], ["seal", ZodiacCatalog.words("Seal transformations for this run", "Khóa biến đổi hết lượt chơi")]]:
-					alterations.add_item(entry[1])
-					alterations.set_item_metadata(alterations.item_count - 1, entry[0])
-				alterations.show()
-				_update_card_cost()
-			else:
-				for relic_id: String in host.deal.relics.inventory:
-					targets.add_item(RelicCatalog.DEFINITIONS[relic_id].name)
-					targets.set_item_metadata(targets.item_count - 1, relic_id)
-				targets.show()
-		_button(_accept_words(quote.kind), _respond.bind("ACCEPT"))
-		if (quote.kind == "gift" and targets.item_count == 0) or (quote.kind == "alter" and selected_card_id.is_empty()): choices.get_child(0).disabled = true
-		_button(ZodiacCatalog.words("No, thanks.", "Thôi, cảm ơn nhé."), _respond.bind("REFUSE"))
-		var extras: Array[String] = ["BARGAIN"]
-		if quote.kind == "pay": extras.append("COUNTEROFFER")
-		if quote.can_time: extras.append("SPEND_TIME")
-		var rng := RandomNumberGenerator.new()
-		rng.seed = hash("%s:%d:%d" % [service.run_id, service.daily.day, service.daily.slot])
-		var extra := extras[rng.randi_range(0, extras.size() - 1)]
-		_button(_extra_words(extra), _respond.bind(extra))
-	else:
-		var last: Dictionary = service.daily.last_result
-		if not last.is_empty():
-			dialogue.text = ZodiacCatalog.display_name(id) + "\n“" + _follow_up_line(last, id) + "”"
-	if event_active and history.get("special_scene_unlocked", false) and not service.progress.owns(id):
+	_build_target_preview(demand)
+	if service.has_open_demand():
+		if demand.verb in ZodiacDemand.CARD_VERBS and ZodiacDemand.player_controls(demand):
+			card_select_button.show()
+			card_select_button.text = ZodiacCatalog.words("Choose cards · %d / %d", "Chọn bài · %d / %d") % [selected_ids.size(), int(demand.quantity)]
+			var labels: Array[String] = []
+			for card in CardTargetQuery.resolve_ids(host.campaign.gieo_que.persistent_deck, selected_ids): labels.append(card.short_label())
+			if not labels.is_empty(): card_select_button.text += " · " + ", ".join(labels)
+		var accept := _button(ZodiacCatalog.words("ACCEPT", "ĐỒNG Ý"), _respond.bind("ACCEPT", offer_key))
+		accept.disabled = not service.can_accept(selected_ids)
+		_button(ZodiacCatalog.words("REFUSE", "TỪ CHỐI"), _respond.bind("REFUSE", offer_key))
+		var haggle := _button(ZodiacCatalog.words("HAGGLE", "MẶC CẢ"), _respond.bind("HAGGLE", offer_key))
+		haggle.disabled = not quote.can_haggle
+		accept.mouse_filter = Control.MOUSE_FILTER_IGNORE if accept.disabled else Control.MOUSE_FILTER_STOP
+		haggle.mouse_filter = Control.MOUSE_FILTER_IGNORE if haggle.disabled else Control.MOUSE_FILTER_STOP
+	var history := service.progress.record(id)
+	if id != "cat" and history.get("special_scene_unlocked", false) and not service.progress.owns(id):
 		_button(ZodiacCatalog.words("A private moment…", "Một khoảnh khắc riêng…"), func(): scene_page = 0; _show_scene())
 	_button(ZodiacCatalog.words("History & Emblems", "Lịch sử & Huy hiệu"), _show_history)
+
+func _build_persuasion() -> void:
+	var quote := service.quote()
+	var visit := service.persuasion.state()
+	var token := service.offer_token()
+	if contract_label.get_parent() != body:
+		contract_label.reparent(body)
+		body.move_child(contract_label, 1)
+		status.reparent(body)
+		body.move_child(status, 2)
+	# Dialogue scrolls; the visible terms and mood remain beside the controls.
+	copy_scroll.custom_minimum_size.y = 64 if service.has_open_demand() else 96
+	selected_ids.assign(visit.get("selection", []))
+	dialogue.text = quote.speech
+	contract_label.text = quote.contract
+	contract_label.visible = not contract_label.text.is_empty()
+	mechanics.text = ZodiacCatalog.rule_text(service.active_id(), service.mood())
 	mechanics.visible = details_open
-	detail_button.visible = event_active
+	var patience := int(visit.get("patience", 3))
+	status.text = "%s · %s\n%s %s" % [ZodiacCatalog.relationship_label(service.progress.relationship_tier(service.active_id())),
+		ZodiacCatalog.disposition_label(service.mood()), ZodiacCatalog.words("Patience", "Kiên nhẫn"), "●".repeat(patience) + "○".repeat(5 - patience)]
+	status.tooltip_text = "%d / 5" % patience
+	status.add_theme_color_override("font_color", PresentationTheme.GOLD if patience >= 4 else PresentationTheme.WARNING if patience <= 1 else PresentationTheme.TEA)
+	if quote.stage == "counteroffer":
+		status.text += "\n" + ZodiacCatalog.words("COUNTEROFFER · confirm the changed terms with Accept.", "ĐỀ NGHỊ KHÁC · Đồng ý để xác nhận điều kiện mới.")
+	elif quote.stage == "last_chance_pending":
+		status.text += "\n" + ZodiacCatalog.words("LAST CHANCE · Cat's recovery scene awaits authoring. Normal choices are suspended.", "CƠ HỘI CUỐI · Cảnh phục hồi của Mão chưa được viết. Tạm dừng lựa chọn thường.")
+	elif quote.stage == "locked":
+		status.text += "\n" + ZodiacCatalog.words("Today's conversation has ended.", "Cuộc trò chuyện hôm nay đã kết thúc.")
+	for result: Dictionary in visit.get("outcomes", []):
+		status.text += "\n" + (ZodiacCatalog.words("FULFILLED · ", "ĐÃ GIỮ · ") if result.resolved_successfully else ZodiacCatalog.words("BROKEN · ", "THẤT HỨA · ")) + service.persuasion.describe_terms(result.terms)
+	if quote.stage == "judged" and service.progress.relationship_tier(service.active_id()) > int(visit.get("relationship_at_start", 1)):
+		status.text += "\n" + ZodiacCatalog.words("FAMILIAR unlocked · Tier 1+ on future visits.", "Đã QUEN MẶT · Nội dung 1+ từ lần gặp sau.")
+	targets.hide()
+	alterations.hide()
+	card_select_button.hide()
+	_build_target_preview(quote.demand)
+	if service.has_open_question() or quote.stage == "last_chance":
+		choices.columns = 1
+		for answer: Dictionary in quote.answers:
+			var button := _answer_button(answer.id, answer.text)
+			button.pressed.connect(_answer.bind(answer.id, token, quote.stage == "last_chance"))
+	elif quote.stage == "reaction":
+		choices.columns = 1
+		_button(ZodiacCatalog.words("Continue", "Tiếp tục"), func(): service.continue_conversation(token); _focus_first_choice.call_deferred())
+	elif quote.stage == "last_chance_pending":
+		choices.columns = 1
+		_button(ZodiacCatalog.words("End today's visit", "Kết thúc lần gặp hôm nay"), func(): service.persuasion.end_pending_recovery(token); _focus_first_choice.call_deferred())
+	elif service.has_open_demand():
+		if quote.demand.get("authority", "") == "OFFER_THREE_PLAYER_CHOOSES":
+			card_select_button.show()
+			card_select_button.text = ZodiacCatalog.words("Choose one of the three cards", "Chọn một trong ba lá bài")
+			if not selected_ids.is_empty():
+				var cards := CardTargetQuery.resolve_ids(host.campaign.gieo_que.persistent_deck, selected_ids)
+				if not cards.is_empty(): card_select_button.text += " · " + cards[0].short_label()
+		var accept := _button(ZodiacCatalog.words("ACCEPT", "ĐỒNG Ý"), _respond.bind("ACCEPT", token))
+		accept.disabled = not service.can_accept(selected_ids)
+		accept.mouse_filter = Control.MOUSE_FILTER_IGNORE if accept.disabled else Control.MOUSE_FILTER_STOP
+		_button(ZodiacCatalog.words("REFUSE", "TỪ CHỐI"), _respond.bind("REFUSE", token))
+		var haggle := _button(ZodiacCatalog.words("HAGGLE", "MẶC CẢ"), _respond.bind("HAGGLE", token))
+		haggle.disabled = not quote.can_haggle
+		haggle.mouse_filter = Control.MOUSE_FILTER_IGNORE if haggle.disabled else Control.MOUSE_FILTER_STOP
+		haggle.tooltip_text = ZodiacCatalog.words("No valid replacement target is available.", "Không có đối tượng thay thế hợp lệ.") if haggle.disabled and quote.stage != "counteroffer" else ""
 
-func _accept_words(kind: String) -> String:
-	match kind:
-		"pay": return ZodiacCatalog.words("All right. Here is 5,000 VNĐ.", "Được. Đây là 5.000 VNĐ.")
-		"early_score": return ZodiacCatalog.words("I'll make a meld before I discard.", "Tôi sẽ hạ Phỏm trước khi bỏ bài.")
-		"restraint": return ZodiacCatalog.words("I'll keep 5,000 VNĐ aside.", "Tôi sẽ giữ lại 5.000 VNĐ.")
-		"alter": return ZodiacCatalog.words("All right. Change this card.", "Được. Đổi lá này đi.")
-		"gift": return ZodiacCatalog.words("You can have this relic.", "Tôi tặng món này.")
-	return ZodiacCatalog.words("All right.", "Được thôi.")
+func _answer_button(answer_id: String, answer_text: String) -> Button:
+	var button := _button("", Callable())
+	# Wrapped Label keeps the exact answer readable without truncation.
+	button.custom_minimum_size = Vector2(0, 58)
+	button.set_meta("answer_id", answer_id)
+	button.set_meta("answer_text", answer_text)
+	var label := Label.new()
+	label.text = answer_id + " · " + answer_text
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.add_theme_font_size_override("font_size", 17)
+	label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	label.offset_left = 12
+	label.offset_right = -12
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	button.add_child(label)
+	return button
 
-func _follow_up_line(result: Dictionary, id: String) -> String:
-	var response := String(result.get("resolution_type", ""))
-	if response == "REFUSE":
-		return ZodiacCatalog.words("You know your mind. I can respect that.", "Bạn biết mình muốn gì. Tôi tôn trọng điều đó.") if id == "cat" else ZodiacCatalog.words("Fair enough. Better a clear no than a promise you can't keep.", "Ừ, nói không rõ ràng còn hơn hứa rồi không làm.")
-	if response == "SPEND_TIME":
-		return ZodiacCatalog.words("Stay a little longer, then. The cards can wait.", "Vậy ngồi thêm chút nữa đi. Bài để sau cũng được.")
-	if response == "COUNTEROFFER":
-		return ZodiacCatalog.words("Now we're talking. You don't give in so easily.", "Thế mới là nói chuyện. Bạn đâu dễ nhượng bộ.")
-	if result.get("resolved_successfully", false):
-		return ZodiacCatalog.words("All right. I'll remember you kept your word.", "Được. Tôi sẽ nhớ là bạn giữ lời.")
-	return ZodiacCatalog.words("Hmm. I thought you'd choose differently.", "Ừm. Tôi tưởng bạn sẽ chọn khác.")
+func _answer(answer_id: String, token: String, recovery: bool = false) -> void:
+	if recovery: service.persuasion.resolve_last_chance(answer_id, token)
+	else: service.answer_question(answer_id, token)
+	_focus_first_choice.call_deferred()
 
-func _extra_words(response: String) -> String:
-	match response:
-		"COUNTEROFFER": return ZodiacCatalog.words("How about 2,500 VNĐ?", "2.500 VNĐ được không?")
-		"SPEND_TIME": return ZodiacCatalog.words("Let's sit a little longer. I'll skip the next Deal.", "Ngồi thêm chút nhé. Tôi bỏ Ván kế.")
-	return ZodiacCatalog.words("Can we find another way?", "Mình tính cách khác được không?")
+func _focus_first_choice() -> void:
+	if not shade.visible: return
+	for child: Button in choices.get_children():
+		if not child.disabled: child.grab_focus(); return
+	close_button.grab_focus()
 
-func _selected_card_label() -> String:
-	for card: CardData in host.campaign.gieo_que.persistent_deck:
-		if card.unique_id == selected_card_id: return card.short_label()
-	return "?"
+func _build_target_preview(demand: Dictionary) -> void:
+	for child in target_preview.get_children():
+		target_preview.remove_child(child)
+		child.queue_free()
+	target_preview.hide()
+	if service.uses_persuasion():
+		if demand.is_empty(): return
+		if demand.get("target_kind", "") == "RELIC":
+			var face := TextureRect.new()
+			face.texture = load(RelicCatalog.icon_path(demand.relic_id))
+			face.custom_minimum_size = Vector2(70, 70)
+			face.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			face.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			target_preview.add_child(face)
+			var caption := Label.new()
+			caption.text = RelicCatalog.display_name(demand.relic_id)
+			caption.add_theme_font_size_override("font_size", 18)
+			target_preview.add_child(caption)
+			target_preview.show()
+			return
+		var ids: Array = demand.target_ids if not demand.target_ids.is_empty() else demand.offered_ids
+		_add_card_previews(ids, Vector2(60, 84))
+		return
+	if demand.get("verb", "") not in ZodiacDemand.CARD_VERBS: return
+	var ids: Array = demand.target_ids if not ZodiacDemand.player_controls(demand) else demand.offered_ids if not demand.offered_ids.is_empty() else selected_ids
+	_add_card_previews(ids, Vector2(70, 98))
+
+func _add_card_previews(ids: Array, face_size: Vector2) -> void:
+	for card in CardTargetQuery.resolve_ids(host.campaign.gieo_que.persistent_deck, ids):
+		var view := TextureRect.new()
+		view.texture = load(card.texture_path())
+		view.custom_minimum_size = face_size
+		view.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		view.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		view.tooltip_text = "%s · %s\n%s" % [card.short_label(), card.unique_id, "\n".join(card.gieo_property_descriptions())]
+		view.mouse_filter = Control.MOUSE_FILTER_PASS
+		target_preview.add_child(view)
+	target_preview.visible = not ids.is_empty()
 
 func _open_card_deck() -> void:
-	var deck: Array[CardData] = host.campaign.gieo_que.persistent_deck
-	var available: Array[CardData] = []
-	for card in deck:
-		if card.has_permanent_changes() or not card.transformation_locked:
-			available.append(card)
-	host.deck_screen.open_deck(deck, ZodiacCatalog.words("Your deck", "Bộ bài của bạn"),
-		ZodiacCatalog.words("Choose the physical card for this request. Inspect its permanent changes before deciding.", "Chọn lá bài thật cho lời đề nghị này. Xem kỹ biến đổi trước khi quyết định."), available,
-		func(card_id: String): selected_card_id = card_id; _build_conversation())
+	var demand := service.current_demand()
+	if service.uses_persuasion():
+		if demand.get("authority", "") != "OFFER_THREE_PLAYER_CHOOSES": return
+		var token := service.offer_token()
+		host.deck_screen.open_deck(host.campaign.gieo_que.persistent_deck, ZodiacCatalog.words("Choose a card to leave untouched", "Chọn lá bài sẽ để yên"),
+			service.persuasion.describe_terms(demand), service.selectable_cards(),
+			func(card_id: String):
+				if service.persuasion.select_card(card_id, token): _build_conversation(); _focus_first_choice.call_deferred())
+		return
+	if demand.get("verb", "") not in ZodiacDemand.CARD_VERBS: return
+	if selected_ids.size() >= int(demand.quantity): selected_ids.clear()
+	var available := service.selectable_cards(selected_ids)
+	var token := service.offer_token()
+	host.deck_screen.open_deck(host.campaign.gieo_que.persistent_deck, ZodiacCatalog.words("Choose a demand target", "Chọn bài cho yêu cầu"),
+		ZodiacDemand.describe(demand) + "\n" + (ZodiacCatalog.words("Select card %d of %d. Accept confirms the whole cost.", "Chọn lá %d / %d. Đồng ý xác nhận toàn bộ chi phí.") % [selected_ids.size() + 1, int(demand.quantity)]), available,
+		func(card_id: String):
+			if token != service.offer_token(): return
+			selected_card_id = card_id
+			selected_ids.append(card_id)
+			_build_conversation())
 
-func _update_card_cost() -> void:
-	if not alterations.visible or selected_card_id.is_empty(): return
-	var id := selected_card_id
-	for card: CardData in host.campaign.gieo_que.persistent_deck:
-		if card.unique_id != id: continue
-		alterations.set_item_disabled(0, not card.has_permanent_changes())
-		alterations.set_item_disabled(1, card.gieo_properties.is_empty())
-		alterations.set_item_disabled(2, card.transformation_locked)
-		if alterations.is_item_disabled(alterations.selected):
-			for index in alterations.item_count:
-				if not alterations.is_item_disabled(index):
-					alterations.select(index)
-					break
-
-func _respond(response: String) -> void:
-	var target := selected_card_id if card_select_button.visible else String(targets.get_item_metadata(targets.selected)) if targets.visible and targets.item_count > 0 else ""
-	var alteration := String(alterations.get_item_metadata(alterations.selected)) if alterations.visible else "reset"
-	var result := service.respond(response, target, alteration)
+func _respond(response: String, expected_offer: String = "") -> void:
+	var result := service.respond(response, selected_ids, expected_offer)
 	if not result.get("ok", false):
-		status.text = ZodiacCatalog.words("Cannot commit: check funds, owned target, or available property. Nothing was spent.", "Chưa thể thực hiện: kiểm tra tiền, vật sở hữu hoặc thuộc tính. Chưa mất tài nguyên.")
+		status.text = ZodiacCatalog.words("No change made. ", "Chưa thay đổi gì. ") + (ZodiacCatalog.words("No counteroffer is available for these terms.", "Chưa có đề nghị khác cho điều kiện này.") if result.get("error", "") == "no_counteroffer" else ZodiacCatalog.words("Check the selected cards and available resources.", "Kiểm tra bài đã chọn và tài nguyên hiện có."))
 	else: _build_conversation()
+	_focus_first_choice.call_deferred()
 
 func _show_history() -> void:
 	_clear_choices()
+	contract_label.hide()
+	card_select_button.hide()
+	target_preview.hide()
 	mechanics.show()
 	targets.hide()
 	alterations.hide()
@@ -376,15 +433,25 @@ func _show_history() -> void:
 	_button(ZodiacCatalog.words("Back", "Trở lại"), _build_conversation)
 
 func _show_scene() -> void:
+	if service.active_id() == "cat": return # No authored Cat Special scene in this slice.
 	_clear_choices()
+	contract_label.hide()
+	card_select_button.hide()
+	target_preview.hide()
 	targets.hide()
 	alterations.hide()
-	var rooster := service.active_id() == "rooster"
+	var id := service.active_id()
 	var pages := [
-		ZodiacCatalog.words("The street is still asleep. Rooster pulls out a chair before you ask. For once, he leaves his watch face down.", "Phố còn ngủ. Dậu kéo ghế trước khi bạn hỏi. Lần này, anh úp mặt đồng hồ xuống.") if rooster else ZodiacCatalog.words("The last glass has stopped ringing. Cat stays at the table, watching the street empty without asking you for anything.", "Tiếng ly cuối đã lắng. Mão ngồi lại, nhìn phố vắng dần mà không đòi hỏi điều gì."),
-		ZodiacCatalog.words("“You said no when you meant no. And when you promised, you acted. That's rarer than an early sunrise.”", "“Bạn nói không khi muốn nói không. Đã hứa là làm. Còn hiếm hơn một buổi bình minh sớm.”") if rooster else ZodiacCatalog.words("“You learned to leave something untouched. Patience isn't obedience. It's knowing what is worth keeping.”", "“Bạn đã biết giữ lại một điều. Kiên nhẫn không phải phục tùng. Là biết điều gì đáng giữ."),
-		ZodiacCatalog.words("He slides a small brass rooster across the wood. “Next time, put this on the table. I'll find the time.”", "Anh đẩy con gà bằng đồng nhỏ qua mặt bàn. “Lần tới đặt nó ở đây. Tôi sẽ dành thời gian.”") if rooster else ZodiacCatalog.words("She leaves a small cat-shaped token beside your glass. “When our day comes, set it here. I'll be watching.”", "Cô để huy hiệu hình mèo cạnh ly. “Tới ngày của chúng ta, đặt nó ở đây. Tôi sẽ nhìn thấy.”"),
+		ZodiacCatalog.words("The street is still asleep. Rooster pulls out a chair before you ask. For once, he leaves his watch face down.", "Phố còn ngủ. Dậu kéo ghế trước khi bạn hỏi. Lần này, anh úp mặt đồng hồ xuống."),
+		ZodiacCatalog.words("“You said no when you meant no. And when you promised, you acted. That's rarer than an early sunrise.”", "“Bạn nói không khi muốn nói không. Đã hứa là làm. Còn hiếm hơn một buổi bình minh sớm.”"),
+		ZodiacCatalog.words("He slides a small brass rooster across the wood. “Next time, put this on the table. I'll find the time.”", "Anh đẩy con gà bằng đồng nhỏ qua mặt bàn. “Lần tới đặt nó ở đây. Tôi sẽ dành thời gian.”"),
 	]
+	if id != "rooster":
+		pages = [
+			ZodiacCatalog.words("The table grows quiet. %s stays behind after the others leave.", "Bàn đã yên. %s ngồi lại khi những người khác đã về.") % ZodiacCatalog.display_name(id),
+			ZodiacCatalog.words("“You kept your word, and you learned my rule: %s. I will remember this game.”", "“Bạn giữ lời và hiểu luật của tôi: %s. Tôi sẽ nhớ ván này.”") % ZodiacCatalog.skill_name(id),
+			ZodiacCatalog.words("A small Emblem rests beside your glass. “Call me when our day comes. We have another game to play.”", "Huy hiệu nhỏ nằm cạnh ly. “Gọi tôi khi tới ngày của chúng ta. Mình còn một ván nữa.”"),
+		]
 	dialogue.text = pages[scene_page]
 	mechanics.text = ""
 	mechanics.hide()

@@ -1,41 +1,14 @@
 extends CanvasLayer
-## Contextual hints; never blocks or substitutes gameplay.
+## Retains onboarding observation and request-driven tutorial copy for Strawy.
 var host: MatchUI
 var box: PanelContainer
-var copy: Label
 var current_id := ""
-var _last_text := ""
 
 func configure(ui: MatchUI) -> void:
 	host = ui
-	layer = 246
 	box = PanelContainer.new()
-	box.position = Vector2(280, 62)
-	box.size = Vector2(720, 64)
-	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	box.theme = PresentationTheme.create_game_theme()
-	box.add_theme_stylebox_override("panel", PresentationTheme.panel_style(Color("182b3eee"), Color("bda16a"), 1, 4, 10))
+	box.hide()
 	add_child(box)
-	var row := HBoxContainer.new()
-	box.add_child(row)
-	copy = Label.new()
-	copy.custom_minimum_size.x = 570
-	copy.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	copy.add_theme_font_size_override("font_size", 16)
-	copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	copy.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_child(copy)
-	var guide := Button.new()
-	guide.text = "?"
-	guide.pressed.connect(func(): GameGlossary.open(host, "core"))
-	row.add_child(guide)
-	var dismiss := Button.new()
-	dismiss.text = "×"
-	dismiss.pressed.connect(func():
-		host.campaign.onboarding.dismissed[current_id] = true
-		host._queue_run_save()
-	)
-	row.add_child(dismiss)
 	host.deal.state_changed.connect(func(result): host.campaign.onboarding.observe(result, host.deal))
 	host.deal.wallet.balance_changed.connect(func(_a, _b, _c, reason):
 		if reason != "reset": host.campaign.onboarding.mark(reason)
@@ -43,29 +16,13 @@ func configure(ui: MatchUI) -> void:
 	)
 
 func _process(_delta: float) -> void:
-	if host == null or host.campaign == null:
-		return
-	box.visible = host.game_started and not host.menu_layer.visible and host.campaign.current_day_index == 0
-	if host.zodiac_table != null and host.zodiac_table.shade.visible: box.hide()
-	if not box.visible:
-		return
-	if host.money_presentation != null and host.money_presentation.presentation_active:
-		box.hide()
-		return
-	if not host.selected_card_ids.is_empty():
-		host.campaign.onboarding.mark("selection")
+	if host == null or host.campaign == null: return
+	if not host.selected_card_ids.is_empty(): host.campaign.onboarding.mark("selection")
 	if host.campaign.current_phase == CampaignManager.CampaignPhase.NOON_DEAL and host.deal.action_counts.get("new_meld", 0) > 0:
 		host.campaign.onboarding.mark("noon_consequence")
-	if get_tree().root.get_node_or_null("LotteryReceipt") != null or get_tree().root.get_node_or_null("GameGlossary") != null:
-		box.hide()
-		return
-	var hints := _hint()
-	current_id = hints[0]
-	box.visible = not current_id.is_empty() and not host.campaign.onboarding.dismissed.has(current_id) and not host.campaign.onboarding.learned.has(current_id)
-	var text := GameGlossary.words(hints[1], hints[2])
-	if text != _last_text:
-		copy.text = text
-		_last_text = text
+	var hint := _hint()
+	current_id = hint[0] if not host.campaign.onboarding.learned.has(hint[0]) else ""
+	box.hide()
 
 func _hint() -> Array[String]:
 	var learned := host.campaign.onboarding.learned

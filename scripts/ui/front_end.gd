@@ -33,6 +33,10 @@ var footer: HBoxContainer
 var title_label: Label
 var music_page: VBoxContainer
 var settings_page: VBoxContainer
+var files_body: VBoxContainer
+var boss_lab_body: VBoxContainer
+var boss_options: Dictionary = BossDebugSession.normalize({})
+var boss_rule_preview: Label
 var _previous_focus: Control
 var _now_playing: Label
 var _layout_width := 0
@@ -55,7 +59,7 @@ func configure(owner: MatchUI) -> void:
 		label.add_theme_constant_override("shadow_offset_y", 5)
 		logo_words.append(label)
 	var stage: Control = $SafeArea/Frame/Main
-	for id in ["home", "setup", "collections", "music", "settings"]:
+	for id in ["home", "setup", "collections", "music", "settings", "files", "boss_lab"]:
 		var panel := MarginContainer.new()
 		panel.name = id.capitalize()
 		panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -77,6 +81,8 @@ func configure(owner: MatchUI) -> void:
 			"collections": collection_body = body
 			"music": music_page = body
 			"settings": settings_page = body
+			"files": files_body = body
+			"boss_lab": boss_lab_body = body
 	# Keep the existing, wired jukebox and settings controls in the new navigation.
 	host.music_player_panel.reparent(music_page)
 	host.music_player_panel.custom_minimum_size = Vector2.ZERO
@@ -140,6 +146,8 @@ func refresh() -> void:
 		"home": show_home()
 		"setup": _render_setup()
 		"collections": _render_collections()
+		"files": show_save_files()
+		"boss_lab": show_boss_lab()
 		_: _show_page(page)
 
 func show_home() -> void:
@@ -161,10 +169,18 @@ func show_home() -> void:
 	elif not saved.is_empty():
 		var resume := _button(words("CONTINUE", "TIẾP TỤC"), func(): resume_requested.emit(), "tea")
 		resume.tooltip_text = _save_summary()
+		resume.disabled = not host.save_files.usable()
 		home_body.add_child(resume)
-	var new_run := _button(words("NEW RUN", "VÁN MỚI"), show_setup, "gold")
+	var new_run := _button(words("EXIT DEBUG", "THOÁT THỬ NGHIỆM") if host.boss_debug_active else words("NEW RUN", "VÁN MỚI"), host._leave_boss_debug if host.boss_debug_active else show_setup, "gold")
 	new_run.custom_minimum_size.y = 56
+	new_run.disabled = not host.boss_debug_active and not host.save_files.usable()
 	home_body.add_child(new_run)
+	if host.save_files != null:
+		var file_name: String = host.save_files.data.get("name", "")
+		var file_label := _label(words("SAVE FILE %d", "Ô LƯU %d") % host.save_files.active_slot + (" · " + file_name if not file_name.is_empty() else ""), 15, GOLD)
+		file_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		home_body.add_child(file_label)
+		if not host.save_files.error.is_empty(): save_message = host.save_files.error
 	if not save_message.is_empty(): home_body.add_child(_label(save_message, 15, GOLD))
 	var nav := GridContainer.new()
 	nav.name = "HomeNavigation"
@@ -176,6 +192,13 @@ func show_home() -> void:
 	nav.add_child(_button(words("HANDBOOK", "SỔ TAY"), func(): handbook_requested.emit()))
 	nav.add_child(_button(words("MUSIC", "ÂM NHẠC"), func(): _show_page("music")))
 	nav.add_child(_button(words("SETTINGS", "TÙY CHỌN"), func(): _show_page("settings")))
+	var files := _button(words("SAVE FILES", "CÁC Ô LƯU"), show_save_files)
+	files.name = "SaveFiles"
+	nav.add_child(files)
+	if BossDebugSession.available():
+		var lab := _button(words("DEBUG BOSSES · F9", "THỬ CON GIÁP · F9"), show_boss_lab)
+		lab.name = "BossLab"
+		nav.add_child(lab)
 	_now_playing = _label("", 15, CREAM)
 	_now_playing.name = "NowPlaying"
 	_now_playing.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -200,7 +223,8 @@ func show_setup() -> void:
 	draft = RunSetupDraft.new()
 	draft.difficulty = clampi(int(saved.get("campaign", {}).get("difficulty", 1)), 1, host.campaign.difficulty_progress.unlocked)
 	draft.music_system = host.settings.music_system
-	draft.emblem_id = String(host.campaign.zodiac.forced.get("pair:0", ""))
+	for preference: String in host.campaign.zodiac.forced.values():
+		if not preference.is_empty(): draft.emblem_id = preference; break
 	confirming = false
 	customizing = false
 	_render_setup()
@@ -438,6 +462,20 @@ func _render_settings() -> void:
 	languages.select(host.settings.locale_index())
 	languages.item_selected.connect(func(index: int): host._on_language_selected(index))
 	panel.add_child(languages)
+	for spec in [["ShowStrawy", words("SHOW STRAWY", "HIỆN STRAWY"), host.settings.strawy_enabled], ["Tutorial", words("TUTORIAL", "HƯỚNG DẪN"), host.settings.tutorial_enabled], ["FirstSeed", words("FIRST SEED", "BÀI KHỞI ĐẦU"), host.settings.first_seed_enabled]]:
+		var toggle := CheckButton.new()
+		toggle.name = spec[0]
+		toggle.text = spec[1]
+		toggle.button_pressed = spec[2]
+		toggle.custom_minimum_size.y = 48
+		if spec[0] == "ShowStrawy":
+			toggle.toggled.connect(host.settings.set_strawy_enabled)
+		elif spec[0] == "Tutorial":
+			toggle.toggled.connect(host.settings.set_tutorial_enabled)
+		else:
+			toggle.toggled.connect(host.settings.set_first_seed_enabled)
+		panel.add_child(toggle)
+	panel.add_child(_label(words("Ask Strawy to teach during your real first day. First Seed curates Monday's cards for new runs; switch it off to use your run seed throughout.", "Hỏi Strawy để học trong ngày đầu thật. Bài khởi đầu sắp bài thứ Hai cho ván mới; tắt để dùng hạt giống của bạn xuyên suốt."), 15))
 
 func _show_page(id: String) -> void:
 	var changed := active_page != id
@@ -445,10 +483,13 @@ func _show_page(id: String) -> void:
 	active_page = id
 	host.menu_page = StringName(id)
 	for key in pages: (pages[key] as Control).visible = key == id
-	title_label.text = {"home": "", "setup": words("NEW RUN", "VÁN MỚI"), "collections": words("COLLECTIONS", "BỘ SƯU TẬP"), "music": words("MUSIC", "ÂM NHẠC"), "settings": words("SETTINGS", "TÙY CHỌN")}.get(id, "")
+	title_label.text = {"home": "", "setup": words("NEW RUN", "VÁN MỚI"), "collections": words("COLLECTIONS", "BỘ SƯU TẬP"), "music": words("MUSIC", "ÂM NHẠC"), "settings": words("SETTINGS", "TÙY CHỌN"), "files": words("SAVE FILES", "CÁC Ô LƯU"), "boss_lab": words("BOSS LAB · DEBUG", "THỬ CON GIÁP")}.get(id, "")
 	_apply_page_layout()
 	_clear(footer)
-	if id != "home": footer.add_child(_button(words("BACK", "QUAY LẠI"), go_back))
+	if id != "home":
+		var back := _button(words("BACK", "QUAY LẠI"), go_back)
+		back.name = "FrontBack"
+		footer.add_child(back)
 	var spacer := Control.new()
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	footer.add_child(spacer)
@@ -456,6 +497,16 @@ func _show_page(id: String) -> void:
 		if confirming:
 			footer.add_child(_button(words("CANCEL", "HỦY"), func(): confirming = false; _render_setup()))
 		footer.add_child(_button(words("REPLACE RUN", "THAY VÁN") if confirming else words("START RUN", "BẮT ĐẦU"), _start_pressed, "gold"))
+	if id == "boss_lab":
+		if host.boss_debug_active:
+			footer.add_child(_button(words("EXIT SANDBOX", "THOÁT THỬ NGHIỆM"), host._leave_boss_debug))
+		var resume := _button(words("RESUME TEST", "TIẾP TỤC THỬ"), _resume_debug)
+		resume.name = "ResumeBossTest"
+		resume.disabled = not FileAccess.file_exists(BossDebugSession.SAVE_PATH) and not FileAccess.file_exists(BossDebugSession.SAVE_PATH + ".bak")
+		footer.add_child(resume)
+		var start := _button(words("START TEST", "BẮT ĐẦU THỬ"), _start_debug, "gold")
+		start.name = "StartBossTest"
+		footer.add_child(start)
 	if changed:
 		var panel: Control = pages[id]
 		panel.modulate.a = 0.0
@@ -535,3 +586,140 @@ func _clear(parent: Node) -> void:
 	for child in parent.get_children():
 		parent.remove_child(child)
 		child.queue_free()
+
+
+func show_save_files() -> void:
+	_clear(files_body)
+	files_body.add_child(_label(words("Each file keeps its own drink unlocks, difficulty levels, Zodiac emblems, and endings across New Run.", "Mỗi ô giữ riêng các món nước, độ khó, huy hiệu Con Giáp và kết thúc đã mở qua các ván mới."), 17))
+	if not host.save_files.error.is_empty(): files_body.add_child(_label(host.save_files.error, 16, GOLD))
+	if host.boss_debug_active: files_body.add_child(_label(words("Exit the debug sandbox to change save files.", "Thoát thử nghiệm để đổi ô lưu."), 16, GOLD))
+	var cards := GridContainer.new()
+	cards.columns = 1 if size.x < 900 else 3
+	cards.add_theme_constant_override("h_separation", 14)
+	cards.add_theme_constant_override("v_separation", 14)
+	files_body.add_child(cards)
+	for info: Dictionary in host.save_files.summaries():
+		var body := _card(cards)
+		body.get_parent().get_parent().size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var name: String = info.name
+		body.add_child(_label(words("FILE %d", "Ô LƯU %d") % int(info.slot), 24, GOLD))
+		body.add_child(_label(name if not name.is_empty() else words("Player %d", "Người chơi %d") % int(info.slot), 18))
+		var unlocked_drinks := 0
+		for goal: Array in DrinkProgress.GOALS.values():
+			if int(info.drink_counters.get(goal[0], 0)) >= int(goal[1]): unlocked_drinks += 1
+		var emblems := 0
+		var endings := 0
+		for record: Dictionary in info.zodiac.records.values():
+			if record.get("emblem_unlocked", false): emblems += 1
+			if record.get("ending_rong_ran_len_may", false): endings += 1
+		body.add_child(_label(words("Difficulty %d\nDrinks %d/12\nEmblems %d/12 · endings %d", "Độ khó %d\nNước %d/12\nHuy hiệu %d/12 · kết thúc %d") % [info.difficulty_unlocked, unlocked_drinks, emblems, endings], 16))
+		var summary: Dictionary = info.run_summary
+		body.add_child(_label(words("No run checkpoint", "Chưa có ván đã lưu") if not info.has_run else words("Run checkpoint available", "Có ván đã lưu") if summary.is_empty() else words("Day %d · %s", "Ngày %d · %s") % [summary.get("day", 1), VndWallet.format_vnd(summary.get("wallet_vnd", 0))], 15, MUTED))
+		if info.backup: body.add_child(_label(words("Backup recovered", "Đã khôi phục dự phòng"), 15, GOLD))
+		if info.damaged: body.add_child(_label(words("Damaged file · preserved", "Ô bị lỗi · được giữ nguyên"), 15, GOLD))
+		var button := _button(words("ACTIVE FILE", "Ô ĐANG DÙNG") if info.active else words("LOAD FILE", "DÙNG Ô NÀY") if info.exists else words("CREATE FILE", "TẠO Ô LƯU"), _choose_file.bind(int(info.slot)), "tea" if info.active else "neutral")
+		button.name = "SaveFile_%d" % int(info.slot)
+		button.disabled = info.active or info.damaged or host.boss_debug_active
+		body.add_child(button)
+	var rename := _card(files_body)
+	rename.add_child(_label(words("NAME THE ACTIVE FILE", "ĐẶT TÊN Ô ĐANG DÙNG"), 17, GOLD))
+	var row := HBoxContainer.new()
+	rename.add_child(row)
+	var entry := LineEdit.new()
+	entry.name = "SaveFileName"
+	entry.max_length = 40
+	entry.text = host.save_files.data.get("name", "")
+	entry.placeholder_text = words("Player name", "Tên người chơi")
+	entry.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	entry.custom_minimum_size.y = 44
+	row.add_child(entry)
+	var save_name := _button(words("SAVE NAME", "LƯU TÊN"), func(): host.save_files.rename_file(entry.text); show_save_files())
+	save_name.name = "SaveFileRename"
+	save_name.disabled = host.boss_debug_active
+	row.add_child(save_name)
+	_show_page("files")
+
+func _choose_file(slot: int) -> void:
+	if not host._select_save_file(slot):
+		transient_error = host.save_files.error if not host.save_files.error.is_empty() else words("Could not change save file.", "Không thể đổi ô lưu.")
+		show_error(transient_error)
+		return
+	show_home()
+
+func show_boss_lab() -> void:
+	if not BossDebugSession.available(): return
+	_clear(boss_lab_body)
+	boss_lab_body.add_child(_label(words("DEBUG SANDBOX · Test victories and unlocks stay separate from your save files. F9 opens this lab.", "THỬ NGHIỆM · Kết quả và vật phẩm thử không ghi vào ô lưu của bạn. F9 mở màn hình này."), 16, GOLD))
+	var panel := _card(boss_lab_body)
+	var grid := GridContainer.new()
+	grid.columns = 1 if size.x < 900 else 2
+	grid.add_theme_constant_override("h_separation", 20)
+	grid.add_theme_constant_override("v_separation", 8)
+	panel.add_child(grid)
+	var bosses: Array = []
+	for id: String in ZodiacBossRule.RULES: bosses.append([id, ZodiacCatalog.display_name(id), ZodiacCatalog.display_name(id)])
+	_lab_choice(grid, "Boss", words("BOSS", "CON GIÁP"), bosses, boss_options.boss, func(value: String): boss_options.boss = value; show_boss_lab())
+	_lab_choice(grid, "BossDifficulty", words("DIFFICULTY", "ĐỘ KHÓ"), [["1", "PLEASED", "HÀI LÒNG"], ["2", "NORMAL", "BÌNH THƯỜNG"], ["3", "UNPLEASED", "KHÔNG HÀI LÒNG"]], str(boss_options.difficulty), func(value: String): boss_options.difficulty = int(value); _refresh_boss_rule())
+	_lab_choice(grid, "BossPhase", words("STARTING PHASE", "HIỆP BẮT ĐẦU"), [["1", "Phase 1", "Hiệp 1"], ["2", "Phase 2", "Hiệp 2"]], str(boss_options.phase), func(value: String): boss_options.phase = int(value))
+	_lab_choice(grid, "BossOpening", words("OPENING HAND", "BÀI KHỞI ĐẦU"), [["curated", "Known Set + Run", "Bộ + Dây có sẵn"], ["seeded", "Seeded shuffle", "Xáo theo hạt giống"]], boss_options.opening, func(value: String): boss_options.opening = value)
+	var seed_box := _lab_field(grid, words("SEED", "HẠT GIỐNG"))
+	var seed := LineEdit.new()
+	seed.name = "BossSeed"
+	seed.max_length = 64
+	seed.text = boss_options.seed
+	seed.custom_minimum_size.y = 42
+	seed.text_changed.connect(func(value: String): boss_options.seed = value)
+	seed_box.add_child(seed)
+	var drinks: Array = [[DrinkCatalog.NONE, "No drink", "Không dùng nước"]]
+	for id: String in DrinkCatalog.all_ids(): drinks.append([id, DrinkCatalog.display_name(id), DrinkCatalog.display_name(id)])
+	_lab_choice(grid, "BossDrink", words("ACTIVE DRINK", "MÓN NƯỚC"), drinks, boss_options.drink, func(value: String): boss_options.drink = value)
+	_lab_amount(grid, "BossWallet", words("STARTING WALLET · VNĐ", "VÍ KHỞI ĐẦU · VNĐ"), boss_options.wallet_vnd, func(value: int): boss_options.wallet_vnd = value)
+	if boss_options.boss == "dragon":
+		_lab_choice(grid, "DragonTactic", words("DRAGON TACTIC", "CHIẾN THUẬT THÌN"), [["history", "Analyze my run history", "Phân tích lịch sử ván"], ["new_meld:set", "Meld · Set", "Tạo Phỏm · Bộ"], ["new_meld:run", "Meld · Run", "Tạo Phỏm · Dây"], ["extension:set", "Extend · Set", "Nối Phỏm · Bộ"], ["extension:run", "Extend · Run", "Nối Phỏm · Dây"]], boss_options.dragon_tactic, func(value: String): boss_options.dragon_tactic = value)
+		_lab_amount(grid, "DragonAverage", words("OVERRIDE AVERAGE · VNĐ", "TRUNG BÌNH THỬ · VNĐ"), boss_options.dragon_average_vnd, func(value: int): boss_options.dragon_average_vnd = value)
+		panel.add_child(_label(words("Average override applies only to a manually selected tactic. History uses actual saved earnings.", "Trung bình thử chỉ áp dụng khi chọn chiến thuật thủ công. Lịch sử dùng thu nhập thật đã lưu."), 14, MUTED))
+	boss_rule_preview = _label("", 15)
+	panel.add_child(boss_rule_preview)
+	_refresh_boss_rule()
+	_show_page("boss_lab")
+
+func _lab_field(parent: Node, caption: String) -> VBoxContainer:
+	var field := VBoxContainer.new()
+	field.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	field.custom_minimum_size.x = 300 if size.x >= 900 else 0
+	parent.add_child(field)
+	field.add_child(_label(caption, 15, GOLD))
+	return field
+
+func _lab_choice(parent: Node, id: String, caption: String, options: Array, selected: String, changed: Callable) -> void:
+	var field := _lab_field(parent, caption)
+	var choice := OptionButton.new()
+	choice.name = id
+	choice.custom_minimum_size.y = 42
+	for item: Array in options:
+		choice.add_item(words(item[1], item[2]))
+		choice.set_item_metadata(choice.item_count - 1, item[0])
+		if item[0] == selected: choice.select(choice.item_count - 1)
+	choice.item_selected.connect(func(index: int): changed.call(String(choice.get_item_metadata(index))))
+	field.add_child(choice)
+
+func _lab_amount(parent: Node, id: String, caption: String, amount: int, changed: Callable) -> void:
+	var field := _lab_field(parent, caption)
+	var value := SpinBox.new()
+	value.name = id
+	value.min_value = 0
+	value.max_value = 1_000_000_000
+	value.step = 1_000
+	value.value = amount
+	value.custom_minimum_size.y = 42
+	value.value_changed.connect(func(number: float): changed.call(int(number)))
+	field.add_child(value)
+
+func _refresh_boss_rule() -> void:
+	if is_instance_valid(boss_rule_preview): boss_rule_preview.text = ZodiacCatalog.rule_text(boss_options.boss, boss_options.difficulty)
+
+func _start_debug() -> void:
+	if not host._start_boss_debug(boss_options): show_error(words("Could not start the boss test.", "Không thể bắt đầu thử Con Giáp."))
+
+func _resume_debug() -> void:
+	if not host._resume_boss_debug(): show_error(words("No valid saved boss test is available.", "Chưa có bản thử Con Giáp hợp lệ."))

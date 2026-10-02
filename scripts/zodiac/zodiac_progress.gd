@@ -2,7 +2,13 @@ class_name ZodiacProgress
 extends RefCounted
 ## Concrete, monotonic history. Event IDs make replaying an old run save idempotent.
 const PATH := "user://zodiac_progress_v1.cfg"
+const STRANGER := 1
+const FAMILIAR := 2
+const KINDRED := 3
+const CONFIDANT := 4
+const COMPANION := 5
 var path: String
+var save_callback: Callable
 var records: Dictionary = {}
 var seen: Dictionary = {}
 var error := ""
@@ -19,6 +25,36 @@ func _init(save_path: String = PATH) -> void:
 
 func record(id: String) -> Dictionary:
 	return records.get(id, {}).duplicate(true)
+
+func relationship_tier(id: String) -> int:
+	return clampi(int(records.get(id, {}).get("relationship_tier", STRANGER)), STRANGER, COMPANION)
+
+func meet(id: String, event_id: String) -> void:
+	commit(id, event_id, {"encounters": 1}, ["first_meeting"])
+	var history: Dictionary = records.get(id, {})
+	if not history.has("relationship_tier"):
+		history["relationship_tier"] = STRANGER
+		history["ever_pleased"] = false
+		records[id] = history
+		save()
+
+func record_disposition(id: String, event_id: String, disposition: String) -> bool:
+	if disposition not in ["PLEASED", "NORMAL", "UNPLEASED"] or seen.has(event_id): return false
+	seen[event_id] = true
+	var history: Dictionary = records.get(id, {})
+	history["first_meeting"] = true
+	history["relationship_tier"] = relationship_tier(id)
+	if disposition == "PLEASED":
+		history["ever_pleased"] = true
+		history["pleased_outcomes"] = int(history.get("pleased_outcomes", 0)) + 1
+		if int(history.relationship_tier) == STRANGER:
+			history.relationship_tier = FAMILIAR
+			history["familiar_transitions"] = int(history.get("familiar_transitions", 0)) + 1
+			seen["relationship:" + id + ":FAMILIAR"] = true
+	else: history["ever_pleased"] = bool(history.get("ever_pleased", false))
+	records[id] = history
+	save()
+	return true
 
 func commit(id: String, event_id: String, increments: Dictionary = {}, flags: Array = []) -> void:
 	if seen.has(event_id): return
@@ -55,6 +91,9 @@ func merge(data: Dictionary) -> void:
 
 func save() -> void:
 	if path.is_empty(): return
+	if save_callback.is_valid():
+		save_callback.call()
+		return
 	var file := ConfigFile.new()
 	file.set_value("zodiac", "records", records)
 	file.set_value("zodiac", "seen", seen)

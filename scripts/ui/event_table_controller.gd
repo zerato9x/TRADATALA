@@ -20,6 +20,7 @@ const NPC_THAY_BOI := "thay_boi"
 const NPC_HANG_RONG := "hang_rong"
 const NPC_LOTTO := "lotto"
 const NPC_DOI_NO := "doi_no"
+const NPC_ZODIAC := "zodiac"
 
 # Dialogue and service share a column beside the full focused character.
 const MISC_SERVICE_RECTS := {
@@ -31,9 +32,14 @@ const EVENT_ROSTERS := {
 	0: [NPC_DANH_GIAY, NPC_TRA_DA],
 	1: [NPC_THAY_BOI, NPC_HANG_RONG, NPC_LOTTO],
 	2: [NPC_THAY_BOI, NPC_TRA_DA],
-	3: [NPC_THAY_BOI, NPC_HANG_RONG, NPC_LOTTO],
+	3: [NPC_THAY_BOI, NPC_HANG_RONG],
 }
 const NPC_DATA := {
+	NPC_ZODIAC: {
+		"name_key": "", "slot": &"top_right",
+		"overlay": preload("res://assets/zodiacboss/rooster_overlay.png"),
+		"sprite": preload("res://assets/zodiacboss/rooster.png"),
+	},
 	NPC_DOI_NO: {
 		"name_key": "NPC_DOI_NO", "slot": &"top_right",
 		"overlay": preload("res://assets/environment/npcs/doino.png"),
@@ -100,6 +106,110 @@ var _focus_motion: Tween
 var _header_motion: Tween
 var collector_arrival: Control
 var menu_button: Button
+var input_obstructed: Callable
+var input_point_obstructed: Callable
+var _touch_ids: Dictionary = {}
+var _touch_index := -1
+var _touch_start := Vector2.ZERO
+var _touch_npc := ""
+var _touch_cancelled := false
+var _suppress_mouse_until := 0
+var _native_sequence := false
+var zodiac_id := ""
+var _zodiac_present := false
+
+func set_zodiac_visitor(id: String, present: bool) -> void:
+	if not _npc_layers.has(NPC_ZODIAC): return
+	var layer: Dictionary = _npc_layers[NPC_ZODIAC]
+	if id != zodiac_id and ZodiacCatalog.DEFINITIONS.has(id):
+		(layer.overlay as TextureRect).texture = load(ZodiacCatalog.sprite_path(id, true))
+		(layer.sprite as TextureRect).texture = load(ZodiacCatalog.sprite_path(id))
+		(layer.character_target as NpcTapTarget).hit_texture = layer.overlay.texture
+		(layer.sprite as TextureRect).size = Vector2(450, 590)
+		(layer.sprite as TextureRect).pivot_offset = Vector2(225, 295)
+	zodiac_id = id
+	_zodiac_present = present and not id.is_empty() and not DemoBuild.enabled()
+	(layer.name_tag as Label).text = npc_display_name(NPC_ZODIAC)
+	(layer.button as Button).tooltip_text = npc_display_name(NPC_ZODIAC)
+	if table_state != TABLE_STATE_EVENT or current_event_slot not in [EventManager.EventSlot.NOON, EventManager.EventSlot.AFTERNOON]: return
+	if not focused_npc_id.is_empty() or deck_focused: return
+	(layer.overlay as Control).visible = _zodiac_present
+	(layer.button as Button).visible = _zodiac_present
+	(layer.button as Button).disabled = not _zodiac_present
+	(layer.button as Control).mouse_filter = Control.MOUSE_FILTER_STOP if _zodiac_present else Control.MOUSE_FILTER_IGNORE
+	(layer.name_tag as Control).visible = _zodiac_present
+	(layer.character_target as Control).visible = _zodiac_present
+
+func roster_interactive() -> bool:
+	return is_visible_in_tree() and table_state == TABLE_STATE_EVENT and focused_npc_id.is_empty() and not deck_focused and not overview.expanded and (not input_obstructed.is_valid() or not input_obstructed.call())
+
+func cancel_pointer() -> void:
+	_touch_index = -1
+	_touch_npc = ""
+	_touch_cancelled = true
+	for layer: Dictionary in _npc_layers.values():
+		(layer["button"] as NpcTapTarget).cancel_pointer()
+		(layer["character_target"] as NpcTapTarget).cancel_pointer()
+
+func _npc_at(point: Vector2) -> String:
+	if not roster_interactive(): return ""
+	if input_point_obstructed.is_valid() and input_point_obstructed.call(point): return ""
+	# Labels are unambiguous. Silhouettes follow the visible drawing order.
+	for id in _npc_layers:
+		if (_npc_layers[id]["button"] as NpcTapTarget).hits_global(point): return id
+	var ids := _npc_layers.keys()
+	ids.sort_custom(func(a,b): return _npc_layers[a]["overlay"].get_index() > _npc_layers[b]["overlay"].get_index())
+	for id in ids:
+		if (_npc_layers[id]["character_target"] as NpcTapTarget).hits_global(point): return id
+	return ""
+
+func request_npc_focus(npc_id: String) -> void:
+	if roster_interactive() and _npc_layers.has(npc_id) and (_npc_layers[npc_id]["button"] as NpcTapTarget).available():
+		focus_npc(npc_id)
+
+func _input(event: InputEvent) -> void:
+	if event is InputEventMouseButton and event.device == -1 and Time.get_ticks_msec() < _suppress_mouse_until:
+		get_viewport().set_input_as_handled()
+		return
+	if event is InputEventScreenTouch:
+		if event.pressed:
+			_touch_ids[event.index] = true
+			if _touch_ids.size() > 1:
+				cancel_pointer()
+				if _native_sequence: get_viewport().set_input_as_handled()
+				return
+			var id := _npc_at(event.position)
+			if not id.is_empty():
+				_native_sequence = true
+				_suppress_mouse_until = Time.get_ticks_msec() + 800
+				cancel_pointer()
+				_touch_index = event.index
+				_touch_npc = id
+				_touch_start = event.position
+				_touch_cancelled = false
+				get_viewport().set_input_as_handled()
+		else:
+			_touch_ids.erase(event.index)
+			if _native_sequence:
+				get_viewport().set_input_as_handled()
+				_suppress_mouse_until = Time.get_ticks_msec() + 800
+				if _touch_ids.is_empty(): _native_sequence = false
+			if event.index == _touch_index:
+				_suppress_mouse_until = Time.get_ticks_msec() + 800
+				var id := _touch_npc
+				var activate: bool = not event.canceled and not _touch_cancelled and _npc_at(event.position) == id
+				cancel_pointer()
+				get_viewport().set_input_as_handled()
+				if activate: focus_npc(id)
+	elif event is InputEventScreenDrag and event.index == _touch_index:
+		if event.position.distance_to(_touch_start) > 12: _touch_cancelled = true
+		get_viewport().set_input_as_handled()
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_WINDOW_FOCUS_OUT:
+		cancel_pointer()
+		_touch_ids.clear()
+		_native_sequence = false
 
 
 func _ready() -> void:
@@ -134,6 +244,7 @@ func _ready() -> void:
 	visible = false
 
 func _process(_delta: float) -> void:
+	if _touch_index >= 0 and not roster_interactive(): cancel_pointer()
 	if continue_hint != null:
 		continue_hint.visible = visible and continue_button.visible and continue_button.disabled and not _required_reason.is_empty()
 	if not _required_npc_id.is_empty() and _npc_layers.has(_required_npc_id):
@@ -185,6 +296,7 @@ func enter_event(event_slot: int, day_text: String, period_text: String, money_t
 
 
 func enter_deal() -> void:
+	cancel_pointer()
 	collector_arrival.stop()
 	if _focus_motion != null: _focus_motion.kill()
 	if table_state == TABLE_STATE_DEAL and not visible:
@@ -236,7 +348,7 @@ func set_continue_enabled(enabled: bool, reason: String = "", required_npc_id: S
 		(npc_layer["button"] as Button).tooltip_text = npc_display_name(String(npc_id))
 		(npc_layer["name_tag"] as Label).text = npc_display_name(String(npc_id))
 		if focused_npc_id.is_empty():
-			(npc_layer["name_tag"] as Label).visible = false
+			(npc_layer["name_tag"] as Label).visible = (npc_layer["overlay"] as Control).visible
 	if not _required_npc_id.is_empty() and _npc_layers.has(_required_npc_id):
 		var layer: Dictionary = _npc_layers[_required_npc_id]
 		(layer["button"] as Button).tooltip_text = _required_reason
@@ -253,6 +365,7 @@ func refresh_localized_ui() -> void:
 
 
 func focus_npc(npc_id: String) -> void:
+	cancel_pointer()
 	if DemoBuild.enabled() and npc_id not in [NPC_TRA_DA, NPC_DOI_NO]:
 		return
 	if table_state != TABLE_STATE_EVENT or not _npc_layers.has(npc_id) or focused_npc_id == npc_id:
@@ -278,7 +391,9 @@ func focus_npc(npc_id: String) -> void:
 		var sprite := layer["sprite"] as TextureRect
 		button.disabled = true
 		button.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		name_tag.visible = candidate_id == npc_id and npc_id not in [NPC_THAY_BOI, NPC_DANH_GIAY, NPC_LOTTO, NPC_DOI_NO]
+		button.hide()
+		(layer["character_target"] as Control).hide()
+		name_tag.visible = candidate_id == npc_id and npc_id not in [NPC_THAY_BOI, NPC_DANH_GIAY, NPC_LOTTO, NPC_DOI_NO, NPC_ZODIAC]
 		if candidate_id == npc_id:
 			tween.tween_property(overlay, "modulate:a", 0.0, 0.18)
 			sprite.visible = true
@@ -300,6 +415,7 @@ func focus_npc(npc_id: String) -> void:
 
 
 func focus_deck() -> void:
+	cancel_pointer()
 	if table_state != TABLE_STATE_EVENT or deck_focused or not focused_npc_id.is_empty():
 		return
 	collector_arrival.stop()
@@ -321,12 +437,15 @@ func focus_deck() -> void:
 		var button := layer["button"] as Button
 		button.disabled = true
 		button.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		button.hide()
+		(layer["character_target"] as Control).hide()
 		if overlay.visible:
 			tween.tween_property(overlay, "modulate", Color(0.42, 0.46, 0.5, 0.38), 0.22)
 	deck_inspect_requested.emit()
 
 
 func unfocus_npc() -> void:
+	cancel_pointer()
 	if back_button.disabled:
 		return
 	if focused_npc_id.is_empty() and not deck_focused:
@@ -362,6 +481,9 @@ func unfocus_npc() -> void:
 			tween.tween_property(overlay, "modulate", Color.WHITE, 0.24)
 			button.disabled = false
 			button.mouse_filter = Control.MOUSE_FILTER_STOP
+			button.show()
+			(layer["character_target"] as Control).show()
+			name_tag.show()
 	focus_cleared.emit()
 
 
@@ -399,6 +521,7 @@ func clear_content() -> void:
 
 
 func npc_display_name(npc_id: String) -> String:
+	if npc_id == NPC_ZODIAC: return ZodiacCatalog.display_name(zodiac_id) if not zodiac_id.is_empty() else ZodiacCatalog.words("ZODIAC", "CON GIÁP")
 	if not NPC_DATA.has(npc_id):
 		return npc_id
 	return tr(String((NPC_DATA[npc_id] as Dictionary)["name_key"]))
@@ -615,27 +738,42 @@ func _build_npc_layers() -> void:
 		sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		sprite.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		sprite.material = ShaderMaterial.new()
-		(sprite.material as ShaderMaterial).shader = preload("res://shaders/npc_focus.gdshader")
+		(sprite.material as ShaderMaterial).shader = preload("res://shaders/zodiac_spirit.gdshader") if npc_id == NPC_ZODIAC else preload("res://shaders/npc_focus.gdshader")
 		sprite.visible = false
 		add_child(sprite)
 		move_child(sprite, 2)
-		var button := Button.new()
+		var character_target := NpcTapTarget.new()
+		character_target.name = "%sCharacterTap" % npc_id.to_pascal_case()
+		character_target.hit_texture = data["overlay"]
+		character_target.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		character_target.flat = true
+		for state in ["normal","hover","pressed","disabled","focus"]:
+			character_target.add_theme_stylebox_override(state,StyleBoxEmpty.new())
+		character_target.focus_mode = Control.FOCUS_NONE
+		character_target.can_activate = roster_interactive
+		character_target.pressed.connect(request_npc_focus.bind(npc_id))
+		character_target.hide()
+		add_child(character_target)
+		var button := NpcTapTarget.new()
 		button.name = "%sSelect" % npc_id.to_pascal_case()
-		button.flat = true
-		button.focus_mode = Control.FOCUS_NONE
+		button.flat = false
+		button.focus_mode = Control.FOCUS_ALL
+		button.can_activate = roster_interactive
 		button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-		button.position = _slot_hit_rect(slot).position
-		button.size = _slot_hit_rect(slot).size
+		button.position = _slot_name_position(slot)
+		button.size = Vector2(210, 48)
+		button.z_index = 20 # Names stay above every character's silhouette target.
+		PresentationTheme.configure_button(button, "tea")
 		button.tooltip_text = npc_display_name(npc_id)
 		button.visible = false
-		button.pressed.connect(focus_npc.bind(npc_id))
+		button.pressed.connect(request_npc_focus.bind(npc_id))
 		add_child(button)
 		var name_tag := Label.new()
 		name_tag.name = "%sName" % npc_id.to_pascal_case()
 		name_tag.text = npc_display_name(npc_id)
-		name_tag.position = _slot_name_position(slot)
-		if npc_id == NPC_DOI_NO: name_tag.position = Vector2(785, 345)
-		name_tag.size = Vector2(210, 34)
+		name_tag.position = button.position
+		name_tag.z_index = 21
+		name_tag.size = Vector2(210, 48)
 		name_tag.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		name_tag.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		name_tag.add_theme_font_size_override("font_size", 14)
@@ -643,20 +781,23 @@ func _build_npc_layers() -> void:
 		name_tag.visible = false
 		name_tag.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		add_child(name_tag)
-		button.mouse_entered.connect(func() -> void: if focused_npc_id.is_empty(): name_tag.visible = true)
-		button.mouse_exited.connect(func() -> void: if focused_npc_id.is_empty(): name_tag.visible = false)
 		_npc_layers[npc_id] = {
 			"slot": slot,
 			"overlay": overlay,
 			"sprite": sprite,
 			"button": button,
+			"character_target": character_target,
 			"name_tag": name_tag,
 		}
+	for layer in _npc_layers.values():
+		(layer["character_target"] as Control).z_index = (layer["overlay"] as Control).get_index()
 
 
 func _show_roster(event_slot: int) -> void:
+	cancel_pointer()
 	_hide_all_npcs()
-	var roster: Array = [NPC_TRA_DA] if DemoBuild.enabled() else EVENT_ROSTERS.get(event_slot, [])
+	var roster: Array = [NPC_TRA_DA] if DemoBuild.enabled() else EVENT_ROSTERS.get(event_slot, []).duplicate()
+	if _zodiac_present and event_slot in [EventManager.EventSlot.NOON, EventManager.EventSlot.AFTERNOON]: roster.append(NPC_ZODIAC)
 	for npc_id in roster:
 		if DemoBuild.enabled() and npc_id not in [NPC_TRA_DA, NPC_DOI_NO]:
 			continue
@@ -667,11 +808,14 @@ func _show_roster(event_slot: int) -> void:
 		overlay.modulate = Color.WHITE
 		overlay.position = Vector2(1380, 130) if npc_id == NPC_DOI_NO else _overlay_out_offset(StringName(layer["slot"]))
 		button.visible = true
+		(layer["name_tag"] as Control).show()
+		(layer["character_target"] as Control).hide()
 		button.disabled = true
 		button.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 
 func _hide_all_npcs() -> void:
+	cancel_pointer()
 	if collector_arrival != null: collector_arrival.stop()
 	if _focus_motion != null: _focus_motion.kill()
 	for npc_id in _npc_layers:
@@ -679,6 +823,7 @@ func _hide_all_npcs() -> void:
 		(layer["overlay"] as TextureRect).visible = false
 		(layer["sprite"] as TextureRect).visible = false
 		(layer["button"] as Button).visible = false
+		(layer["character_target"] as Control).hide()
 		(layer["name_tag"] as Label).visible = false
 
 
@@ -695,13 +840,14 @@ func _animate_npcs_in() -> void:
 
 
 func _enable_roster_buttons() -> void:
-	if table_state != TABLE_STATE_EVENT or not focused_npc_id.is_empty():
+	if table_state != TABLE_STATE_EVENT or not focused_npc_id.is_empty() or deck_focused:
 		return
 	for npc_id in _npc_layers:
 		var layer: Dictionary = _npc_layers[npc_id]
 		var button := layer["button"] as Button
 		button.disabled = not (layer["overlay"] as TextureRect).visible
 		button.mouse_filter = Control.MOUSE_FILTER_IGNORE if button.disabled else Control.MOUSE_FILTER_STOP
+		(layer["character_target"] as Control).visible = not button.disabled
 
 
 func _animate_deal_out() -> void:
@@ -792,7 +938,7 @@ func say(line: String) -> void:
 		var service_rect: Rect2 = MISC_SERVICE_RECTS[focused_npc_id]
 		conversation.position = Vector2(service_rect.position.x, 140)
 	else:
-		conversation.position = Vector2(20, 510) if focused_npc_id == NPC_THAY_BOI else Vector2(165, 140)
+		conversation.position = Vector2(165, 510) if focused_npc_id == NPC_THAY_BOI else Vector2(165, 140)
 	conversation.say(npc_display_name(focused_npc_id), line)
 	conversation.show_responses(focused_npc_id not in [NPC_TRA_DA, NPC_DOI_NO], not back_button.disabled)
 	var speech_size := Vector2(340, 176) if focused_npc_id == NPC_THAY_BOI else Vector2(710, 124 if focused_npc_id in [NPC_TRA_DA, NPC_DOI_NO] else 140 if focused_npc_id == NPC_HANG_RONG else 160)
@@ -824,22 +970,10 @@ func _stop_money_pulse() -> void:
 	money_label.scale = Vector2.ONE
 
 
-func _slot_hit_rect(slot: StringName) -> Rect2:
-	match slot:
-		&"left":
-			return Rect2(0, 72, 280, 570)
-		&"right":
-			return Rect2(1000, 72, 280, 570)
-		&"top_right":
-			return Rect2(850, 0, 430, 270)
-		_:
-			return Rect2(430, 0, 420, 190)
-
-
 func _slot_name_position(slot: StringName) -> Vector2:
 	match slot:
 		&"left":
-			return Vector2(22, 612)
+			return Vector2(22, 508)
 		&"right":
 			return Vector2(1048, 612)
 		&"top_right":

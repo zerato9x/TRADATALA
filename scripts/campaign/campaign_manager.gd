@@ -14,6 +14,7 @@ signal requirement_passed(day: Dictionary)
 signal requirement_failed(day: Dictionary)
 signal campaign_won()
 signal campaign_lost()
+signal zodiac_endgame_choice_requested()
 
 enum CampaignPhase {
 	DAY_START,
@@ -30,6 +31,8 @@ enum CampaignPhase {
 	DAY_COMPLETE,
 	CAMPAIGN_VICTORY,
 	CAMPAIGN_FAILURE,
+	ZODIAC_ENDGAME_CHOICE,
+	DRAGON_DEAL,
 }
 
 const EVENT_PHASE_TO_SLOT := {
@@ -43,6 +46,7 @@ const DEAL_PHASE_TO_PERIOD := {
 	CampaignPhase.NOON_DEAL: "noon",
 	CampaignPhase.AFTERNOON_DEAL: "afternoon",
 	CampaignPhase.EVENING_DEAL: "evening",
+	CampaignPhase.DRAGON_DEAL: "dragon",
 }
 const NEXT_PHASE := {
 	CampaignPhase.STARTER_EVENT: CampaignPhase.MORNING_DEAL,
@@ -53,9 +57,11 @@ const NEXT_PHASE := {
 	CampaignPhase.AFTERNOON_DEAL: CampaignPhase.AFTERNOON_EVENT,
 	CampaignPhase.AFTERNOON_EVENT: CampaignPhase.EVENING_DEAL,
 	CampaignPhase.EVENING_DEAL: CampaignPhase.DAY_END,
+	CampaignPhase.DRAGON_DEAL: CampaignPhase.DAY_END,
 }
 
 var run_seed := ""
+var debug_context: Dictionary = {}
 var onboarding := CampaignOnboarding.new()
 var zodiac := ZodiacService.new()
 var endless := false
@@ -128,6 +134,7 @@ func select_difficulty(level: int) -> bool:
 	return true
 
 func start_campaign(reset_wallet: bool = true, seed_text: String = "") -> void:
+	debug_context.clear()
 	onboarding.reset()
 	zodiac.reset_run()
 	run_seed = seed_text.strip_edges().left(64)
@@ -178,6 +185,7 @@ func complete_deal(extra_result: Dictionary = {}) -> bool:
 	if current_phase == CampaignPhase.EVENING_DEAL and zodiac.deal != null and zodiac.deal.state == DealState.STATE_DEAL_OVER:
 		zodiac.finish_boss()
 	var result := extra_result.duplicate(true)
+	if not result.has("details") and zodiac.deal != null: result["details"] = zodiac.deal.accounting_report()
 	result.merge({
 		"day_id": String(current_day().get("id", "")),
 		"period": String(DEAL_PHASE_TO_PERIOD[current_phase]),
@@ -187,12 +195,19 @@ func complete_deal(extra_result: Dictionary = {}) -> bool:
 	}, true)
 	result["accounting"] = wallet.report(deal_cursor)
 	deal_reports.append(result.duplicate(true))
+	zodiac.finish_daytime_deal(String(DEAL_PHASE_TO_PERIOD[current_phase]))
+	if current_phase == CampaignPhase.DRAGON_DEAL: zodiac.finish_dragon()
 	deal_finished.emit(result)
-	_advance_from_current_phase()
+	if current_phase == CampaignPhase.EVENING_DEAL and zodiac.endgame.get("status", "") == "choice":
+		_set_phase(CampaignPhase.ZODIAC_ENDGAME_CHOICE)
+		zodiac_endgame_choice_requested.emit()
+	else:
+		_advance_from_current_phase()
 	return true
 
 
 func complete_current_event() -> bool:
+	if current_phase == CampaignPhase.NOON_EVENT and zodiac.has_open_interaction(): return false
 	if gieo_que.state not in [GieoQueService.STATE_READY, GieoQueService.STATE_COMPLETE]:
 		return false
 	if not EVENT_PHASE_TO_SLOT.has(current_phase) or event_manager.current_event == null:
@@ -271,6 +286,8 @@ func _finish_day() -> void:
 	collection_report["activities"] = activities.slice(day_activity_cursor).duplicate(true)
 	collection_report["due_vnd"] = daily_requirement()
 	collection_report["paid"] = false
+	if zodiac.endgame.get("status", "") == "victory" and int(zodiac.endgame.get("day", -1)) == current_day_index:
+		collection_report["ending"] = "RỒNG RẮN LÊN MÂY"
 	collection_report["shortfall_vnd"] = maxi(daily_requirement() - wallet.balance_vnd, 0)
 	collection_requested.emit(collection_report.duplicate(true))
 
@@ -348,3 +365,12 @@ func _append_endless_day() -> void:
 	# 50% daily growth after Sunday; saturate before integer overflow.
 	var goal := mini(4_000_000_000_000_000, int(ceil(float(campaign_days[-1].required_vnd) * 1.5 / 500.0)) * 500)
 	campaign_days.append({"id": "endless_%d" % (index + 1), "name_key": CampaignConfig.DAYS[index % 7].name_key, "required_vnd": goal})
+
+
+func choose_zodiac_endgame(face_dragon: bool) -> bool:
+	if current_phase != CampaignPhase.ZODIAC_ENDGAME_CHOICE or zodiac.endgame.get("status", "") != "choice" or campaign_complete or run_failed: return false
+	zodiac.endgame.status = "active" if face_dragon else "continued"
+	# Sunday and collection retain the existing seven-day debt/endless progression.
+	_enter_phase(CampaignPhase.DRAGON_DEAL if face_dragon else CampaignPhase.DAY_END)
+	zodiac.changed.emit()
+	return true

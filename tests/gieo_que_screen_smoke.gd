@@ -35,7 +35,7 @@ func _run() -> void:
 		_check(panel._lever_image.texture.get_size() == Vector2(297, 359), "lever canvas stays fixed")
 	panel._set_lever_frame(0)
 	_check(is_equal_approx(npc.size.y, 600.0), "fortune teller retains full-size portrait")
-	_check(scene.event_table.conversation.position == Vector2(20, 510), "dialogue stays in the lower-left area")
+	_check(scene.event_table.conversation.position == Vector2(165, 510), "dialogue clears Strawy's reserved lower-left dock")
 	_check(panel._lever_button.z_index > 0, "lever draws over cabinet mount")
 	_check(panel._stage.get_node("OracleTitle").get_rect().end.y < 80, "title stays inside cabinet plaque")
 	for reel in panel._reels:

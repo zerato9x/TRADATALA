@@ -70,6 +70,7 @@ func _ready() -> void:
 	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	for side in ["left", "right"]:
 		margin.add_theme_constant_override("margin_" + side, 38)
+	margin.add_theme_constant_override("margin_left", 164)
 	for side in ["top", "bottom"]:
 		margin.add_theme_constant_override("margin_" + side, 24)
 	add_child(margin)
@@ -188,7 +189,7 @@ func show_report(report: Dictionary, mode: String, heading: String, button_text:
 	if portrait.get_parent():
 		portrait.get_parent().remove_child(portrait)
 	_clear(_summary)
-	title_label.text = heading
+	title_label.text = heading + ("\n" + words("ENDING UNLOCKED: ", "ĐÃ MỞ KẾT THÚC: ") + String(report.ending) if report.has("ending") else "")
 	net_label = _stat(words("NET CHANGE", "THAY ĐỔI RÒNG"), int(report.net_vnd), GREEN if int(report.net_vnd) >= 0 else RED)
 	_stat(words("EARNED", "THU VÀO"), int(report.income_vnd), GREEN)
 	_stat(words("SPENT / LOST", "CHI / MẤT"), -int(report.expense_vnd), RED)

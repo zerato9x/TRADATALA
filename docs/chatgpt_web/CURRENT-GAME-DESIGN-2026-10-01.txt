@@ -1,0 +1,33 @@
+TRADATALA — CURRENT GAME DESIGN AND RELEASE STATUS
+Snapshot: 2026-10-01
+
+AUTHORITY AND RELEASE STATUS
+- The public v1.0.3 release tag and its verified build artifacts define shipped behavior. Later source checkpoints on main are work in progress; they are not included in that release unless rebuilt and released.
+- At this snapshot, local main and origin/main are at 54c1797 (2026-10-01). The pulled checkpoint includes the UI refinements at 66a06bf, plus Git housekeeping for generated translation files. No new package or release tag was created.
+- The official page is https://naixdev.itch.io/tradatala. The page was last directly observed on 2026-09-23 listing TRADATALA-v1.0.3-windows-itch.zip (197 MB), name-your-own-price pricing, and an embedded browser game described as a demo. These are historical observations; the current page and hosted archive hash have not been rechecked.
+
+SHIPPED V1.0.3 BASELINE
+TRADATALA is a single-player Phỏm roguelike set at a Vietnamese sidewalk table.
+- A Deal has two Phases with four mandatory discards and a player-confirmed LAST CALL window in each Phase. Melds persist between Phases. Sets use one rank; Runs use one suit and consecutive ranks, Ace low with no wrap.
+- Scoring, MÓM, Ù, Ù Khan, deadwood, exhaustion, and settlement follow the documented shared rules. See the in-game Handbook for player-facing rules.
+- The campaign has seven days and four Deals per day. Monday–Sunday debt targets are 250,000; 500,000; 1,000,000; 2,000,000; 4,000,000; 8,000,000; and 16,000,000 VNĐ. The collector takes the target once after the evening Deal. Paying Sunday completes the campaign; Endless starts at 24,000,000 VNĐ and raises the target by 50% per day.
+- A new run starts with VNĐ25,000. Wallet payments and payouts commit through the VndWallet journal. Six current NPC roles are collector, Cô Trà Đá, fortune teller / Gieo Quẻ, shoe shine, lottery seller, and Hàng Rong relic vendor.
+- All twelve Drinks have implemented mechanics. Gieo Quẻ permanently transforms physical campaign cards. Seeded runs, independent gameplay RNG streams, autosave/recovery, a relic collection with up to four equipped relics, a Sunday report, and Endless are part of the released baseline.
+- The v1.0.3 tag includes the fixes and pricing described in the release record. Use the tag/build manifest for exact release contents.
+
+CURRENT MAIN-BRANCH WIP — NOT IN V1.0.3
+1. Rooster/Cat Zodiac vertical slice: Monday and Sunday use the pair; other five conceptual pairs remain unauthored. The current slice has optional event requests, Stay/time commitments, two evening boss rules, saved selection/state, persistent history, conditional special scenes, and permanent Emblems. Exact behavior and limits are in ZODIAC_VERTICAL_SLICE.md. This WIP has no affection/degradation, invocation, curse, or opponent AI.
+2. Front-end and UI refinement: Home uses the sidewalk-table backdrop and a large gold wordmark, with direct New Run / Continue and clearer navigation. The setup footer remains accessible while its page scrolls. Collection lists scroll separately and retain focus, card-browser columns adapt to width, form focus/scrollbars and music controls are clearer, and decorative subtitles were removed while prices, consequences, progression counts, dialogue, and Handbook rules remain available. Game rules, scoring, campaign ownership, and HUD arrangement were not changed.
+3. Generated translations: locale/ui.csv remains the source. Generated .translation files were removed from Git and added to ignore rules; this is source housekeeping, not a release change.
+4. Earlier source WIP includes save-safety, music-resume/jukebox, money-presentation, and scoring-presentation work described in the 2026-09-29 code audit. Do not report any post-tag work as shipped.
+
+VALIDATION BOUNDARY
+- docs/UI_REFINEMENT_2026-10-01.md records 230/230 core tests, 139 UI layout checks across English/Vietnamese at 960×540, 1280×720, and 1920×1080, and a set of front-end, runtime-scene, tutorial, Zodiac, relic, NPC, resolve, Endless, jukebox, and Drink-shop smokes and captures. These are repository-reported results; this documentation refresh did not rerun them.
+- Those checks do not establish a fresh export, full-campaign balance acceptance, human audio sign-off, hosted-archive hash equivalence, or current public-page copy.
+- The release receipt records the local v1.0.3 archive hashes and startup/pack checks. See build/TRADATALA-v1.0.3/manifest.json and release-receipt.json for release evidence.
+
+FEATURES ABSENT FROM THE V1.0.3 RELEASE
+- Zodiac encounters, Zodiac-specific evening rules, the Emblem progression, and broader daily Zodiac modifiers.
+- Special weekday mechanics and authored story chains.
+- AI opponents, multiplayer, and 3D presentation are out of active scope.
+The current Rooster/Cat slice is main-branch WIP only. Use the premium plan for remaining future scope and do not infer rules from unused assets, placeholders, or reserved fields.

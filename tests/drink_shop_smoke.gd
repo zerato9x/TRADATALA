@@ -30,7 +30,7 @@ func _run() -> void:
 	_check(root.get_node_or_null("GameGlossary") == null and scene.menu_page == &"home", "handbook Back returns to menu")
 	await _click(nav.get_child(3) as Control)
 	_check(scene.front_end.page == "settings", "viewport click opens Settings")
-	await _click(scene.front_end.footer.get_child(0) as Control)
+	await _click(scene.front_end.footer.get_node("FrontBack") as Control)
 	_check(scene.front_end.page == "home", "viewport click activates Settings Back")
 	# This roster/input smoke deliberately exposes all drinks; progression gates have their own suite.
 	scene.drink_manager.test_all_drinks_available = true

@@ -8,6 +8,7 @@ const PERIOD_MORNING := "morning"
 const PERIOD_NOON := "noon"
 const PERIOD_AFTERNOON := "afternoon"
 const PERIOD_EVENING := "evening"
+const PERIOD_DRAGON := "dragon"
 const DAILY_SET_SEQUENCE: Array[String] = ["cat", "dog"]
 
 var controller: Object
@@ -54,7 +55,7 @@ func start_at_state(set_id: String, period: String, phase: int = 1, new_phom_cou
 	# Resume instead uses restore_snapshot(), preserving the saved transport.
 	if controller == null or not _load_set(set_id):
 		return false
-	var closing_half := period in ["noon_event", "afternoon", "afternoon_event", "evening", "collection"]
+	var closing_half := period in ["noon_event", "afternoon", "afternoon_event", "evening", "dragon", "collection"]
 	var track_id := closing_track_id if closing_half else opening_track_id
 	if not _load_plan(track_id):
 		return false
@@ -68,12 +69,12 @@ func start_at_state(set_id: String, period: String, phase: int = 1, new_phom_cou
 		"morning": role = &"morning_deal_phase_2" if phase == 2 else &"morning_deal_phase_1"
 		"noon": role = &"noon_deal_phase_2" if phase == 2 else &"noon_deal_phase_1"
 		"afternoon": role = &"afternoon_phase_2" if phase == 2 else &"afternoon_phase_1"
-		"evening": role = &"evening_phase_2" if phase == 2 else &"evening_phase_1"
+		"evening", "dragon": role = &"evening_phase_2" if phase == 2 else &"evening_phase_1"
 		_: return _fail("Unknown gameplay music period: %s" % period)
 	morning_first_phom_released = period == "morning" and phase == 2 and new_phom_count > 0 \
 		and not cue_for_role(&"morning_deal_phase_2_cleanup").is_empty()
 	noon_first_phom_released = period == "noon" and phase == 2 and new_phom_count > 0
-	boss_first_phom_released = period == "evening" and phase == 2 and new_phom_count > 0
+	boss_first_phom_released = period in ["evening", "dragon"] and phase == 2 and new_phom_count > 0
 	if morning_first_phom_released: role = &"morning_deal_phase_2_cleanup"
 	if noon_first_phom_released: role = &"noon_deal_final"
 	if boss_first_phom_released: role = &"evening_phase_2_cleanup"
@@ -82,7 +83,7 @@ func start_at_state(set_id: String, period: String, phase: int = 1, new_phom_cou
 		return false
 	active_period = period
 	active = true
-	if period == "collection" or (resolved and period in ["noon", "evening"]):
+	if period == "collection" or (resolved and period in ["noon", "evening", "dragon"]):
 		return _release_authored_audio()
 	return true
 
@@ -109,7 +110,7 @@ func restore_snapshot(data: Dictionary) -> bool:
 		return true
 	var period := String(data.get("period", ""))
 	if period not in ["", "starter_event", "morning_event", "noon_event", "afternoon_event",
-			PERIOD_MORNING, PERIOD_NOON, PERIOD_AFTERNOON, PERIOD_EVENING, "collection"]:
+			PERIOD_MORNING, PERIOD_NOON, PERIOD_AFTERNOON, PERIOD_EVENING, PERIOD_DRAGON, "collection"]:
 		return _fail("Invalid saved gameplay music period")
 	if not _load_set(String(data.get("set", ""))):
 		return false
@@ -150,7 +151,7 @@ func on_deal_started(period: String) -> bool:
 		return _request_role(&"noon_deal_phase_1")
 	if period == PERIOD_AFTERNOON:
 		return _request_role(&"afternoon_phase_1")
-	if period == PERIOD_EVENING:
+	if period in [PERIOD_EVENING, PERIOD_DRAGON]:
 		boss_first_phom_released = false
 		return _request_role(&"evening_phase_1")
 	return true
@@ -165,7 +166,7 @@ func on_deal_phase_started(phase: int) -> bool:
 		return _request_role(&"noon_deal_phase_2")
 	if active_period == PERIOD_AFTERNOON:
 		return _request_role(&"afternoon_phase_2")
-	if active_period == PERIOD_EVENING:
+	if active_period in [PERIOD_EVENING, PERIOD_DRAGON]:
 		return _request_role(&"evening_phase_2")
 	return true
 
@@ -187,7 +188,7 @@ func on_new_phom(phase: int, phase_new_phom_count: int) -> bool:
 		if noon_routed:
 			noon_first_phom_released = true
 		return noon_routed
-	if active_period == PERIOD_EVENING:
+	if active_period in [PERIOD_EVENING, PERIOD_DRAGON]:
 		if boss_first_phom_released:
 			return false
 		var boss_routed := _request_role(&"evening_phase_2_cleanup")
@@ -206,7 +207,7 @@ func on_deal_resolved() -> bool:
 		return _release_authored_audio()
 	if active_period == PERIOD_AFTERNOON:
 		return true
-	if active_period == PERIOD_EVENING:
+	if active_period in [PERIOD_EVENING, PERIOD_DRAGON]:
 		return _release_authored_audio()
 	return true
 

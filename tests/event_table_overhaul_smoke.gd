@@ -147,7 +147,7 @@ func _run() -> void:
 			await pause(0.4)
 		check(overview.event_slot == slot and overview.visible, "table updates current event position %d" % slot)
 		await capture("event-table-slot-%d" % slot)
-		var npc := "hang_rong" if slot == 1 else "thay_boi" if slot == 2 else "lotto"
+		var npc := "hang_rong" if slot in [1, 3] else "thay_boi"
 		var button := scene.event_table.get_node(npc.to_pascal_case() + "Select") as Button
 		await click(button)
 		await pause(0.4)

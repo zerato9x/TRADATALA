@@ -15,6 +15,21 @@ static func classify(cards: Array[CardData]) -> String:
 		return TYPE_RUN
 	return TYPE_INVALID
 
+# One near-meld definition for U khan, advice, and Zodiac strategy/burden.
+static func near_meld_ids(cards: Array[CardData]) -> Dictionary:
+	var ids := {}
+	for left_index in range(cards.size()):
+		for right_index in range(left_index + 1, cards.size()):
+			var left := cards[left_index]
+			var right := cards[right_index]
+			if left.rank == right.rank or (left.suit == right.suit and absi(left.rank_index - right.rank_index) in [1, 2]):
+				ids[left.unique_id] = true
+				ids[right.unique_id] = true
+	return ids
+
+static func has_near_meld(cards: Array[CardData]) -> bool:
+	return not near_meld_ids(cards).is_empty()
+
 
 static func is_set(cards: Array[CardData]) -> bool:
 	if cards.size() < 3:

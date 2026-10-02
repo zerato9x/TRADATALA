@@ -1,0 +1,79 @@
+{
+  "date": "2026-10-03",
+  "godot_version": "4.7.1.stable",
+  "scope": "Rooster and Cat table presentation",
+  "final_tests": {
+    "run_headless": {
+      "log": ".godot/boss-presentation/run_headless-complete.log",
+      "marker": "TRADATALA_TESTS total=335 passed=335 failed=0 skipped=0",
+      "status": "PASS"
+    },
+    "boss_presentation_smoke": {
+      "log": ".godot/boss-presentation/boss_presentation_smoke-complete.log",
+      "marker": "BOSS_PRESENTATION_SMOKE checks=607 failures=0 rendered=false",
+      "status": "PASS"
+    },
+    "runtime_scene_smoke": {
+      "log": ".godot/boss-presentation/runtime_scene_smoke-complete.log",
+      "marker": "TRADATALA_SCENE_SMOKE passed",
+      "status": "PASS"
+    },
+    "tutorial_scene_smoke": {
+      "log": ".godot/boss-presentation/tutorial_scene_smoke-complete.log",
+      "marker": "TUTORIAL_REPLACEMENT_SMOKE: 0 failures",
+      "status": "PASS"
+    },
+    "zodiac_full_roster_smoke": {
+      "log": ".godot/boss-presentation/zodiac_full_roster_smoke-complete.log",
+      "marker": "ZODIAC_FULL_ROSTER_SMOKE checks=746 failures=0",
+      "status": "PASS"
+    }
+  },
+  "native_render": {
+    "log": ".godot/boss-presentation/render.log",
+    "marker": "BOSS_PRESENTATION_SMOKE checks=607 failures=0 rendered=true",
+    "status": "PASS",
+    "renderer": "Forward+ D3D12",
+    "window_sizes": [
+      "1280x720",
+      "1920x1080",
+      "2548x1368",
+      "960x620"
+    ],
+    "error_log": ".godot/boss-presentation/render.err.log",
+    "locales": [
+      "en",
+      "vi"
+    ]
+  },
+  "additional_checks": {
+    "full_repository_validator": "PASS before final UI tuning; affected core/runtime/tutorial/roster/focused suites rerun on final source",
+    "zodiac_scene": "106 checks, 0 failures",
+    "compatibility_opengl": "553 checks, 0 failures in the earlier rendered version",
+    "git_diff_check": "PASS",
+    "cat_persuasion_scene": "332 checks, 0 failures"
+  },
+  "physical_input_verified": false,
+  "exported_build_verified": false,
+  "audio_listening_verified": false,
+  "gameplay_rules_changed": false,
+  "save_format_changed": false,
+  "committed": false,
+  "pushed": false,
+  "preview_files": [
+    "docs/screenshots/boss-presentation-2026-10-03/rooster.png",
+    "docs/screenshots/boss-presentation-2026-10-03/cat.png"
+  ],
+  "sha256": {
+    "scenes/ui/match_board.tscn": "429ccf8381aed537f7fd8d2719d04db01c3d82f4150cc80bb32a79ad607882d1",
+    "scripts/ui/match_ui.gd": "86aeb6ebc3c7d75862a66707965470700cee1ec4e30b0db866982c46196e3751",
+    "scripts/ui/meld_view.gd": "21fd295e54d0b83a0c51672bfcb82346524a79f33630d0bdb25c35fd148d6990",
+    "scripts/ui/playing_card_view.gd": "6afefe1cbc7a88ca7e5dd6899e17c4a89d41ccddb0a197c7b2158120db4d5ec8",
+    "scripts/ui/zodiac_boss_hud.gd": "50eacf1c9d9a760fede0c88ed8343279f1432510a521d1246622b3e363067593",
+    "scripts/ui/table_hud_presentation.gd": "c4e8e9722635421d1cb1f13bae41b87f9d19380a962791144711ba1aeef30840",
+    "scripts/ui/zodiac_card_fx.gd": "0eb157cc177f7c9fd32447a78f43dcf7202b9265f366ad39c62e9ef3033d18d8",
+    "scripts/ui/boss_debug_toolbar.gd": "3d97b463e2a0bd4cc2dac8fca36767c701fd8ad662106a58116814dc18f185c2",
+    "shaders/zodiac_card_aura.gdshader": "05e05dc3ead5c5754ac0901fb6754e888417176b031554b0b2b801b5e5d98121",
+    "tests/boss_presentation_smoke.gd": "f03b54b15b9d61007bd9f820256e08a4110d3ce2e8ead3c8f59ddee4255884aa"
+  }
+}
