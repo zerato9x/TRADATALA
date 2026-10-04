@@ -9,6 +9,7 @@ var _reveal: Tween
 
 
 func _ready() -> void:
+	speech.set_meta("manual_text_reveal", true)
 	%SmallTalk.pressed.connect(func() -> void: response_selected.emit("small_talk"))
 	%Leave.pressed.connect(func() -> void: response_selected.emit("leave"))
 
@@ -24,21 +25,15 @@ func say(speaker_name: String, line: String) -> void:
 	var formatted := PresentationTheme.emphasize_money(ActionVocabulary.colorize(line))
 	if visible and speaker.text == speaker_name and speech.text == formatted:
 		return
-	if _reveal != null:
-		_reveal.kill()
 	speaker.text = speaker_name
 	PresentationTheme.style_text(speaker, &"speaker", 20)
 	speech.bbcode_enabled = true
 	speech.text = formatted
-	speech.visible_characters = 0
 	visible = true
-	_reveal = create_tween()
-	_reveal.tween_property(speech, "visible_characters", speech.get_total_character_count(), minf(speech.get_total_character_count() / 90.0, 2.0))
+	_reveal = TextReveal.reveal(speech)
 
 
 func _gui_input(event: InputEvent) -> void:
-	if event is InputEventMouseButton and event.pressed:
-		if _reveal != null:
-			_reveal.kill()
-		speech.visible_characters = -1
+	if (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT) or (event is InputEventScreenTouch and event.pressed) or event.is_action_pressed("ui_accept"):
+		TextReveal.finish(speech)
 		accept_event()

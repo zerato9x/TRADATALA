@@ -456,19 +456,14 @@ func _say(text: String) -> void:
 	copy.text = text
 	# Reserve the full paragraph before revealing it, so response buttons stay put.
 	copy.custom_minimum_size.y = copy.get_theme_font("font").get_multiline_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, 276, 16).y + 8
-	copy.visible_characters = 0
 	scroll.scroll_vertical = 0
-	var count := copy.get_total_character_count()
-	if count == 0: return
-	speech_reveal = create_tween()
-	speech_reveal.tween_property(copy, "visible_characters", count, minf(count / 75.0, 2.0))
-	speech_reveal.tween_callback(func(): copy.visible_characters = -1)
+	speech_reveal = TextReveal.reveal(copy, 0.0, 75.0)
 
 func _finish_speech() -> void:
 	if speech_reveal != null:
 		speech_reveal.kill()
 		speech_reveal = null
-	if copy != null: copy.visible_characters = -1
+	if copy != null: TextReveal.finish(copy)
 
 func _speech_input(event: InputEvent) -> void:
 	if (event is InputEventScreenTouch and not event.pressed and not event.canceled) or (event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and not event.pressed):

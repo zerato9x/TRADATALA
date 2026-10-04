@@ -54,6 +54,8 @@ func _run() -> void:
 	check(not front.selected_collection.is_empty(), "zodiac progress opens")
 	for message in failures: push_error(message)
 	print("FRONT_END_SMOKE failures=%d" % failures.size())
+	scene.music_controller._stop_all_mix_players()
+	scene.music_controller.music_director.stop()
 	scene.queue_free()
 	await process_frame
 	quit(0 if failures.is_empty() else 1)

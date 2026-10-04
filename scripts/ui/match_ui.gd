@@ -310,6 +310,9 @@ var wallet_click_times: Array[int] = []
 
 func _ready() -> void:
 	theme = PresentationTheme.create_game_theme()
+	var text_reveal := preload("res://scripts/ui/text_reveal.gd").new()
+	text_reveal.name = "TextReveal"
+	add_child(text_reveal)
 	_bind_editor_interface()
 	for pile in [draw_pile_visual, discard_pile_visual]:
 		for face in pile.find_children("*", "TextureRect", true, false):
@@ -1930,6 +1933,7 @@ func _sync_hand(animated_cards: Array[CardData]) -> void:
 			hand_views[card.unique_id] = view
 		view.set_card(card)
 		view.set_zodiac_locked(deal.zodiac_boss.is_locked(card))
+		view.set_zodiac_hint(preload("res://scripts/ui/zodiac_presentation.gd").hand_hint(deal.zodiac_boss, card, deal.hand))
 		if is_new and animated_ids.has(card.unique_id):
 			var origin := draw_pile_visual.get_global_rect().get_center() - hand_layer.global_position
 			view.spawn_from(origin)
@@ -2148,6 +2152,8 @@ func _sync_melds() -> void:
 			deal.current_drink_id == DrinkCatalog.NAU_DA
 		)
 		view.set_boss_payout_suppressed(deal.zodiac_boss.suppresses(deal.current_phase))
+		var boss_effect: Dictionary = preload("res://scripts/ui/zodiac_presentation.gd").effective(deal.zodiac_boss)
+		view.set_dog_loyal(boss_effect.get("id", "") == "dog" and meld.meld_id == int(boss_effect.get("loyal_meld_id", -1)))
 		if not is_new:
 			continue
 		view.modulate = Color(1, 1, 1, 0)
@@ -2169,6 +2175,19 @@ func _sync_piles() -> void:
 		discard_texture.texture = load(deal.deck.discard_pile[-1].texture_path()) as Texture2D
 		GieoCardFX.attach_texture(discard_texture, deal.deck.discard_pile[-1])
 		discard_texture.modulate = Color.WHITE
+	var claws := discard_texture.get_node_or_null("TigerClaws") as ColorRect
+	var effect: Dictionary = preload("res://scripts/ui/zodiac_presentation.gd").effective(deal.zodiac_boss)
+	var snatched: bool = effect.get("id", "") == "tiger" and not deal.deck.discard_pile.is_empty() and deal.deck.discard_pile[-1].unique_id in effect.get("removed_ids", [])
+	if snatched and claws == null:
+		claws = ColorRect.new()
+		claws.name = "TigerClaws"
+		claws.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		claws.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var ink := ShaderMaterial.new()
+		ink.shader = preload("res://shaders/tiger_claws.gdshader")
+		claws.material = ink
+		discard_texture.add_child(claws)
+	if claws != null: claws.visible = snatched
 
 
 func _sync_discard_history() -> void:
@@ -2397,6 +2416,13 @@ func _refresh_campaign_period() -> void:
 	if campaign_period_icon == null or campaign_period_value == null:
 		return
 	var period := _current_campaign_period()
+	if period == "dragon":
+		campaign_period_value.text = _run_words("DRAGON", "THÌN")
+		campaign_period_icon.texture = _campaign_period_texture("evening")
+		campaign_period_icon.visible = campaign_period_icon.texture != null
+		campaign_period_icon.tooltip_text = _run_words("DRAGON ENDGAME", "THỬ THÁCH THÌN")
+		campaign_period_value.tooltip_text = campaign_period_icon.tooltip_text
+		return
 	if period.is_empty() or not TIME_PERIOD_REGIONS.has(period):
 		campaign_period_value.text = "—"
 		campaign_period_icon.texture = null

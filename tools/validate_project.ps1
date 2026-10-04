@@ -35,6 +35,8 @@ function Invoke-Check([string]$Name, [string]$Script, [string[]]$UserArgs = @(),
     $arguments += @('--script', $Script)
     if ($UserArgs.Count) { $arguments += '--'; $arguments += $UserArgs }
     $process = Start-Process -FilePath $Godot -ArgumentList $arguments -WindowStyle Hidden -PassThru -RedirectStandardOutput $stdout -RedirectStandardError $stderr
+    # Keep the process handle before a fast parse exits (Windows PowerShell 5).
+    $null = $process.Handle
     $deadline = [DateTime]::UtcNow.AddSeconds($TimeoutSeconds)
     $failure = ''
     while (-not $process.WaitForExit(250)) {
@@ -69,6 +71,8 @@ try {
     Invoke-Check 'runtime' 'res://tests/runtime_scene_smoke.gd'
     Invoke-Check 'jukebox' 'res://tests/jukebox_scene_smoke.gd'
     Invoke-Check 'money-fast-forward' 'res://tests/money_fast_forward_smoke.gd'
+    Invoke-Check 'boss-money-presence' 'res://tests/boss_money_presence_smoke.gd'
+    Invoke-Check 'boss-dog-monkey' 'res://tests/dog_monkey_presentation_smoke.gd'
     Invoke-Check 'music-transport' 'res://tests/music_transport_smoke.gd'
     Invoke-Check 'music-write' 'res://tests/music_resume_scene_smoke.gd'
     Invoke-Check 'music-read' 'res://tests/music_resume_scene_smoke.gd' @('--resume-only')
@@ -87,6 +91,7 @@ try {
     }
     if ($Full) {
         Invoke-Check 'zodiac-full-roster' 'res://tests/zodiac_full_roster_smoke.gd'
+        Invoke-Check 'boss-roster-presentation' 'res://tests/roster_presentation_smoke.gd'
         foreach ($name in @('menu_release', 'money_hud_103', 'release_103_qol', 'tutorial_scene', 'resolve_scene', 'gieo_que_screen', 'drink_shop', 'event_table_overhaul', 'misc_npc_scene', 'relic_scene', 'resolve_presentation')) {
             Invoke-Check $name "res://tests/${name}_smoke.gd"
         }

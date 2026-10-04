@@ -228,6 +228,8 @@ func _run() -> void:
 	var mandatory_history_count := scene.deal.discard_history_for_phase(1).size() + scene.deal.discard_history_for_phase(2).size()
 	var visible_history_cards := scene.discard_history_row.get_children().filter(func(child: Node) -> bool: return child.has_meta("action_target_card_id"))
 	_check(visible_history_cards.size() == mandatory_history_count, "Den Da keeps between-phase DUMPs out of the four-per-phase history strip")
+	scene.music_controller._stop_all_mix_players()
+	scene.music_controller.music_director.stop()
 	scene.queue_free()
 	await process_frame
 	if failures.is_empty(): print("DRINK_SHOP_SMOKE: PASS twelve-drinks inspect-order bilingual targets layouts")

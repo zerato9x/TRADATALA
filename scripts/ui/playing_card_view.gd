@@ -38,6 +38,16 @@ var drag_enabled: bool = true
 var zodiac_locked := false
 var _zodiac_lock: Panel
 var _zodiac_smoke: ColorRect
+var _zodiac_cue: Control
+var _zodiac_tip := ""
+
+func set_zodiac_hint(hint: Dictionary) -> void:
+	_zodiac_tip = String(hint.get("detail", ""))
+	if not hint.is_empty() and _zodiac_cue == null:
+		_zodiac_cue = preload("res://scripts/ui/zodiac_hand_cue.gd").new()
+		add_child(_zodiac_cue)
+	if _zodiac_cue != null: _zodiac_cue.sync(hint)
+	_refresh_tooltip()
 
 func set_zodiac_locked(value: bool) -> void:
 	zodiac_locked = value
@@ -290,9 +300,10 @@ func _refresh_tooltip() -> void:
 		tooltip_text += "\n" + tr("CARD_SHINY_DESC")
 	var gieo_descriptions := card.gieo_property_descriptions()
 	if not gieo_descriptions.is_empty():
-		tooltip_text += "\n\nGIEO QU?\n" + "\n".join(gieo_descriptions)
+		tooltip_text += "\n\n" + tr("GIEO_TITLE") + "\n" + "\n".join(gieo_descriptions)
 	if not _chance_tooltip.is_empty():
 		tooltip_text += "\n" + _chance_tooltip
+	if not _zodiac_tip.is_empty(): tooltip_text += "\n\n" + _zodiac_tip
 
 
 func _gui_input(event: InputEvent) -> void:

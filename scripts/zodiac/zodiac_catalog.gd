@@ -212,7 +212,7 @@ static func state_text(state: Dictionary, deal = null) -> String:
 			if deal != null:
 				for card: CardData in deal.hand:
 					var age := int(state.burden_age.get(card.unique_id, 0))
-					if age > 0: labels.append("%s ×%d" % [card.short_label(), 1 << maxi(age - int(tuning("ox", "grace_turns", state.difficulty)), 0)])
+					if age > 0: labels.append("%s ×%d" % [card.short_label(), 1 << clampi(age - int(tuning("ox", "grace_turns", state.difficulty)), 0, 30)])
 			return words("CARD BURDEN\n", "GÁNH NẶNG TỪNG LÁ\n") + (", ".join(labels) if not labels.is_empty() else words("No carried burden yet", "Chưa mang gánh nặng"))
 		"horse": return "%s %d/%d" % [action_label(state.required_action) if not String(state.required_action).is_empty() else words("MATCHING ACTIONS", "HÀNH ĐỘNG CÙNG LOẠI"), int(state.pair_count), int(tuning("horse", "matching_actions", state.difficulty))] + (words(" · %d grace", " · %d ân hạn") % int(state.pair_grace) if int(state.pair_grace) > 0 else "")
 		"goat": return words("NEXT RANK: %s", "HẠNG TIẾP: %s") % (DeckManager.RANKS[int(state.expected_rank) - 1] if int(state.expected_rank) > 0 else words("choose the first note", "chọn hạng mở đầu")) + (words(" · turn %d (%s)", " · lượt %d (%s)") % [state.turn_number, words("ODD", "LẺ") if int(state.turn_number) % 2 else words("EVEN", "CHẴN")] if int(state.difficulty) == UNPLEASED else "")

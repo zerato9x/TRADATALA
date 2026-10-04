@@ -133,6 +133,7 @@ func configure(match_host: Control) -> void:
 
 func _label(font_size: int) -> Label:
 	var label := Label.new()
+	label.set_meta("conversation_text", true)
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	label.add_theme_font_size_override("font_size", font_size)

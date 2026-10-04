@@ -8,13 +8,12 @@ var state_label: Label
 var feedback: Label
 var details: Label
 var detail_button: Button
-var opponent_cards: HBoxContainer
+var opponent_cards: VBoxContainer
 var details_panel: PanelContainer
 var full_state: Label
 var feedback_panel: PanelContainer
 var promise_panel: PanelContainer
 var promise_label: Label
-var portrait: TextureRect
 var evening_overlay: TextureRect
 var _boss_key := ""
 var _phase_seen := -1
@@ -22,14 +21,18 @@ var _turn_seen := -1
 var _closed_seen := false
 var _locks_seen := ""
 var _action_seen := ""
-var _clock := 0.0
-var _reaction := 0.0
 var _speech_time := 0.0
 var _speech_duration := 0.0
 var _speech_queue: Array[Dictionary] = []
 var _speech_key := ""
 var _speaker: Label
 var _promise_details: Button
+var _meld_right_offset := 0.0
+var _meld_top_offset := 0.0
+var dance_guide: Control
+var _fresh_ink: ShaderMaterial
+var mechanic_guide: Control
+const BossView := preload("res://scripts/ui/zodiac_presentation.gd")
 
 func _label(font_size: int) -> Label:
 	var label := Label.new()
@@ -49,11 +52,13 @@ func _glass(accent: Color, opacity: float = 0.76) -> StyleBoxFlat:
 
 func configure(owner: Control) -> void:
 	host = owner
+	_meld_right_offset = host.meld_scroll.offset_right
+	_meld_top_offset = host.meld_scroll.offset_top
 	name = "ZodiacBossHUD"
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	z_index = 90
-	# The supplied table overlay remains in its native framing during Evening.
+	# Supplied table overlays keep their native framing; Dragon has a portrait.
 	evening_overlay = TextureRect.new()
 	evening_overlay.name = "EveningZodiacOverlay"
 	evening_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -61,17 +66,13 @@ func configure(owner: Control) -> void:
 	evening_overlay.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	evening_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(evening_overlay)
-	portrait = TextureRect.new()
-	portrait.name = "EveningBossPortrait"
-	portrait.size = Vector2(138, 138)
-	portrait.pivot_offset = portrait.size * 0.5
-	portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var spirit := ShaderMaterial.new()
-	spirit.shader = preload("res://shaders/zodiac_spirit.gdshader")
-	portrait.material = spirit
-	add_child(portrait)
+	dance_guide = preload("res://scripts/ui/monkey_dance_guide.gd").new()
+	add_child(dance_guide)
+	mechanic_guide = preload("res://scripts/ui/zodiac_mechanic_guide.gd").new()
+	add_child(mechanic_guide)
+	mechanic_guide.configure(host)
+	_fresh_ink = ShaderMaterial.new()
+	_fresh_ink.shader = preload("res://shaders/monkey_rhythm_text.gdshader")
 	panel = PanelContainer.new()
 	panel.name = "BossRuleCard"
 	panel.custom_minimum_size = Vector2(220, 48)
@@ -113,9 +114,14 @@ func configure(owner: Control) -> void:
 	details_panel.size = Vector2(320, 230)
 	details_panel.add_theme_stylebox_override("panel", _glass(PresentationTheme.SPEAKER, 0.95))
 	add_child(details_panel)
+	var rule_layout := VBoxContainer.new()
+	rule_layout.add_theme_constant_override("separation", 6)
+	details_panel.add_child(rule_layout)
 	var scroll := ScrollContainer.new()
+	scroll.name = "RuleScroll"
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	details_panel.add_child(scroll)
+	rule_layout.add_child(scroll)
 	var full_body := VBoxContainer.new()
 	full_body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	full_body.add_theme_constant_override("separation", 10)
@@ -126,7 +132,7 @@ func configure(owner: Control) -> void:
 	details = _label(14)
 	details.name = "BossRuleDescription"
 	full_body.add_child(details)
-	opponent_cards = HBoxContainer.new()
+	opponent_cards = VBoxContainer.new()
 	opponent_cards.name = "MouseOwnedMelds"
 	full_body.add_child(opponent_cards)
 	var close := Button.new()
@@ -134,12 +140,12 @@ func configure(owner: Control) -> void:
 	close.custom_minimum_size.y = 32
 	close.pressed.connect(_toggle_details)
 	PresentationTheme.configure_button(close)
-	full_body.add_child(close)
+	rule_layout.add_child(close)
 	details_panel.hide()
 	details.hide()
 	feedback_panel = PanelContainer.new()
 	feedback_panel.name = "BossSpeech"
-	feedback_panel.custom_minimum_size = Vector2(278, 62)
+	feedback_panel.custom_minimum_size = Vector2(316, 90)
 	feedback_panel.size = feedback_panel.custom_minimum_size
 	feedback_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(feedback_panel)
@@ -147,12 +153,11 @@ func configure(owner: Control) -> void:
 	speech_body.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	speech_body.add_theme_constant_override("separation", 2)
 	feedback_panel.add_child(speech_body)
-	_speaker = _label(10)
+	_speaker = _label(12)
 	speech_body.add_child(_speaker)
-	feedback = _label(14)
+	feedback = _label(16)
 	feedback.name = "BossFeedback"
-	feedback.max_lines_visible = 2
-	feedback.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	feedback.set_meta("manual_text_reveal", true)
 	speech_body.add_child(feedback)
 	feedback_panel.hide()
 	promise_panel = PanelContainer.new()
@@ -187,7 +192,12 @@ func _available() -> bool:
 	return host != null and host.game_started and not host.tutorial_active and not host.menu_layer.visible and host.current_campaign_event == null and CampaignManager.DEAL_PHASE_TO_PERIOD.has(host.campaign.current_phase) and (not host.deal.zodiac_boss.id.is_empty() or not host.campaign.zodiac.promise_reminder().is_empty())
 
 func _blocked() -> bool:
-	return host.modal_overlay.visible or host.score_overlay.visible or host.discard_archive_overlay.visible or (is_instance_valid(host.deck_screen) and host.deck_screen.visible) or (is_instance_valid(host.resolve_receipt) and host.resolve_receipt.visible)
+	return _presence_blocked() or host.score_overlay.visible
+
+func _presence_blocked() -> bool:
+	# Money's ceremony is a transparent, input-free part of the table.
+	# Keep the opponent present while cards score; dialogs still clear the art.
+	return host.modal_overlay.visible or host.discard_archive_overlay.visible or (is_instance_valid(host.deck_screen) and host.deck_screen.visible) or (is_instance_valid(host.resolve_receipt) and host.resolve_receipt.visible)
 
 func _process(delta: float) -> void:
 	if host == null: return
@@ -195,22 +205,23 @@ func _process(delta: float) -> void:
 	if not visible: return
 	_layout()
 	var blocked := _blocked()
-	portrait.visible = panel.visible and not blocked
-	evening_overlay.visible = portrait.visible and evening_overlay.texture != null
+	dance_guide.visible = panel.visible and host.deal.zodiac_boss.id == "monkey" and not host.deal.zodiac_boss.data.get("sequence", []).is_empty() and not blocked and not details_panel.visible
+	dance_guide.pause_effects(host.score_overlay.visible)
+	mechanic_guide.visible = mechanic_guide.active and not blocked and not details_panel.visible
+	evening_overlay.visible = panel.visible and not _presence_blocked() and evening_overlay.texture != null
 	if blocked:
+		if _presence_blocked(): dance_guide.clear_effects()
 		_close_details()
 		feedback_panel.hide()
 		_speech_queue.clear()
 		_speech_time = 0
 		return
-	_clock += delta
-	_reaction = maxf(_reaction - delta * 2.0, 0.0)
-	portrait.rotation = sin(_clock * 0.9) * 0.012
-	portrait.scale = Vector2.ONE * (1.0 + sin(_clock * 1.2) * 0.012 + _reaction * 0.035)
 	if _speech_time > 0:
 		_speech_time = maxf(0, _speech_time - delta)
 		var elapsed := _speech_duration - _speech_time
-		feedback_panel.modulate.a = minf(clampf(elapsed / 0.16, 0, 1), clampf(_speech_time / 0.3, 0, 1))
+		var pop := clampf(elapsed / 0.2, 0, 1)
+		feedback_panel.scale = Vector2.ONE * lerpf(0.9, 1.0, 1.0 - pow(1.0 - pop, 3.0))
+		feedback_panel.modulate.a = minf(pop, clampf(_speech_time / 0.3, 0, 1))
 		if _speech_time <= 0: feedback_panel.hide()
 	elif not _speech_queue.is_empty():
 		_start_speech(_speech_queue.pop_front())
@@ -231,6 +242,10 @@ func _toggle_details() -> void:
 		_speech_queue.clear()
 		_speech_time = 0
 	refresh()
+	if details_panel.visible:
+		(details_panel.find_child("CloseBossRule", true, false) as Button).grab_focus()
+	else:
+		(_promise_details if promise_panel.visible else detail_button).grab_focus()
 
 func _close_details() -> void:
 	details_panel.hide()
@@ -240,11 +255,40 @@ func _layout() -> void:
 	var day_hud: Control = host.get_node("GameLayer/Header/HeaderRow/CampaignStat")
 	panel.position = day_hud.global_position - global_position + Vector2(0, day_hud.size.y + 8)
 	panel.size = Vector2(220, 48)
+	if host.deal.zodiac_boss.id == "dragon":
+		# A portrait cannot safely use the full-table overlay's covered stretch.
+		var relics: Control = host.get_node("GameLayer/UtilityRail/RelicsArea")
+		evening_overlay.position = Vector2(host.size.x - 154, relics.get_global_rect().end.y + 16) - global_position
+		evening_overlay.size = Vector2(128, 160)
 	promise_panel.position = panel.position
 	promise_panel.size = Vector2(220, 52)
-	portrait.position = Vector2(8, panel.position.y + 50)
-	feedback_panel.position = Vector2(150, panel.position.y + 50)
-	feedback_panel.size = Vector2(278, 62)
+	var money: Control = host.campaign_money_hud.panel
+	var money_rect := money.get_global_rect()
+	var width := clampf(money_rect.size.x, 316, 390)
+	feedback_panel.position = Vector2(clampf(money_rect.end.x - width - global_position.x, 8, host.size.x - width - 8), money_rect.end.y - global_position.y + 12)
+	# Reserve the speech lane so scrolled Meld cards never sit underneath it.
+	var meld_parent: Control = host.meld_scroll.get_parent()
+	host.meld_scroll.offset_right = minf(_meld_right_offset, feedback_panel.global_position.x - 8 - meld_parent.global_position.x - meld_parent.size.x) if panel.visible else _meld_right_offset
+	var dancing: bool = panel.visible and host.deal.zodiac_boss.id == "monkey" and host.deal.zodiac_boss.difficulty == ZodiacCatalog.UNPLEASED
+	var guide_height: float = 54 if dancing else mechanic_guide.lane_height + 8 if mechanic_guide.active and panel.visible else 0
+	host.meld_scroll.offset_top = _meld_top_offset + guide_height
+	if mechanic_guide.active and panel.visible:
+		var guide_rect: Rect2 = host.meld_scroll.get_global_rect()
+		var guide_left := maxf(guide_rect.position.x, panel.get_global_rect().end.x + 12)
+		mechanic_guide.position = Vector2(guide_left, meld_parent.global_position.y + _meld_top_offset) - global_position
+		mechanic_guide.fit_width(guide_rect.end.x - guide_left)
+	if dancing:
+		var meld_rect: Rect2 = host.meld_scroll.get_global_rect()
+		var left := maxf(meld_rect.position.x, panel.get_global_rect().end.x + 12)
+		dance_guide.position = Vector2(left, meld_parent.global_position.y + _meld_top_offset) - global_position
+		dance_guide.fit_width(meld_rect.end.x - left)
+	var available_height: float = host.discard_pile_visual.global_position.y - feedback_panel.global_position.y - 12
+	var pixels := 16
+	while pixels > 12 and feedback.get_theme_font("font").get_multiline_string_size(feedback.text, HORIZONTAL_ALIGNMENT_LEFT, width - 20, pixels).y + 30 > available_height:
+		pixels -= 1
+	feedback.add_theme_font_size_override("font_size", pixels)
+	feedback_panel.size = Vector2(width, maxf(90, feedback_panel.get_combined_minimum_size().y))
+	feedback_panel.pivot_offset = Vector2(width, 0)
 	details_panel.position = panel.position + Vector2(0, 54)
 	details_panel.size = Vector2(320, minf(270, host.hand_layer.get_parent().position.y - details_panel.position.y - 16))
 
@@ -252,6 +296,10 @@ func refresh() -> void:
 	if host == null: return
 	visible = _available()
 	if not visible:
+		host.meld_scroll.offset_right = _meld_right_offset
+		host.meld_scroll.offset_top = _meld_top_offset
+		dance_guide.sync({}, "")
+		mechanic_guide.sync({})
 		_close_details()
 		feedback_panel.hide()
 		_speech_queue.clear()
@@ -265,7 +313,8 @@ func refresh() -> void:
 		promise_panel.tooltip_text = promise_label.text
 		promise_panel.visible = not panel.visible
 	if not panel.visible:
-		portrait.hide()
+		dance_guide.sync({}, "")
+		mechanic_guide.sync({})
 		evening_overlay.hide()
 		full_state.text = ZodiacCatalog.words("PROMISE · ", "CAM KẾT · ") + ZodiacCatalog.display_name(host.campaign.zodiac.active_id())
 		details.text = reminder
@@ -277,7 +326,7 @@ func refresh() -> void:
 		return
 	var state: Dictionary = host.deal.zodiac_boss.presentation()
 	var key := "%s:%d:%s:%d:%s" % [host.campaign.run_seed, host.campaign.current_day_index, state.id, state.difficulty, TranslationServer.get_locale()]
-	var accent := Color("ff8576") if state.id == "rooster" else Color("c294ff") if state.id == "cat" else PresentationTheme.SPEAKER
+	var accent: Color = BossView.accent(state.id)
 	if key != _boss_key:
 		_boss_key = key
 		_phase_seen = -1
@@ -290,9 +339,10 @@ func refresh() -> void:
 		_speech_time = 0
 		feedback_panel.hide()
 		_close_details()
-		portrait.texture = load(ZodiacCatalog.sprite_path(state.id))
 		var overlay_path := ZodiacCatalog.sprite_path(state.id, true)
-		evening_overlay.texture = load(overlay_path) if state.id != "dragon" and ResourceLoader.exists(overlay_path) else null
+		evening_overlay.texture = load(overlay_path) if ResourceLoader.exists(overlay_path) else null
+		evening_overlay.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT if state.id == "dragon" else Control.PRESET_FULL_RECT)
+		evening_overlay.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED if state.id == "dragon" else TextureRect.STRETCH_KEEP_ASPECT_COVERED
 		_queue_speech(_arrival(state), "arrival:" + key)
 	panel.add_theme_stylebox_override("panel", _glass(accent, 0.68))
 	feedback_panel.add_theme_stylebox_override("panel", _glass(accent, 0.84))
@@ -303,10 +353,35 @@ func refresh() -> void:
 	skill.text = state.skill
 	full_state.text = state.skill + "\n" + ZodiacCatalog.state_text(state, host.deal)
 	if state.id == "dragon": full_state.text += "\n" + ZodiacCatalog.modifier_text(state, host.deal)
-	state_label.text = ZodiacCatalog.state_text(state, host.deal).replace("\n", " · ")
+	state_label.text = BossView.compact(state, host.deal)
+	state_label.tooltip_text = full_state.text
+	state_label.material = null
+	state_label.add_theme_font_size_override("font_size", 13)
+	state_label.add_theme_color_override("font_color", PresentationTheme.INK)
+	dance_guide.sync(state, key + ":%d" % host.deal.current_phase)
+	mechanic_guide.sync(state)
+	if state.id == "monkey":
+		if state.sequence.is_empty():
+			var cap := int(ZodiacCatalog.tuning("monkey", "allowed_repeats", state.difficulty))
+			var count := int(state.repeat_count)
+			var action_name := ZodiacCatalog.action_label(state.last_paid_action) if not String(state.last_paid_action).is_empty() else "—"
+			state_label.text = "FRESH! · %s %d/%d" % [action_name, count, cap]
+			state_label.add_theme_font_size_override("font_size", 12)
+			state_label.add_theme_color_override("font_color", Color("ffb878") if count >= cap else accent)
+			_fresh_ink.set_shader_parameter("urgency", 1.0 if count >= cap else 0.0)
+			state_label.material = _fresh_ink
+			state_label.tooltip_text = full_state.text + "\n" + ZodiacCatalog.words("Change between Meld and Extend when the counter is full. Discard does not reset Fresh.", "Đổi giữa Tạo và Nối Phỏm khi đủ bộ đếm. Bỏ bài không đặt lại Fresh.")
+		else:
+			state_label.text = ZodiacCatalog.words("DANCE BABY! · %d/%d", "DANCE BABY! · %d/%d") % [int(state.sequence_index) + 1, state.sequence.size()]
+	else: state_label.tooltip_text = full_state.text
 	if state.id == "rooster" and host.deal.current_phase == 1 and not state.register_closed:
 		var remaining: int = maxi(int(ZodiacCatalog.tuning("rooster", "discard_deadline", state.difficulty)) - host.deal.discard_count, 0)
 		state_label.text = ZodiacCatalog.words("Closes in %d discard(s)", "Đóng sổ sau %d lần bỏ") % remaining
+	# Boss-state summaries fit in full; the complete rule remains in the drawer.
+	var badge_pixels := state_label.get_theme_font_size("font_size")
+	while badge_pixels > 10 and state_label.get_theme_font("font").get_string_size(state_label.text, HORIZONTAL_ALIGNMENT_LEFT, -1, badge_pixels).x > 166:
+		badge_pixels -= 1
+	state_label.add_theme_font_size_override("font_size", badge_pixels)
 	panel.tooltip_text = full_state.text + "\n\n" + state.rule
 	details.text = state.rule
 	detail_button.text = "×" if details_panel.visible else "?"
@@ -314,36 +389,56 @@ func refresh() -> void:
 	(details_panel.find_child("CloseBossRule", true, false) as Button).text = ZodiacCatalog.words("Back to the table · Esc", "Về bàn · Esc")
 	_sync_opponent_cards()
 	_layout()
-	portrait.visible = not _blocked()
-	evening_overlay.visible = portrait.visible and evening_overlay.texture != null
+	evening_overlay.visible = not _presence_blocked() and evening_overlay.texture != null
 
 func _sync_opponent_cards() -> void:
 	for child in opponent_cards.get_children():
 		opponent_cards.remove_child(child)
 		child.queue_free()
 	opponent_cards.visible = not host.deal.boss_melds.is_empty()
-	for meld: MeldState in host.deal.boss_melds.slice(-2):
+	for meld: MeldState in host.deal.boss_melds:
 		var group := VBoxContainer.new()
 		opponent_cards.add_child(group)
 		var caption := _label(11)
 		caption.text = ZodiacCatalog.words("MOUSE #%d", "PHỎM TÝ #%d") % meld.meld_id
 		group.add_child(caption)
-		var faces := HBoxContainer.new()
-		faces.add_theme_constant_override("separation", -8)
+		var faces := GridContainer.new()
+		faces.name = "StolenCardFaces"
+		faces.columns = 7
+		faces.add_theme_constant_override("h_separation", 4)
+		faces.add_theme_constant_override("v_separation", 4)
 		group.add_child(faces)
 		for card in meld.cards:
 			var face := TextureRect.new()
 			face.texture = load(card.texture_path())
-			face.custom_minimum_size = Vector2(25, 35)
+			face.custom_minimum_size = Vector2(36, 50)
 			face.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 			face.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 			face.tooltip_text = card.short_label()
 			faces.add_child(face)
+			var stitch := ColorRect.new()
+			stitch.name = "RatStolenMeld"
+			stitch.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+			stitch.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			var ink := ShaderMaterial.new()
+			ink.shader = preload("res://shaders/rat_stolen_meld.gdshader")
+			stitch.material = ink
+			face.add_child(stitch)
 
 func _arrival(state: Dictionary) -> String:
 	match String(state.id):
 		"rooster": return ZodiacCatalog.words("Make it count. I close after discard %d.", "Tranh thủ đi. Ta chốt sổ sau lần bỏ thứ %d.") % int(ZodiacCatalog.tuning("rooster", "discard_deadline", state.difficulty))
 		"cat": return ZodiacCatalog.words("Play your hand. I'll choose my prey in Phase 2.", "Cứ đánh đi. Hiệp 2, ta sẽ chọn con mồi.")
+		"dog": return ZodiacCatalog.words("Your first Meld gets my loyalty. Keep building it.", "Phỏm đầu tiên được ta bảo vệ. Cứ nối tiếp vào đó.")
+		"monkey": return ZodiacCatalog.words("Dance baby! Follow the steps above your Melds.", "Dance baby! Theo các bước phía trên Phỏm.") if state.difficulty == ZodiacCatalog.UNPLEASED else ZodiacCatalog.words("Keep it fresh. Watch the counter; switch between Meld and Extend.", "Đổi nhịp đi. Nhìn bộ đếm; đổi giữa Tạo và Nối Phỏm.")
+		"pig": return ZodiacCatalog.words("Keep earning. Reach my target and I'll return the held pool.", "Cứ kiếm tiếp. Đạt mục tiêu thì ta hoàn cả quỹ đã giữ.")
+		"ox": return ZodiacCatalog.words("Carry a card and its burden grows. Check each card's next loss.", "Giữ lá rác thì gánh nặng tăng. Xem mức phạt tới trên từng lá.")
+		"horse": return ZodiacCatalog.words("Two matching plays. Finish the pair before you discard.", "Hai lần đánh cùng loại. Hoàn thành cặp trước khi bỏ bài.")
+		"goat": return ZodiacCatalog.words("Follow the next Rank. Only the newly played cards set the note.", "Theo hạng tiếp theo. Chỉ lá vừa đánh mới đặt nhịp.")
+		"rat": return ZodiacCatalog.words("Your discards are my stock. My Melds come out of your wallet.", "Bài bạn bỏ là kho của ta. Phỏm của ta lấy tiền trong ví bạn.")
+		"tiger": return ZodiacCatalog.words("I've already taken my prey. Your remaining hand is yours to play.", "Ta đã vồ mồi rồi. Cứ đánh các lá còn lại của bạn.")
+		"snake": return ZodiacCatalog.words("My commands are above your Melds. Select a command to see its cards.", "Lệnh ở phía trên Phỏm. Chọn lệnh để thấy các lá cần đánh.")
+		"dragon": return ZodiacCatalog.words("Your own tactic, my target. The rule changes each turn.", "Chiến thuật của bạn, mục tiêu của ta. Mỗi lượt đổi một luật.")
 	return state.skill + " · " + ZodiacCatalog.state_text(state, host.deal).get_slice("\n", 0)
 
 func _queue_speech(line: String, key: String, urgent: bool = false) -> void:
@@ -364,14 +459,17 @@ func _start_speech(item: Dictionary) -> void:
 	_speech_key = item.key
 	feedback.text = "“" + String(item.line) + "”"
 	feedback_panel.tooltip_text = item.line
-	_speech_duration = clampf(2.5 + String(item.line).length() * 0.025, 3.5, 5.5)
+	# Pop first, then type; keep a complete paragraph on screen before fading.
+	TextReveal.reveal(feedback, 0.2)
+	_speech_duration = 0.2 + TextReveal.duration(feedback) + clampf(String(item.line).length() * 0.035, 3.0, 7.0)
 	_speech_time = _speech_duration
 	feedback_panel.modulate.a = 0
+	feedback_panel.scale = Vector2.ONE * 0.9
 	feedback_panel.show()
-	_reaction = 1
 
 func present_action(result: Dictionary) -> void:
 	if not visible or not panel.visible: return
+	dance_guide.present_action(result)
 	var rule: ZodiacBossRule = host.deal.zodiac_boss
 	var phase: int = host.deal.current_phase
 	var locks := ",".join(rule.locked_ids)
@@ -399,6 +497,11 @@ func present_action(result: Dictionary) -> void:
 	elif context != null and int(result.get("earned_vnd", 0)) > 0:
 		if rule.id == "cat": _queue_speech(ZodiacCatalog.words("A neat play. I saw that.", "Hạ đẹp đấy. Ta thấy rồi."), "paid:" + action_key)
 		elif rule.id == "rooster": _queue_speech(ZodiacCatalog.words("On the books. Keep going.", "Ghi vào sổ rồi. Tiếp đi."), "paid:" + action_key)
+		elif rule.id == "dog" and int(result.get("meld_id", -1)) == int(rule.data.loyal_meld_id):
+			_queue_speech(ZodiacCatalog.words("That's my loyal Meld. I've got it covered.", "Đúng Phỏm trung thành. Ta bảo vệ nó."), "paid:" + action_key)
+		elif rule.id == "monkey" and rule.difficulty != ZodiacCatalog.UNPLEASED:
+			if int(rule.data.repeat_count) >= int(ZodiacCatalog.tuning("monkey", "allowed_repeats", rule.difficulty)):
+				_queue_speech(ZodiacCatalog.words("Fresh! Now switch to ", "Fresh! Giờ đổi sang ") + ZodiacCatalog.action_label("extension" if action == "new_meld" else "new_meld") + ".", "fresh:" + action_key, true)
 
 func react_locked_card(card: CardData) -> void:
 	if host.deal.zodiac_boss.is_locked(card):
@@ -418,5 +521,8 @@ func present_events(events: Array) -> void:
 			"pig_return": line = ZodiacCatalog.words("Target met. Your pool is back.", "Đủ mục tiêu. Trả lại cả quỹ.")
 			"pig_bank_loss": line = ZodiacCatalog.words("Target missed. Time to collect.", "Chưa đủ mục tiêu. Đến lúc thu tiền.")
 			"snake_disobeyed": line = ZodiacCatalog.words("Disobedient. Your turn continues.", "Không tuân lệnh. Lượt vẫn tiếp tục.")
+			"snake_obeyed": line = ZodiacCatalog.words("Command fulfilled. Your turn continues.", "Đã làm đúng lệnh. Lượt vẫn tiếp tục.")
+			"horse_grace": line = ZodiacCatalog.words("I'll spare this incomplete pair. No grace left this Phase.", "Ta tha cặp chưa đủ lần này. Hiệp này hết ân hạn.")
+			"dragon_modifier": line = ZodiacCatalog.words("This turn: ", "Lượt này: ") + ZodiacCatalog.display_name(event.get("id", ""))
 			"horse_forced_discard": line = ZodiacCatalog.words("Too slow. I'll choose your discard.", "Chậm quá. Ta chọn lá bỏ cho bạn.")
 		if not line.is_empty(): _queue_speech(line, "%s:%d:%d" % [action, host.deal.current_phase, host.deal.zodiac_boss.turn_serial], true)

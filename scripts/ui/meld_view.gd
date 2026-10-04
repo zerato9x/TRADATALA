@@ -17,6 +17,27 @@ var _card_drink_outlines: Dictionary = {}
 var _card_beat_tweens: Dictionary = {}
 var _drink_eligible_card_ids: Dictionary = {}
 var _displayed_points := 0
+var _dog_guard: ColorRect
+
+func set_dog_loyal(loyal: bool) -> void:
+	if loyal and _dog_guard == null:
+		_dog_guard = ColorRect.new()
+		_dog_guard.name = "DogLoyalGuard"
+		_dog_guard.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_dog_guard.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		var ink := ShaderMaterial.new()
+		ink.shader = preload("res://shaders/dog_loyal_meld.gdshader")
+		_dog_guard.material = ink
+		add_child(_dog_guard)
+	if _dog_guard != null: _dog_guard.visible = loyal
+	if loyal:
+		_title.add_theme_color_override("font_color", Color("80f5a1"))
+		if _hint.text == tr("MELD_SELECT_EXTEND"):
+			_hint.text = ZodiacCatalog.words("LOYAL", "TRUNG THÀNH")
+			_hint.add_theme_color_override("font_color", Color("80f5a1"))
+		tooltip_text += "\n" + ZodiacCatalog.words("Dog's LOYAL Meld", "Phỏm TRUNG THÀNH của Tuất")
+	else:
+		_title.add_theme_color_override("font_color", PresentationTheme.GOLD)
 
 
 func _ready() -> void:
@@ -229,6 +250,8 @@ func _on_card_gui_input(event: InputEvent, card: CardData) -> void:
 
 
 func _process(_delta: float) -> void:
+	if _dog_guard != null and _dog_guard.visible:
+		(_dog_guard.material as ShaderMaterial).set_shader_parameter("surface_size", size)
 	for card_id in _card_views:
 		var texture: TextureRect = _card_views[card_id]
 		var face := texture.get_node_or_null("SwayFace") as TextureRect

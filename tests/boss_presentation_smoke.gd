@@ -65,10 +65,14 @@ func layout_contract(label: String) -> void:
 	check(hud.panel.get_global_rect().position.x == scene.get_node("GameLayer/Header/HeaderRow/CampaignStat").global_position.x, label + " badge aligns with day HUD")
 	for surface: Control in [scene.draw_pile_visual, scene.discard_pile_visual, scene.hand_layer, scene.meld_scroll]:
 		check(not hud.panel.get_global_rect().intersects(surface.get_global_rect()), label + " badge clears " + surface.name)
-		check(not hud.portrait.get_global_rect().intersects(surface.get_global_rect()), label + " portrait clears " + surface.name)
+		check(not hud.feedback_panel.get_global_rect().intersects(surface.get_global_rect()), label + " speech clears " + surface.name)
 	check(not strip.get_global_rect().intersects(scene.hand_layer.get_global_rect()), label + " turns clear the hand")
 	check(not strip.get_global_rect().intersects(scene.meld_scroll.get_global_rect()), label + " turns clear the meld area")
-	check(hud.portrait.mouse_filter == Control.MOUSE_FILTER_IGNORE and hud.evening_overlay.mouse_filter == Control.MOUSE_FILTER_IGNORE and hud.feedback_panel.mouse_filter == Control.MOUSE_FILTER_IGNORE, label + " decorative presence passes input")
+	check(not hud.has_node("EveningBossPortrait"), label + " redundant corner sprite is removed")
+	var speech_screen: Rect2 = root.get_final_transform() * hud.feedback_panel.get_global_transform_with_canvas() * Rect2(Vector2.ZERO, hud.feedback_panel.size)
+	check(canvas.encloses(speech_screen), label + " speech fits viewport")
+	check(hud.feedback_panel.position.y >= scene.campaign_money_hud.panel.get_global_rect().end.y, label + " speech sits below money")
+	check(hud.evening_overlay.mouse_filter == Control.MOUSE_FILTER_IGNORE and hud.feedback_panel.mouse_filter == Control.MOUSE_FILTER_IGNORE, label + " decorative presence passes input")
 	var slots := scene.discard_history_row.get_children().filter(func(node: Node): return node.has_meta("turn_number"))
 	for slot: Control in slots:
 		check(strip.get_global_rect().encloses(slot.get_global_rect()), label + " slot visible " + slot.name)
@@ -147,7 +151,7 @@ func _run() -> void:
 		await fixture("rooster", 2, 2)
 		check(hud.feedback.text.contains(ZodiacCatalog.words("Scoring is open", "Lại được ghi điểm")), "Rooster announces Phase 2 scoring")
 		await fixture("cat", 2, 2)
-		check(hud.evening_overlay.texture.resource_path == ZodiacCatalog.sprite_path("cat", true) and hud.portrait.is_visible_in_tree(), "Cat is present during Evening")
+		check(hud.evening_overlay.texture.resource_path == ZodiacCatalog.sprite_path("cat", true) and hud.evening_overlay.is_visible_in_tree(), "Cat is present during Evening")
 		var locked: Array[CardData] = []
 		var free: CardData
 		for card in scene.deal.hand:
@@ -209,7 +213,7 @@ func _run() -> void:
 		hud.refresh()
 		scene.modal_overlay.show()
 		await frames()
-		check(not hud.portrait.visible and not hud.evening_overlay.visible and not hud.feedback_panel.visible, "phase modal clears decorative boss layers")
+		check(not hud.evening_overlay.visible and not hud.feedback_panel.visible, "phase modal clears decorative boss layers")
 		scene.modal_overlay.hide()
 		# Committed Melds remain visible above the enlarged turn register.
 		await fixture("cat", 2, 1)
