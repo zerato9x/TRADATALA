@@ -18,6 +18,7 @@ var _sort: OptionButton
 var _search: LineEdit
 var _scroll: ScrollContainer
 var _back: Button
+var _choose_label := ""
 
 func _ready() -> void:
 	name = "DeckScreen"
@@ -55,7 +56,7 @@ func _ready() -> void:
 	var back := Button.new()
 	_back = back
 	back.name = "DeckBack"
-	back.text = _words("Back to the table", "Về bàn")
+	back.text = _words("Back", "Về bàn")
 	back.custom_minimum_size = Vector2(170, 44)
 	PresentationTheme.configure_button(back, "tea")
 	back.pressed.connect(close)
@@ -74,7 +75,7 @@ func _ready() -> void:
 	tools_row.add_child(_sort)
 	_search = LineEdit.new()
 	_search.name = "DeckSearch"
-	_search.placeholder_text = _words("Find a card by rank, suit, or original identity", "Tìm theo số, chất hoặc lá gốc")
+	_search.placeholder_text = _words("Search cards", "Tìm bài")
 	_search.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_search.text_changed.connect(func(_query: String): _rebuild_cards())
 	tools_row.add_child(_search)
@@ -111,7 +112,7 @@ func _ready() -> void:
 	_confirm = Button.new()
 	_confirm.name = "DeckChoose"
 	_confirm.custom_minimum_size.y = 48
-	_confirm.text = _words("Choose this card", "Chọn lá này")
+	_confirm.text = _words("Choose", "Chọn")
 	PresentationTheme.configure_button(_confirm, "gold")
 	_confirm.pressed.connect(_choose)
 	body.add_child(_confirm)
@@ -121,21 +122,24 @@ func _ready() -> void:
 func _fit_grid() -> void:
 	_grid.columns = maxi(1, floori((_scroll.size.x - 12) / 78.0))
 
-func open_deck(cards: Array[CardData], title_text: String, purpose_text: String, allowed_cards: Array[CardData] = [], on_choose: Callable = Callable()) -> void:
+func open_deck(cards: Array[CardData], title_text: String, purpose_text: String, allowed_cards: Array[CardData] = [], on_choose: Callable = Callable(), choose_label: String = "") -> void:
 	_refresh_locale()
 	_cards = cards.duplicate()
 	_allowed.clear()
 	for card in allowed_cards:
 		_allowed[card.unique_id] = true
 	_on_choose = on_choose
+	_choose_label = choose_label
+	_confirm.text = choose_label if not choose_label.is_empty() else _words("Choose", "Chọn")
 	_selected = null
-	_title.text = title_text + "  ·  %d" % _cards.size()
+	_title.text = (_words("CHOOSE CARD", "CHỌN BÀI") if on_choose.is_valid() and choose_label.is_empty() else title_text) + "  ·  %d" % _cards.size()
 	if on_choose.is_valid() and _allowed.size() < _cards.size():
 		_title.text += "  ·  " + (_words("%d offered", "%d lá có thể chọn") % _allowed.size())
 	# Selection consequences belong to the picker; browsing needs no tagline.
-	_purpose.text = purpose_text if on_choose.is_valid() else ""
+	_purpose.set_meta("full_terms", purpose_text)
+	_purpose.text = (purpose_text if not choose_label.is_empty() else _words("Choose 1 card", "Chọn 1 lá")) if on_choose.is_valid() else ""
 	_purpose.visible = on_choose.is_valid() and not purpose_text.is_empty()
-	_title.tooltip_text = purpose_text
+	_title.tooltip_text = ""
 	_search.clear()
 	_sort.select(0)
 	_rebuild_cards()
@@ -145,11 +149,11 @@ func open_deck(cards: Array[CardData], title_text: String, purpose_text: String,
 	_search.grab_focus()
 
 func _refresh_locale() -> void:
-	_back.text = _words("Back to the table", "Về bàn")
-	_search.placeholder_text = _words("Find a card by rank, suit, or original identity", "Tìm theo số, chất hoặc lá gốc")
+	_back.text = _words("Back", "Về bàn")
+	_search.placeholder_text = _words("Search cards", "Tìm bài")
 	var captions := [_words("Suit, then rank", "Chất rồi số"), _words("Rank, then suit", "Số rồi chất"), _words("Changed first", "Lá đã đổi lên trước")]
 	for i in captions.size(): _sort.set_item_text(i,captions[i])
-	_confirm.text = _words("Choose this card", "Chọn lá này")
+	_confirm.text = _words("Choose", "Chọn")
 
 func close() -> void:
 	if not visible: return
@@ -179,7 +183,7 @@ func _rebuild_cards() -> void:
 		button.name = "Card_" + card.unique_id
 		button.custom_minimum_size = Vector2(72, 114)
 		var card_state := _card_state(card, selectable)
-		button.tooltip_text = card.short_label() + "\n" + card_state[0] + "\n" + "\n".join(card.gieo_property_descriptions())
+		button.tooltip_text = card.inspection_text()
 		button.modulate.a = 1.0 if not _on_choose.is_valid() or selectable else 0.42
 		button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 		PresentationTheme.configure_button(button, "gold" if card == _selected else "tea" if selectable and _on_choose.is_valid() else "neutral")
@@ -223,7 +227,7 @@ func _rebuild_cards() -> void:
 		_grid.add_child(button)
 
 func _matches_query(card: CardData, query: String) -> bool:
-	return query.is_empty() or (card.short_label() + " " + card.unique_id + " " + card.rank + " " + card.suit).to_lower().contains(query)
+	return query.is_empty() or (card.short_label() + " " + card.unique_id + " " + card.rank + " " + card.suit + " " + card.inspection_text() + " " + " ".join(card.permanent_property_ids())).to_lower().contains(query)
 
 func _less(a: CardData, b: CardData) -> bool:
 	if _sort.selected == 2 and a.has_permanent_changes() != b.has_permanent_changes():
@@ -247,27 +251,35 @@ func _show_detail() -> void:
 	_confirm.visible = _on_choose.is_valid()
 	_confirm.disabled = _selected == null or not _allowed.has(_selected.unique_id)
 	if _selected == null:
-		_add_detail(_words("Choose a card to inspect it.", "Chạm vào một lá để xem kỹ."), 18)
+		_add_detail(_words("Select a card", "Chọn một lá"), 22)
 		return
 	var art := TextureRect.new()
-	art.custom_minimum_size = Vector2(190, 260)
+	art.custom_minimum_size = Vector2(112, 156)
 	art.texture = load(_selected.texture_path()) as Texture2D
 	art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	art.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_detail.add_child(art)
 	GieoCardFX.attach_texture(art, _selected)
-	_add_detail(_selected.short_label(), 23, PresentationTheme.RED if _selected.suit in ["Hearts", "Diamonds"] else PresentationTheme.INK)
+	_detail.add_child(CardSymbolArt.create_card_badge(_selected, 30))
 	var state := _card_state(_selected, _allowed.has(_selected.unique_id))
-	_add_detail(state[0], 16, state[2])
+	if not String(state[0]).is_empty(): _add_detail(state[0], 16, state[2])
 	var original := _selected.unique_id.split("_")
 	var original_label := CardData.new("", original[1].to_upper(), 0, original[2].capitalize(), 0).short_label() if original.size() >= 3 else _selected.unique_id
-	_add_detail(_words("Original card: ", "Lá gốc: ") + original_label, 14, PresentationTheme.MUTED)
-	_add_detail(_words("Score value: ", "Giá trị điểm: ") + str(_selected.score_value()), 15, PresentationTheme.WALLET)
-	var properties := _selected.gieo_property_descriptions()
-	_add_detail("\n".join(properties) if not properties.is_empty() else _words("No Gieo Quẻ properties yet.", "Chưa có thuộc tính Gieo Quẻ."), 15, PresentationTheme.SPEAKER if not properties.is_empty() else PresentationTheme.MUTED)
-	if _selected.transformation_locked: _add_detail(_words("Sealed · no further changes", "Đã khóa · không đổi tiếp"), 14, PresentationTheme.WARNING)
-	if _on_choose.is_valid() and not _allowed.has(_selected.unique_id): _add_detail(_words("Unavailable for this choice", "Không thể chọn lần này"), 14, PresentationTheme.DANGER)
+	if original_label != _selected.short_label(): _add_detail(_words("Original ", "Lá gốc ") + original_label, 16, PresentationTheme.MUTED)
+	_add_detail(tr("CARD_FORTUNE") + " " + _selected.fortune_label(), 34, PresentationTheme.GOLD if _selected.fortune > 0 else Color("c8dce6") if _selected.fortune < 0 else PresentationTheme.MUTED)
+	_add_detail(_words("Actual: ", "Bài thật: ") + _selected.rank + " · " + tr("SUIT_" + _selected.suit.to_upper()), 16)
+	_add_detail(_words("Scored value ", "Giá trị tính điểm ") + str(_selected.score_value()), 18, PresentationTheme.WALLET)
+	var properties := _selected.fortune_descriptions()
+	if not _selected.jackpot_state().is_empty(): _add_detail(tr(CardData.property_label_key(_selected.jackpot_state())), 18, PresentationTheme.SPEAKER)
+	if _selected.transformation_locked: _add_detail(_words("Sealed", "Đã khóa"), 17, PresentationTheme.WARNING)
+	if _on_choose.is_valid() and not _allowed.has(_selected.unique_id): _add_detail(_words("Unavailable", "Không thể chọn"), 17, PresentationTheme.DANGER)
+	var guide := Button.new()
+	guide.name = "CardHandbook"
+	guide.text = _words("Handbook", "Sổ tay")
+	PresentationTheme.configure_button(guide)
+	guide.pressed.connect(func(): GameGlossary.open_entry(self, _selected.short_label(), _words("Original: ", "Lá gốc: ") + original_label + "\n%d PTS\n\n" % _selected.score_value() + "\n\n".join(properties) + "\n\n" + String(_purpose.get_meta("full_terms", "")), "cards"))
+	_detail.add_child(guide)
 
 func _add_detail(value: String, font_size: int, color: Color = PresentationTheme.INK) -> void:
 	var label := Label.new()
@@ -285,8 +297,8 @@ func _card_state(card: CardData, selectable: bool) -> Array:
 	if card.has_permanent_changes():
 		return [_words("Permanently changed", "Đã biến đổi vĩnh viễn"), _words("CHANGED", "ĐÃ ĐỔI"), PresentationTheme.SPEAKER]
 	if _on_choose.is_valid():
-		return [_words("Available to choose", "Có thể chọn"), _words("CHOOSE", "CHỌN"), PresentationTheme.TEA]
-	return [_words("Original card", "Lá gốc"), _words("ORIGINAL", "LÁ GỐC"), PresentationTheme.MUTED]
+		return ["", "", PresentationTheme.TEA]
+	return ["", "", PresentationTheme.MUTED]
 
 func _choose() -> void:
 	if _selected == null or not _allowed.has(_selected.unique_id) or not _on_choose.is_valid(): return

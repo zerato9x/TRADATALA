@@ -2,7 +2,6 @@ class_name PresentationTheme
 extends RefCounted
 
 const OFFICIAL_FONT_PATH := "res://assets/DFVN Pexel Grotesk.ttf"
-const UNIVERSAL_FRAME_STYLE := preload("res://assets/ui/frames/universal_frame.tres")
 
 const INK := Color("#f8edcf")
 const MUTED := Color("#c6b896")
@@ -31,16 +30,30 @@ const PAPER_INK := Color("#24354c")
 const PAPER_MUTED := Color("#515c6d")
 const PAPER_GAIN := Color("#286141")
 const PAPER_COST := Color("#983b34")
+const PAPER_SEMANTIC_COLORS := {&"body": PAPER_INK, &"muted": PAPER_MUTED, &"gain": PAPER_GAIN, &"success": PAPER_GAIN,
+	&"cost": PAPER_COST, &"debt": PAPER_COST, &"danger": PAPER_COST, &"wallet": Color("80550b"), &"number": Color("80550b"),
+	&"heading": Color("80550b"), &"jackpot": Color("80550b"), &"warning": Color("88571d"),
+	&"action": Color("165570"), &"card": Color("165570"), &"speaker": Color("654082"), &"mechanic": Color("654082")}
+const SUIT_COLORS := {"Spades": Color("8fcfff"), "Hearts": Color("ff929f"), "Diamonds": Color("ffd477"), "Clubs": Color("8ee0b2")}
+const ZODIAC_COLORS := {"rooster": Color("ff8576"), "cat": Color("c294ff"), "dog": Color("80f5a1"), "monkey": Color("ffe078"),
+	"pig": Color("ffb5ca"), "ox": Color("deb17a"), "horse": Color("81d6ff"), "goat": Color("9ce5d7"),
+	"rat": Color("c4bbef"), "tiger": Color("ff9e55"), "snake": Color("a7ed8e"), "dragon": Color("86e5f0")}
 const SEMANTIC_COLORS := {
 	&"body": INK, &"muted": MUTED, &"gain": MONEY_GAIN,
 	&"cost": MONEY_COST, &"wallet": WALLET, &"debt": DEBT,
 	&"number": WALLET, &"card": ACTION, &"action": ACTION,
 	&"success": MONEY_GAIN, &"warning": WARNING, &"danger": DANGER,
-	&"speaker": SPEAKER, &"mechanic": SPEAKER, &"jackpot": WALLET,
+	&"speaker": SPEAKER, &"mechanic": SPEAKER, &"jackpot": WALLET, &"heading": WALLET,
 }
 
-static func semantic_color(role: StringName) -> Color:
-	return SEMANTIC_COLORS.get(role, INK)
+static func semantic_color(role: StringName, paper: bool = false) -> Color:
+	return PAPER_SEMANTIC_COLORS.get(role, PAPER_INK) if paper else SEMANTIC_COLORS.get(role, INK)
+
+static func zodiac_color(id: String) -> Color:
+	return ZODIAC_COLORS.get(id, SPEAKER)
+
+static func suit_color(suit: String) -> Color:
+	return SUIT_COLORS.get(suit, ACTION)
 
 static func style_text(control: Control, role: StringName = &"body", font_size: int = 18) -> void:
 	control.set_meta("text_role", role)
@@ -127,11 +140,6 @@ static func create_game_theme() -> Theme:
 	return game_theme
 
 
-static func universal_frame_style() -> StyleBoxTexture:
-	# Duplicate the shared resource so callers can tune margins without changing every frame.
-	return UNIVERSAL_FRAME_STYLE.duplicate() as StyleBoxTexture
-
-
 static func panel_style(
 	background: Color = PANEL,
 	border: Color = Color.TRANSPARENT,
@@ -162,12 +170,11 @@ static func configure_button(button: Button, tone: String = "neutral") -> void:
 	var base := Color("#263853")
 	var hover := Color("#34527a")
 	var border := Color("#6e8fb5")
-	var font_color := INK
+	var font_color := ACTION
 	if tone == "gold":
 		base = Color("#9a641f")
 		hover = Color("#bf8428")
 		border = GOLD
-		font_color = Color("#fff1c5")
 	elif tone == "tea":
 		base = Color("#3d702d")
 		hover = Color("#57933a")
@@ -176,14 +183,16 @@ static func configure_button(button: Button, tone: String = "neutral") -> void:
 		base = Color("#71372e")
 		hover = Color("#99493c")
 		border = RED
+		font_color = DANGER
+	button.set_meta("text_role", &"danger" if tone == "danger" else &"action")
 	button.add_theme_stylebox_override("normal", panel_style(base, border, 2, 2, 3))
 	button.add_theme_stylebox_override("hover", panel_style(hover, border.lightened(0.15), 2, 2, 4))
 	button.add_theme_stylebox_override("pressed", panel_style(base.darkened(0.18), border, 2, 2, 0))
 	button.add_theme_stylebox_override("disabled", panel_style(Color("#26231f"), Color("#51483b"), 1, 2, 0))
 	button.add_theme_stylebox_override("focus", panel_style(Color.TRANSPARENT, GOLD, 2, 2, 0))
 	button.add_theme_color_override("font_color", font_color)
-	button.add_theme_color_override("font_hover_color", Color.WHITE)
-	button.add_theme_color_override("font_pressed_color", Color.WHITE)
+	button.add_theme_color_override("font_hover_color", font_color.lightened(0.12))
+	button.add_theme_color_override("font_pressed_color", font_color)
 	button.add_theme_color_override("font_disabled_color", MUTED)
 	button.add_theme_font_size_override("font_size", 16)
 	button.focus_mode = Control.FOCUS_ALL

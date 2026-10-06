@@ -52,7 +52,7 @@ func _seed() -> String:
 	return ""
 
 func _start() -> void:
-	scene.zodiac_table._close_conversation()
+	scene.zodiac_table.close_conversation()
 	scene.run_seed_input = _seed()
 	scene._start_campaign()
 	await _pause(0.4)
@@ -97,11 +97,11 @@ func _run() -> void:
 	root.add_child(scene)
 	current_scene = scene
 	await _pause(0.5)
-	scene._restoring_run = true
-	scene.save_files.suspended = true
+	scene.session.restoring = true
+	scene.session.save_files.suspended = true
 	scene.campaign.zodiac.progress = ZodiacProgress.new("")
 	scene.drink_manager.progress.save_path = ""
-	scene.run_save = RunSave.new("user://cat_ui.save")
+	scene.session.run_save = RunSave.new("user://cat_ui.save")
 	scene.game_started = true
 	scene.menu_layer.hide()
 	scene.game_layer.position = Vector2.ZERO
@@ -120,10 +120,13 @@ func _run() -> void:
 		var answer: Dictionary = node.answers[index]
 		await _click(table.choices.get_child(index))
 		_check(service.persuasion.state().stage == "reaction", "click commits the authored answer once")
-		_check(table.dialogue.text.contains(ZodiacCatalog.localized(answer.reaction[0])), "exact authored Cat reaction stays readable")
+		await _click(table.detail_button)
+		var reaction_book := root.get_node_or_null("GameGlossary") as GameGlossary
+		_check(reaction_book != null and reaction_book._entries[0].body.contains(ZodiacCatalog.localized(answer.reaction[0])), "full exact authored Cat reaction stays readable in Handbook")
+		if reaction_book != null: await _click(reaction_book.find_child("CloseHandbook", true, false))
 		await _click(table.choices.get_child(0))
 	_check(not service.has_open_interaction() and service.mood() == "PLEASED", "surface conversation completes PLEASED")
-	table._close_conversation()
+	table.close_conversation()
 	scene.campaign._enter_phase(CampaignManager.CampaignPhase.AFTERNOON_EVENT)
 	await _pause(0.4)
 	var receipt := root.get_node_or_null("LotteryReceipt")
@@ -189,8 +192,8 @@ func _run() -> void:
 	scene.deck_screen._inspect(CardTargetQuery.resolve_ids(scene.campaign.gieo_que.persistent_deck, [id])[0])
 	await _click(scene.deck_screen._confirm)
 	_check(not scene.deck_screen.visible and service.persuasion.state().selection == [id], "chosen physical identity returns to saved conversation")
-	_check(scene.run_save.save_run(scene.campaign, scene.deal), "counteroffer and UI selection save")
-	_check(scene.run_save.restore(scene.run_save.load_run(), scene.campaign, scene.deal), "counteroffer and UI selection restore")
+	_check(scene.session.run_save.save_run(scene.campaign, scene.deal), "counteroffer and UI selection save")
+	_check(scene.session.run_save.restore(scene.session.run_save.load_run(), scene.campaign, scene.deal), "counteroffer and UI selection restore")
 	table.refresh()
 	_check(table.selected_ids == [id] and not table.choices.get_child(0).disabled, "restored selection enables confirmation")
 	await _capture("selected_counteroffer")
@@ -198,12 +201,16 @@ func _run() -> void:
 	_check(service.daily.promises.size() == 1 and service.daily.promises[0].target_ids == [id], "Accept tracks exactly the shown physical card")
 	_check(table.dialogue.text.contains("Interesting."), "authored counteroffer acceptance reaction")
 	await _click(table.choices.get_child(0))
-	table._close_conversation()
+	table.close_conversation()
 	scene.campaign._enter_phase(CampaignManager.CampaignPhase.AFTERNOON_DEAL)
 	await _pause(1.2)
 	_check(scene.zodiac_boss_hud.promise_panel.is_visible_in_tree(), "readable promise reminder appears during the real Afternoon Deal")
 	_check(scene.zodiac_boss_hud.promise_panel.size.y <= 70 and scene.zodiac_boss_hud.promise_label.size.x >= 150 and scene.zodiac_boss_hud.promise_panel.get_global_rect().end.y < scene.draw_pile_visual.get_global_rect().position.y, "promise reminder stays beside the day HUD and clears the table")
-	_check(scene.zodiac_boss_hud.promise_label.text.contains("Do not interact with the selected card during the next Deal."), "reminder contains authored accepted terms")
+	_check(scene.zodiac_boss_hud.promise_label.text.contains(CardTargetQuery.resolve_ids(scene.campaign.gieo_que.persistent_deck, [id])[0].short_label()), "compact reminder identifies the promised card at a glance")
+	await _click(scene.zodiac_boss_hud._promise_details)
+	var promise_book := root.get_node_or_null("GameGlossary") as GameGlossary
+	_check(promise_book != null and promise_book._entries[0].body.contains("Do not interact with the selected card during the next Deal."), "promise Handbook contains exact authored accepted terms")
+	if promise_book != null: await _click(promise_book.find_child("CloseHandbook", true, false))
 	await _capture("afternoon_promise_reminder")
 	var promise: Dictionary = service.daily.promises[0]
 	var target := CardTargetQuery.resolve_ids(scene.deal.hand, [id])
@@ -217,15 +224,15 @@ func _run() -> void:
 	await _pause(0.4)
 	_check(table.shade.visible and not service.persuasion.state().outcomes.is_empty(), "Afternoon presents actual Promise result")
 	_check(table.dialogue.text.contains("You touched it.") if promise.broken else table.dialogue.text.contains("You really didn’t."), "Cat's exact authored outcome is shown")
-	_check(table.status.text.contains("BROKEN") if promise.broken else table.status.text.contains("FULFILLED"), "result and final disposition are explicit")
+	_check(table.status.text.contains("Broken") if promise.broken else table.status.text.contains("Kept"), "short result and final disposition are explicit")
 	await _capture("afternoon_promise_judgement")
-	table._close_conversation()
+	table.close_conversation()
 	scene.campaign._enter_phase(CampaignManager.CampaignPhase.EVENING_DEAL)
 	await _pause(0.4)
 	_check(scene.deal.zodiac_boss.id == "cat" and scene.deal.zodiac_boss.difficulty == service.difficulty(), "real Evening Cat receives final Patience severity")
 	_check(not scene.zodiac_boss_hud.promise_panel.visible, "settled reminder clears before Evening")
 	await _capture("evening_stalk")
-	for suffix in ["", ".bak", ".tmp"]: DirAccess.remove_absolute(scene.run_save.path + suffix)
+	for suffix in ["", ".bak", ".tmp"]: DirAccess.remove_absolute(scene.session.run_save.path + suffix)
 	scene.queue_free()
 	await _pause(0.2)
 	print("CAT_PERSUASION_SCENE_SMOKE checks=%d failures=%d captures=%d" % [checks, failures.size(), captures.size()])

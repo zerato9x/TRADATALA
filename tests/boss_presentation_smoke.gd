@@ -16,9 +16,9 @@ func capture(label: String) -> void:
 	if not rendered: return
 	# Direct fixture commits do not run the normal money-flight queue.
 	# Render the journal's committed balance rather than an unfinished counter.
-	scene.displayed_wallet_vnd = scene.deal.wallet.balance_vnd
-	scene.money_queue_wallet_vnd = scene.displayed_wallet_vnd
-	scene.money_presentation.sync_wallet(scene.displayed_wallet_vnd)
+	scene.money_playback.displayed_balance = scene.deal.wallet.balance_vnd
+	scene.money_playback.queued_balance = scene.money_playback.displayed_balance
+	scene.money_presentation.sync_wallet(scene.money_playback.displayed_balance)
 	scene._refresh_stats()
 	await create_timer(0.25).timeout
 	await RenderingServer.frame_post_draw
@@ -47,11 +47,11 @@ func fixture(id: String, level: int, phase: int = 1) -> void:
 	scene.deal.zodiac_boss.begin_turn(phase, scene.deal.hand, scene.deal)
 	scene.modal_overlay.hide()
 	scene.score_overlay.hide()
-	scene.interaction_locked = false
-	scene.selected_card_ids.clear()
-	scene._set_hand_interaction_enabled(true)
-	scene.displayed_wallet_vnd = scene.deal.wallet.balance_vnd
-	scene.money_queue_wallet_vnd = scene.displayed_wallet_vnd
+	scene.interactions.locked = false
+	scene.interactions.selected_ids.clear()
+	scene.card_table.set_hand_interaction_enabled(true)
+	scene.money_playback.displayed_balance = scene.deal.wallet.balance_vnd
+	scene.money_playback.queued_balance = scene.money_playback.displayed_balance
 	scene._sync_all()
 	await frames()
 
@@ -92,9 +92,8 @@ func _run() -> void:
 	root.add_child(scene)
 	current_scene = scene
 	await frames()
-	scene.get_node("TitleScreen").queue_free()
-	scene._restoring_run = true
-	scene.run_save = RunSave.new("user://boss-presentation-%d.save" % Time.get_ticks_usec())
+	scene.session.restoring = true
+	scene.session.run_save = RunSave.new("user://boss-presentation-%d.save" % Time.get_ticks_usec())
 	scene.drink_manager.progress.save_path = ""
 	scene.campaign.zodiac.progress = ZodiacProgress.new("")
 	scene.campaign.run_seed = "boss-presentation"
@@ -142,10 +141,10 @@ func _run() -> void:
 			var suppressed := scene.deal.create_meld(legal_set)
 			check(suppressed.ok and suppressed.context.suppression_reason == "rooster_register_closed", "closed register permits a real legal Meld")
 			check(scene.deal.wallet.balance_vnd == wallet_before and suppressed.context.final_points == 0, "closed register pays exactly zero")
-			scene._queue_scoring(suppressed.context)
+			scene.money_feedback.queue_scoring(suppressed.context)
 			scene._sync_all(suppressed)
 			check(hud.feedback.text.contains("0 VNĐ"), "zero payout is explained by the boss")
-			check(scene.meld_views[suppressed.meld_id]._score.text.contains("0 VNĐ") and not scene.meld_views[suppressed.meld_id]._score.text.contains("81.000"), "Rooster effect corrects the existing Meld payout display")
+			check(scene.card_table.meld_views[suppressed.meld_id]._score.text.contains("0 VNĐ") and not scene.card_table.meld_views[suppressed.meld_id]._score.text.contains("81.000"), "Rooster effect corrects the existing Meld payout display")
 			check(scene.deal.physical_card_accounting_is_valid(), "zero payout presentation preserves physical zones")
 			await capture("rooster-%s-tier%d-zero-payout" % [locale, level])
 		await fixture("rooster", 2, 2)
@@ -155,7 +154,7 @@ func _run() -> void:
 		var locked: Array[CardData] = []
 		var free: CardData
 		for card in scene.deal.hand:
-			var view: PlayingCardView = scene.hand_views[card.unique_id]
+			var view: PlayingCardView = scene.card_table.hand_views[card.unique_id]
 			if scene.deal.zodiac_boss.is_locked(card):
 				locked.append(card)
 				check(view.has_node("CatLockSmoke") and view.get_node("CatLockSmoke").material is ShaderMaterial, "locked physical card has purple smoke")
@@ -171,15 +170,15 @@ func _run() -> void:
 		check(not scene.deal.discard_card(locked[0]).ok and scene.deal.hand.has(locked[0]), "Cat legality stays authoritative")
 		scene._on_card_pressed(locked[0])
 		check(hud.feedback.text.contains(ZodiacCatalog.words("stays with me", "ở với ta")), "touching a locked card gets Cat speech")
-		scene._on_card_drag_started(locked[0], Vector2.ZERO, scene.hand_views[locked[0].unique_id])
-		check(scene.active_drag_payload == null and scene.deal.hand.has(locked[0]), "locked drag reacts without creating a forbidden card payload")
+		scene._on_card_drag_started(locked[0], Vector2.ZERO, scene.card_table.hand_views[locked[0].unique_id])
+		check(scene.interactions.drag_payload == null and scene.deal.hand.has(locked[0]), "locked drag reacts without creating a forbidden card payload")
 		await capture("cat-%s-lock-smoke" % locale)
 		var result := scene.deal.discard_card(free)
 		scene._sync_all(result)
 		await frames()
 		var active_smoke := 0
 		for card in scene.deal.hand:
-			var view: PlayingCardView = scene.hand_views[card.unique_id]
+			var view: PlayingCardView = scene.card_table.hand_views[card.unique_id]
 			if view.has_node("CatLockSmoke") and view.get_node("CatLockSmoke").visible: active_smoke += 1
 		check(active_smoke == scene.deal.zodiac_boss.locked_ids.size(), "next refill clears old smoke and follows new locks")
 		check(hud.feedback.text.contains(ZodiacCatalog.words("mine until", "thuộc về ta")), "Cat announces each actual lock turn")
@@ -196,7 +195,8 @@ func _run() -> void:
 		root.size = Vector2i(1280, 720)
 		await frames()
 		await click(hud.detail_button)
-		check(hud.details_panel.visible and hud.details.visible and hud.details.text == ZodiacCatalog.rule_text("cat", 2), "pointer opens complete authoritative rules")
+		var book := root.get_node_or_null("GameGlossary") as GameGlossary
+		check(book != null and book._entries[0].body.contains(ZodiacCatalog.rule_text("cat", 2)), "pointer opens complete authoritative rules in Handbook")
 		check(not hud.feedback_panel.visible, "speech clears while the player reads the rule")
 		await capture("cat-%s-rule-drawer" % locale)
 		var escape := InputEventKey.new()
@@ -205,7 +205,7 @@ func _run() -> void:
 		escape.pressed = true
 		root.push_input(escape, true)
 		await frames()
-		check(not hud.details_panel.visible, "Escape closes rule drawer")
+		check(not root.has_node("GameGlossary"), "Escape closes rule Handbook")
 		scene.menu_layer.show()
 		await frames()
 		check(not hud.visible and not hud.feedback_panel.visible, "menu clears presence and queued speech")
@@ -235,7 +235,7 @@ func _run() -> void:
 		scene.deal.set_current_drink(DrinkCatalog.TRA_DA)
 		scene._sync_all({"drawn": drawn})
 		await create_timer(0.3).timeout
-		for view: MeldView in scene.meld_views.values():
+		for view: MeldView in scene.card_table.meld_views.values():
 			check(not view.get_global_rect().intersects(strip.get_global_rect()), "committed Meld clears turn register")
 		check(scene.deal.physical_card_accounting_is_valid(), "filled table preserves physical zones")
 		await capture("cat-%s-filled-table" % locale)

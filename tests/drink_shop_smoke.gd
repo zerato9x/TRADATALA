@@ -27,7 +27,7 @@ func _run() -> void:
 	var handbook := root.get_node_or_null("GameGlossary")
 	if handbook != null:
 		await _click(handbook.find_child("CloseHandbook", true, false))
-	_check(root.get_node_or_null("GameGlossary") == null and scene.menu_page == &"home", "handbook Back returns to menu")
+	_check(root.get_node_or_null("GameGlossary") == null and scene.front_end.page == "home", "handbook Back returns to menu")
 	await _click(nav.get_child(3) as Control)
 	_check(scene.front_end.page == "settings", "viewport click opens Settings")
 	await _click(scene.front_end.footer.get_node("FrontBack") as Control)
@@ -39,7 +39,7 @@ func _run() -> void:
 	await create_timer(0.5).timeout
 	scene.event_table.focus_npc(EventTableController.NPC_TRA_DA)
 	await create_timer(0.5).timeout
-	var shop := scene.campaign_participants.get_child(0) as DrinkShop
+	var shop := scene.event_table.participants_container.get_child(0) as DrinkShop
 	_check(shop != null and shop._buttons.size() == 12 and shop.shelf.get_child_count() == 4, "Starter groups twelve Drinks into four classes")
 	await _hover(shop._buttons[DrinkCatalog.STING] as Control)
 	_check(shop.selected_id.is_empty(), "hovering a drink does not inspect or select it")
@@ -58,7 +58,7 @@ func _run() -> void:
 	await create_timer(0.5).timeout
 	scene.event_table.focus_npc(EventTableController.NPC_TRA_DA)
 	await create_timer(0.5).timeout
-	shop = scene.campaign_participants.get_child(0) as DrinkShop
+	shop = scene.event_table.participants_container.get_child(0) as DrinkShop
 	_check(shop != null, "returning to the NPC reopens the Drink shop")
 	_check(scene.event_table.conversation.get_global_rect().end.y <= shop.get_global_rect().position.y, "first opening never expands speech over the table")
 	for locale_name in ["vi", "en"]:
@@ -96,7 +96,7 @@ func _run() -> void:
 	_check(not scene.event_table.conversation.visible, "Back dismisses the conversation")
 	scene.event_table.focus_npc(EventTableController.NPC_DANH_GIAY)
 	_check(scene.event_table.conversation.visible, "other NPCs use the shared conversation")
-	_check(scene.event_table.conversation.speech.get_parsed_text().contains("em"), "Đánh Giày speaks as a kid")
+	_check(scene.event_table.conversation._full_line.contains("em"), "Đánh Giày's full dialogue retains the kid's wording")
 	scene.event_table.conversation.get_node("Lines/Responses/SmallTalk").pressed.emit()
 	_check(scene.event_table.conversation.speech.get_parsed_text().contains("quả bóng"), "the kid has age-appropriate small talk")
 	var legend := scene.get_node("ActionLegend")
@@ -110,39 +110,39 @@ func _run() -> void:
 	scene.event_table.unfocus_npc()
 	scene._on_campaign_continue_pressed()
 	await create_timer(0.5).timeout
-	scene.interaction_locked = false
+	scene.interactions.locked = false
 	scene.deal.set_current_drink(DrinkCatalog.STING)
 	scene.deal.state = DealState.STATE_FINAL_COMMIT_WINDOW
 	scene.deal.hand = [CardData.new("pair_a", "8", 8, "Spades", 8), CardData.new("pair_b", "8", 8, "Hearts", 8)]
 	scene._sync_all()
-	scene._on_drink_pressed()
-	_check(scene.drink_targeting_active, "Sting arms blue targeting")
+	scene.activate_drink()
+	_check(scene.interactions.drink_targeting, "Sting arms blue targeting")
 	_check(scene.drink_table_texture.texture.resource_path.ends_with("_full.png"), "unused testing Drink has a filled glass")
 	_check(not scene.hint_button.disabled and scene.ha_button.disabled, "targeting exposes Cancel and disables incomplete confirmation")
-	await _click(scene.hand_views[scene.deal.hand[0].unique_id])
+	await _click(scene.card_table.hand_views[scene.deal.hand[0].unique_id])
 	scene._on_hint_pressed()
-	_check(not scene.drink_targeting_active and scene.deal.current_drink_has_charge(), "Cancel leaves the charge available")
-	_check(scene.pending_drink_card_ids.is_empty(), "Cancel clears pending targets")
-	scene._on_drink_pressed()
+	_check(not scene.interactions.drink_targeting and scene.deal.current_drink_has_charge(), "Cancel leaves the charge available")
+	_check(scene.interactions.drink_ids.is_empty(), "Cancel clears pending targets")
+	scene.activate_drink()
 	var pair_cards: Array[CardData] = scene.deal.hand.duplicate()
-	var money_job_before_pair := scene.next_money_job_id
-	await _click(scene.hand_views[pair_cards[0].unique_id])
-	_check(scene.pending_drink_card_ids.has(pair_cards[0].unique_id), "first Pair card is selected")
-	_check((scene.hand_views[pair_cards[0].unique_id] as PlayingCardView).drag_enabled, "drink targeting retains dragging")
-	await _click(scene.hand_views[pair_cards[1].unique_id])
-	_check(scene.next_money_job_id == money_job_before_pair + 1, "second Pair click commits and queues exactly one payout")
+	var money_job_before_pair := scene.money_playback.next_job_id
+	await _click(scene.card_table.hand_views[pair_cards[0].unique_id])
+	_check(scene.interactions.drink_ids.has(pair_cards[0].unique_id), "first Pair card is selected")
+	_check((scene.card_table.hand_views[pair_cards[0].unique_id] as PlayingCardView).drag_enabled, "drink targeting retains dragging")
+	await _click(scene.card_table.hand_views[pair_cards[1].unique_id])
+	_check(scene.money_playback.next_job_id == money_job_before_pair + 1, "second Pair click commits and queues exactly one payout")
 	var deadline := Time.get_ticks_msec() + 10000
-	while scene.money_queue_running and Time.get_ticks_msec() < deadline:
+	while scene.money_playback.running and Time.get_ticks_msec() < deadline:
 		await process_frame
-	_check(not scene.money_queue_running, "Pair payout completes within ten seconds")
+	_check(not scene.money_playback.running, "Pair payout completes within ten seconds")
 	_check(scene.deal.melds.size() == 1 and scene.deal.melds[0].pair_created, "Pair commits without a second cup click")
 	_check(scene.drink_table_texture.texture.resource_path.ends_with("_half.png"), "spent testing Drink visibly changes its fill")
-	scene.interaction_locked = false
+	scene.interactions.locked = false
 	scene.deal.set_current_drink(DrinkCatalog.NAU_DA)
 	scene._sync_all()
-	scene.selected_meld_id = -1
-	scene._on_drink_pressed()
-	var recovered_view := scene.meld_views[scene.deal.melds[0].meld_id] as MeldView
+	scene.interactions.selected_meld_id = -1
+	scene.activate_drink()
+	var recovered_view := scene.card_table.meld_views[scene.deal.melds[0].meld_id] as MeldView
 	await _click(recovered_view._card_views[scene.deal.melds[0].cards[0].unique_id])
 	_check(scene.deal.melds.is_empty() and scene.deal.hand.size() == 2, "Nâu đá targets the whole Meld in one click")
 	for drink_id in [DrinkCatalog.NHAN_TRAN, DrinkCatalog.DEN_DA]:
@@ -160,33 +160,33 @@ func _run() -> void:
 		if kind == DiscardRecord.KIND_DUMP:
 			var history_cards := scene.discard_history_row.get_children().filter(func(child: Node) -> bool: return child.has_meta("action_target_card_id"))
 			_check(history_cards.is_empty(), "Den Da DUMP target stays out of the mandatory discard history")
-		scene._on_drink_pressed()
-		await _click(scene.hand_views[outgoing.unique_id])
-		_check(scene.discard_archive_overlay.visible, "hand selection opens a readable swap picker for " + drink_id)
-		scene._hide_discard_archive()
-		_check(scene.pending_drink_card_ids.has(outgoing.unique_id) and scene.deal.current_drink_has_charge(), "closing picker preserves the hand target without spending")
+		scene.activate_drink()
+		await _click(scene.card_table.hand_views[outgoing.unique_id])
+		_check(scene.pile_archive.overlay.visible, "hand selection opens a readable swap picker for " + drink_id)
+		scene.pile_archive.close()
+		_check(scene.interactions.drink_ids.has(outgoing.unique_id) and scene.deal.current_drink_has_charge(), "closing picker preserves the hand target without spending")
 		scene._on_discard_archive_pressed()
-		var grid: GridContainer = scene.discard_archive_suit_grids["Clubs"]
+		var grid: GridContainer = scene.pile_archive.grids["Clubs"]
 		_check(grid.get_child_count() == 1, "swap picker contains the legal live target")
 		await _click(grid.get_child(0))
 		await create_timer(0.5).timeout
 		_check(scene.deal.hand.has(incoming) and not scene.deal.hand.has(outgoing), "viewport target click swaps " + drink_id)
-		_check(not scene.drink_targeting_active and not scene.discard_archive_overlay.visible, "swap closes picker and targeting")
+		_check(not scene.interactions.drink_targeting and not scene.pile_archive.overlay.visible, "swap closes picker and targeting")
 	scene.deal.set_current_drink(DrinkCatalog.C2_ICED_TEA)
 	scene.deal.hand = [CardData.new("c2_a", "3", 3, "Spades", 3), CardData.new("c2_b", "4", 4, "Hearts", 4), CardData.new("c2_c", "5", 5, "Clubs", 5), CardData.new("c2_bad", "9", 9, "Clubs", 9)]
 	scene._sync_all()
-	scene._on_drink_pressed()
-	await _click(scene.hand_views["c2_bad"])
-	_check(scene.pending_drink_card_ids.is_empty(), "unusable C2 card does not trap selection in an invalid state")
+	scene.activate_drink()
+	await _click(scene.card_table.hand_views["c2_bad"])
+	_check(scene.interactions.drink_ids.is_empty(), "unusable C2 card does not trap selection in an invalid state")
 	for card_id in ["c2_a", "c2_c", "c2_b"]:
-		await _click(scene.hand_views[card_id])
+		await _click(scene.card_table.hand_views[card_id])
 	_check(not scene.ha_button.disabled, "C2 accepts selecting endpoints before the middle")
 	if DisplayServer.get_name() != "headless":
 		await RenderingServer.frame_post_draw
 		root.get_texture().get_image().save_png("res://docs/images/drink_targeting.png")
-	await _click(scene.hand_views["c2_b"])
+	await _click(scene.card_table.hand_views["c2_b"])
 	_check(scene.ha_button.disabled, "deselecting a necessary C2 card disables confirmation")
-	await _click(scene.hand_views["c2_b"])
+	await _click(scene.card_table.hand_views["c2_b"])
 	scene._on_ha_pressed()
 	_check(scene.deal.c2_used and scene.deal.melds[-1].run_compatibility == "any", "explicit confirmation creates the selected mixed-suit C2 run")
 	scene.deal.set_current_drink(DrinkCatalog.NUOC_VOI)
@@ -194,8 +194,8 @@ func _run() -> void:
 	for rank in range(2, 6): removable.append(CardData.new("voi_%d" % rank, str(rank), rank, "Spades", rank))
 	scene.deal.melds = [MeldState.new(88, MeldRules.TYPE_RUN, removable)]
 	scene._sync_all()
-	scene._on_drink_pressed()
-	var voi_view := scene.meld_views[88] as MeldView
+	scene.activate_drink()
+	var voi_view := scene.card_table.meld_views[88] as MeldView
 	await _click(voi_view._card_views["voi_3"])
 	_check(not scene.deal.nuoc_voi_used_phases.has(1), "illegal interior Run card leaves Nước vối available")
 	await _click(voi_view._card_views["voi_2"])
@@ -203,13 +203,13 @@ func _run() -> void:
 	_check(scene.deal.melds[0].cards.size() == 3 and scene.deal.hand.any(func(card: CardData) -> bool: return card.unique_id == "voi_2"), "viewport click returns the legal Nước vối endpoint")
 	scene.deal.set_current_drink(DrinkCatalog.BAC_XIU)
 	scene._sync_all()
-	scene._on_drink_pressed()
-	await _click(scene.hand_views[scene.deal.hand[0].unique_id])
-	_check(scene.pending_drink_card_ids.size() == 1, "Bạc xỉu selects a loose card through viewport input")
+	scene.activate_drink()
+	await _click(scene.card_table.hand_views[scene.deal.hand[0].unique_id])
+	_check(scene.interactions.drink_ids.size() == 1, "Bạc xỉu selects a loose card through viewport input")
 	scene._on_hint_pressed()
 	_check(not scene.deal.sam_dua_used, "cancelling Bạc xỉu leaves preservation available")
-	scene._on_drink_pressed()
-	scene._on_drink_pressed()
+	scene.activate_drink()
+	scene.activate_drink()
 	_check(scene.deal.sam_dua_used and scene.deal.sam_dua_preserved_cards.is_empty(), "Bạc xỉu can confirm zero preserved cards")
 	scene.deal.set_current_drink(DrinkCatalog.NONE)
 	scene.deal.current_phase = 1
@@ -228,8 +228,8 @@ func _run() -> void:
 	var mandatory_history_count := scene.deal.discard_history_for_phase(1).size() + scene.deal.discard_history_for_phase(2).size()
 	var visible_history_cards := scene.discard_history_row.get_children().filter(func(child: Node) -> bool: return child.has_meta("action_target_card_id"))
 	_check(visible_history_cards.size() == mandatory_history_count, "Den Da keeps between-phase DUMPs out of the four-per-phase history strip")
-	scene.music_controller._stop_all_mix_players()
-	scene.music_controller.music_director.stop()
+	scene.music.controller._stop_all_mix_players()
+	scene.music.controller.music_director.stop()
 	scene.queue_free()
 	await process_frame
 	if failures.is_empty(): print("DRINK_SHOP_SMOKE: PASS twelve-drinks inspect-order bilingual targets layouts")

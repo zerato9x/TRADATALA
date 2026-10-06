@@ -70,14 +70,6 @@ func is_playing() -> bool:
 	return audio_player != null and audio_player.playing and state == STATE_PLAYING
 
 
-func get_section_count() -> int:
-	return current_arrangement.size()
-
-
-func get_timeline() -> Array[Dictionary]:
-	return timeline.duplicate(true)
-
-
 func play_arrangement(track_id: String, sections: Array[Dictionary], loop_enabled := true) -> bool:
 	var built := build_arrangement(track_id, sections)
 	if built.is_empty():

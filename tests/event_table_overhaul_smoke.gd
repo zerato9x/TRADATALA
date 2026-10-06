@@ -47,11 +47,8 @@ func _run() -> void:
 	root.add_child(scene)
 	current_scene = scene
 	await pause(0.2)
-	var title := scene.get_node_or_null("TitleScreen")
-	if title != null:
-		title.queue_free()
 	scene.drink_manager.progress.save_path = ""
-	scene._restoring_run = true
+	scene.session.restoring = true
 	await scene._on_play_pressed()
 	scene.event_table.unfocus_npc()
 	await pause(0.4)
@@ -63,7 +60,7 @@ func _run() -> void:
 		scene.deal.relics.acquire(id)
 		scene.deal.relics.equip(id)
 	scene.deal.wallet.reset(2887500)
-	scene.displayed_wallet_vnd = scene.deal.wallet.balance_vnd
+	scene.money_playback.displayed_balance = scene.deal.wallet.balance_vnd
 	scene._refresh_stats()
 	await pause(0.7)
 	var overview = scene.event_table.overview
@@ -161,7 +158,7 @@ func _run() -> void:
 	await pause(0.4)
 	for amount in [1000, 5000, 50000, 250000, 2887500, 288750000, 500000000]:
 		scene.deal.wallet.reset(amount)
-		scene.displayed_wallet_vnd = amount
+		scene.money_playback.displayed_balance = amount
 		scene._refresh_stats()
 		await process_frame
 		for index in 3:

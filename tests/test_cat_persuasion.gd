@@ -194,7 +194,7 @@ func test_invalid_relic_and_transformed_requirements_are_never_selected() -> voi
 	# Gieo property changes also qualify, even when rank/suit stayed printed.
 	var campaign := _campaign(true)
 	var card: CardData = campaign.gieo_que.persistent_deck[0]
-	assert_true(card.add_gieo_property("GOLD_SET"))
+	assert_true(card.adjust_fortune(2))
 	assert_false(CardTargetQuery.transformed_rank(card))
 	assert_false(CardTargetQuery.transformed_suit(card))
 	_terms(campaign, "cat.t1plus.dont_change_it")
@@ -336,7 +336,7 @@ func test_existing_meld_cards_do_not_count_as_new_extension_interactions() -> vo
 	assert_eq(result.committed_card_ids, [card.unique_id])
 	assert_false(promise.broken)
 
-func test_relic_loss_is_monotonic_even_after_reacquisition_and_unequip_is_safe() -> void:
+func test_relic_loss_is_monotonic_even_after_reacquisition() -> void:
 	for failure in [true, false]:
 		var campaign := _campaign(true)
 		var runtime := campaign.relic_shop.runtime
@@ -347,8 +347,8 @@ func test_relic_loss_is_monotonic_even_after_reacquisition_and_unequip_is_safe()
 		campaign.zodiac.continue_conversation()
 		var promise: Dictionary = campaign.zodiac.daily.promises[0]
 		assert_true(promise.started, "until-return window begins at acceptance")
-		runtime.remove("comb")
-		assert_false(promise.broken, "unequipping does not lose ownership")
+		runtime.acquire("comb")
+		assert_false(promise.broken, "idempotent acquisition does not lose ownership")
 		if failure:
 			assert_true(runtime.gift("comb"))
 			runtime.acquire("comb")
@@ -367,7 +367,7 @@ func test_protected_card_catches_mutate_then_revert_before_the_deal_and_reset() 
 		match operation:
 			"rank_and_revert": card.apply_rank("2", 2); card.apply_rank("K", 13)
 			"reset": card.alter_for_zodiac("reset")
-			"property": card.add_gieo_property("GOLD_SET")
+			"property": card.adjust_fortune(2)
 			"seal": card.alter_for_zodiac("seal")
 		assert_true(promise.broken, operation)
 		_afternoon(campaign)
@@ -384,8 +384,7 @@ func test_protected_card_gieo_authority_and_unchanged_success() -> void:
 		if failure:
 			campaign.gieo_que.state = GieoQueService.STATE_TARGET_REVEAL
 			campaign.gieo_que.resolved_targets = [card]
-			campaign.gieo_que.current_result = {"effect": GieoQueService.EFFECT_ADD_GOLD_SET}
-			campaign.gieo_que.resolved_destination = "GOLD_SET"
+			campaign.gieo_que.current_result = {"fortune_delta": 2}
 			assert_true(campaign.gieo_que.apply_resolved_targets().ok)
 			campaign.gieo_que.finish_transformation()
 		assert_eq(promise.broken, failure)

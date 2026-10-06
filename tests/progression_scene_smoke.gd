@@ -28,12 +28,9 @@ func make_scene() -> void:
 	root.add_child(scene)
 	current_scene = scene
 	await pause(0.1)
-	var title := scene.get_node_or_null("TitleScreen")
-	if title != null:
-		title.queue_free()
 	if OS.get_cmdline_user_args().has("--english"):
 		TranslationServer.set_locale("en")
-	scene.run_save = RunSave.new(SAVE)
+	scene.session.run_save = RunSave.new(SAVE)
 	# Isolate the achievement profile too; these are test runs.
 	scene.drink_manager.progress.save_path = ""
 func _run() -> void:
@@ -43,7 +40,6 @@ func _run() -> void:
 		TranslationServer.set_locale("en")
 	if OS.get_cmdline_user_args().has("--resume-only"):
 		await make_scene()
-		scene._show_run_menu()
 		scene.front_end.show_home()
 		await pause()
 		check(not scene.front_end.saved.is_empty(), "fresh process detects save")
@@ -63,7 +59,7 @@ func _run() -> void:
 		if FileAccess.file_exists(SAVE + suffix):
 			DirAccess.remove_absolute(SAVE + suffix)
 	await make_scene()
-	scene._show_run_menu()
+	scene.front_end.show_setup()
 	await pause()
 	scene.front_end.draft.seed = "SIDEWALK-2026"
 	var start_button := scene.front_end.footer.get_child(scene.front_end.footer.get_child_count() - 1) as Button
@@ -82,12 +78,11 @@ func _run() -> void:
 	await pause()
 	var hand := scene.deal.hand.map(func(card): return card.unique_id)
 	var stock := scene.deal.deck.draw_pile.map(func(card): return card.unique_id)
-	var saved := scene.run_save.load_run()
+	var saved := scene.session.run_save.load_run()
 	check(not saved.is_empty(), "committed action autosaved to disk")
 	scene.queue_free()
 	await pause(0.2)
 	await make_scene()
-	scene._show_run_menu()
 	scene.front_end.show_home()
 	await pause(0.2)
 	scene.front_end.resume_requested.emit()
@@ -96,28 +91,34 @@ func _run() -> void:
 	check(scene.deal.hand.map(func(card): return card.unique_id) == hand, "resume preserves exact hand")
 	check(scene.deal.deck.draw_pile.map(func(card): return card.unique_id) == stock, "resume preserves future draws")
 	check(scene.deal.discard_count == 1, "resume preserves turn")
-	check(not scene.interaction_locked, "resumed deal is actionable")
+	check(not scene.interactions.locked, "resumed deal is actionable")
 	await capture("resumed-deal")
 	scene.deal.wallet.apply_vnd(50_000_000, "fixture")
 	scene.campaign._enter_phase(CampaignManager.CampaignPhase.MORNING_EVENT)
 	await pause()
 	scene.event_table.focus_npc(EventTableController.NPC_HANG_RONG)
 	await pause()
-	var panel = scene.campaign_participants.get_child(0)
-	check(panel._tiles.size() == 3, "live shop shows exactly three offers")
+	var panel = scene.event_table.participants_container.get_child(0)
+	var shop := scene.campaign.relic_shop
+	check(shop.offers.size() == RelicShop.STOCK_SIZE and shop.card_stock.size() == RelicShop.CARD_STOCK_SIZE, "live shop has seeded relic and physical card stock")
+	check(panel._tiles.size() == shop.offers.size() + shop.card_stock.size() + 1 and panel._tiles.has("remove"), "live shop presents every offer plus permanent removal")
+	check(panel.find_child("RerollRelics", true, false) == null, "visit stock has no obsolete reroll control")
 	await capture("relic-offer")
-	var old := scene.campaign.relic_shop.offers.duplicate()
-	await click(panel.find_child("RerollRelics", true, false))
-	await pause(0.2)
-	check(scene.campaign.relic_shop.rerolls == 1, "pointer rerolls once")
-	check(scene.campaign.relic_shop.offers != old, "reroll replaces offer")
-	var chosen := scene.campaign.relic_shop.offers[0]
+	var old := shop.offers.duplicate()
+	var chosen: String = old[0]
 	await click(panel._tiles[chosen])
-	check(not scene.campaign.relic_shop.purchased, "inspect never purchases")
+	check(not shop.purchased, "inspect never purchases")
 	await click(panel._buy)
-	check(scene.campaign.relic_shop.purchased, "pointer buys one relic")
+	check(shop.purchased, "pointer buys one relic")
 	check(scene.deal.relics.inventory.has(chosen), "bought relic is owned")
-	check(scene.campaign.relic_shop.offers.is_empty(), "unchosen offers leave")
+	old.erase(chosen)
+	check(shop.offers == old, "purchase retains every unbought offer")
+	scene.event_table.unfocus_npc()
+	await pause()
+	scene.event_table.focus_npc(EventTableController.NPC_HANG_RONG)
+	await pause()
+	panel = scene.event_table.participants_container.get_child(0)
+	check(shop.offers == old and not shop.offers.has(chosen), "reopening the visit preserves sold and unsold stock")
 	await capture("relic-purchased")
 	# Populate the victory scroll with a real scoring action and the week ledger.
 	scene.deal.start_tutorial_deal()
@@ -153,7 +154,7 @@ func _run() -> void:
 	check("8" in scene.event_table.day_label.text, "endless day number visible")
 	await capture("endless")
 	# Presentation fixtures use the existing authority to enter the loss route.
-	scene.run_save = RunSave.new("user://failure_presentation_test.save")
+	scene.session.run_save = RunSave.new("user://failure_presentation_test.save")
 	scene.deal.wallet.apply_vnd(-scene.deal.wallet.balance_vnd, "shortfall_fixture")
 	scene.campaign._finish_day()
 	await pause(1.2)

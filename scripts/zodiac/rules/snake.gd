@@ -55,7 +55,7 @@ func _drink_command(deal) -> Dictionary:
 		targets.sort_custom(func(a: Dictionary, b: Dictionary): return a.card.score_value() < b.card.score_value())
 		if not targets.is_empty(): return _command("drink", targets[0].card, {"drink_id": drink, "action_name": "nuoc_voi_return", "meld_id": targets[0].meld_id})
 	if drink in [DrinkCatalog.STING, DrinkCatalog.BO_HUC, DrinkCatalog.C2_ICED_TEA]:
-		for cards: Array[CardData] in deal._hand_card_combinations():
+		for cards: Array[CardData] in deal.queries.hand_combinations():
 			if deal.can_create_meld(cards, true): return _command("new_meld", cards[0], {"drink_id": drink, "use_drink": true, "suggested_ids": cards.map(func(card: CardData): return card.unique_id)})
 	return {}
 

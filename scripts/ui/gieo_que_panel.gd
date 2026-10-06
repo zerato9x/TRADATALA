@@ -52,6 +52,8 @@ var _upper_detail: Label
 var _lower_detail: Label
 var _result_parts: Array[Control] = []
 var _decision_row: Control
+var _fast_forward := false
+var _animation_tweens: Array[Tween] = []
 
 
 func configure(p_service: GieoQueService) -> void:
@@ -62,12 +64,38 @@ func configure(p_service: GieoQueService) -> void:
 	size_flags_vertical = Control.SIZE_EXPAND_FILL
 	add_theme_constant_override("separation", 0)
 	_rebuild()
+	if service.state in [GieoQueService.STATE_TARGET_REVEAL, GieoQueService.STATE_TRANSFORM]:
+		call_deferred("_resume_committed_flow")
+
+
+func _input(event: InputEvent) -> void:
+	if not is_visible_in_tree() or not _busy:
+		return
+	if (event is InputEventKey and event.pressed and not event.echo and event.keycode in [KEY_SPACE, KEY_ENTER]) or (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT):
+		_fast_forward = true
+		for tween in _animation_tweens:
+			if tween.is_valid(): tween.set_speed_scale(12.0)
+		get_viewport().set_input_as_handled()
+
+
+func _tween() -> Tween:
+	var tween := create_tween()
+	if _fast_forward: tween.set_speed_scale(12.0)
+	_animation_tweens.append(tween)
+	return tween
+
+
+func _pause(seconds: float) -> void:
+	var remaining := seconds
+	while remaining > 0.0 and is_inside_tree():
+		await get_tree().process_frame
+		remaining -= get_process_delta_time() * (12.0 if _fast_forward else 1.0)
 
 
 func _unhandled_input(event: InputEvent) -> void:
 	if is_visible_in_tree() and event.is_action_pressed("ui_accept") and not event.is_echo() and presentation_state == PresentationState.IDLE and not _busy and service != null and service.can_afford_pull():
 		get_viewport().set_input_as_handled()
-		_on_cast_pressed(false)
+		cast(false)
 
 
 func is_interaction_locked() -> bool:
@@ -94,9 +122,6 @@ func _rebuild() -> void:
 			_build_machine(service.current_result.get("lines", []) as Array, false)
 			_add_result_panel(false)
 			_add_decisions(false)
-		GieoQueService.STATE_DESTINATION_SELECTION:
-			_set_presentation_state(PresentationState.CHOOSING_RESULT_INPUT)
-			_build_destination_selection()
 		GieoQueService.STATE_TARGET_SELECTION:
 			_set_presentation_state(PresentationState.CHOOSING_RESULT_INPUT)
 			_build_target_selection()
@@ -109,9 +134,13 @@ func _rebuild() -> void:
 		GieoQueService.STATE_COMPLETE:
 			_set_presentation_state(PresentationState.COMPLETE)
 			_build_complete()
+
+
+func _add_handbook() -> void:
 	var guide := Button.new()
 	guide.name = "GieoGuide"
-	guide.text = GameGlossary.words("GUIDE", "HƯỚNG DẪN")
+	guide.text = GameGlossary.words("Handbook", "Sổ tay")
+	PresentationTheme.configure_button(guide)
 	guide.position = Vector2(690, 0)
 	guide.size = Vector2(165, 38)
 	guide.z_index = 100
@@ -170,6 +199,7 @@ func _build_machine(lines: Array, is_ready: bool) -> void:
 		pull_hint.position = Vector2(340, 447)
 		pull_hint.size = Vector2(350, 62)
 		_stage.add_child(pull_hint)
+	_add_handbook()
 
 
 func _build_reel(index: int, value: String) -> void:
@@ -206,7 +236,7 @@ func _build_lever(is_ready: bool) -> void:
 	_lever_button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	_lever_button.disabled = not is_ready or not service.can_afford_pull()
 	_lever_button.tooltip_text = "%s · %s" % [tr("GIEO_PULL_LEVER"), VndWallet.format_vnd(-service.current_pull_cost())]
-	_lever_button.pressed.connect(_on_cast_pressed.bind(false))
+	_lever_button.pressed.connect(cast.bind(false))
 	_stage.add_child(_lever_button)
 
 	_lever_image = TextureRect.new()
@@ -276,7 +306,7 @@ func _set_reel_travel(distance: float, index: int) -> void:
 		var symbol := symbols[slot] as Control
 		var row := slot - 2
 		symbol.position = Vector2(0, row * REEL_PITCH + offset)
-		var solid := String(reel["value"]) != GieoQueService.LINE_AM
+		var solid := String(reel["value"]) != GieoQueService.LINE_NEGATIVE
 		if posmod(row, 2) != 0:
 			solid = not solid
 		var left := symbol.get_child(0) as ColorRect
@@ -288,12 +318,14 @@ func _set_reel_travel(distance: float, index: int) -> void:
 		right.visible = not solid
 		symbol.modulate.a = 0.32 if String(reel["value"]).is_empty() else 1.0
 
-func _on_cast_pressed(is_reroll: bool) -> void:
+func cast(is_reroll: bool, forced_lines: Array[String] = []) -> void:
 	if _busy or service == null:
 		return
 	_busy = true
+	_fast_forward = false
+	_animation_tweens.clear()
 	_set_presentation_state(PresentationState.PULLING_LEVER)
-	var result := service.reroll() if is_reroll else service.cast()
+	var result := service.reroll(forced_lines) if is_reroll else service.cast(forced_lines)
 	if not result.get("ok", false):
 		_busy = false
 		feedback_requested.emit(String(result.get("message", "Cast failed.")))
@@ -309,7 +341,7 @@ func _play_cast_animation() -> void:
 	impact_requested.emit(&"lever")
 	for frame in [1, 2, 3, 4]:
 		_set_lever_frame(frame)
-		await get_tree().create_timer(0.045).timeout
+		await _pause(0.045)
 	impact_requested.emit(&"lever_clunk")
 	_set_presentation_state(PresentationState.SPINNING)
 	var final_lines := service.current_result.get("lines", []) as Array
@@ -318,14 +350,14 @@ func _play_cast_animation() -> void:
 	# charged result lands exactly at the center, without swapping on the stop.
 	for index in range(_reels.size()):
 		_set_reel_value(index, String(final_lines[index]))
-		var spin := create_tween()
+		var spin := _tween()
 		last_spin = spin
 		spin.tween_method(_set_reel_travel.bind(index), 0.0, REEL_PITCH * 2.0, 0.12).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 		spin.tween_method(_set_reel_travel.bind(index), REEL_PITCH * 2.0, REEL_PITCH * 2.0 * (10 + index) + 3.0, 0.85 + index * 0.16).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 		spin.tween_method(_set_reel_travel.bind(index), REEL_PITCH * 2.0 * (10 + index) + 3.0, REEL_PITCH * 2.0 * (10 + index), 0.09).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 		spin.tween_callback(_on_reel_stopped.bind(index))
 	for frame in [3, 2, 1, 0]:
-		await get_tree().create_timer(0.045).timeout
+		await _pause(0.045)
 		_set_lever_frame(frame)
 	while last_spin.is_running():
 		await get_tree().process_frame
@@ -344,28 +376,57 @@ func _on_reel_stopped(index: int) -> void:
 	impact_requested.emit(&"reel_stop")
 	var reel := _reels[index]["panel"] as Control
 	reel.modulate = Color(1.45, 1.22, 0.72)
-	var settle := create_tween()
+	var settle := _tween()
 	settle.tween_property(reel, "modulate", Color.WHITE, 0.16)
 	if index == 2 or index == 5:
 		var upper := index == 2
 		_set_presentation_state(PresentationState.REVEALING_UPPER if upper else PresentationState.REVEALING_LOWER)
 		impact_requested.emit(&"upper_reveal" if upper else &"lower_reveal")
 		var panel := _upper_panel if upper else _lower_panel
+		if upper:
+			_show_upper_result()
+		else:
+			_show_lower_result()
 		panel.modulate = Color(1.3, 1.15, 0.8)
-		var pulse := create_tween()
+		var pulse := _tween()
 		pulse.tween_property(panel, "modulate", Color.WHITE, 0.2)
+
+
+func _show_upper_result() -> void:
+	_upper_label.text = tr("CARD_FORTUNE").to_upper()
+	_upper_detail.text = "%+d" % int(service.current_result.get("fortune_delta", 0))
+	_upper_detail.add_theme_font_size_override("font_size", 42)
+	_upper_detail.set_meta("text_role", &"gain" if int(service.current_result.get("fortune_delta", 0)) > 0 else &"cost")
+
+
+func _show_lower_result() -> void:
+	_lower_label.text = tr("GIEO_TARGET").to_upper()
+	_lower_detail.text = service.targeting_label()
+	_lower_detail.add_theme_font_size_override("font_size", 17)
+	_lower_label.modulate.a = 1.0
+	_lower_detail.modulate.a = 1.0
 
 func _add_result_panel(animated: bool) -> void:
 	if _upper_panel == null or _lower_panel == null:
 		_build_oracle_panels(false)
 	_upper_panel.name = "ResolvedOracleUpperPanel"
 	_lower_panel.name = "ResolvedOracleLowerPanel"
-	_upper_label.text = tr("GIEO_CHANGE").to_upper()
-	_upper_detail.text = _effect_text()
-	_upper_detail.add_theme_color_override("font_color", PresentationTheme.GOLD)
-	_lower_label.text = tr("GIEO_TARGET").to_upper()
-	_lower_detail.text = tr(service.targeting_label_key())
-	_lower_detail.add_theme_color_override("font_color", PresentationTheme.ACTION)
+	_show_upper_result()
+	_show_lower_result()
+	var jackpot := String(service.current_result.get("jackpot", ""))
+	if not jackpot.is_empty():
+		var plaque := _label("%s\n%s" % [GameGlossary.words("JACKPOT", "ĐỘC ĐẮC"), tr(CardData.property_label_key(CardData.JACKPOT_LIQUID if jackpot == GieoQueService.JACKPOT_THUAN_DUONG else CardData.JACKPOT_NEGATIVE))], 22, PresentationTheme.GOLD, HORIZONTAL_ALIGNMENT_CENTER)
+		plaque.name = "JackpotPlaque"
+		plaque.position = Vector2(27, 14)
+		plaque.size = Vector2(230, 64)
+		plaque.add_theme_color_override("font_shadow_color", Color("#180e09"))
+		plaque.add_theme_constant_override("shadow_offset_y", 2)
+		_stage.add_child(plaque)
+		if animated:
+			plaque.scale = Vector2(0.6, 0.6)
+			plaque.pivot_offset = plaque.size * 0.5
+			var jackpot_tween := _tween()
+			jackpot_tween.tween_property(plaque, "scale", Vector2.ONE, 0.55).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	_result_parts = [_upper_label, _upper_detail, _lower_label, _lower_detail]
 	if animated:
 		for part in _result_parts:
@@ -373,18 +434,6 @@ func _add_result_panel(animated: bool) -> void:
 	else:
 		for part in _result_parts:
 			part.modulate.a = 1.0
-
-
-func _result_value_block(caption: String, value: String, color: Color) -> Control:
-	var row := VBoxContainer.new()
-	row.add_theme_constant_override("separation", 1)
-	var caption_label := _label(caption.to_upper(), 10, Color("#e5c778"), HORIZONTAL_ALIGNMENT_CENTER)
-	row.add_child(caption_label)
-	var value_label := _label(value, 14, color, HORIZONTAL_ALIGNMENT_CENTER)
-	value_label.custom_minimum_size = Vector2(170, 38)
-	value_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	row.add_child(value_label)
-	return row
 
 
 func _add_decisions(animated: bool) -> void:
@@ -398,9 +447,10 @@ func _add_decisions(animated: bool) -> void:
 	var accept := _button(tr("GIEO_ACCEPT"), "tea", Vector2(120, 62))
 	accept.pressed.connect(_on_accept_pressed)
 	decisions.add_child(accept)
-	var reroll := _button(_trf("GIEO_REROLL", VndWallet.format_vnd(-service.current_pull_cost())), "gold", Vector2(160, 62))
+	var reroll := _button(_trf("GIEO_REROLL", VndWallet.format_vnd(-service.current_pull_cost())).replace(" · ", "\n"), "gold", Vector2(160, 62))
+	reroll.add_theme_font_size_override("font_size", 15)
 	reroll.disabled = not service.can_afford_pull()
-	reroll.pressed.connect(_on_cast_pressed.bind(true))
+	reroll.pressed.connect(cast.bind(true))
 	decisions.add_child(reroll)
 	var refuse := _button(tr("GIEO_REFUSE"), "danger", Vector2(120, 62))
 	refuse.pressed.connect(_on_refuse_pressed)
@@ -415,66 +465,52 @@ func _animate_result_reveal() -> void:
 	impact_requested.emit(&"result_reveal")
 	if not String(service.current_result.get("jackpot", "")).is_empty():
 		impact_requested.emit(&"jackpot")
+		_jackpot_flash()
+		await _pause(0.35)
 	for part in _result_parts:
-		var tween := create_tween()
+		var tween := _tween()
 		tween.tween_property(part, "modulate:a", 1.0, 0.12)
 		await tween.finished
 	if _decision_row != null:
 		_decision_row.show()
-		var buttons_tween := create_tween()
+		var buttons_tween := _tween()
 		buttons_tween.tween_property(_decision_row, "modulate:a", 1.0, 0.18)
 		await buttons_tween.finished
 		_decision_row.mouse_filter = Control.MOUSE_FILTER_STOP
 
 
-func _build_destination_selection() -> void:
-	var jackpot := String(service.current_result.get("jackpot", ""))
-	var chooses_rank := jackpot == GieoQueService.JACKPOT_THUAN_DUONG or String(service.current_result.get("effect", "")) == GieoQueService.EFFECT_CHOOSE_RANK
-	var box := _build_flow_shell(tr("GIEO_CHOOSE_RANK") if chooses_rank else tr("GIEO_CHOOSE_SUIT_NEW"))
-	_build_compact_result(box)
-	var instruction := _label(tr("GIEO_CHOOSE_RANK") if chooses_rank else tr("GIEO_CHOOSE_SUIT_NEW"), 18, PresentationTheme.GOLD, HORIZONTAL_ALIGNMENT_CENTER)
-	box.add_child(instruction)
-	var choices := GridContainer.new()
-	choices.columns = 7 if chooses_rank else 4
-	choices.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	choices.add_theme_constant_override("h_separation", 7)
-	choices.add_theme_constant_override("v_separation", 7)
-	box.add_child(choices)
-	var values: Array[String] = DeckManager.RANKS if chooses_rank else DeckManager.SUITS
-	for value in values:
-		var button := _button(value.to_upper() if chooses_rank else _suit_label(value), "gold", Vector2(76 if chooses_rank else 130, 46))
-		if not chooses_rank:
-			button.icon = CARD_SYMBOL_ART_SCRIPT.texture_for_suit(value)
-			button.expand_icon = true
-			button.add_theme_constant_override("icon_max_width", 14)
-		button.pressed.connect(_on_destination_pressed.bind(value))
-		choices.add_child(button)
+func _jackpot_flash() -> void:
+	var cabinet := _stage.get_node("SlotMachineArt") as TextureRect
+	var pulse := _tween()
+	for _beat in 3:
+		pulse.tween_property(cabinet,"modulate",Color(1.28,1.18,0.90),0.13)
+		pulse.tween_property(cabinet,"modulate",Color.WHITE,0.22)
+	for index in 12:
+		var glint := Polygon2D.new()
+		glint.polygon = PackedVector2Array([Vector2(0,-12),Vector2(2,-2),Vector2(9,0),Vector2(2,2),Vector2(0,12),Vector2(-2,2),Vector2(-9,0),Vector2(-2,-2)])
+		glint.color = Color("ffe3a0")
+		glint.position = Vector2(295 + (index % 4) * 135, 86 + (index / 4) * 188)
+		glint.scale = Vector2.ZERO
+		_stage.add_child(glint)
+		var shine := _tween()
+		shine.tween_interval(index * 0.045)
+		shine.tween_property(glint,"scale",Vector2.ONE,0.12).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		shine.tween_property(glint,"scale",Vector2.ZERO,0.32)
+		shine.tween_callback(glint.queue_free)
 
 
 func _build_target_selection() -> void:
 	var box := _build_flow_shell(tr("GIEO_CHOOSE_TARGET"))
-	_build_compact_result(box)
-	var offered_only := not service.resolved_targets.is_empty()
-	var instruction := _label(tr("GIEO_CHOOSE_OFFER") if offered_only else tr("GIEO_CHOOSE_DECK_CARD"), 16, PresentationTheme.GOLD, HORIZONTAL_ALIGNMENT_CENTER)
-	box.add_child(instruction)
-	var cards: Array[CardData] = service.resolved_targets if offered_only else service.persistent_deck
-	var browse := _button(GameGlossary.words("Open deck · inspect and choose a card", "Mở bộ bài · xem và chọn một lá"), "gold", Vector2(0, 54))
+	var cards := service.eligible_cards()
+	var browse := _button(GameGlossary.words("Choose card", "Chọn bài"), "gold", Vector2(0, 54))
 	browse.name = "OpenDeckPicker"
 	browse.pressed.connect(_request_card_picker.bind(cards))
 	box.add_child(browse)
-	var reminder := _label(_target_reason(), 15, PresentationTheme.INK, HORIZONTAL_ALIGNMENT_CENTER)
-	reminder.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	box.add_child(reminder)
-	var locked := _label(tr("GIEO_COMMITTED_LOCK"), 10, PresentationTheme.RED.lightened(0.2), HORIZONTAL_ALIGNMENT_CENTER)
-	box.add_child(locked)
 	call_deferred("_request_card_picker", cards)
 
 
 func _target_reason() -> String:
-	var action := _effect_text()
-	if not service.resolved_destination.is_empty():
-		action += " · " + (_suit_label(service.resolved_destination) if DeckManager.SUITS.has(service.resolved_destination) else service.resolved_destination.to_upper())
-	return GameGlossary.words("This card will receive: ", "Lá được chọn sẽ nhận: ") + action + "\n" + GameGlossary.words("The cast offered: ", "Quẻ đã chọn: ") + tr(service.targeting_label_key())
+	return GameGlossary.words("This card will receive: ", "Lá được chọn sẽ nhận: ") + _effect_text() + "\n" + service.targeting_label()
 
 
 func _request_card_picker(cards: Array[CardData]) -> void:
@@ -484,9 +520,6 @@ func _request_card_picker(cards: Array[CardData]) -> void:
 
 func _build_target_reveal() -> void:
 	var box := _build_flow_shell(tr("GIEO_TARGETS_REVEALED"))
-	_build_compact_result(box)
-	var title := _label(tr("GIEO_PRESENT_TARGETS"), 15, Color("#fff0bd"), HORIZONTAL_ALIGNMENT_CENTER)
-	box.add_child(title)
 	_build_card_picker(box, service.resolved_targets, true, false)
 	var seal := _label(tr("GIEO_SEALING"), 13, PresentationTheme.TEA, HORIZONTAL_ALIGNMENT_CENTER)
 	box.add_child(seal)
@@ -494,156 +527,118 @@ func _build_target_reveal() -> void:
 
 func _build_transform() -> void:
 	var box := _build_flow_shell(tr("GIEO_FATE_REWRITTEN"))
-	_build_compact_result(box)
+	var cards := _transformation_tray(box)
 	for transformation in service.last_transformations:
-		_build_transformation_row(box, transformation)
+		_build_transformation_row(cards, transformation)
 
 
 func _build_complete() -> void:
 	var box := _build_flow_shell(tr("GIEO_FATE_SEALED"))
-	_build_compact_result(box)
-	var summary := _label(_trf("GIEO_COMPLETE_SUMMARY", service.last_transformations.size()), 16, PresentationTheme.TEA, HORIZONTAL_ALIGNMENT_CENTER)
-	summary.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	box.add_child(summary)
-	var again := _button(_trf("GIEO_CAST_AGAIN", VndWallet.format_vnd(-service.current_pull_cost())), "gold", Vector2(0, 52))
-	again.disabled = not service.can_afford_pull()
-	again.pressed.connect(_on_cast_pressed.bind(false))
-	box.add_child(again)
+	var cards := _transformation_tray(box)
 	for transformation in service.last_transformations:
-		_build_transformation_row(box, transformation, false)
+		_build_transformation_row(cards, transformation, false)
+	var again := _button(_trf("GIEO_CAST_AGAIN", VndWallet.format_vnd(-service.current_pull_cost())), "gold", Vector2(0, 52))
+	again.name = "CastAgain"
+	again.position = Vector2(316, 449)
+	again.size = Vector2(418, 60)
+	again.disabled = not service.can_afford_pull()
+	again.pressed.connect(cast.bind(false))
+	_stage.add_child(again)
 
 
 func _build_flow_shell(title_text: String) -> VBoxContainer:
-	var stage := Control.new()
-	_stage = stage
-	stage.custom_minimum_size = STAGE_SIZE
-	stage.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	stage.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	add_child(stage)
-	var backing := Panel.new()
-	backing.position = Vector2(12, 8)
-	backing.size = STAGE_SIZE - Vector2(24, 24)
-	backing.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	backing.add_theme_stylebox_override("panel", PresentationTheme.panel_style(Color("#071a2df5"), Color("#b9822f"), 2, 12, 8))
-	stage.add_child(backing)
-	var margin := MarginContainer.new()
-	margin.position = Vector2(24, 18)
-	margin.size = STAGE_SIZE - Vector2(48, 36)
-	margin.add_theme_constant_override("margin_left", 18)
-	margin.add_theme_constant_override("margin_top", 12)
-	margin.add_theme_constant_override("margin_right", 18)
-	margin.add_theme_constant_override("margin_bottom", 12)
-	stage.add_child(margin)
-	var scroll := ScrollContainer.new()
-	scroll.name = "OracleFlowScroll"
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	margin.add_child(scroll)
+	_build_machine(service.current_result.get("lines", []) as Array, false)
+	_add_result_panel(false)
+	for reel in _reels: (reel["panel"] as Control).hide()
+	var tray := PanelContainer.new()
+	tray.name = "MachineCardTray"
+	tray.position = Vector2(291, 92)
+	tray.size = Vector2(374, 328)
+	tray.add_theme_stylebox_override("panel", PresentationTheme.panel_style(Color("#071522fa"), PresentationTheme.GOLD, 2, 10, 10))
+	_stage.add_child(tray)
 	var box := VBoxContainer.new()
 	box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	box.add_theme_constant_override("separation", 8)
-	scroll.add_child(box)
-	var title := _label(title_text, 22, PresentationTheme.GOLD, HORIZONTAL_ALIGNMENT_CENTER)
+	box.alignment = BoxContainer.ALIGNMENT_CENTER
+	box.add_theme_constant_override("separation", 9)
+	tray.add_child(box)
+	var title := _label(title_text, 19, PresentationTheme.GOLD, HORIZONTAL_ALIGNMENT_CENTER)
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	box.add_child(title)
 	return box
 
 
-func _build_compact_result(parent: VBoxContainer) -> void:
-	var row := HBoxContainer.new()
-	row.alignment = BoxContainer.ALIGNMENT_CENTER
-	row.add_theme_constant_override("separation", 24)
-	row.add_child(_result_value_block(tr("GIEO_CHANGE"), _effect_text(), PresentationTheme.GOLD))
-	row.add_child(_result_value_block(tr("GIEO_TARGET"), tr(service.targeting_label_key()), PresentationTheme.ACTION))
-	parent.add_child(row)
+func _transformation_tray(parent: VBoxContainer) -> HBoxContainer:
+	var cards := HBoxContainer.new()
+	cards.alignment = BoxContainer.ALIGNMENT_CENTER
+	cards.add_theme_constant_override("separation", 12)
+	parent.add_child(cards)
+	return cards
 
 
 func _effect_text() -> String:
-	var text := tr(service.effect_label_key())
-	return text
+	return service.effect_label()
 
 
-func _build_transformation_row(parent: VBoxContainer, transformation: Dictionary, animated: bool = true) -> void:
-	var row := HBoxContainer.new()
+func _build_transformation_row(parent: HBoxContainer, transformation: Dictionary, animated: bool = true) -> void:
+	var row := VBoxContainer.new()
 	row.name = "TransformationRow"
 	row.set_meta("gieo_transform_row", true)
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
-	row.add_theme_constant_override("separation", 13)
+	row.add_theme_constant_override("separation", 5)
 	parent.add_child(row)
 	var before: Dictionary = transformation["before"]
 	var after: Dictionary = transformation["after"]
-	var before_card := _snapshot_card(before, tr("GIEO_BEFORE"))
-	var after_card := _snapshot_card(after, tr("GIEO_PERMANENT"))
-	if animated:
-		after_card.modulate = Color(1.45, 1.2, 0.55, 0.0)
-	row.add_child(before_card)
-	row.add_child(_label("➜", 26, PresentationTheme.GOLD, HORIZONTAL_ALIGNMENT_CENTER))
-	row.add_child(after_card)
-	row.set_meta("before_card", before_card)
-	row.set_meta("after_card", after_card)
-
-
-func _snapshot_card(snapshot: Dictionary, caption: String) -> Control:
-	var panel := PanelContainer.new()
-	panel.custom_minimum_size = Vector2(300, 176)
-	panel.add_theme_stylebox_override("panel", PresentationTheme.panel_style(Color("#f4ead8f2"), PresentationTheme.GOLD, 2, 6, 3))
-	var row := HBoxContainer.new()
-	row.alignment = BoxContainer.ALIGNMENT_CENTER
-	row.add_theme_constant_override("separation", 8)
-	panel.add_child(row)
-	var rank := String(snapshot.get("rank", "?"))
-	var suit := String(snapshot.get("suit", "?"))
+	var snapshot := before if animated else after
+	var card := CardData.from_permanent_snapshot(snapshot)
 	var card_art := TextureRect.new()
 	card_art.name = "SnapshotCardArt"
-	var texture_path := _snapshot_texture_path(rank, suit)
-	panel.set_meta("card_texture_path", texture_path)
-	card_art.custom_minimum_size = Vector2(114, 158)
-	card_art.texture = load(texture_path) as Texture2D
-	GieoCardFX.apply_properties(card_art, snapshot.get("gieo_properties", []))
+	card_art.custom_minimum_size = Vector2(128, 176) if service != null and service.last_transformations.size() == 1 else Vector2(96, 133)
+	card_art.texture = load(card.texture_path()) as Texture2D
+	GieoCardFX.apply_snapshot(card_art, snapshot)
 	card_art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	card_art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	card_art.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	card_art.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	panel.set_meta("card_art", card_art)
+	row.set_meta("card_art", card_art)
+	row.set_meta("before", before)
+	row.set_meta("after", after)
+	row.set_meta("card_texture_path", card.texture_path())
 	row.add_child(card_art)
-	var text := Label.new()
-	var properties: Array = snapshot.get("gieo_properties", [])
-	var readable_properties: Array[String] = []
-	for property_id in properties:
-		readable_properties.append(_property_label(String(property_id)))
-	text.text = "%s\n%s · %s%s" % [caption, rank, _suit_label(suit), "\n" + "\n".join(readable_properties) if not readable_properties.is_empty() else ""]
-	text.custom_minimum_size.x = 172
-	text.add_theme_font_size_override("font_size", 13)
-	text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	text.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	text.add_theme_color_override("font_color", Color("#24170c"))
-	row.add_child(text)
-	return panel
-
-
-func _snapshot_texture_path(rank: String, suit: String) -> String:
-	var rank_file := String(CardData.RANK_FILE_NAMES.get(rank, rank.to_lower()))
-	var suit_file: String = {
-		"S": "spades", "H": "hearts", "D": "diamonds", "C": "clubs",
-	}.get(suit.to_upper(), suit.to_lower())
-	return "res://cards/%s_of_%s.png" % [rank_file, suit_file]
+	var fortune := _label(card.fortune_label(), 29, PresentationTheme.GOLD, HORIZONTAL_ALIGNMENT_CENTER)
+	fortune.set_meta("text_role", &"gain" if card.fortune >= 0 else &"cost")
+	row.set_meta("fortune_label", fortune)
+	row.add_child(fortune)
+	var state_card := CardData.from_permanent_snapshot(after)
+	var property := _label(tr(CardData.property_label_key(state_card.jackpot_state())), 12, PresentationTheme.ACTION, HORIZONTAL_ALIGNMENT_CENTER) if not state_card.jackpot_state().is_empty() else _label("", 12, Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER)
+	property.custom_minimum_size = Vector2(96, 24)
+	property.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	row.add_child(property)
+	row.tooltip_text = state_card.inspection_text()
 
 
 func _animate_transform() -> void:
 	if not is_inside_tree() or service == null or service.state != GieoQueService.STATE_TRANSFORM:
 		return
-	await get_tree().create_timer(0.55).timeout
+	await _pause(0.35)
 	for row in _find_controls_with_meta(self, &"gieo_transform_row"):
-		var before_card := row.get_meta("before_card") as Control
-		var after_card := row.get_meta("after_card") as Control
-		var tween := create_tween().set_parallel(true)
-		tween.tween_property(before_card, "modulate:a", 0.0, 0.16)
-		tween.tween_property(before_card, "scale", Vector2(0.86, 1.08), 0.16)
-		tween.tween_property(after_card, "modulate", Color.WHITE, 0.22).set_delay(0.08)
-		tween.tween_property(after_card, "scale", Vector2(1.08, 1.08), 0.14).set_delay(0.08)
-		tween.chain().tween_property(after_card, "scale", Vector2.ONE, 0.13)
+		var face := row.get_meta("card_art") as TextureRect
+		var after: Dictionary = row.get_meta("after")
+		var before: Dictionary = row.get_meta("before")
+		var fortune := row.get_meta("fortune_label") as Label
+		GieoCardFX.apply_snapshot(face, after)
+		var material := face.material as ShaderMaterial
+		face.pivot_offset = face.size * 0.5
+		var tween := _tween().set_parallel(true)
+		if material != null:
+			material.set_shader_parameter("previous_fortune", float(before.get("fortune", 0)))
+			material.set_shader_parameter("transformation", 0.0)
+			tween.tween_method(func(value: float): material.set_shader_parameter("transformation", value), 0.0, 1.0, 1.20).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+		tween.tween_method(func(value: float): fortune.text = "%+d" % roundi(value), float(before.get("fortune", 0)), float(after.get("fortune", 0)), 1.20)
+		tween.tween_property(face, "scale", Vector2(1.035, 1.035), 0.30).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+		tween.chain().tween_property(face, "scale", Vector2.ONE, 0.24).set_trans(Tween.TRANS_SINE)
 		impact_requested.emit(&"transform_card")
-		await get_tree().create_timer(0.22).timeout
-	await get_tree().create_timer(0.65).timeout
+		await tween.finished
+	await _pause(0.5)
 
 
 func _find_controls_with_meta(root: Node, key: StringName) -> Array[Control]:
@@ -683,7 +678,7 @@ func _build_card_picker(parent: VBoxContainer, cards: Array[CardData], large: bo
 		card_art.offset_right = -6
 		card_art.offset_bottom = -6
 		GieoCardFX.attach_texture(card_art, card)
-		button.tooltip_text = "%s\n%s" % [card.short_label(), "\n".join(card.gieo_property_descriptions())]
+		button.tooltip_text = card.inspection_text()
 		button.disabled = not interactive
 		PresentationTheme.configure_button(button, "gold" if large else "neutral")
 		if interactive:
@@ -701,21 +696,7 @@ func _on_accept_pressed() -> void:
 		feedback_requested.emit(String(result.get("message", "Accept failed.")))
 		return
 	impact_requested.emit(&"accept")
-	_set_presentation_state(PresentationState.CHOOSING_RESULT_INPUT if service.state in [GieoQueService.STATE_DESTINATION_SELECTION, GieoQueService.STATE_TARGET_SELECTION] else PresentationState.RESOLVING_TRANSFORMATION)
-	await _continue_committed_flow()
-	_busy = false
-
-
-func _on_destination_pressed(destination: String) -> void:
-	if _busy:
-		return
-	_busy = true
-	var result := service.choose_destination(destination)
-	if not result.get("ok", false):
-		_busy = false
-		feedback_requested.emit(String(result.get("message", "Destination failed.")))
-		return
-	impact_requested.emit(&"choose")
+	_set_presentation_state(PresentationState.CHOOSING_RESULT_INPUT if service.state == GieoQueService.STATE_TARGET_SELECTION else PresentationState.RESOLVING_TRANSFORMATION)
 	await _continue_committed_flow()
 	_busy = false
 
@@ -724,7 +705,7 @@ func _continue_committed_flow() -> void:
 	_rebuild()
 	if service.state != GieoQueService.STATE_TARGET_REVEAL:
 		return
-	await get_tree().create_timer(0.62).timeout
+	await _pause(0.62)
 	var result := service.apply_resolved_targets()
 	if not result.get("ok", false):
 		feedback_requested.emit(String(result.get("message", "Transformation failed.")))
@@ -732,6 +713,15 @@ func _continue_committed_flow() -> void:
 	impact_requested.emit(&"transform")
 	_rebuild()
 	await _finish_transform_presentation()
+
+
+func _resume_committed_flow() -> void:
+	_busy = true
+	if service.state == GieoQueService.STATE_TRANSFORM:
+		await _finish_transform_presentation()
+	else:
+		await _continue_committed_flow()
+	_busy = false
 
 
 func _on_target_pressed(card_id: String) -> void:
@@ -791,24 +781,6 @@ func _trf(key: String, values: Variant) -> String:
 	if values is Array:
 		return template % (values as Array)
 	return template % values
-
-
-func _property_label(property_id: String) -> String:
-	var key := CardData.gieo_property_label_key(property_id)
-	return tr(key) if not key.is_empty() else property_id.replace("_", " ")
-
-
-func _suit_label(suit: String) -> String:
-	match suit:
-		"Spades":
-			return tr("SUIT_SPADES")
-		"Hearts":
-			return tr("SUIT_HEARTS")
-		"Diamonds":
-			return tr("SUIT_DIAMONDS")
-		"Clubs":
-			return tr("SUIT_CLUBS")
-	return suit.to_upper()
 
 
 func _button(text_value: String, tone: String, minimum: Vector2) -> Button:

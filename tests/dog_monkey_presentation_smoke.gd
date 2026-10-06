@@ -31,9 +31,8 @@ func _run() -> void:
 	root.add_child(scene)
 	current_scene = scene
 	await frames()
-	scene.get_node("TitleScreen").queue_free()
-	scene._restoring_run = true
-	scene.run_save = RunSave.new("user://dog-monkey-presentation.save")
+	scene.session.restoring = true
+	scene.session.run_save = RunSave.new("user://dog-monkey-presentation.save")
 	scene.drink_manager.progress.save_path = ""
 	scene.campaign.zodiac.progress = ZodiacProgress.new("")
 	scene.campaign.run_seed = "dog-monkey-presentation"
@@ -56,7 +55,7 @@ func _run() -> void:
 			check(result.ok, "Dog first Meld commits")
 			scene._sync_all(result)
 			await frames()
-			var loyal: MeldView = scene.meld_views[result.meld_id]
+			var loyal: MeldView = scene.card_table.meld_views[result.meld_id]
 			check(loyal.has_node("DogLoyalGuard") and loyal.get_node("DogLoyalGuard").visible, "Dog highlights authoritative loyal Meld")
 			check(loyal.get_node("DogLoyalGuard").material is ShaderMaterial and loyal.get_node("DogLoyalGuard").mouse_filter == Control.MOUSE_FILTER_IGNORE, "Dog guard is a separate input-free shader")
 			check(hud.evening_overlay.texture.resource_path == ZodiacCatalog.sprite_path("dog", true), "Dog uses supplied overlay")
@@ -65,7 +64,7 @@ func _run() -> void:
 			check(other.ok == (level != 3), "Dog keeps severity legality")
 			if other.ok:
 				scene._sync_all(other)
-				check(not scene.meld_views[other.meld_id].has_node("DogLoyalGuard"), "non-loyal Meld gets no green effect")
+				check(not scene.card_table.meld_views[other.meld_id].has_node("DogLoyalGuard"), "non-loyal Meld gets no green effect")
 			var added: Array[CardData] = [extra_card("7", "Hearts")]
 			scene._sync_all()
 			scene._on_card_pressed(added[0])
@@ -158,9 +157,10 @@ func _run() -> void:
 			await capture("monkey-%s-dance-%dx%d" % [locale, viewport.x, viewport.y])
 		root.size = Vector2i(1280, 720)
 		await click(hud.detail_button)
-		check(hud.details_panel.visible and hud.details.text == ZodiacCatalog.rule_text("monkey", 3), "Monkey rule drawer still works")
+		var book := root.get_node_or_null("GameGlossary") as GameGlossary
+		check(book != null and book._entries[0].body.contains(ZodiacCatalog.rule_text("monkey", 3)), "Monkey rule Handbook keeps the complete rule")
 		check(not guide.visible, "rule inspection clears floating sequence")
-		hud._close_details()
+		if book != null: await click(book.find_child("CloseHandbook", true, false))
 		scene.modal_overlay.show()
 		await frames()
 		check(not guide.visible and guide._effects.is_empty(), "modal clears guide and effects")
@@ -190,8 +190,8 @@ func _run() -> void:
 		check(guide.has_node("CompletedDanceStep") and guide._tweens.all(func(tween: Tween): return not tween.is_running()), "completion pauses through real money receipt")
 		var policy_before := scene.deal.zodiac_boss.snapshot()
 		scene.money_presentation.request_fast_forward()
-		while scene.money_queue_running and Time.get_ticks_msec() < deadline: await process_frame
-		check(not scene.money_queue_running and policy_before == scene.deal.zodiac_boss.snapshot(), "money completion preserves Monkey state")
+		while scene.money_playback.running and Time.get_ticks_msec() < deadline: await process_frame
+		check(not scene.money_playback.running and policy_before == scene.deal.zodiac_boss.snapshot(), "money completion preserves Monkey state")
 		await frames()
 		check(guide.is_visible_in_tree() and guide.has_node("CompletedDanceStep"), "completion resumes on return to table")
 		if rendered:

@@ -24,9 +24,10 @@ func deadwood(rule, deal, context: Dictionary) -> void:
 	var total := 0
 	var per_card := {}
 	for card: CardData in context.cards:
+		if card.fortune < 0: continue
 		var age := int(rule.data.burden_age.get(card.unique_id, 0)) + 1
 		rule.data.burden_age[card.unique_id] = age
-		var points := burden_points(card.score_value(), age, near.has(card.unique_id), rule.difficulty)
+		var points := burden_points(card.intrinsic_value(), age, near.has(card.unique_id), rule.difficulty)
 		per_card[card.unique_id] = points
 		total += points
 	context.value_sum = total

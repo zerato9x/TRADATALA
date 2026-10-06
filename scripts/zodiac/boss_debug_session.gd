@@ -28,29 +28,11 @@ static func day_for(boss: String) -> int:
 	return 5
 
 static func prepare(campaign: CampaignManager, deal: DealState, input: Dictionary, history: Array = []) -> bool:
-	# Only detached, in-memory progression providers may enter this fixture.
-	if campaign.drink_manager.progress == null or not campaign.drink_manager.progress.save_path.is_empty() or not campaign.zodiac.progress.path.is_empty() or not campaign.difficulty_progress.path.is_empty(): return false
 	var options := normalize(input)
 	if options.is_empty(): return false
 	if options.seed.is_empty(): options.seed = "BOSS-LAB"
-	campaign.debug_context = {"active": true, "options": options.duplicate(true), "finished": false}
-	campaign.run_seed = options.seed
-	campaign.difficulty = 1
-	campaign.campaign_days = CampaignConfig.day_definitions(1)
-	campaign._base_day_count = campaign.campaign_days.size()
-	campaign.current_day_index = day_for(options.boss)
-	campaign.current_phase = CampaignManager.CampaignPhase.DRAGON_DEAL if options.boss == "dragon" else CampaignManager.CampaignPhase.EVENING_DEAL
-	campaign.campaign_complete = false
-	campaign.run_failed = false
-	campaign.endless = false
-	campaign._collecting = false
-	campaign.activities.clear()
-	campaign.deal_reports.clear()
-	campaign.day_reports.clear()
-	campaign.collection_report.clear()
-	campaign.onboarding.reset()
-	campaign.onboarding.first_seed_enabled = false
-	campaign.zodiac.reset_run()
+	var phase := CampaignManager.CampaignPhase.DRAGON_DEAL if options.boss == "dragon" else CampaignManager.CampaignPhase.EVENING_DEAL
+	if not campaign.prepare_debug_run(options, day_for(options.boss), phase): return false
 	campaign.zodiac.forced.clear()
 	campaign.zodiac.daily = {"day": campaign.current_day_index, "id": options.boss, "forced": "", "successes": 3 - options.difficulty,
 		"slot": 3, "requests": {}, "promises": [], "skip_phase": -1, "skipped": [], "boss_finished": false, "last_result": {}}
@@ -64,12 +46,10 @@ static func prepare(campaign: CampaignManager, deal: DealState, input: Dictionar
 	campaign.lottery.reset_run()
 	campaign.lottery.set_seed_value(campaign.seed_for("lottery"))
 	campaign.shoe_shine.reset_run()
-	campaign.shoe_shine.set_seed_value(campaign.seed_for("polish"))
+	campaign.shoe_shine.set_seed_value(campaign.seed_for("shoe_identity"))
 	campaign.event_manager.current_event = null
-	campaign.relic_shop.offers.clear()
-	campaign.relic_shop.visit_id = ""
-	campaign.relic_shop.purchased = false
-	campaign.relic_shop.rerolls = 0
+	campaign.relic_shop.reset_run()
+
 	deal.relics.reset_run()
 	deal.wallet.reset(int(options.wallet_vnd))
 	deal.wallet.economy_scaling = true

@@ -16,7 +16,6 @@ const DARK_HIGH_PASS_HZ := 20.0
 const DARK_LOW_PASS_HZ := 4_000.0
 
 @export var enabled := true
-@export var debug_logging := false
 @export_range(0.0, 60.0, 0.5) var transition_seconds := 16.0
 
 var bus_name: StringName = &"Music"
@@ -173,12 +172,6 @@ func _targets_for_state(state: StringName) -> Dictionary:
 
 func _has_state(state: StringName) -> bool:
 	return state in [STATE_FULL, STATE_DARK]
-
-
-func _log_pass(pass_number: int, state: StringName) -> void:
-	if not debug_logging:
-		return
-	print("[Music AntiFatigue] cue=%s pass=%d state=%s" % [current_cue_id, pass_number, state])
 
 
 func _ensure_filter_effects() -> void:

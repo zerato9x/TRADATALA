@@ -1,429 +1,497 @@
 @tool
 extends McpTestSuite
 
-
 func suite_name() -> String:
 	return "gieo_que"
 
+func test_exact_trigram_tables() -> void:
+	assert_eq(GieoQueService.FIRST_TRIGRAM_FORTUNE, {"PPP": 3, "PPN": 2, "PNP": 2, "PNN": 1, "NPP": -1, "NPN": -2, "NNP": -2, "NNN": -3})
+	for trigram: String in GieoQueService.FIRST_TRIGRAM_FORTUNE:
+		assert_eq(GieoQueService.SECOND_TRIGRAM_TARGETS[trigram], "consecutive_3" if trigram == "PPP" else "random_same_suit_3" if trigram == "NNN" else "random_one")
 
-func test_exact_trigram_tables_and_duplicate_target_meanings() -> void:
-	assert_eq(GieoQueService.FIRST_TRIGRAM_EFFECTS, {
-		"DDD": GieoQueService.EFFECT_ADD_GOLD_SET,
-		"DDA": GieoQueService.EFFECT_CHOOSE_RANK,
-		"DAD": GieoQueService.EFFECT_ADD_GOLD_MAKING_PHOM,
-		"DAA": GieoQueService.EFFECT_ADD_GOLD_BIG_PHOM,
-		"ADD": GieoQueService.EFFECT_ADD_GOLD_LAST_CALL,
-		"ADA": GieoQueService.EFFECT_ADD_GOLD_EXTEND,
-		"AAD": GieoQueService.EFFECT_CHOOSE_SUIT,
-		"AAA": GieoQueService.EFFECT_ADD_GOLD_RUN,
-	})
-	assert_eq(GieoQueService.SECOND_TRIGRAM_TARGETS, {
-		"DDD": GieoQueService.TARGET_RANDOM_SAME_SUIT_3,
-		"DDA": GieoQueService.TARGET_RANDOM_SAME_SUIT_2,
-		"DAD": GieoQueService.TARGET_CHOOSE_ONE,
-		"DAA": GieoQueService.TARGET_OFFER_THREE,
-		"ADD": GieoQueService.TARGET_OFFER_THREE,
-		"ADA": GieoQueService.TARGET_CHOOSE_ONE,
-		"AAD": GieoQueService.TARGET_CONSECUTIVE_2,
-		"AAA": GieoQueService.TARGET_CONSECUTIVE_3,
-	})
-	assert_eq(GieoQueService.SECOND_TRIGRAM_TARGETS["DAD"], GieoQueService.SECOND_TRIGRAM_TARGETS["ADA"])
-	assert_eq(GieoQueService.SECOND_TRIGRAM_TARGETS["DAA"], GieoQueService.SECOND_TRIGRAM_TARGETS["ADD"])
+func test_fortune_accumulates_crosses_zero_and_clamps() -> void:
+	for example in [[0, 3, 3], [3, 3, 6], [6, 3, 6], [2, -3, -1], [-4, -3, -6], [-6, -3, -6], [-2, 3, 1]]:
+		var card := _card(13)
+		card.fortune = example[0]
+		card.adjust_fortune(example[1])
+		assert_eq(card.fortune, example[2])
+	var card := _card(8)
+	card.fortune = 99
+	assert_eq(card.fortune, 6)
+	card.fortune = -99
+	assert_eq(card.fortune, -6)
+	card.transformation_locked = true
+	assert_false(card.adjust_fortune(3))
+	assert_false(card.add_jackpot(CardData.JACKPOT_LIQUID))
 
+func test_gold_counts_everywhere_and_has_normal_deadwood() -> void:
+	for rank in range(1, 14):
+		for fortune in range(1, 7):
+			var card := _card(rank)
+			card.fortune = fortune
+			assert_eq(card.score_value(), rank * fortune)
+			assert_eq(card.deadwood_value(), rank)
+	var cards := _kings(3)
+	cards[0].fortune = 6
+	var pipeline := ScoringPipeline.new()
+	assert_eq(cards[0].score_value(), 78)
+	assert_eq(pipeline.preview_new_meld(cards, MeldRules.TYPE_SET, 1).final_points, 312)
+	assert_eq(pipeline.score_meld_trigger(cards, MeldRules.TYPE_SET, 1).final_points, 312)
+	var fourth := _card(13, "Diamonds", "fourth")
+	var expanded: Array[CardData] = cards.duplicate()
+	expanded.append(fourth)
+	assert_eq(pipeline.preview_extension(expanded, MeldRules.TYPE_SET, 312, 1, [fourth]).final_points, 624)
 
-func test_campaign_deck_stays_52_and_deals_reuse_permanent_identity_state() -> void:
-	var campaign := CampaignManager.new()
-	campaign.start_campaign()
-	assert_eq(campaign.gieo_que.persistent_deck.size(), 52)
-	var transformed := campaign.gieo_que.persistent_deck[0]
-	var physical_id := transformed.unique_id
-	transformed.apply_rank("K", 13)
-	transformed.apply_suit("Hearts")
-	transformed.add_gieo_property(GieoQueService.PROPERTY_MELD_RETRIGGER)
+func test_black_ink_scores_normally_and_deadwood_is_income() -> void:
+	var cards := _kings(3)
+	cards[0].fortune = -6
+	assert_eq(cards[0].score_value(), 13)
+	assert_eq(ScoringPipeline.new().preview_new_meld(cards, MeldRules.TYPE_SET, 1).final_points, 117)
+	assert_eq(cards[0].deadwood_value(), -78)
+	var resolution := ScoringPipeline.deadwood_resolution(cards, 3)
+	assert_eq(resolution.deadwood, 78)
+	assert_eq(resolution.black_ink_profit, 78)
+	assert_eq(resolution.penalty_cards.size(), 2)
+	assert_eq(resolution.ink_cards, [cards[0]])
+
+func test_turn_deadwood_commits_separate_cost_and_profit_even_when_net_zero() -> void:
 	var deal := DealState.new()
-	deal.set_campaign_deck(campaign.gieo_que.persistent_deck)
-	deal.start_deal(91)
-	var in_first_deal := _find_deal_card(deal, physical_id)
-	assert_eq(in_first_deal.rank, "K")
-	assert_eq(in_first_deal.suit, "Hearts")
-	assert_true(in_first_deal.has_gieo_property(GieoQueService.PROPERTY_MELD_RETRIGGER))
-	assert_eq(deal.physical_card_accounting()["total_cards"], 52)
-	in_first_deal.value_modifiers.append(99)
-	deal.start_deal(92)
-	var in_later_deal := _find_deal_card(deal, physical_id)
-	assert_eq(in_later_deal.rank, "K")
-	assert_eq(in_later_deal.suit, "Hearts")
-	assert_eq(in_later_deal.score_value(), 13)
-	assert_eq(deal.physical_card_accounting()["unique_ids"], 52)
-	campaign.start_campaign()
-	assert_eq(campaign.gieo_que.persistent_deck.size(), 52)
-	var restored := _find_card(campaign.gieo_que.persistent_deck, physical_id)
-	assert_eq(restored.rank, "A")
-	assert_eq(restored.suit, "Spades")
-	assert_true(restored.gieo_properties.is_empty())
+	deal.start_deal(101)
+	deal.wallet.reset(100_000)
+	deal.hand = [_card(13, "Hearts", "ink"), _card(13, "Clubs", "gold")]
+	deal.hand[0].fortune = -1
+	deal.hand[1].fortune = 6
+	var result := deal._deduct_turn_deadwood()
+	assert_eq(result.deadwood, 0)
+	assert_eq(result.deadwood_penalty, 13)
+	assert_eq(result.black_ink_profit, 13)
+	assert_eq(deal.wallet.balance_vnd, 100_000)
+	assert_eq(deal.wallet.journal[-2].reason, "deadwood")
+	assert_eq(deal.wallet.journal[-1].reason, "black_ink")
+	assert_eq(deal.wallet.journal[-1].amount_vnd, VndWallet.points_to_vnd(13))
 
+func test_mom_multiplies_normal_cost_without_multiplying_ink_profit() -> void:
+	var deal := DealState.new()
+	deal.start_deal(102)
+	for _turn in 4: deal.discard_card(deal.hand[0])
+	deal.wallet.reset(0)
+	deal.phase_metrics.raw_gross = 0
+	deal.phase_metrics.deadwood_total = 0
+	deal.phase_new_meld_count = 0
+	deal.hand = [_card(13, "Hearts", "ink"), _card(4, "Clubs", "normal")]
+	deal.hand[0].fortune = -6
+	var result: Dictionary = deal.settle_phase().phase_resolution
+	assert_true(result.mom)
+	assert_eq(result.deadwood_multiplier, 2)
+	assert_eq(result.deadwood_penalty, 8)
+	assert_eq(result.black_ink_profit, 78)
+	assert_eq(result.turn_deadwood, -70)
+	assert_eq(deal.wallet.balance_vnd, VndWallet.points_to_vnd(70))
 
-func test_cast_has_six_lines_rerolls_every_line_and_has_no_targets_before_accept() -> void:
+func test_black_ink_profit_obeys_boss_owned_income_hooks() -> void:
+	var deal := DealState.new()
+	deal.start_deal(103)
+	deal.wallet.reset(0)
+	deal.zodiac_boss.configure("pig",2,5678)
+	deal.zodiac_boss.begin_phase(deal)
+	deal.zodiac_boss.data.target_vnd = 1_000_000
+	deal.hand = [_card(13,"Hearts","ink")]
+	deal.hand[0].fortune = -6
+	deal._deduct_turn_deadwood()
+	assert_eq(deal.zodiac_boss.data.progress_vnd,78_000)
+	assert_eq(deal.zodiac_boss.data.pool_vnd,23_400)
+	assert_eq(deal.wallet.balance_vnd,54_600)
+	assert_eq(deal.wallet.journal[0].reason,"black_ink")
+	assert_eq(deal.wallet.journal[1].reason,"zodiac:pig:siphon")
+
+func test_negative_identity_is_bounded_same_color_and_keeps_printed_value() -> void:
+	var card := _card(8)
+	card.negative = true
+	assert_eq(card.meld_rank_options(), [7, 8, 9])
+	assert_eq(card.meld_suit_options(), ["Hearts", "Diamonds"])
+	assert_true(card.can_represent(7, "Diamonds"))
+	assert_false(card.can_represent(7, "Spades"))
+	assert_false(card.can_represent(6, "Hearts"))
+	assert_eq(card.score_value(), 8)
+	assert_eq(card.rank, "8")
+	assert_eq(card.suit, "Hearts")
+	for rank in [1, 13]:
+		var boundary := _card(rank, "Clubs")
+		boundary.negative = true
+		assert_eq(boundary.meld_rank_options(), [1, 2] if rank == 1 else [12, 13])
+		assert_false(boundary.can_represent(13 if rank == 1 else 1))
+
+func test_negative_glitch_melds_and_extensions_use_distinct_physical_cards() -> void:
+	var negative := _card(8, "Hearts", "negative")
+	negative.negative = true
+	var seven := _card(7, "Diamonds", "seven")
+	var nine := _card(9, "Diamonds", "nine")
+	assert_true(MeldRules.is_run([seven, negative, nine]))
+	assert_eq(MeldRules.run_identities([seven, negative, nine])[negative.unique_id], {"rank": 8, "suit": "Diamonds"})
+	assert_true(MeldRules.is_set([seven, negative, _card(7, "Spades", "other")]))
+	var glitch := _card(1, "Spades", "glitch")
+	glitch.liquid = true
+	glitch.negative = true
+	assert_eq(glitch.jackpot_state(), "GLITCH")
+	assert_eq(glitch.echo_count(), 1)
+	assert_eq(glitch.meld_rank_options().size(), 13)
+	assert_eq(glitch.meld_suit_options().size(), 4)
+	assert_true(MeldRules.is_run([seven, glitch, nine]))
+	assert_false(MeldRules.is_run([glitch, glitch, seven]))
+	assert_false(MeldRules.is_set([glitch, glitch, seven]))
+	assert_true(MeldRules.can_extend([seven, negative, nine], [glitch], MeldRules.TYPE_RUN))
+	assert_eq(glitch.rank_index, 1)
+	assert_eq(glitch.base_value, 1)
+
+func test_matching_backtracks_and_perfected_run_accepts_wild_identity() -> void:
+	var first := _card(2, "Hearts", "flex")
+	first.negative = true
+	var fixed := _card(2, "Hearts", "fixed")
+	var three := _card(3, "Hearts", "three")
+	var identities := MeldRules.run_identities([first, fixed, three])
+	assert_eq(identities[first.unique_id].rank, 1)
+	assert_eq(identities[fixed.unique_id].rank, 2)
+	var all: Array[CardData] = []
+	for rank in range(1, 14):
+		var card := _card(rank, "Hearts", "full_%d" % rank)
+		if rank == 8:
+			card.apply_rank("A", 1)
+			card.liquid = true
+			card.negative = true
+		all.append(card)
+	assert_true(MeldRules.is_run(all))
+	assert_true(ScoringPipeline.is_perfected_run(all, MeldRules.TYPE_RUN))
+	assert_eq(MeldRules.run_identities(all)["full_8"].rank, 8)
+
+func test_jackpot_flags_coexist_with_fortune_and_echo_is_finite() -> void:
+	for fortune in [6, -6, 0]:
+		var cards := _kings(3)
+		cards[0].fortune = fortune
+		cards[0].add_jackpot(CardData.JACKPOT_NEGATIVE)
+		cards[0].add_jackpot(CardData.JACKPOT_LIQUID)
+		assert_false(cards[0].add_jackpot(CardData.JACKPOT_LIQUID))
+		assert_eq(cards[0].fortune, fortune)
+		var context := ScoringPipeline.new().preview_new_meld(cards, MeldRules.TYPE_SET, 1)
+		assert_eq(context.scoring_passes.size(), 2)
+		assert_eq(context.final_points, context.theoretical_score * 2)
+		for scoring_pass in context.scoring_passes:
+			var sum := 0
+			for hit in scoring_pass.presentation_hits: sum += int(hit.points)
+			assert_eq(sum, scoring_pass.final_points)
+
+func test_all_64_readings_target_physical_cards_and_preserve_actual_identity() -> void:
+	for bits in 64:
+		var service := GieoQueService.new()
+		service.set_seed_value(910 + bits)
+		var lines: Array[String] = []
+		for bit in 6: lines.append("P" if bits & (1 << bit) else "N")
+		assert_true(service.cast(lines).ok)
+		assert_true(service.resolved_targets.is_empty())
+		assert_true(service.accept().ok)
+		var jackpot: bool = not String(service.current_result.jackpot).is_empty()
+		if jackpot:
+			assert_eq(service.state, GieoQueService.STATE_TARGET_SELECTION)
+			assert_true(service.choose_target(service.persistent_deck[19].unique_id).ok)
+		else:
+			assert_eq(service.state, GieoQueService.STATE_TARGET_REVEAL)
+			assert_eq(service.resolved_targets.size(), 1 if service.current_result.targeting == GieoQueService.TARGET_RANDOM_ONE else 3)
+			if service.current_result.targeting == GieoQueService.TARGET_CONSECUTIVE_3:
+				var ranks := service.resolved_targets.map(func(c): return c.rank_index)
+				ranks.sort()
+				assert_eq(ranks, [ranks[0], ranks[0] + 1, ranks[0] + 2])
+			if service.current_result.targeting == GieoQueService.TARGET_RANDOM_SAME_SUIT_3:
+				assert_true(service.resolved_targets.all(func(c): return c.suit == service.resolved_targets[0].suit))
+			assert_true(service.apply_resolved_targets().ok)
+		var ids := {}
+		for change in service.last_transformations:
+			assert_false(ids.has(change.card.unique_id))
+			ids[change.card.unique_id] = true
+			assert_eq(change.before.rank, change.after.rank)
+			assert_eq(change.before.suit, change.after.suit)
+			assert_eq(change.card.fortune, service.current_result.fortune_delta)
+			assert_eq(change.card.liquid, jackpot and bits == 63)
+			assert_eq(change.card.negative, jackpot and bits == 0)
+		assert_true(service.finish_transformation().ok)
+
+func test_exact_jackpot_picker_and_opposite_property_produce_glitch() -> void:
+	for positive in [true, false]:
+		var service := GieoQueService.new()
+		var card := service.persistent_deck[31]
+		card.add_jackpot(CardData.JACKPOT_NEGATIVE if positive else CardData.JACKPOT_LIQUID)
+		assert_true(service.cast(_lines("PPPPPP" if positive else "NNNNNN")).ok)
+		assert_true(service.accept().ok)
+		assert_false(service.choose_target("not_owned").ok)
+		assert_true(service.choose_target(card.unique_id).ok)
+		assert_eq(service.resolved_targets, [card])
+		assert_eq(card.fortune, 3 if positive else -3)
+		assert_true(card.is_glitch())
+
+func test_expanded_duplicates_and_target_query_use_actual_identity() -> void:
 	var service := GieoQueService.new()
-	var first_lines: Array[String] = ["D", "A", "A", "D", "D", "A"]
-	var second_lines: Array[String] = ["A", "D", "D", "A", "A", "D"]
-	assert_true(service.cast(first_lines)["ok"])
-	assert_eq((service.current_result["lines"] as Array).size(), 6)
-	assert_true(service.resolved_targets.is_empty())
-	assert_false(service.current_result.has("locked_lines"))
-	service.wallet.reset(100_000)
-	assert_true(service.reroll(second_lines)["ok"])
-	assert_eq(service.current_result["lines"], second_lines)
-	assert_ne(service.current_result["lines"], first_lines)
-	assert_true(service.resolved_targets.is_empty())
-
-
-func test_slot_machine_panel_preserves_authoritative_result_and_locks_pending_choice() -> void:
-	var service := GieoQueService.new()
-	var panel := GieoQuePanel.new()
-	panel.configure(service)
-	assert_eq(panel.presentation_state, GieoQuePanel.PresentationState.IDLE)
-	assert_false(panel.is_interaction_locked())
-	assert_eq(panel.find_children("OracleReel*", "Control", true, false).size(), 6)
-	assert_true(panel.find_child("OracleLever", true, false) is Button)
-	assert_true(panel.find_child("OracleUpperPanel", true, false) is PanelContainer)
-	assert_true(panel.find_child("OracleLowerPanel", true, false) is PanelContainer)
-
-	var lines: Array[String] = ["D", "A", "D", "A", "D", "A"]
-	assert_true(service.cast(lines)["ok"])
-	panel._rebuild()
-	assert_eq(panel.presentation_state, GieoQuePanel.PresentationState.SHOWING_RESULT)
-	assert_true(panel.is_interaction_locked())
-	assert_eq(panel.displayed_reel_values(), lines)
-	assert_true(panel.find_child("ResolvedOracleUpperPanel", true, false) is PanelContainer)
-	assert_true(panel.find_child("ResolvedOracleLowerPanel", true, false) is PanelContainer)
-	assert_true(panel.find_child("OracleDecisions", true, false) is HBoxContainer)
-
-	var authoritative_result := service.current_result.duplicate(true)
-	for tick in range(20):
-		panel._set_reel_value(tick % 6, GieoQueService.LINE_DUONG if tick % 2 == 0 else GieoQueService.LINE_AM)
-	assert_eq(service.current_result, authoritative_result)
-	panel.free()
-
-
-func test_big_gold_preserves_rank_and_random_targets_wait_for_accept() -> void:
-	var service := GieoQueService.new()
-	service.set_seed_value(41)
-	assert_true(service.cast(["D", "A", "A", "D", "D", "A"])["ok"])
-	assert_false(service.current_result.has("resolved_rank"))
-	assert_false(service.current_result.has("resolved_suit"))
-	assert_true(service.resolved_targets.is_empty())
-	assert_true(service.accept()["ok"])
-	assert_eq(service.state, GieoQueService.STATE_TARGET_REVEAL)
-	assert_eq(service.resolved_targets.size(), 2)
-	service.apply_resolved_targets()
-	for transformation in service.last_transformations:
-		assert_eq(transformation["after"]["rank"], transformation["before"]["rank"])
-		assert_true(transformation["after"]["gieo_properties"].has(GieoQueService.PROPERTY_GOLD_BIG_PHOM))
-
-
-func test_offer_candidates_are_generated_only_after_accept_and_force_one_choice() -> void:
-	var service := GieoQueService.new()
-	assert_true(service.cast(["D", "D", "D", "D", "A", "A"])["ok"])
-	assert_true(service.resolved_targets.is_empty())
-	assert_true(service.accept()["ok"])
-	assert_eq(service.state, GieoQueService.STATE_TARGET_SELECTION)
+	for card in service.persistent_deck: card.transformation_locked = true
+	var trio: Array[CardData] = [_card(7, "Hearts", "extra_7"), _card(8, "Hearts", "extra_8"), _card(9, "Hearts", "extra_9")]
+	trio[1].liquid = true
+	trio[1].negative = true
+	service.persistent_deck.append_array(trio)
+	service.persistent_deck.append(_card(8, "Hearts", "extra_duplicate"))
+	assert_true(service.cast(_lines("PPNPPP")).ok)
+	assert_true(service.accept().ok)
 	assert_eq(service.resolved_targets.size(), 3)
-	var chosen_id := service.resolved_targets[1].unique_id
-	assert_true(service.choose_target(chosen_id)["ok"])
-	assert_eq(service.state, GieoQueService.STATE_TRANSFORM)
-	service.finish_transformation()
-	assert_eq(service.state, GieoQueService.STATE_COMPLETE)
-	assert_eq(service.last_transformations.size(), 1)
-	assert_eq((service.last_transformations[0]["after"] as Dictionary)["unique_id"], chosen_id)
+	assert_true(service.apply_resolved_targets().ok)
+	assert_eq(service.persistent_deck.size(), 56)
+	var impossible := GieoQueService.new()
+	for card in impossible.persistent_deck: card.transformation_locked = true
+	trio = [_card(1, "Hearts", "one"), _card(7, "Diamonds", "seven"), _card(13, "Clubs", "king")]
+	for card in trio: card.liquid = true; card.negative = true
+	impossible.persistent_deck.append_array(trio)
+	assert_true(impossible.cast(_lines("PPNPPP")).ok)
+	assert_false(impossible.accept().ok)
+	assert_eq(impossible.state, GieoQueService.STATE_RESULT)
+	assert_true(impossible.refuse().ok)
 
-
-func test_same_suit_and_consecutive_targets_are_legal_with_fallback() -> void:
+func test_invalid_reading_and_busy_input_cannot_charge_or_double_apply() -> void:
 	var service := GieoQueService.new()
-	service.set_seed_value(7)
-	var same_suit := service._random_same_suit_group(3)
-	assert_eq(same_suit.size(), 3)
-	assert_eq(same_suit[0].suit, same_suit[1].suit)
-	assert_eq(same_suit[1].suit, same_suit[2].suit)
-	var sequence := service._random_consecutive_group(3)
-	assert_eq(sequence.size(), 3)
-	var ranks: Array[int] = [sequence[0].rank_index, sequence[1].rank_index, sequence[2].rank_index]
-	ranks.sort()
-	assert_eq(ranks[1], ranks[0] + 1)
-	assert_eq(ranks[2], ranks[1] + 1)
-	assert_false(ranks == [1, 12, 13])
-	service.persistent_deck = [
-		CardData.new("fallback_q", "Q", 12, "Spades", 12),
-		CardData.new("fallback_k", "K", 13, "Hearts", 13),
-		CardData.new("fallback_a", "A", 1, "Diamonds", 1),
-	]
-	var fallback := service._random_consecutive_group(3)
-	assert_eq(fallback.size(), 2)
-	assert_eq(absi(fallback[0].rank_index - fallback[1].rank_index), 1)
-	assert_false(fallback.any(func(card: CardData) -> bool: return card.rank_index == 1))
-	service.persistent_deck = [CardData.new("single_a", "A", 1, "Clubs", 1)]
-	assert_eq(service._random_consecutive_group(3).size(), 1)
-	assert_eq(service._random_same_suit_group(3).size(), 1)
+	assert_false(service.cast(_lines("PPPXPP")).ok)
+	assert_false(service.free_cast_used_today)
+	assert_true(service.cast(_lines("PPNPPN")).ok)
+	assert_true(service.accept().ok)
+	assert_false(service.cast().ok)
+	assert_true(service.apply_resolved_targets().ok)
+	var card := service.resolved_targets[0]
+	var revision := card.mutation_revision
+	assert_false(service.apply_resolved_targets().ok)
+	assert_eq(card.mutation_revision, revision)
+	assert_false(service.refuse().ok)
 
-
-func test_accept_locks_reroll_and_refuse_until_transformation_completes() -> void:
+func test_paid_reading_is_coherent_during_wallet_signals_and_reentry_is_rejected() -> void:
 	var service := GieoQueService.new()
-	service.cast(["D", "D", "A", "D", "A", "D"])
-	assert_true(service.accept()["ok"])
-	assert_eq(service.state, GieoQueService.STATE_DESTINATION_SELECTION)
-	assert_false(service.reroll()["ok"])
-	assert_false(service.refuse()["ok"])
-	service.choose_destination("7")
-	assert_eq(service.state, GieoQueService.STATE_TARGET_SELECTION)
-	assert_true(service.choose_target(service.persistent_deck[0].unique_id)["ok"])
-	assert_eq(service.state, GieoQueService.STATE_TRANSFORM)
-	service.finish_transformation()
-	assert_eq(service.state, GieoQueService.STATE_COMPLETE)
+	service.wallet.reset(100_000)
+	service.cast(_lines("PNPPPN"))
+	var observed: Array[Dictionary] = []
+	var observer := func(_before:int,_after:int,_delta:int,reason:String):
+		if reason != "gieo_que_cast": return
+		observed.append({"lines":service.current_result.lines.duplicate(),"state":service.state,"paid":service.paid_cast_count_today,"balance":service.wallet.balance_vnd,"reentry":service.cast().ok,"accept":service.accept().ok})
+	service.wallet.balance_changed.connect(observer)
+	assert_true(service.reroll(_lines("NPNNNP")).ok)
+	service.wallet.balance_changed.disconnect(observer)
+	assert_eq(observed.size(),1)
+	assert_eq(observed[0].lines,_lines("NPNNNP"))
+	assert_eq(observed[0].state,GieoQueService.STATE_RESULT)
+	assert_eq(observed[0].paid,1)
+	assert_eq(observed[0].balance,90_000)
+	assert_false(observed[0].reentry)
+	assert_false(observed[0].accept)
 
-
-func test_jackpots_override_normal_composition_and_apply_exact_properties() -> void:
-	var yang := GieoQueService.new()
-	yang.cast(["D", "D", "D", "D", "D", "D"])
-	assert_eq(yang.current_result["jackpot"], GieoQueService.JACKPOT_THUAN_DUONG)
-	yang.accept()
-	yang.choose_destination("K")
-	var yang_card := yang.persistent_deck[0]
-	yang.choose_target(yang_card.unique_id)
-	assert_eq(yang_card.rank, "K")
-	assert_true(yang_card.has_gieo_property(GieoQueService.PROPERTY_MELD_RETRIGGER))
-	assert_eq(yang_card.gieo_properties, [GieoQueService.PROPERTY_MELD_RETRIGGER])
-	assert_eq(yang.last_transformations.size(), 1)
-
-	var yin := GieoQueService.new()
-	yin.cast(["A", "A", "A", "A", "A", "A"])
-	assert_eq(yin.current_result["jackpot"], GieoQueService.JACKPOT_THUAN_AM)
-	yin.accept()
-	yin.choose_destination("Diamonds")
-	var yin_card := yin.persistent_deck[0]
-	yin.choose_target(yin_card.unique_id)
-	assert_eq(yin_card.suit, "Diamonds")
-	assert_true(yin_card.has_gieo_property(GieoQueService.PROPERTY_MELD_RETRIGGER))
-	assert_eq(yin_card.gieo_properties, [GieoQueService.PROPERTY_MELD_RETRIGGER])
-	assert_eq(yin.last_transformations.size(), 1)
-
-
-func test_daily_free_pull_and_paid_escalation_reset_by_day() -> void:
-	var wallet := VndWallet.new()
-	wallet.reset(1_000_000)
-	var service := GieoQueService.new(wallet)
-	service.begin_day(0)
+func test_daily_free_cast_and_paid_growth_reset_only_on_new_day() -> void:
+	var service := GieoQueService.new()
+	service.wallet.reset(100_000)
 	assert_eq(service.current_pull_cost(), 0)
-	service.cast(["D", "A", "D", "D", "A", "D"])
-	assert_true(service.free_cast_used_today)
-	assert_eq(wallet.balance_vnd, 1_000_000)
-	var first_paid := service.current_pull_cost()
-	service.reroll(["A", "D", "A", "D", "A", "D"])
-	assert_eq(wallet.balance_vnd, 1_000_000 - first_paid)
-	assert_eq(service.paid_cast_count_today, 1)
-	assert_eq(service.current_pull_cost(), first_paid * GieoQueService.PAID_GROWTH_FACTOR)
+	assert_true(service.cast(_lines("PNPPPN")).ok)
+	assert_eq(service.wallet.balance_vnd, 100_000)
+	assert_eq(service.current_pull_cost(), 10_000)
+	assert_true(service.reroll(_lines("NPNPPN")).ok)
+	assert_eq(service.wallet.balance_vnd, 90_000)
+	assert_eq(service.current_pull_cost(), 20_000)
+	assert_true(service.refuse().ok)
+	assert_eq(service.current_pull_cost(), 20_000)
 	service.begin_day(1)
 	assert_eq(service.current_pull_cost(), 0)
 	assert_eq(service.paid_cast_count_today, 0)
-	assert_eq(service.daily_base_cost(), GieoQueService.BASE_COST_VND)
 
-
-func test_free_cast_stays_consumed_across_all_fortune_teller_windows_that_day() -> void:
-	var wallet := VndWallet.new()
-	wallet.reset(100_000)
-	var events := EventManager.new()
-	CampaignNpcCatalog.register_initial_npcs(events)
-	var campaign := CampaignManager.new(wallet, events, DrinkManager.new(wallet))
+func test_daily_free_reading_stays_consumed_across_morning_noon_afternoon() -> void:
+	var campaign := CampaignManager.new()
 	campaign.start_campaign(false)
-	campaign.drink_manager.select_for_event(EventManager.EventSlot.STARTER, DrinkCatalog.TRA_DA)
-	events.complete_interaction("choose_drink")
-	campaign.complete_current_event()
-	campaign.complete_deal()
-	assert_eq(campaign.current_phase, CampaignManager.CampaignPhase.MORNING_EVENT)
-	assert_true(campaign.gieo_que.cast(["D", "A", "D", "D", "A", "D"])["ok"])
-	assert_true(campaign.gieo_que.free_cast_used_today)
-	var paid_cost := campaign.gieo_que.current_pull_cost()
+	campaign.wallet.reset(100_000)
+	campaign._enter_phase(CampaignManager.CampaignPhase.MORNING_EVENT)
+	assert_true(campaign.gieo_que.cast(_lines("PNPPPN")).ok)
 	campaign.gieo_que.refuse()
-	campaign.complete_current_event()
-	campaign.complete_deal()
-	assert_eq(campaign.current_phase, CampaignManager.CampaignPhase.NOON_EVENT)
-	assert_eq(campaign.gieo_que.current_pull_cost(), paid_cost)
-	campaign.drink_manager.select_for_event(EventManager.EventSlot.NOON, DrinkCatalog.TRA_DA)
-	events.complete_interaction("choose_drink")
-	preload("res://tests/zodiac_test_flow.gd").finish_noon(campaign.zodiac)
-	campaign.complete_current_event()
-	campaign.complete_deal()
-	assert_eq(campaign.current_phase, CampaignManager.CampaignPhase.AFTERNOON_EVENT)
-	assert_eq(campaign.gieo_que.current_pull_cost(), paid_cost)
+	var cost := campaign.gieo_que.current_pull_cost()
+	campaign._enter_phase(CampaignManager.CampaignPhase.NOON_EVENT)
+	assert_eq(campaign.gieo_que.current_pull_cost(), cost)
+	campaign._enter_phase(CampaignManager.CampaignPhase.AFTERNOON_EVENT)
+	assert_eq(campaign.gieo_que.current_pull_cost(), cost)
 
+func test_wild_probability_does_not_count_one_physical_glitch_as_multiple_outs() -> void:
+	var held: Array[CardData] = [_card(7,"Hearts","held")]
+	var glitch := _card(1,"Spades","wild")
+	glitch.liquid = true
+	glitch.negative = true
+	var pool: Array[CardData] = [glitch,_card(8,"Hearts","eight"),_card(9,"Hearts","nine"),_card(13,"Clubs","miss")]
+	var slots: Array[int] = [7,8,9]
+	assert_eq(MeldProbabilityAdvisor.completion_probability(held,pool,1,slots,"Hearts"),0.0)
+	assert_eq(MeldProbabilityAdvisor.completion_probability(held,pool,2,slots,"Hearts"),0.5)
+	var analysis := MeldProbabilityAdvisor.analyze(held,pool,[],2)
+	var found := false
+	for candidate in analysis.candidates:
+		if candidate.label_args == ["7","9","H"]:
+			assert_eq(candidate.probability,0.5)
+			found = true
+	assert_true(found)
 
-func _find_deal_card(deal: DealState, card_id: String) -> CardData:
-	var cards: Array[CardData] = []
-	cards.append_array(deal.hand)
-	cards.append_array(deal.deck.draw_pile)
-	cards.append_array(deal.deck.discard_pile)
-	return _find_card(cards, card_id)
+func test_negative_glitch_advice_finds_live_legal_play_without_changing_rng() -> void:
+	var deal := DealState.new()
+	deal.start_deal(609)
+	deal.hand = [_card(7,"Diamonds","seven"),_card(8,"Hearts","negative"),_card(9,"Diamonds","nine"),_card(13,"Clubs","discard")]
+	deal.hand[1].negative = true
+	deal.state = DealState.STATE_FINAL_COMMIT_WINDOW
+	var rng_state := deal.deck._rng.state
+	var advice := deal.queries.hand_advice()
+	assert_eq(advice.play.action,HandAdvisor.ACTION_NEW_MELD)
+	assert_eq(deal.deck._rng.state,rng_state)
+	assert_eq(advice.play.cards.size(),3)
 
+func test_c2_targets_keep_selected_physical_cards_with_flexible_ranks() -> void:
+	var deal := DealState.new()
+	deal.start_deal(610)
+	deal.current_drink_id = DrinkCatalog.C2_ICED_TEA
+	deal.hand = [_card(8,"Hearts","selected"),_card(13,"Spades","glitch"),_card(10,"Clubs","ten"),_card(1,"Diamonds","miss")]
+	deal.hand[0].negative = true
+	deal.hand[1].liquid = true
+	deal.hand[1].negative = true
+	var selected: Array[CardData] = [deal.hand[0],deal.hand[2]]
+	var targets := deal.drink_creation_target_ids(selected)
+	assert_true(targets.has("glitch"))
+	assert_false(targets.has("miss"))
+	var completion := MeldRules.complete_run(deal.hand, selected, 8, 10)
+	assert_eq(completion.size(),3)
+	assert_true(completion.has(selected[0]) and completion.has(selected[1]))
+	assert_true(completion.has(deal.hand[1]))
+	assert_true(deal.can_create_meld(completion,true))
+	deal.zodiac_boss.locked_ids.append("glitch")
+	assert_false(deal.drink_creation_target_ids(selected).has("glitch"))
 
-func _find_card(cards: Array[CardData], card_id: String) -> CardData:
-	for card in cards:
-		if card.unique_id == card_id:
-			return card
-	return null
+func test_deal_copy_keeps_permanent_state_without_temporary_modifier_leak() -> void:
+	var original := _card(13)
+	original.fortune = -6
+	original.liquid = true
+	original.negative = true
+	original.shiny = true
+	original.value_modifiers.append(99)
+	var copied := original.copy_for_deal()
+	assert_eq(copied.unique_id, original.unique_id)
+	assert_eq(copied.fortune, -6)
+	assert_true(copied.is_glitch())
+	assert_true(copied.shiny)
+	assert_eq(copied.score_value(), 13)
+	copied.adjust_fortune(3)
+	assert_eq(original.fortune, -6)
 
+func test_slot_machine_rebuild_keeps_authoritative_reels_and_card_materials() -> void:
+	var service := GieoQueService.new()
+	var panel := GieoQuePanel.new()
+	panel.configure(service)
+	assert_false(panel.is_interaction_locked())
+	assert_true(panel.find_child("SlotMachineArt", true, false) is TextureRect)
+	assert_true(panel.find_child("OracleLever", true, false) is Button)
+	assert_eq(panel._reels.size(), 6)
+	var lines := _lines("PNPPNN")
+	service.cast(lines)
+	panel._rebuild()
+	for tick in 40: panel._set_reel_travel(float(tick * 93), tick % 6)
+	assert_eq(service.current_result.lines, lines)
+	assert_eq(panel.displayed_reel_values(), lines)
+	assert_true(panel.is_interaction_locked())
+	service.accept()
+	service.apply_resolved_targets()
+	service.finish_transformation()
+	panel._rebuild()
+	assert_true(panel.find_child("SlotMachineArt", true, false) is TextureRect)
+	assert_eq(panel._find_controls_with_meta(panel, &"gieo_transform_row").size(), service.last_transformations.size())
+	assert_false(panel.is_interaction_locked())
+	panel.free()
+
+func test_v3_save_keeps_expanded_deck_physical_refs_pending_rng_and_fortunes() -> void:
+	var deal := DealState.new()
+	var campaign := CampaignManager.new(deal.wallet)
+	campaign.start_campaign(false, "fortune-save")
+	deal.set_campaign_deck(campaign.gieo_que.persistent_deck)
+	deal.start_deal(601)
+	var service := campaign.gieo_que
+	var extra := _card(8, "Hearts", "expanded_saved")
+	extra.fortune = -6
+	extra.liquid = true
+	extra.negative = true
+	service.persistent_deck.append(extra)
+	service.wallet.reset(100_000)
+	service.cast(_lines("PPPPPP"))
+	service.accept()
+	var save := RunSave.new("user://fortune_v3_test.save")
+	assert_true(save.save_run(campaign, deal), save.error)
+	var restored_deal := DealState.new()
+	var restored := CampaignManager.new(restored_deal.wallet)
+	assert_true(save.restore(save.load_run(), restored, restored_deal), save.error)
+	assert_eq(restored.gieo_que.persistent_deck.size(), 53)
+	assert_eq(restored.gieo_que._rng.state, service._rng.state)
+	assert_eq(restored.gieo_que.current_pull_cost(), service.current_pull_cost())
+	assert_true(restored.gieo_que.choose_target(extra.unique_id).ok)
+	assert_eq(restored.gieo_que.resolved_targets[0], restored.gieo_que.persistent_deck[-1])
+	assert_eq(restored.gieo_que.persistent_deck[-1].fortune, -3)
+	assert_true(restored.gieo_que.persistent_deck[-1].is_glitch())
+	assert_true(save.save_run(restored, restored_deal), save.error)
+	var data := save.load_run()
+	assert_eq(data.gieo.last_transformations[0].card, data.gieo.persistent_deck[-1])
+	assert_eq(data.gieo.resolved_targets[0], data.gieo.persistent_deck[-1])
+
+func test_v2_save_migration_keeps_rank_suit_shiny_seals_and_physical_id() -> void:
+	var deal := DealState.new()
+	var campaign := CampaignManager.new(deal.wallet)
+	campaign.start_campaign(false, "fortune-legacy")
+	deal.start_deal(602)
+	var card := campaign.gieo_que.persistent_deck[0]
+	card.apply_rank("K", 13)
+	card.apply_suit("Hearts")
+	card.shiny = true
+	card.transformation_locked = true
+	var save := RunSave.new("user://fortune_v2_test.save")
+	var encoded: Variant = save._encode(save.capture(campaign, deal))
+	for record: Dictionary in save._records:
+		if record.type != "CardData": continue
+		var fields: Dictionary = save._decode(record.fields)
+		fields.erase("fortune")
+		fields.erase("liquid")
+		fields.erase("negative")
+		fields["gieo_properties"] = ["GOLD_SET", "MELD_RETRIGGER"] if fields.unique_id == card.unique_id else []
+		record.fields = save._encode(fields)
+	var bytes := var_to_bytes({"root": encoded, "objects": save._records})
+	var file := FileAccess.open(save.path, FileAccess.WRITE)
+	file.store_var({"version": 2, "payload": bytes, "sha256": RunSave.payload_digest(bytes)}, false)
+	file.close()
+	var data := save.load_run()
+	assert_false(data.is_empty(), save.error)
+	var migrated: CardData = data.gieo.persistent_deck[0]
+	assert_eq(migrated.unique_id, card.unique_id)
+	assert_eq(migrated.rank, "K")
+	assert_eq(migrated.suit, "Hearts")
+	assert_eq(migrated.fortune, 2)
+	assert_true(migrated.liquid)
+	assert_false(migrated.negative)
+	assert_true(migrated.shiny)
+	assert_true(migrated.transformation_locked)
+
+func test_legacy_pending_reading_never_reapplies_committed_transformation() -> void:
+	var service := GieoQueService.new()
+	var card := service.persistent_deck[0]
+	card.fortune = 2
+	card.liquid = true
+	service.state = GieoQueService.STATE_TRANSFORM
+	service.current_result = {"lines": ["D", "D", "D", "D", "D", "D"], "price_vnd": 10_000, "free_pull": false}
+	service.resolved_targets = [card]
+	service.last_transformations = [{"card": card, "before": card.permanent_snapshot(), "after": card.permanent_snapshot()}]
+	service.migrate_pending_reading()
+	assert_eq(card.fortune, 2)
+	assert_eq(service.state, GieoQueService.STATE_TRANSFORM)
+	assert_eq(service.current_result.fortune_delta, 3)
+	assert_eq(service.current_result.price_vnd, 10_000)
+
+func _card(rank: int, suit: String = "Hearts", id: String = "test") -> CardData:
+	return CardData.new(id, DeckManager.RANKS[rank - 1], rank, suit, rank)
 
 func _kings(count: int) -> Array[CardData]:
 	var cards: Array[CardData] = []
-	for i in count:
-		cards.append(CardData.new("gold_king_%d" % i, "K", 13, "Spades", 13))
+	for index in count: cards.append(_card(13, DeckManager.SUITS[index % 4], "king_%d" % index))
 	return cards
 
-
-func test_gold_stack_uses_current_value_before_physical_count_without_extra_passes() -> void:
-	var cards := _kings(3)
-	cards[0].value_modifiers.append(2)
-	cards[0].gieo_properties.assign(["GOLD_MAKING_PHOM", "GOLD_SET", "GOLD_RUN", "GOLD_BIG_PHOM", "GOLD_EXTEND", "GOLD_LAST_CALL"])
-	var context := ScoringPipeline.new().preview_new_meld(cards, MeldRules.TYPE_SET, 1)
-	assert_eq(context.card_value_sum, 71) # 15 + 13 + 13 + 15 + 15
-	assert_eq(context.theoretical_score, 213)
-	assert_eq(context.local_mult, 3)
-	assert_eq(context.cards.size(), 3)
-	assert_eq(context.scoring_passes.size(), 1)
-	assert_eq(context.qualifying_gold(cards[0]), ["GOLD_MAKING_PHOM", "GOLD_SET"])
-	assert_eq(context.scoring_passes[0].presentation_hits.size(), 5)
-
-
-func test_big_gold_and_native_milestone_are_separate() -> void:
-	var cards := _kings(4)
-	cards[0].gieo_properties.assign(["GOLD_MAKING_PHOM", "GOLD_SET", "GOLD_BIG_PHOM"])
-	var context := ScoringPipeline.new().preview_new_meld(cards, MeldRules.TYPE_SET, 1)
-	assert_eq(context.card_value_sum, 91)
-	assert_eq(context.theoretical_score, 364)
-	assert_eq(context.scoring_passes.size(), 2) # Existing native four-card rule.
-	assert_eq(context.scoring_passes[1].trigger_origin, ScoringPipeline.TRIGGER_NATIVE_RETRIGGER)
-	assert_eq(context.final_points, 728)
-
-
-func test_extension_conditions_only_belong_to_new_card_and_use_delta() -> void:
-	var cards := _kings(5)
-	for card in [cards[0], cards[-1]]:
-		card.gieo_properties.assign(["GOLD_MAKING_PHOM", "GOLD_EXTEND", "GOLD_LAST_CALL"])
-	var scoring := ScoringPipeline.new()
-	var normal := scoring.preview_extension(cards, MeldRules.TYPE_SET, 208, 1, [cards[-1]])
-	assert_eq(normal.qualifying_gold(cards[0]), [])
-	assert_eq(normal.card_value_sum, 78)
-	assert_eq(normal.base_extension_score, 182) # (65 + 13) * 5 - 208
-	var last := scoring.preview_extension(cards, MeldRules.TYPE_SET, 208, 1, [cards[-1]], true)
-	assert_eq(last.qualifying_gold(cards[0]), [])
-	assert_eq(last.qualifying_gold(cards[-1]), ["GOLD_EXTEND", "GOLD_LAST_CALL"])
-	assert_eq(last.base_extension_score, 247)
-	assert_eq(last.scoring_passes.size(), 1)
-
-
-func test_set_run_and_big_gold_on_every_legitimate_scoring_event() -> void:
-	var cards: Array[CardData] = []
-	for rank in range(4, 8):
-		cards.append(CardData.new(str(rank), str(rank), rank, "Hearts", rank))
-	cards[0].gieo_properties.assign(GieoQueService.GOLD_PROPERTIES)
-	var scoring := ScoringPipeline.new()
-	var context := scoring.preview_extension(cards, MeldRules.TYPE_RUN, 45, 1, [cards[-1]], true)
-	assert_eq(context.qualifying_gold(cards[0]), ["GOLD_RUN", "GOLD_BIG_PHOM"])
-	assert_eq(context.theoretical_score, 120)
-	assert_eq(context.final_points, 75)
-	var exhausted := scoring.score_meld_trigger(cards, MeldRules.TYPE_RUN, 1)
-	assert_eq(exhausted.qualifying_gold(cards[0]), ["GOLD_RUN", "GOLD_BIG_PHOM"])
-	assert_eq(exhausted.final_points, 120)
-
-
-func test_liquid_scales_without_cap_and_includes_all_gold_without_recursion() -> void:
-	for count in range(6):
-		var cards := _kings(5)
-		cards[0].gieo_properties.assign(["GOLD_MAKING_PHOM", "GOLD_SET", "GOLD_BIG_PHOM"])
-		for i in count:
-			cards[i].add_gieo_property("MELD_RETRIGGER")
-		var context := ScoringPipeline.new().preview_new_meld(cards, MeldRules.TYPE_SET, 1)
-		assert_eq(context.theoretical_score, 520)
-		assert_eq(context.final_points, 520 * (count + 1))
-		assert_eq(context.scoring_passes.size(), count + 1)
-		for i in context.scoring_passes.size():
-			var scoring_pass: ScoringContext = context.scoring_passes[i]
-			assert_eq(scoring_pass.final_points, 520)
-			assert_eq(scoring_pass.retrigger_count, 0)
-			assert_true(scoring_pass.scoring_passes.is_empty())
-			if i > 0:
-				assert_eq(scoring_pass.retrigger_source_id, cards[i - 1].unique_id)
-
-
-func test_old_liquid_cards_wait_for_set_milestone_while_gold_stays_active() -> void:
-	var cards := _kings(5)
-	cards[0].gieo_properties.assign(["MELD_RETRIGGER", "GOLD_SET"])
-	cards[1].add_gieo_property("MELD_RETRIGGER")
-	var context := ScoringPipeline.new().preview_extension(cards, MeldRules.TYPE_SET, 208, 1, [cards[-1]])
-	assert_eq(context.scoring_passes.size(), 1)
-	assert_eq(context.scoring_passes[0].final_points, 182)
-	assert_eq(context.final_points, 182)
-	var gold_hits := 0
-	for hit in context.scoring_passes[0].presentation_hits:
-		if hit["card_id"] == cards[0].unique_id and hit["property"] == "GOLD_SET":
-			gold_hits += 1
-	assert_eq(gold_hits, 1)
-	for scoring_pass: ScoringContext in context.scoring_passes:
-		var receipt_sum := 0
-		for hit in scoring_pass.presentation_hits:
-			receipt_sum += int(hit["points"])
-		assert_eq(receipt_sum, scoring_pass.final_points)
-
-
-func test_every_ordinary_cast_cannot_grant_liquid_or_random_destination() -> void:
-	for first: String in GieoQueService.FIRST_TRIGRAM_EFFECTS:
-		for second: String in GieoQueService.SECOND_TRIGRAM_TARGETS:
-			if first == second and first in ["DDD", "AAA"]:
-				continue
-			var service := GieoQueService.new()
-			var lines: Array[String] = []
-			for letter in first + second:
-				lines.append(letter)
-			assert_true(service.cast(lines)["ok"])
-			assert_false(service.current_result.has("resolved_rank"))
-			assert_false(service.current_result.has("resolved_suit"))
-			assert_true(service.resolved_targets.is_empty())
-			service.accept()
-			if service.state == GieoQueService.STATE_DESTINATION_SELECTION:
-				service.choose_destination("K" if first == "DDA" else "Hearts")
-			if service.state == GieoQueService.STATE_TARGET_SELECTION:
-				var targets := service.resolved_targets if not service.resolved_targets.is_empty() else service.persistent_deck
-				service.choose_target(targets[0].unique_id)
-			else:
-				service.apply_resolved_targets()
-			assert_eq(service.state, GieoQueService.STATE_TRANSFORM)
-			assert_eq(service.persistent_deck.size(), 52)
-			for card in service.persistent_deck:
-				assert_false(card.has_gieo_property("MELD_RETRIGGER"))
-
-
-func test_all_seven_properties_survive_deal_copy_without_value_modifier_leak() -> void:
-	var original := _kings(1)[0]
-	original.gieo_properties.assign(GieoQueService.GOLD_PROPERTIES)
-	original.add_gieo_property("MELD_RETRIGGER")
-	assert_false(original.add_gieo_property("MELD_RETRIGGER"))
-	original.value_modifiers.append(12)
-	var copied := original.copy_for_deal()
-	assert_eq(copied.unique_id, original.unique_id)
-	assert_eq(copied.gieo_properties.size(), 7)
-	assert_eq(copied.score_value(), 13)
-	copied.gieo_properties.clear()
-	assert_eq(original.gieo_properties.size(), 7)
-
-
-func test_last_call_is_actual_commit_window_in_both_phases_and_preview() -> void:
-	for phase in [1, 2]:
-		var deal := DealState.new()
-		deal.start_deal(123)
-		deal.current_phase = phase
-		deal.state = DealState.STATE_FINAL_COMMIT_WINDOW
-		deal.hand = _kings(3)
-		deal.hand[0].add_gieo_property("GOLD_LAST_CALL")
-		assert_eq(deal.recommend_action()["estimated_points"], 156)
-		var result := deal.create_meld(deal.hand.duplicate())
-		assert_true(result["ok"])
-		assert_eq(result["context"].final_points, 156)
-		assert_true(result["context"].is_last_call)
+func _lines(pattern: String) -> Array[String]:
+	var result: Array[String] = []
+	for line in pattern: result.append(line)
+	return result

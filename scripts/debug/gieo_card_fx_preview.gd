@@ -1,8 +1,8 @@
 extends Control
 
-# Every subset, grouped as normal/singles, pairs, triples, all four.
-const COMBINATION_BITS := [0, 1, 2, 4, 8, 16, 32, 64, 3, 12, 48, 63, 65, 76, 112, 127]
-const SHORT_NAMES := ["SUN", "FACETS", "CUTS", "RIBBON", "CROWN", "HOURGLASS", "LIQUID"]
+# Curated Fortune magnitudes and combined properties, shown at native and hand size.
+const COMBINATION_BITS := [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]
+const FORTUNES := [0,1,3,6,-1,-3,-6,0,0,0,3,-3,6,-6,6,-6]
 var faces: Array[TextureRect] = []
 var cards: Array[PlayingCardView] = []
 var freeze_button: CheckButton
@@ -18,8 +18,8 @@ func _ready() -> void:
 	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(background)
-	_label("GIEO QUẺ / PERMANENT MARKS", Vector2(24, 14), 22, Color("f1dbab"))
-	_label("GOLD / SIX ENGRAVINGS     LIQUID / LEGENDARY", Vector2(530, 20), 15, Color("bed4e1"))
+	_label("CARD FORTUNE / PHYSICAL IDENTITIES", Vector2(24, 14), 22, Color("f1dbab"))
+	_label("GOLD · BLACK INK     LIQUID · NEGATIVE · GLITCH", Vector2(530, 20), 15, Color("bed4e1"))
 	_build_controls()
 	for index in 16:
 		var bits: int = COMBINATION_BITS[index]
@@ -91,25 +91,17 @@ func _build_controls() -> void:
 	controls.add_child(note)
 
 func _combination_name(bits: int) -> String:
-	if bits == 0:
-		return "ORDINARY"
-	if bits == 63:
-		return "ALL SIX GOLD"
-	if bits == 127:
-		return "ALL GOLD + LIQUID"
-	var names: Array[String] = []
-	for i in 7:
-		if bits & (1 << i):
-			names.append(SHORT_NAMES[i])
-	return " + ".join(names)
+	var card := _data(bits,"K",13,"Clubs")
+	var side := "GOLD " if card.fortune > 0 else "BLACK INK " if card.fortune < 0 else "FORTUNE "
+	var state := card.jackpot_state()
+	return side+card.fortune_label()+(" / "+state if not state.is_empty() else "")
 
 func _data(bits: int, rank: String, value: int, suit: String) -> CardData:
-	var card := CardData.new("mark_%s_%d" % [rank, bits], rank, value, suit, value)
-	for i in 7:
-		if bits & (1 << i):
-			card.add_gieo_property(GieoCardFX.PROPERTIES[i])
+	var card := CardData.new("fortune_%s_%d" % [rank,bits],rank,value,suit,value)
+	card.fortune = FORTUNES[bits]
+	card.liquid = bits in [7,9,10,11,14,15]
+	card.negative = bits in [8,9,12,13,14,15]
 	return card
-
 func _add_face(card: CardData, position_value: Vector2, dimensions: Vector2, parent: Node) -> TextureRect:
 	var face := TextureRect.new()
 	face.texture = load(card.texture_path()) as Texture2D

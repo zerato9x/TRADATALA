@@ -46,7 +46,7 @@ func check_layout(npc_id: String) -> void:
 func check_localized_layout(npc_id: String) -> void:
 	for locale_name in ["en", "vi"]:
 		TranslationServer.set_locale(locale_name)
-		scene._on_event_table_npc_focused(npc_id)
+		scene.event_services.present_npc(npc_id, scene.current_campaign_event)
 		for line_key in ["NPC_GREETING_" + npc_id.to_upper(), "NPC_CHAT_" + npc_id.to_upper()]:
 			scene.event_table.say(tr(line_key))
 			await create_timer(0.1).timeout
@@ -84,37 +84,29 @@ func _run() -> void:
 			break
 	await scene._on_play_pressed()
 	scene.campaign.wallet.reset(2_000_000)
-	scene._on_gieo_wallet_changed()
+	scene.event_services.wallet_committed.emit()
 	await create_timer(0.6).timeout
 	scene.event_table.focus_npc(EventTableController.NPC_DANH_GIAY)
 	await create_timer(0.5).timeout
-	var panel := scene.campaign_participants.get_child(0) as MiscNpcPanel
-	check(panel != null, "shoe service replaces placeholder")
-	check(not panel._polish_button.disabled, "payment available without card selection")
-	check(panel.find_child("CampaignCards", true, false) == null, "no manual card selector")
+	var bench := scene.event_table.participants_container.get_child(0) as ShoeShinePanel
+	check(bench != null, "identity workbench replaces placeholder")
 	var cards := scene.campaign.gieo_que.persistent_deck
-	var before_polish := scene.campaign.wallet.balance_vnd
-	var polish_quote := scene.campaign.shoe_shine.polish_cost()
-	await click(panel._polish_button)
-	var ids := scene.campaign.shoe_shine.last_polished_ids
-	check(ids.size() == 2 and ids[0] != ids[1], "payment chooses two distinct random cards")
-	for card in cards:
-		check(card.shiny == ids.has(card.unique_id), "only random result cards are polished")
-	check(scene.campaign.wallet.balance_vnd == before_polish - polish_quote, "polish charges wallet")
-	var face := panel.find_child("Face", true, false) as TextureRect
-	check(face != null and face.material.get_shader_parameter("polished") == true, "random result visibly polished")
-	for _i in 4:
-		await click(panel.find_child("Tip", true, false))
-	await create_timer(1.5).timeout
-	check(scene.event_table.conversation.speech.get_parsed_text().contains("%02d" % scene.campaign.lottery.special_number()), "dialogue reveals actual daily Special")
-	check(scene.get_global_rect().encloses(panel.get_global_rect()), "shoe panel fits viewport")
+	bench._choose_card(cards[0].unique_id)
+	check(scene.campaign.shoe_shine.selected_card_ids.size() == 1, "player commits one physical card")
+	var before_work := scene.campaign.wallet.balance_vnd
+	var rank_quote := scene.campaign.shoe_shine.rank_cost()
+	await click(bench._slots[0].rank)
+	await create_timer(0.6).timeout
+	check(scene.campaign.wallet.balance_vnd == before_work - rank_quote, "identity work charges authoritative wallet")
+	check(bench._slots[0].face.texture.resource_path == cards[0].texture_path(), "result shows actual changed identity")
+	check(scene.get_global_rect().encloses(bench.get_global_rect()), "identity bench fits viewport")
 	check_layout(EventTableController.NPC_DANH_GIAY)
 	await capture("misc_shoe")
 	for locale_name in ["en", "vi"]:
 		TranslationServer.set_locale(locale_name)
-		panel._build_shoe()
+		bench._refresh()
 		await process_frame
-		check(not panel._count.text.begins_with("SHOE_"), "selection copy translated")
+		check(not bench._count.text.begins_with("SHOE_"), "selection copy translated")
 	await check_localized_layout(EventTableController.NPC_DANH_GIAY)
 	await click(scene.event_table.back_button)
 	await create_timer(0.4).timeout
@@ -125,7 +117,7 @@ func _run() -> void:
 	await create_timer(0.5).timeout
 	scene.event_table.focus_npc(EventTableController.NPC_LOTTO)
 	await create_timer(0.5).timeout
-	panel = scene.campaign_participants.get_child(0) as MiscNpcPanel
+	var panel := scene.event_table.participants_container.get_child(0) as MiscNpcPanel
 	check(panel != null and panel.lottery != null, "lottery service replaces placeholder")
 	var offers := scene.campaign.lottery.offered_tickets()
 	var chosen: Dictionary = offers[0]
@@ -177,10 +169,8 @@ func _run() -> void:
 	check(scene.campaign.lottery.settle_day().is_empty(), "reopening cannot settle twice")
 	var plain := CardData.new("plain", "K", 13, "Spades", 13)
 	var reused := TextureRect.new()
-	var polished_card: CardData
-	for card in cards:
-		if card.shiny:
-			polished_card = card
+	var polished_card := CardData.new("legacy_polish", "K", 13, "Spades", 13)
+	polished_card.shiny = true
 	GieoCardFX.attach_texture(reused, polished_card)
 	check(reused.material != null, "polished material applied")
 	GieoCardFX.attach_texture(reused, plain)

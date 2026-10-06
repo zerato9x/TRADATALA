@@ -15,6 +15,24 @@ func make_campaign(deal: DealState) -> CampaignManager:
 	deal.start_deal(c.seed_for("deal"))
 	return c
 
+func test_onboarding_observes_committed_authorities_without_ui() -> void:
+	var deal := DealState.new()
+	var campaign := make_campaign(deal)
+	campaign.bind_deal(deal)
+	campaign.bind_deal(deal)
+	campaign.current_phase = CampaignManager.CampaignPhase.NOON_DEAL
+	deal.start_tutorial_deal()
+	var set_cards: Array[CardData] = []
+	for card in deal.hand:
+		if card.rank_index == 9: set_cards.append(card)
+	assert_true(deal.create_meld(set_cards).ok)
+	assert_true(campaign.onboarding.learned.has("new_meld"))
+	assert_true(campaign.onboarding.learned.has("set"))
+	assert_true(campaign.onboarding.learned.has("noon_consequence"))
+	deal.wallet.apply_vnd(-500, "relic_purchase:comb")
+	assert_true(campaign.onboarding.learned.has("relic_purchase"))
+	assert_false(campaign.onboarding.learned.has("selection"), "Only selection intent teaches selection")
+
 func test_exact_day_and_branch_gates_independent_of_unlocks() -> void:
 	var d := DealState.new()
 	var c := make_campaign(d)
@@ -101,9 +119,10 @@ func test_seed_streams_match_and_differ_without_cross_service_coupling() -> void
 	d.start_campaign(true, "different-seed")
 	assert_ne(c.seed_for("deal", 1), d.seed_for("deal", 1))
 
-func test_relic_offer_is_three_seeded_unique_one_purchase_per_visit() -> void:
+func test_relic_offers_are_seeded_unique_and_individually_purchased() -> void:
 	var d := DealState.new()
 	var c := make_campaign(d)
+	c._enter_phase(CampaignManager.CampaignPhase.MORNING_EVENT)
 	var shop := c.relic_shop
 	d.wallet.apply_vnd(1_000_000, "fixture")
 	shop.begin_visit("0:1", c.seed_for("relic", 1), 250_000)
@@ -120,8 +139,12 @@ func test_relic_offer_is_three_seeded_unique_one_purchase_per_visit() -> void:
 	var rejected := shop.offers[1]
 	assert_true(shop.buy(bought))
 	assert_true(d.relics.inventory.has(bought))
-	assert_true(shop.offers.is_empty())
-	assert_false(shop.buy(rejected))
+	assert_eq(shop.offers.size(), 2)
+	assert_false(shop.offers.has(bought))
+	assert_true(shop.offers.has(rejected))
+	assert_true(shop.buy(rejected))
+	assert_eq(shop.offers.size(), 1)
+	assert_false(shop.buy(bought))
 	assert_false(shop.reroll())
 	shop.begin_visit("0:3", c.seed_for("relic", 3), 250_000)
 	assert_eq(shop.offers.size(), 3)
@@ -130,6 +153,7 @@ func test_relic_offer_is_three_seeded_unique_one_purchase_per_visit() -> void:
 func test_file_roundtrip_preserves_identity_rng_shop_events_and_unlocks() -> void:
 	var d := DealState.new()
 	var c := make_campaign(d)
+	c._enter_phase(CampaignManager.CampaignPhase.MORNING_EVENT)
 	c.event_manager.complete_interaction("choose_drink")
 	c.drink_manager.progress.add_progress("melds", 5)
 	c.relic_shop.begin_visit("0:1", 456, 250_000)
@@ -227,9 +251,9 @@ func test_save_preserves_melds_properties_phase_choice_and_pending_gieo() -> voi
 		assert_true(d.discard_card(d.hand[0]).ok, "discard")
 	assert_true(d.settle_phase().ok, "settle")
 	assert_eq(d.state, DealState.STATE_PHASE_CHOICE)
-	c.gieo_que.cast(["D", "D", "A", "D", "A", "D"])
+	c.gieo_que.cast(["P", "P", "P", "P", "P", "P"])
 	c.gieo_que.accept()
-	assert_eq(c.gieo_que.state, GieoQueService.STATE_DESTINATION_SELECTION)
+	assert_eq(c.gieo_que.state, GieoQueService.STATE_TARGET_SELECTION)
 	var save := RunSave.new("user://test_complex.save")
 	assert_true(save.save_run(c, d), "save initial: " + save.error)
 	var loaded := save.load_run()
@@ -246,10 +270,9 @@ func test_save_preserves_melds_properties_phase_choice_and_pending_gieo() -> voi
 	assert_eq(other.settlements[0].net_vnd, d.settlements[0].net_vnd)
 	assert_eq(other.accounting_report().phases[0].net_vnd, d.accounting_report().phases[0].net_vnd)
 	assert_eq(other.physical_card_accounting().unique_ids, 52)
-	assert_eq(restored.gieo_que.state, GieoQueService.STATE_DESTINATION_SELECTION)
+	assert_eq(restored.gieo_que.state, GieoQueService.STATE_TARGET_SELECTION)
 	assert_eq(restored.gieo_que.current_result, c.gieo_que.current_result)
 	assert_eq(restored.gieo_que.current_pull_cost(), c.gieo_que.current_pull_cost())
-	restored.gieo_que.choose_destination("7")
 	restored.gieo_que.choose_target(restored.gieo_que.persistent_deck[0].unique_id)
 	assert_true(save.save_run(restored, other), "save reveal: " + save.error)
 	var resolved := save.load_run()
@@ -261,6 +284,7 @@ func test_save_preserves_melds_properties_phase_choice_and_pending_gieo() -> voi
 func test_relic_reroll_resists_wallet_signal_reentry() -> void:
 	var d := DealState.new()
 	var c := make_campaign(d)
+	c._enter_phase(CampaignManager.CampaignPhase.MORNING_EVENT)
 	d.wallet.apply_vnd(1_000_000, "fixture")
 	c.relic_shop.begin_visit("0:1", 123, 250_000)
 	var listener := func(_a, _b, _delta, reason):

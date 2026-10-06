@@ -166,7 +166,7 @@ func run() -> void:
 	check(not ui.relic_title_label.get_parent().visible, "relic panel hidden")
 	ui.event_table.focus_npc(EventTableController.NPC_TRA_DA)
 	await create_timer(0.5).timeout
-	var shops := ui.campaign_participants.find_children("*", "DrinkShop", true, false)
+	var shops := ui.event_table.participants_container.find_children("*", "DrinkShop", true, false)
 	check(shops.size() == 1, "drink shop exists")
 	if shops.size() == 1:
 		var shop := shops[0] as DrinkShop
@@ -175,17 +175,17 @@ func run() -> void:
 		check(shop.confirm.disabled and shop._goal_label.text.contains("0/5"), "locked drink explains progress and blocks purchase")
 		shop.inspect_drink(DrinkCatalog.TRA_DA)
 		check(not shop.confirm.disabled, "free starter drink order enabled")
-	check(ui.music_controller.playlist.size() == 26, "full jukebox")
-	check(ui.gameplay_music.active_set_id == "cat", "Cat authored default")
-	ui._on_music_system_selected(0)
-	check(not ui.gameplay_music.active, "jukebox switch stops authored routing")
-	ui._on_campaign_day_started({})
+	check(ui.music.controller.playlist.size() == 26, "full jukebox")
+	check(ui.music.conductor.active_set_id == "cat", "Cat authored default")
+	ui.music.select_system(0)
+	check(not ui.music.conductor.active, "jukebox switch stops authored routing")
+	ui.campaign.day_started.emit({})
 	check(ui.settings.music_system == "playing_tracks", "jukebox mode survives day change")
 	ui.campaign.current_phase = CampaignManager.CampaignPhase.MORNING_DEAL
-	ui.tutorial_active = true
+	ui.campaign.current_phase = CampaignManager.CampaignPhase.STARTER_EVENT
 	ui._on_demo_progress_action({"ok": true, "action": "nhan_tran_swap"})
-	check(ui.drink_manager.progress.counters.is_empty(), "tutorial grants no progress")
-	ui.tutorial_active = false
+	check(ui.drink_manager.progress.counters.is_empty(), "Event phase grants no card-action progress")
+	ui.campaign.current_phase = CampaignManager.CampaignPhase.MORNING_DEAL
 	ui._on_demo_progress_action({"ok": true, "action": "nhan_tran_swap"})
 	check(ui.drink_manager.progress.counters.get("nhan_tran_swaps") == 1, "campaign action hook records progress")
 	ui.drink_manager.empty_glasses.assign([DrinkCatalog.TRA_DA, DrinkCatalog.NUOC_VOI])

@@ -4,6 +4,7 @@ extends RefCounted
 const KIND_SET := "set"
 const KIND_RUN := "run"
 const KIND_EXTENSION := "extension"
+static var _coverage_transitions: Dictionary = {}
 
 
 static func analyze(
@@ -13,6 +14,8 @@ static func analyze(
 	draw_count: int
 ) -> Dictionary:
 	var effective_draw_count := clampi(draw_count, 0, draw_pile.size())
+	if hand.any(func(c): return c.negative) or draw_pile.any(func(c): return c.negative) or melds.any(func(m): return m.cards.any(func(c): return c.negative)):
+		return _flexible_analysis(hand, draw_pile, melds, effective_draw_count)
 	var candidates: Array[Dictionary] = []
 	candidates.append_array(_set_candidates(hand, draw_pile, effective_draw_count))
 	candidates.append_array(_run_candidates(hand, draw_pile, effective_draw_count))
@@ -23,6 +26,105 @@ static func analyze(
 		"draw_count": effective_draw_count,
 		"candidates": candidates,
 	}
+
+
+# A state is the set of slot subsets that these distinct physical cards can cover.
+# Drawing one Glitch adds one slot only; it never becomes three imaginary outs.
+static func _advance_coverage(reachable: int, identity_mask: int, slot_count: int) -> int:
+	var key := (slot_count << 16) | (reachable << 8) | identity_mask
+	if _coverage_transitions.has(key): return int(_coverage_transitions[key])
+	var result := reachable
+	for subset in (1 << slot_count):
+		if not (reachable & (1 << subset)): continue
+		for slot in slot_count:
+			var bit := 1 << slot
+			if identity_mask & bit and not subset & bit: result |= 1 << (subset | bit)
+	_coverage_transitions[key] = result
+	return result
+
+static func _identity_mask(card: CardData, ranks: Array[int], suit: String) -> int:
+	var mask := 0
+	for slot in ranks.size():
+		if card.can_represent(ranks[slot], suit): mask |= 1 << slot
+	return mask
+
+# Exact sampling without replacement. Reachable subsets handle overlapping
+# Negative/Glitch identities, whereas ordinary disjoint-rank formulas cannot.
+static func completion_probability(held: Array[CardData], pool: Array[CardData], draws: int, ranks: Array[int], suit: String = "") -> float:
+	var reachable := 1
+	for card in held: reachable = _advance_coverage(reachable, _identity_mask(card, ranks, suit), ranks.size())
+	var full_bit := 1 << ((1 << ranks.size()) - 1)
+	if reachable & full_bit: return 1.0
+	draws = clampi(draws, 0, pool.size())
+	if draws == 0: return 0.0
+	var dp: Array[Dictionary] = []
+	for _count in draws + 1: dp.append({})
+	dp[0][reachable] = 1.0
+	var groups := {}
+	for card in pool:
+		var mask := _identity_mask(card, ranks, suit)
+		groups[mask] = int(groups.get(mask,0)) + 1
+	# Cards with identical legal slots form one hypergeometric group. This
+	# includes irrelevant cards, keeping expanded-deck advice responsive.
+	for mask: int in groups:
+		var next_dp: Array[Dictionary] = []
+		for _count in draws + 1: next_dp.append({})
+		for count in draws + 1:
+			for previous: int in dp[count]:
+				var next := previous
+				for picked in range(mini(int(groups[mask]),draws-count)+1):
+					if picked > 0 and picked <= ranks.size(): next = _advance_coverage(next,mask,ranks.size())
+					var weight := float(dp[count][previous]) * _combination(int(groups[mask]),picked)
+					next_dp[count+picked][next] = float(next_dp[count+picked].get(next,0.0)) + weight
+		dp = next_dp
+	var favorable := 0.0
+	for final: int in dp[draws]:
+		if final & full_bit: favorable += float(dp[draws][final])
+	return clampf(favorable / _combination(pool.size(), draws), 0.0, 1.0)
+
+static func identity_assignment(cards: Array[CardData], ranks: Array[int], suit: String = "") -> Array[CardData]:
+	var owners := {}
+	for index in cards.size(): _assign_identity_slot(index, cards, ranks, suit, owners, {})
+	var chosen: Array[CardData] = []
+	for slot: int in owners: chosen.append(cards[int(owners[slot])])
+	return chosen
+
+static func _assign_identity_slot(index: int, cards: Array[CardData], ranks: Array[int], suit: String, owners: Dictionary, visited: Dictionary) -> bool:
+	for slot in ranks.size():
+		if visited.has(slot) or not cards[index].can_represent(ranks[slot], suit): continue
+		visited[slot] = true
+		if not owners.has(slot) or _assign_identity_slot(int(owners[slot]), cards, ranks, suit, owners, visited):
+			owners[slot] = index
+			return true
+	return false
+
+static func _flexible_analysis(hand: Array[CardData], pool: Array[CardData], melds: Array[MeldState], draws: int) -> Dictionary:
+	var candidates: Array[Dictionary] = []
+	for rank in range(1, 14):
+		var slots: Array[int] = [rank, rank, rank]
+		var owned := identity_assignment(hand, slots)
+		if owned.is_empty(): continue
+		var missing := 3 - owned.size()
+		var needs: Array[String] = []
+		if missing > 0: needs.append(str(missing))
+		candidates.append(_candidate(KIND_SET, "BỘ " + DeckManager.RANKS[rank - 1], owned, needs, 0, missing, completion_probability(hand, pool, draws, slots), "PROBABILITY_SET", [DeckManager.RANKS[rank - 1]]))
+	for suit: String in DeckManager.SUITS:
+		for low in range(1, 12):
+			var slots: Array[int] = [low, low + 1, low + 2]
+			var owned := identity_assignment(hand, slots, suit)
+			if owned.is_empty(): continue
+			var missing := 3 - owned.size()
+			var needs: Array[String] = []
+			if missing > 0: needs.append(str(missing))
+			candidates.append(_candidate(KIND_RUN, "SẢNH %s–%s%s" % [DeckManager.RANKS[low-1], DeckManager.RANKS[low+1], suit_label(suit)], owned, needs, 0, missing, completion_probability(hand,pool,draws,slots,suit), "PROBABILITY_RUN", [DeckManager.RANKS[low-1], DeckManager.RANKS[low+1], suit_label(suit)]))
+	for meld in melds:
+		var owned: Array[CardData] = hand.filter(func(c): return meld.can_extend([c] as Array[CardData]))
+		var outs: int = pool.filter(func(c): return meld.can_extend([c] as Array[CardData])).size()
+		var needs: Array[String] = []
+		if owned.is_empty(): needs.append("1")
+		candidates.append(_extension_candidate(meld,"GHÉP #%02d" % meld.meld_id,owned,needs,outs,1 if owned.is_empty() else 0,1.0 if not owned.is_empty() else probability_at_least(pool.size(),outs,draws,1),"PROBABILITY_EXTEND_CARD",[meld.meld_id, &"compatible_identity"]))
+	candidates.sort_custom(_candidate_before)
+	return {"draw_pile_size": pool.size(),"draw_count":draws,"candidates":candidates}
 
 
 static func best_new_meld_chance_by_card(
@@ -61,7 +163,7 @@ static func _set_candidates(
 		for card in draw_pile:
 			if card.rank == rank:
 				available.append(card)
-		var probability := 1.0 if needed_count == 0 else _probability_at_least(
+		var probability := 1.0 if needed_count == 0 else probability_at_least(
 			draw_pile.size(), available.size(), draw_count, needed_count
 		)
 		var needed_labels: Array[String] = []
@@ -102,7 +204,7 @@ static func _run_candidates(
 					missing_labels.append(_card_label(suit, rank_index))
 			if owned.is_empty():
 				continue
-			var probability := 1.0 if missing_labels.is_empty() else _probability_all_groups(
+			var probability := 1.0 if missing_labels.is_empty() else probability_all_groups(
 				draw_pile.size(), missing_group_counts, draw_count
 			)
 			var outs := missing_group_counts[0] if missing_group_counts.size() == 1 else 0
@@ -111,7 +213,7 @@ static func _run_candidates(
 				"SẢNH %s–%s%s" % [
 					DeckManager.RANKS[start_rank - 1],
 					DeckManager.RANKS[start_rank + 1],
-					_suit_symbol(suit),
+					suit_label(suit),
 				],
 				owned,
 				missing_labels,
@@ -122,7 +224,7 @@ static func _run_candidates(
 				[
 					DeckManager.RANKS[start_rank - 1],
 					DeckManager.RANKS[start_rank + 1],
-					_suit_symbol(suit),
+					suit_label(suit),
 				]
 			))
 	return candidates
@@ -151,7 +253,7 @@ static func _extension_candidates(
 			if owned.is_empty():
 				candidates.append(_extension_candidate(
 					meld, "GHÉP #%02d  BỘ %s" % [meld.meld_id, rank], owned,
-					[rank], outs, 1, _probability_at_least(draw_pile.size(), outs, draw_count, 1),
+					[rank], outs, 1, probability_at_least(draw_pile.size(), outs, draw_count, 1),
 					"PROBABILITY_EXTEND_SET", [meld.meld_id, rank]
 				))
 			else:
@@ -180,7 +282,7 @@ static func _extension_candidates(
 					([label] as Array[String]) if owned.is_empty() else ([] as Array[String]),
 					outs if owned.is_empty() else 0,
 					1 if owned.is_empty() else 0,
-					_probability_at_least(draw_pile.size(), outs, draw_count, 1) if owned.is_empty() else 1.0,
+					probability_at_least(draw_pile.size(), outs, draw_count, 1) if owned.is_empty() else 1.0,
 					"PROBABILITY_EXTEND_CARD", [meld.meld_id, label]
 				))
 	return candidates
@@ -240,7 +342,7 @@ static func _candidate_before(left: Dictionary, right: Dictionary) -> bool:
 	return String(left["label"]) < String(right["label"])
 
 
-static func _probability_at_least(population: int, successes: int, draws: int, needed: int) -> float:
+static func probability_at_least(population: int, successes: int, draws: int, needed: int) -> float:
 	if needed <= 0:
 		return 1.0
 	if population <= 0 or successes < needed or draws < needed:
@@ -258,7 +360,7 @@ static func _probability_at_least(population: int, successes: int, draws: int, n
 	return clampf(total / denominator, 0.0, 1.0)
 
 
-static func _probability_all_groups(population: int, group_counts: Array[int], draws: int) -> float:
+static func probability_all_groups(population: int, group_counts: Array[int], draws: int) -> float:
 	if group_counts.is_empty():
 		return 1.0
 	if population <= 0 or draws < group_counts.size():
@@ -309,15 +411,8 @@ static func _count_cards(cards: Array[CardData], suit: String, rank_index: int) 
 
 
 static func _card_label(suit: String, rank_index: int) -> String:
-	return "%s%s" % [DeckManager.RANKS[rank_index - 1], _suit_symbol(suit)]
+	return "%s%s" % [DeckManager.RANKS[rank_index - 1], suit_label(suit)]
 
 
-static func localized_label(candidate: Dictionary) -> String:
-	var label_key := String(candidate.get("label_key", ""))
-	if label_key.is_empty():
-		return String(candidate.get("label", ""))
-	return String(TranslationServer.translate(label_key)) % candidate.get("label_args", [])
-
-
-static func _suit_symbol(suit: String) -> String:
-	return {"": "", "Spades": "S", "Hearts": "H", "Diamonds": "D", "Clubs": "C", "red": GameGlossary.words(" red", " đỏ"), "black": GameGlossary.words(" black", " đen"), "any": GameGlossary.words(" any suit", " mọi chất")}.get(suit, "?")
+static func suit_label(suit: String) -> String:
+	return {"": "", "Spades": "S", "Hearts": "H", "Diamonds": "D", "Clubs": "C", "red": " red", "black": " black", "any": " any suit"}.get(suit, "?")

@@ -41,7 +41,7 @@ func begin(presentation: MoneyPresentation, balance: int, game_hud: Control, sou
 		var copies := mini(int(entry["count"]), maxi(1, roundi(float(budget) * int(entry["count"]) / maxi(logical_total, 1))))
 		for index in copies:
 			var count := int(entry["count"]) / copies + (1 if index < int(entry["count"]) % copies else 0)
-			var note := presentation._new_bill_stack(int(entry["denomination"]), count, Vector2(88, 39))
+			var note := presentation.create_bill_stack(int(entry["denomination"]), count, Vector2(88, 39))
 			note.pivot_offset = note.size * 0.5
 			add_child(note)
 			notes.append(note)

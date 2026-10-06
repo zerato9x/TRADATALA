@@ -49,17 +49,17 @@ func _run() -> void:
 	scene.deal.melds.append(MeldState.new(818, MeldRules.TYPE_SET, cards))
 	scene._sync_all()
 	var wallet_before := scene.deal.wallet.balance_vnd
-	scene.money_queue_wallet_vnd = wallet_before
+	scene.money_playback.queued_balance = wallet_before
 	scene.deal._resolve_exhaustion(1, 0)
 	var wallet_after := scene.deal.wallet.balance_vnd
 	scene._sync_all()
-	scene._drain_pending_exhaustion_presentations()
-	while scene.money_queue_running:
+	scene.money_feedback.drain_exhaustion()
+	while scene.money_playback.running:
 		await process_frame
 	check(wallet_after > wallet_before, "exhaustion actually paid meld income")
-	check(scene.displayed_wallet_vnd == wallet_after, "exhaustion queue matches paid authority")
+	check(scene.money_playback.displayed_balance == wallet_after, "exhaustion queue matches paid authority")
 	check(scene.deal.wallet.balance_vnd == wallet_after, "exhaustion queue never pays twice")
-	check(scene.pending_exhaustion_presentations.is_empty(), "exhaustion queue drained")
+	check(not scene.money_feedback.has_pending_exhaustion(), "exhaustion queue drained")
 	presenter.present_transaction({"reason": "u", "title": "Ù!", "amount_vnd": 100000, "target_wallet_vnd": 999000})
 	await create_timer(0.2).timeout
 	presenter.hide_ceremony()

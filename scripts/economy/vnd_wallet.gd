@@ -5,6 +5,7 @@ signal balance_changed(previous_vnd: int, current_vnd: int, delta_vnd: int, reas
 
 const VND_PER_POINT := 1000
 
+var _transaction_active := false
 var journal: Array[Dictionary] = []
 var journal_opening_vnd: int = 0
 var economy_scaling := false
@@ -32,6 +33,23 @@ func apply_vnd(amount_vnd: int, reason: String = "adjustment") -> int:
 	journal.append({"reason": reason, "amount_vnd": amount_vnd, "before_vnd": previous, "after_vnd": balance_vnd})
 	balance_changed.emit(previous, balance_vnd, amount_vnd, reason)
 	return amount_vnd
+
+
+# Debit first; publish only after the service commits its complete state.
+# A rejected mutation leaves both the balance and journal untouched.
+func try_spend_and_commit(cost_vnd: int, reason: String, commit: Callable) -> bool:
+	if _transaction_active or cost_vnd <= 0 or balance_vnd < cost_vnd or not commit.is_valid(): return false
+	_transaction_active = true
+	var previous := balance_vnd
+	balance_vnd -= cost_vnd
+	if not commit.call():
+		balance_vnd = previous
+		_transaction_active = false
+		return false
+	journal.append({"reason": reason, "amount_vnd": -cost_vnd, "before_vnd": previous, "after_vnd": balance_vnd})
+	balance_changed.emit(previous, balance_vnd, -cost_vnd, reason)
+	_transaction_active = false
+	return true
 
 
 static func points_to_vnd(points: int, rate_vnd_per_point: int = VND_PER_POINT) -> int:

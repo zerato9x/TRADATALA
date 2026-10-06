@@ -42,7 +42,6 @@ var full_mix_player: AudioStreamPlayer
 var beat_detector: MusicBeatDetector
 var music_director: MusicDirector
 var anti_fatigue: MusicAntiFatigue
-var stem_players: Dictionary = {}
 var mix_players: Array[AudioStreamPlayer] = []
 var playlist: Array[Dictionary] = []
 var active_mix_index: int = 0
@@ -70,7 +69,6 @@ var current_mix_path: String = ""
 @export var music_bus_muted: bool = false
 @export var master_bus_muted: bool = false
 @export var anti_fatigue_enabled: bool = true
-@export var anti_fatigue_debug_logging: bool = false
 
 
 func _ready() -> void:
@@ -82,12 +80,11 @@ func _ready() -> void:
 	anti_fatigue.name = "MusicAntiFatigue"
 	anti_fatigue.bus_name = MUSIC_BUS
 	anti_fatigue.enabled = anti_fatigue_enabled
-	anti_fatigue.debug_logging = anti_fatigue_debug_logging
 	add_child(anti_fatigue)
 	mix_players.append(_create_mix_player("FullMixA", 0))
 	mix_players.append(_create_mix_player("FullMixB", 1))
 	full_mix_player = mix_players[active_mix_index]
-	stem_players[&"full_mix"] = full_mix_player
+
 	beat_detector = MusicBeatDetector.new()
 	beat_detector.name = "BeatDetector"
 	beat_detector.bus_name = MUSIC_BUS
@@ -142,7 +139,7 @@ func _exit_tree() -> void:
 		music_director.stop()
 	if anti_fatigue != null:
 		anti_fatigue.reset_variation(false)
-	stem_players.clear()
+
 
 
 func _build_playlist() -> void:
@@ -261,7 +258,7 @@ func start_dj_track(track_id: String, cue_id: String) -> bool:
 	dj_mode = true
 	queued_track_index = -1
 	full_mix_player = music_director.audio_player
-	stem_players[&"full_mix"] = full_mix_player
+
 	full_mix_player.stream_paused = music_paused
 	_apply_dj_track_metadata(track_id)
 	return true
@@ -309,7 +306,7 @@ func restore_snapshot(data: Dictionary) -> bool:
 		if not data.get("transport") is Dictionary or not music_director.restore_snapshot(data.transport):
 			return false
 		full_mix_player = music_director.audio_player
-		stem_players[&"full_mix"] = full_mix_player
+
 		# The source may already have finished while the authored route stays active.
 		var track_id := String(data.transport.get("track", ""))
 		if track_id.is_empty():
@@ -520,7 +517,7 @@ func _apply_active_track(player: AudioStreamPlayer, track_index: int) -> void:
 	var request := playlist[track_index]
 	queued_track_index = -1
 	full_mix_player = player
-	stem_players[&"full_mix"] = player
+
 	current_track_index = track_index
 	current_theme_id = request["theme_id"]
 	current_variant = int(request["variant"])
@@ -541,9 +538,3 @@ func _stop_all_mix_players() -> void:
 		player.stop()
 		player.stream = null
 		player.volume_db = 0.0
-
-
-func set_stem_volume_db(stem_id: StringName, volume_db: float) -> void:
-	var player := stem_players.get(stem_id) as AudioStreamPlayer
-	if player != null:
-		player.volume_db = volume_db

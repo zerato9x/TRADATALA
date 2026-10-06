@@ -31,6 +31,23 @@ static func create_suit_icon(suit: String, size: Vector2 = Vector2(12, 12), tint
 static func create_meld_icon(size: Vector2 = Vector2(16, 16), tint: Color = Color.WHITE) -> TextureRect:
 	return _create_icon(MELD_TEXTURE, size, tint, "MeldSymbol")
 
+static func create_card_badge(card: CardData, pixels: int = 22) -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.name = "CardInfo_" + card.unique_id
+	row.set_meta("physical_card_id", card.unique_id)
+	row.add_theme_constant_override("separation", 4)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var rank := Label.new()
+	rank.text = card.rank
+	rank.set_meta("text_role", &"card")
+	rank.set_meta("text_suit", card.suit)
+	PresentationTheme.style_text(rank, &"card", pixels)
+	rank.add_theme_color_override("font_color", PresentationTheme.suit_color(card.suit))
+	rank.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(rank)
+	row.add_child(create_suit_icon(card.suit, Vector2.ONE * maxi(12, roundi(pixels * 0.75)), PresentationTheme.suit_color(card.suit)))
+	return row
+
 
 static func tint_icon(icon: TextureRect, tint: Color) -> void:
 	if icon == null:

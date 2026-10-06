@@ -30,35 +30,18 @@ var phase: int = 1
 var is_last_call: bool = false
 
 
-func qualifying_gold(card: CardData) -> Array[String]:
-	var result: Array[String] = []
-	var newly_committed := action_type == "new_meld" or (action_type == "extension" and added_cards.has(card))
-	for property_id: String in GieoQueService.GOLD_PROPERTIES:
-		if not card.has_gieo_property(property_id):
-			continue
-		var qualifies := false
-		match property_id:
-			GieoQueService.PROPERTY_GOLD_MAKING_PHOM:
-				qualifies = action_type == "new_meld"
-			GieoQueService.PROPERTY_GOLD_EXTEND:
-				qualifies = action_type == "extension" and newly_committed
-			GieoQueService.PROPERTY_GOLD_SET:
-				qualifies = meld_type == MeldRules.TYPE_SET
-			GieoQueService.PROPERTY_GOLD_RUN:
-				qualifies = meld_type == MeldRules.TYPE_RUN
-			GieoQueService.PROPERTY_GOLD_BIG_PHOM:
-				qualifies = cards.size() >= 4
-			GieoQueService.PROPERTY_GOLD_LAST_CALL:
-				qualifies = is_last_call and newly_committed
-		if qualifies:
-			result.append(property_id)
-	return result
-
-
 func value_equation() -> String:
 	var values: Array[String] = []
 	for card in cards:
-		values.append(str(card.score_value()))
-		for _property in qualifying_gold(card):
-			values.append(str(card.score_value()))
+		values.append("%d×%d" % [card.intrinsic_value(), card.fortune] if card.fortune > 1 else str(card.intrinsic_value()))
 	return " + ".join(values)
+
+# Object-table fields in run envelopes V1-V3, including shared CardData references.
+const RUN_SAVE_FIELDS_V3 := ["action_type", "suppression_reason", "meld_type", "cards", "added_cards", "old_meld_score", "card_value_sum", "base_score", "local_mult", "flat_adjustment_points", "retrigger_count", "trigger_origin", "trigger_reason", "trigger_index", "scoring_passes", "presentation_hits", "relic_bonuses", "boss_transactions", "retrigger_source_id", "retrigger_property", "base_extension_score", "theoretical_score", "final_points", "phase", "is_last_call"]
+const RUN_SNAPSHOT_FIELDS := preload("res://scripts/campaign/run_snapshot_fields.gd")
+
+func run_value_snapshot() -> Dictionary:
+	return RUN_SNAPSHOT_FIELDS.fields(self, RUN_SAVE_FIELDS_V3)
+
+func restore_run_value(data: Dictionary) -> void:
+	RUN_SNAPSHOT_FIELDS.apply_fields(self, data, RUN_SAVE_FIELDS_V3)

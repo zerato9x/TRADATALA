@@ -37,7 +37,7 @@ func _creation(id: String, count: int, kind: String = "set", suit: String = "Spa
 
 func test_hair_clip_once_with_native_and_gieo_retriggers() -> void:
 	var cards := _cards(4)
-	cards[0].add_gieo_property(GieoQueService.PROPERTY_MELD_RETRIGGER)
+	cards[0].add_jackpot(CardData.JACKPOT_LIQUID)
 	var deal := _deal(["hair_clip"], cards)
 	var context: ScoringContext = deal.create_meld(cards).context
 	assert_eq(context.scoring_passes.size(), 3)
@@ -52,7 +52,7 @@ func test_comb_counts_only_new_run_cards() -> void:
 
 func test_rubber_band_once_per_extension_with_multiple_passes() -> void:
 	var cards := _cards(4)
-	cards[0].add_gieo_property(GieoQueService.PROPERTY_MELD_RETRIGGER)
+	cards[0].add_jackpot(CardData.JACKPOT_LIQUID)
 	var deal := _deal(["rubber_band"], cards)
 	var created := deal.create_meld(cards.slice(0, 3))
 	assert_eq(created.context.relic_bonuses.size(), 0)
@@ -146,7 +146,7 @@ func test_four_compatible_relics_stack_and_use_wallet_conversion() -> void:
 func test_relic_rate_scales_with_scoring_without_changing_points() -> void:
 	var plain_cards := _cards(3)
 	var powered_cards := _cards(3)
-	powered_cards[0].add_gieo_property(GieoQueService.PROPERTY_MELD_RETRIGGER)
+	powered_cards[0].add_jackpot(CardData.JACKPOT_LIQUID)
 	var plain := _deal(["hair_clip"], plain_cards)
 	var powered := _deal(["hair_clip"], powered_cards)
 	var plain_context: ScoringContext = plain.create_meld(plain_cards).context
@@ -224,7 +224,7 @@ func test_u_doubles_committed_relic_vnd_and_resume_keeps_rate_totals() -> void:
 
 func test_relics_leave_intrinsic_delta_and_all_passes_unchanged() -> void:
 	var cards := _cards(4)
-	cards[0].add_gieo_property(GieoQueService.PROPERTY_MELD_RETRIGGER)
+	cards[0].add_jackpot(CardData.JACKPOT_LIQUID)
 	var baseline := _deal([], cards)
 	var enhanced := _deal(["hair_clip", "buttons", "rubber_band", "chewing_gum"], cards)
 	var plain := baseline.create_meld(cards.slice(0, 3))
@@ -242,20 +242,21 @@ func test_relics_leave_intrinsic_delta_and_all_passes_unchanged() -> void:
 		assert_eq(a.scoring_passes[index].trigger_origin, b.scoring_passes[index].trigger_origin)
 		assert_eq(b.scoring_passes[index].relic_bonuses.size(), 0)
 
-func test_inventory_rejects_fifth_unknown_and_duplicate_equipment() -> void:
+func test_every_owned_relic_is_active_without_equipment_cap() -> void:
 	var runtime := RelicRuntime.new()
 	assert_false(runtime.equip("hair_clip"))
 	assert_false(runtime.acquire("unknown"))
 	for id: String in RelicCatalog.DEFINITIONS:
 		assert_true(runtime.acquire(id))
-	for id in ["hair_clip", "comb", "buttons", "rubber_band"]:
-		assert_true(runtime.equip(id))
+		assert_true(runtime.equipped.has(id))
 	assert_true(runtime.equip("hair_clip"))
-	assert_false(runtime.equip("lipstick"))
-	assert_eq(runtime.equipped.size(), 4)
-	runtime.remove("comb")
-	assert_true(runtime.equip("lipstick"))
-	assert_eq(runtime.inventory.size(), 10)
+	assert_eq(runtime.equipped.size(), RelicCatalog.DEFINITIONS.size())
+	assert_eq(runtime.inventory.size(), RelicCatalog.DEFINITIONS.size())
+	assert_true(runtime.gift("comb"))
+	assert_false(runtime.inventory.has("comb"))
+	assert_false(runtime.equipped.has("comb"))
+	assert_true(runtime.acquire("comb"))
+	assert_true(runtime.equipped.has("comb"))
 
 func test_failed_actions_and_previews_do_not_trigger_or_advance_gum() -> void:
 	var cards := _cards(4)

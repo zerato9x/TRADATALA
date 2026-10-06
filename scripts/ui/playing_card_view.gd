@@ -8,6 +8,7 @@ const CARD_SIZE := Vector2(86, 119)
 const DRAG_THRESHOLD := 12.0
 const CardActionOutlineScript := preload("res://scripts/ui/card_action_outline.gd")
 const CardSymbolArtScript := preload("res://scripts/ui/card_symbol_art.gd")
+static var _keyboard_navigation := false
 
 var card: CardData
 var selected: bool = false
@@ -40,6 +41,12 @@ var _zodiac_lock: Panel
 var _zodiac_smoke: ColorRect
 var _zodiac_cue: Control
 var _zodiac_tip := ""
+var _focus_inspection: Control
+var _pose_initialized := false
+var _pose_position := Vector2.ZERO
+var _pose_rotation := 0.0
+var _pose_scale := Vector2.ONE
+var _pose_modulate := Color.WHITE
 
 func set_zodiac_hint(hint: Dictionary) -> void:
 	_zodiac_tip = String(hint.get("detail", ""))
@@ -82,15 +89,24 @@ func _ready() -> void:
 	size = CARD_SIZE
 	pivot_offset = CARD_SIZE * 0.5
 	mouse_filter = Control.MOUSE_FILTER_STOP
+	focus_mode = Control.FOCUS_ALL
 	mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	_build_visuals()
 	mouse_entered.connect(_on_mouse_entered)
 	mouse_exited.connect(_on_mouse_exited)
+	focus_entered.connect(_on_focus_entered)
+	focus_exited.connect(_hide_focus_inspection)
+	tree_exiting.connect(_hide_focus_inspection)
+	visibility_changed.connect(_on_visibility_changed)
 	_apply_card_texture()
 
 
 func _process(_delta: float) -> void:
+	# Hiding a layer or moving a card under the pointer need not emit mouse_exited.
+	if _hovered and not _press_active and get_viewport().gui_get_hovered_control() != self:
+		_on_mouse_exited()
+	if is_instance_valid(_focus_inspection): _position_focus_inspection()
 	if _texture != null and card != null:
 		var phase := float(absi(card.unique_id.hash()) % 10000) * 0.01
 		_texture.pivot_offset = CARD_SIZE * 0.5
@@ -101,6 +117,7 @@ func set_card(value: CardData) -> void:
 	card = value
 	_refresh_tooltip()
 	_apply_card_texture()
+	if is_inside_tree() and has_focus() and _keyboard_navigation: _show_focus_inspection()
 
 
 func set_meld_chance(probability: float, is_ready: bool, target_label: String, needed_text: String, draw_count: int) -> void:
@@ -163,6 +180,7 @@ func play_beat_pulse(strength: float) -> void:
 
 
 func set_selected(value: bool, animate: bool = true) -> void:
+	if selected == value: return
 	selected = value
 	_refresh_z_index()
 	_update_pose(animate)
@@ -174,23 +192,24 @@ func set_stack_order(value: int) -> void:
 
 
 func set_interaction_enabled(enabled: bool) -> void:
+	if _interaction_enabled == enabled: return
 	_interaction_enabled = enabled
 	mouse_filter = Control.MOUSE_FILTER_STOP if enabled else Control.MOUSE_FILTER_IGNORE
+	focus_mode = Control.FOCUS_ALL if enabled else Control.FOCUS_NONE
 	mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND if enabled else Control.CURSOR_ARROW
 	_refresh_probability_visibility()
 	_refresh_action_outline()
 	_refresh_tooltip()
-	if not enabled and _hovered:
-		_hovered = false
-		_refresh_z_index()
-		_update_pose(true)
 	if not enabled:
-		finish_drag_interaction()
+		clear_transient_interaction()
 
 
 func finish_drag_interaction() -> void:
 	_press_active = false
 	_dragging = false
+	_hide_focus_inspection()
+	_hovered = _interaction_enabled and is_visible_in_tree() and get_viewport().gui_get_hovered_control() == self
+	_refresh_probability_visibility()
 	_refresh_z_index()
 	_update_pose(true)
 
@@ -201,7 +220,14 @@ func layout_to(target_position: Vector2, target_rotation: float, animate: bool =
 	_update_pose(animate)
 
 
+func layout_in_hand(target_position: Vector2, target_rotation: float, is_selected: bool, animate: bool = true) -> void:
+	selected = is_selected
+	_refresh_z_index()
+	layout_to(target_position, target_rotation, animate)
+
+
 func spawn_from(local_origin: Vector2) -> void:
+	_pose_initialized = false
 	position = local_origin - CARD_SIZE * 0.5
 	rotation = -0.16
 	scale = Vector2(0.76, 0.76)
@@ -295,21 +321,102 @@ func _refresh_tooltip() -> void:
 	if not _interaction_enabled or card == null:
 		tooltip_text = ""
 		return
-	tooltip_text = tr("CARD_POINTS") % [card.short_label(), card.score_value()]
-	if card.shiny:
-		tooltip_text += "\n" + tr("CARD_SHINY_DESC")
-	var gieo_descriptions := card.gieo_property_descriptions()
-	if not gieo_descriptions.is_empty():
-		tooltip_text += "\n\n" + tr("GIEO_TITLE") + "\n" + "\n".join(gieo_descriptions)
-	if not _chance_tooltip.is_empty():
-		tooltip_text += "\n" + _chance_tooltip
-	if not _zodiac_tip.is_empty(): tooltip_text += "\n\n" + _zodiac_tip
+	tooltip_text = card.inspection_text()
+	if card.shiny: tooltip_text += " · " + ZodiacCatalog.words("Shiny", "Sáng bóng")
+	if zodiac_locked: tooltip_text += "\n" + ZodiacCatalog.words("Locked", "Bị khóa")
+
+
+func _make_custom_tooltip(_for_text: String) -> Object:
+	return CardInspection.tooltip(card) if card != null else null
+
+
+func _get_tooltip(_at_position: Vector2) -> String:
+	return "" if _dragging or not _interaction_enabled or is_instance_valid(_focus_inspection) else tooltip_text
+
+
+func _on_focus_entered() -> void:
+	if _keyboard_navigation: _show_focus_inspection()
+
+
+func _show_focus_inspection() -> void:
+	_hide_focus_inspection()
+	if card == null or not _interaction_enabled: return
+	_focus_inspection = CardInspection.tooltip(card)
+	_focus_inspection.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_focus_inspection.z_index = 4090
+	_focus_inspection.top_level = true
+	add_child(_focus_inspection)
+	_position_focus_inspection()
+
+
+func _position_focus_inspection() -> void:
+	var dimensions := _focus_inspection.get_combined_minimum_size()
+	var transform := get_global_transform()
+	var rect := Rect2(transform * Vector2.ZERO, Vector2.ZERO)
+	for corner in [Vector2(size.x, 0), size, Vector2(0, size.y)]: rect = rect.expand(transform * corner)
+	var viewport := get_viewport_rect().size
+	var y := rect.position.y - dimensions.y - 12.0
+	if y < 8.0: y = rect.end.y + 12.0
+	_focus_inspection.global_position = Vector2(
+		clampf(rect.get_center().x - dimensions.x * 0.5, 8.0, maxf(8.0, viewport.x - dimensions.x - 8.0)),
+		clampf(y, 8.0, maxf(8.0, viewport.y - dimensions.y - 8.0)))
+	_focus_inspection.size = dimensions
+
+
+func _hide_focus_inspection() -> void:
+	if is_instance_valid(_focus_inspection):
+		_focus_inspection.hide()
+		_focus_inspection.queue_free()
+	_focus_inspection = null
+
+
+func _input(event: InputEvent) -> void:
+	# GUI relayout emits zero-travel mouse motion. It does not change input mode.
+	var pointer_motion: bool = event is InputEventMouseMotion and (not event.relative.is_zero_approx() or not event.screen_relative.is_zero_approx())
+	if pointer_motion or event is InputEventMouseButton or event is InputEventScreenTouch or event is InputEventScreenDrag:
+		_keyboard_navigation = false
+		_hide_focus_inspection()
+	elif event is InputEventKey or event is InputEventJoypadButton or event is InputEventJoypadMotion:
+		if event.is_action_pressed("ui_focus_next") or event.is_action_pressed("ui_focus_prev") or event.is_action_pressed("ui_up") or event.is_action_pressed("ui_down") or event.is_action_pressed("ui_left") or event.is_action_pressed("ui_right") or event.is_action_pressed("ui_accept"):
+			_keyboard_navigation = true
+			if has_focus() and not is_instance_valid(_focus_inspection): _show_focus_inspection()
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and not event.pressed and _press_active and not _dragging:
+		_cancel_unreleased_press.call_deferred()
+
+
+func _cancel_unreleased_press() -> void:
+	# GUI delivery runs after _input; a release outside the card cancels the press.
+	if _press_active and not _dragging: finish_drag_interaction()
+
+
+func _on_visibility_changed() -> void:
+	if is_node_ready() and not is_visible_in_tree(): clear_transient_interaction()
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_WINDOW_FOCUS_OUT and is_node_ready():
+		_keyboard_navigation = false
+		clear_transient_interaction()
+
+
+func clear_transient_interaction() -> void:
+	_hide_focus_inspection()
+	if has_focus(): release_focus()
+	_hovered = false
+	_press_active = false
+	_dragging = false
+	_refresh_probability_visibility()
+	_refresh_z_index()
+	_update_pose(true)
 
 
 func _gui_input(event: InputEvent) -> void:
-	if not _interaction_enabled or zodiac_locked:
+	if not _interaction_enabled or zodiac_locked or card == null:
 		return
-	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+	if event.is_action_pressed("ui_accept") and not event.is_echo():
+		accept_event()
+		card_pressed.emit(card)
+	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		accept_event()
 		if event.pressed:
 			_press_active = true
@@ -319,7 +426,7 @@ func _gui_input(event: InputEvent) -> void:
 			var was_dragging := _dragging
 			_press_active = false
 			_dragging = false
-			if not was_dragging:
+			if not was_dragging and Rect2(Vector2.ZERO, size).has_point(event.position):
 				card_pressed.emit(card)
 			_refresh_z_index()
 			_update_pose(true)
@@ -328,6 +435,9 @@ func _gui_input(event: InputEvent) -> void:
 		# Measure pointer travel in canvas coordinates, never moving card coordinates.
 		if drag_enabled and not _dragging and (get_global_transform() * event.position).distance_to(_press_position) >= DRAG_THRESHOLD:
 			_dragging = true
+			_hovered = false
+			_hide_focus_inspection()
+			_refresh_probability_visibility()
 			_refresh_z_index()
 			_update_pose(true)
 			card_drag_started.emit(card, get_global_mouse_position())
@@ -337,6 +447,7 @@ func _gui_input(event: InputEvent) -> void:
 
 
 func _on_mouse_entered() -> void:
+	if not _interaction_enabled or not is_visible_in_tree() or _dragging: return
 	_hovered = true
 	_refresh_probability_visibility()
 	_refresh_z_index()
@@ -381,6 +492,12 @@ func _update_pose(animate: bool) -> void:
 	var target_scale := Vector2.ONE * (1.07 if _hovered else (1.035 if selected else 1.0))
 	var target_rotation := base_rotation if not _hovered else rotation
 	var target_modulate := Color(1, 1, 1, 0.42) if _dragging else Color.WHITE
+	if animate and _pose_initialized and _pose_position.is_equal_approx(target_position) and is_equal_approx(_pose_rotation, target_rotation) and _pose_scale.is_equal_approx(target_scale) and _pose_modulate.is_equal_approx(target_modulate): return
+	_pose_initialized = true
+	_pose_position = target_position
+	_pose_rotation = target_rotation
+	_pose_scale = target_scale
+	_pose_modulate = target_modulate
 	if _motion_tween != null and _motion_tween.is_running():
 		_motion_tween.kill()
 	if not animate:

@@ -4,17 +4,7 @@ extends VBoxContainer
 signal wallet_changed()
 signal dialogue_requested(message: String)
 
-var shoe: ShoeShineService
 var lottery: LotteryService
-var _polish_button: Button
-var _count: Label
-
-func configure_shoe(service: ShoeShineService) -> void:
-	name = "ShoeShinePanel"
-	shoe = service
-	add_theme_constant_override("separation", 10)
-	_build_shoe()
-	call_deferred("_speak_hint")
 
 func configure_lottery(service: LotteryService) -> void:
 	name = "LotteryPanel"
@@ -36,88 +26,6 @@ func _label(text: String, font_size: int = 16) -> Label:
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	add_child(label)
 	return label
-
-func _build_shoe() -> void:
-	_clear()
-	_label(tr("SHOE_CHOOSE"), 21)
-	var display := HBoxContainer.new()
-	display.name = "PolishedCards"
-	display.alignment = BoxContainer.ALIGNMENT_CENTER
-	display.custom_minimum_size.y = 180
-	display.add_theme_constant_override("separation", 24)
-	add_child(display)
-	for index in 2:
-		var holder := PanelContainer.new()
-		holder.custom_minimum_size = Vector2(112, 156)
-		holder.add_theme_stylebox_override("panel", PresentationTheme.panel_style(Color("#182839"), PresentationTheme.MUTED, 1, 2, 0))
-		display.add_child(holder)
-		if shoe.last_polished_ids.size() == 2:
-			for card in shoe.cards():
-				if card.unique_id != shoe.last_polished_ids[index]:
-					continue
-				var face := TextureRect.new()
-				face.name = "Face"
-				face.texture = load(card.texture_path())
-				face.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-				face.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-				face.mouse_filter = Control.MOUSE_FILTER_IGNORE
-				holder.add_child(face)
-				GieoCardFX.attach_texture(face, card)
-		else:
-			var mark := Label.new()
-			mark.text = "?"
-			mark.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-			mark.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-			mark.add_theme_font_size_override("font_size", 42)
-			holder.add_child(mark)
-	_count = _label(tr("SHOE_RANDOM_READY") if shoe.last_polished_ids.is_empty() else tr("SHOE_RANDOM_DONE"), 16)
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 14)
-	add_child(row)
-	_polish_button = Button.new()
-	_polish_button.name = "PolishConfirm"
-	_polish_button.tooltip_text = GameGlossary.words("2% of current wallet (minimum 10.000 VNĐ), rounded to 500 VNĐ; daily purchase multiplier: ", "2% ví hiện tại (tối thiểu 10.000 VNĐ), làm tròn 500 VNĐ; hệ số mua trong ngày: ") + str(shoe.polish_count_today + 1) + "×"
-	_polish_button.text = tr("SHOE_POLISH") % VndWallet.format_vnd(-shoe.polish_cost())
-	_polish_button.tooltip_text = tr("CARD_SHINY_DESC")
-	_polish_button.custom_minimum_size = Vector2(300, 44)
-	row.add_child(_polish_button)
-	_polish_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	PresentationTheme.configure_button(_polish_button, "gold")
-	_polish_button.pressed.connect(_polish)
-	var tip := Button.new()
-	tip.name = "Tip"
-	tip.tooltip_text = GameGlossary.words("1% of current wallet (minimum 5.000 VNĐ); daily tip multiplier: ", "1% ví hiện tại (tối thiểu 5.000 VNĐ); hệ số boa trong ngày: ") + str(shoe.tip_count_today + 1) + "×"
-	tip.text = tr("SHOE_TIP") % VndWallet.format_vnd(-shoe.tip_cost())
-	tip.custom_minimum_size = Vector2(260, 44)
-	tip.disabled = not shoe.can_tip()
-	row.add_child(tip)
-	tip.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	PresentationTheme.configure_button(tip)
-	tip.pressed.connect(_tip)
-	_polish_button.disabled = not shoe.can_polish()
-
-func _polish() -> void:
-	if not shoe.polish().get("ok", false):
-		return
-	_build_shoe()
-	wallet_changed.emit()
-	dialogue_requested.emit(tr("SHOE_DONE"))
-func _tip() -> void:
-	if not shoe.tip().get("ok", false):
-		return
-	_build_shoe()
-	wallet_changed.emit()
-	if not _speak_hint():
-		dialogue_requested.emit(tr("SHOE_THANKS"))
-
-func _speak_hint() -> bool:
-	if shoe == null:
-		return false
-	var hint := shoe.special_hint()
-	if hint.is_empty():
-		return false
-	dialogue_requested.emit(tr("SHOE_HINT") % int(hint.number))
-	return true
 
 func _build_lottery() -> void:
 	_clear()

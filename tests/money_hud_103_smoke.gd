@@ -10,7 +10,6 @@ func _run() -> void:
 	root.add_child(scene)
 	current_scene = scene
 	await process_frame
-	scene.get_node("TitleScreen").queue_free()
 	scene.game_started = true
 	scene.game_layer.position = Vector2.ZERO
 	scene.menu_layer.hide()
@@ -23,7 +22,7 @@ func _run() -> void:
 	scene._refresh_stats()
 	await create_timer(0.2).timeout
 	check(scene.campaign_money_hud.income_panel.is_visible_in_tree(), "income is visible during a Deal")
-	check(scene.earnings_value.text == VndWallet.format_amount(scene._points_to_vnd(scene.deal.current_deal_earnings_points()), true), "income shows authoritative current-deal earnings")
+	check(scene.earnings_value.text == VndWallet.format_amount(VndWallet.points_to_vnd(scene.deal.current_deal_earnings_points(), scene.deal.vnd_per_point), true), "income shows authoritative current-deal earnings")
 	for viewport in [Vector2i(1280, 720), Vector2i(1920, 1080), Vector2i(2548, 1368), Vector2i(1280, 720)]:
 		root.size = viewport
 		for amount: int in [0, 1234567, -75000, 999999999]:

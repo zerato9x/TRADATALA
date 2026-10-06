@@ -1,28 +1,28 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://brom623us6kjf"]
 
-[ext_resource type="Texture2D" path="res://cards/four_of_hearts.png" id="1_e0hcc"]
-[ext_resource type="Texture2D" path="res://cards/five_of_hearts.png" id="2_qch7b"]
-[ext_resource type="Texture2D" path="res://cards/six_of_hearts.png" id="3_4ovp2"]
-[ext_resource type="Texture2D" path="res://cards/nine_of_spades.png" id="4_1mexh"]
-[ext_resource type="Texture2D" path="res://cards/nine_of_hearts.png" id="5_6ud2m"]
-[ext_resource type="Texture2D" path="res://cards/nine_of_diamonds.png" id="6_qqxfm"]
-[ext_resource type="Texture2D" path="res://cards/seven_of_clubs.png" id="7_ktljq"]
-[ext_resource type="Texture2D" path="res://cards/eight_of_clubs.png" id="8_rbask"]
-[ext_resource type="Texture2D" path="res://cards/nine_of_clubs.png" id="9_e6a60"]
-[ext_resource type="Texture2D" path="res://cards/ten_of_clubs.png" id="10_5et21"]
-[ext_resource type="Texture2D" path="res://cards/queen_of_diamonds.png" id="11_ei00g"]
-[ext_resource type="Texture2D" path="res://cards/red_backing.png" id="12_75tx2"]
-[ext_resource type="Texture2D" path="res://cards/seven_of_hearts.png" id="13_j4d8q"]
-[ext_resource type="Texture2D" path="res://cards/two_of_clubs.png" id="14_qpknu"]
-[ext_resource type="Texture2D" path="res://cards/five_of_diamonds.png" id="15_wabu5"]
-[ext_resource type="Texture2D" path="res://cards/eight_of_spades.png" id="16_3e805"]
-[ext_resource type="Texture2D" path="res://cards/queen_of_hearts.png" id="17_dwgav"]
-[ext_resource type="Texture2D" path="res://cards/king_of_spades.png" id="18_bvtfn"]
-[ext_resource type="Texture2D" path="res://cards/ace_of_clubs.png" id="19_r6ok0"]
-[ext_resource type="Texture2D" path="res://cards/two_of_spades.png" id="20_oq1mw"]
-[ext_resource type="Texture2D" path="res://cards/two_of_hearts.png" id="21_cc4y2"]
-[ext_resource type="Texture2D" path="res://cards/two_of_diamonds.png" id="22_iglv2"]
-[ext_resource type="Texture2D" path="res://cards/five_of_clubs.png" id="23_c68a3"]
+[ext_resource type="Texture2D" uid="uid://c8i32mtik0ly6" path="res://cards/four_of_hearts.png" id="1_e0hcc"]
+[ext_resource type="Texture2D" uid="uid://cxcodg5kxhgs0" path="res://cards/five_of_hearts.png" id="2_qch7b"]
+[ext_resource type="Texture2D" uid="uid://cishg14euff5e" path="res://cards/six_of_hearts.png" id="3_4ovp2"]
+[ext_resource type="Texture2D" uid="uid://dm3e2j3ho2vrs" path="res://cards/nine_of_spades.png" id="4_1mexh"]
+[ext_resource type="Texture2D" uid="uid://ch2c4m3y823du" path="res://cards/nine_of_hearts.png" id="5_6ud2m"]
+[ext_resource type="Texture2D" uid="uid://ddd3p5lf6m2o" path="res://cards/nine_of_diamonds.png" id="6_qqxfm"]
+[ext_resource type="Texture2D" uid="uid://jdpnxp61pwu4" path="res://cards/seven_of_clubs.png" id="7_ktljq"]
+[ext_resource type="Texture2D" uid="uid://d2svwmoml7dbs" path="res://cards/eight_of_clubs.png" id="8_rbask"]
+[ext_resource type="Texture2D" uid="uid://d1pern4r8lmsm" path="res://cards/nine_of_clubs.png" id="9_e6a60"]
+[ext_resource type="Texture2D" uid="uid://5xcp65nd38r8" path="res://cards/ten_of_clubs.png" id="10_5et21"]
+[ext_resource type="Texture2D" uid="uid://canekw4tu06in" path="res://cards/queen_of_diamonds.png" id="11_ei00g"]
+[ext_resource type="Texture2D" uid="uid://dumicjecjnx2e" path="res://cards/red_backing.png" id="12_75tx2"]
+[ext_resource type="Texture2D" uid="uid://dsxioypbk1v8r" path="res://cards/seven_of_hearts.png" id="13_j4d8q"]
+[ext_resource type="Texture2D" uid="uid://clp03k3m7d017" path="res://cards/two_of_clubs.png" id="14_qpknu"]
+[ext_resource type="Texture2D" uid="uid://3c3haf22ksvu" path="res://cards/five_of_diamonds.png" id="15_wabu5"]
+[ext_resource type="Texture2D" uid="uid://00ccaxxw3mfs" path="res://cards/eight_of_spades.png" id="16_3e805"]
+[ext_resource type="Texture2D" uid="uid://b58o1hfgnl8sq" path="res://cards/queen_of_hearts.png" id="17_dwgav"]
+[ext_resource type="Texture2D" uid="uid://o4i3nfl74ge7" path="res://cards/king_of_spades.png" id="18_bvtfn"]
+[ext_resource type="Texture2D" uid="uid://dlsl51d0a318c" path="res://cards/ace_of_clubs.png" id="19_r6ok0"]
+[ext_resource type="Texture2D" uid="uid://be41s1la534ty" path="res://cards/two_of_spades.png" id="20_oq1mw"]
+[ext_resource type="Texture2D" uid="uid://4r1n785cugg1" path="res://cards/two_of_hearts.png" id="21_cc4y2"]
+[ext_resource type="Texture2D" uid="uid://dlqt6up1rvd7a" path="res://cards/two_of_diamonds.png" id="22_iglv2"]
+[ext_resource type="Texture2D" uid="uid://b302r3jhlw6hk" path="res://cards/five_of_clubs.png" id="23_c68a3"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_it7fd"]
 bg_color = Color(0.6039216, 0.39215687, 0.12156863, 1)
@@ -962,22 +962,6 @@ corner_radius_bottom_right = 2
 corner_radius_bottom_left = 2
 anti_aliasing = false
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_qih0c"]
-bg_color = Color(0.09019608, 0.07058824, 0.05882353, 0.9490196)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.5529412, 0.35686275, 0.1882353, 1)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
-shadow_color = Color(0.019607844, 0.011764706, 0.007843138, 0.7411765)
-shadow_size = 6
-shadow_offset = Vector2(0, 3)
-anti_aliasing = false
-
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_4of5x"]
 bg_color = Color(0.14901961, 0.21960784, 0.3254902, 1)
 border_width_left = 2
@@ -1122,6 +1106,7 @@ anti_aliasing = false
 
 [node name="MainMenu" type="Control" unique_id=466794877]
 z_index = 500
+layout_mode = 3
 anchors_preset = 0
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -1245,8 +1230,8 @@ metadata/match_node_key_dictionary_binding = "menu_localized_controls"
 metadata/match_node_key_dictionary_value = "MENU_HOW_TO_PLAY"
 
 [node name="TutorialButton" type="Button" parent="MenuCenter/MenuContent/HomePanel/LearnRow" unique_id=439211255]
-custom_minimum_size = Vector2(244, 48)
 visible = false
+custom_minimum_size = Vector2(244, 48)
 layout_mode = 2
 size_flags_horizontal = 4
 mouse_default_cursor_shape = 2
@@ -1285,24 +1270,24 @@ metadata/match_binding = "options_button"
 metadata/match_node_key_dictionary_binding = "menu_localized_controls"
 metadata/match_node_key_dictionary_value = "MENU_OPTIONS"
 
-[node name="MusicPlayer" type="PanelContainer" parent="MenuCenter/MenuContent/HomePanel"]
+[node name="MusicPlayer" type="PanelContainer" parent="MenuCenter/MenuContent/HomePanel" unique_id=1532463659]
 custom_minimum_size = Vector2(500, 250)
 layout_mode = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_28e1x")
 metadata/match_binding = "music_player_panel"
 
-[node name="Margin" type="MarginContainer" parent="MenuCenter/MenuContent/HomePanel/MusicPlayer"]
+[node name="Margin" type="MarginContainer" parent="MenuCenter/MenuContent/HomePanel/MusicPlayer" unique_id=1583619854]
 layout_mode = 2
 theme_override_constants/margin_left = 10
 theme_override_constants/margin_top = 10
 theme_override_constants/margin_right = 10
 theme_override_constants/margin_bottom = 10
 
-[node name="Content" type="HBoxContainer" parent="MenuCenter/MenuContent/HomePanel/MusicPlayer/Margin"]
+[node name="Content" type="HBoxContainer" parent="MenuCenter/MenuContent/HomePanel/MusicPlayer/Margin" unique_id=1509850610]
 layout_mode = 2
 theme_override_constants/separation = 14
 
-[node name="Cover" type="TextureRect" parent="MenuCenter/MenuContent/HomePanel/MusicPlayer/Margin/Content"]
+[node name="Cover" type="TextureRect" parent="MenuCenter/MenuContent/HomePanel/MusicPlayer/Margin/Content" unique_id=2118395951]
 custom_minimum_size = Vector2(200, 200)
 layout_mode = 2
 texture = ExtResource("12_75tx2")
@@ -1310,13 +1295,13 @@ expand_mode = 1
 stretch_mode = 5
 metadata/match_binding = "music_cover"
 
-[node name="Details" type="VBoxContainer" parent="MenuCenter/MenuContent/HomePanel/MusicPlayer/Margin/Content"]
+[node name="Details" type="VBoxContainer" parent="MenuCenter/MenuContent/HomePanel/MusicPlayer/Margin/Content" unique_id=1804166893]
 custom_minimum_size = Vector2(256, 230)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 5
 
-[node name="NowPlaying" type="Label" parent="MenuCenter/MenuContent/HomePanel/MusicPlayer/Margin/Content/Details"]
+[node name="NowPlaying" type="Label" parent="MenuCenter/MenuContent/HomePanel/MusicPlayer/Margin/Content/Details" unique_id=1994056251]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.9607843, 0.7490196, 0.25882354, 1)
 theme_override_font_sizes/font_size = 10
@@ -1324,7 +1309,7 @@ text = "NOW PLAYING"
 metadata/match_node_key_dictionary_binding = "menu_localized_controls"
 metadata/match_node_key_dictionary_value = "MUSIC_PLAYER_NOW"
 
-[node name="TrackTitle" type="Label" parent="MenuCenter/MenuContent/HomePanel/MusicPlayer/Margin/Content/Details"]
+[node name="TrackTitle" type="Label" parent="MenuCenter/MenuContent/HomePanel/MusicPlayer/Margin/Content/Details" unique_id=1323075655]
 custom_minimum_size = Vector2(0, 36)
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.94509804, 0.77254903, 1)
@@ -1334,18 +1319,18 @@ vertical_alignment = 1
 autowrap_mode = 2
 metadata/match_binding = "music_track_title"
 
-[node name="Variant" type="Label" parent="MenuCenter/MenuContent/HomePanel/MusicPlayer/Margin/Content/Details"]
+[node name="Variant" type="Label" parent="MenuCenter/MenuContent/HomePanel/MusicPlayer/Margin/Content/Details" unique_id=1955538050]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.7254902, 0.6784314, 0.56078434, 1)
 theme_override_font_sizes/font_size = 11
 text = "MAIN  ·  SIDE 1"
 metadata/match_binding = "music_variant_label"
 
-[node name="MusicSystemRow" type="HBoxContainer" parent="MenuCenter/MenuContent/HomePanel/MusicPlayer/Margin/Content/Details"]
+[node name="MusicSystemRow" type="HBoxContainer" parent="MenuCenter/MenuContent/HomePanel/MusicPlayer/Margin/Content/Details" unique_id=1283426751]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="Label" type="Label" parent="MenuCenter/MenuContent/HomePanel/MusicPlayer/Margin/Content/Details/MusicSystemRow"]
+[node name="Label" type="Label" parent="MenuCenter/MenuContent/HomePanel/MusicPlayer/Margin/Content/Details/MusicSystemRow" unique_id=393468706]
 custom_minimum_size = Vector2(92, 0)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.7254902, 0.6784314, 0.56078434, 1)
@@ -1354,14 +1339,14 @@ text = "MUSIC SYSTEM"
 metadata/match_node_key_dictionary_binding = "menu_localized_controls"
 metadata/match_node_key_dictionary_value = "MUSIC_PLAYER_SYSTEM"
 
-[node name="Selector" type="OptionButton" parent="MenuCenter/MenuContent/HomePanel/MusicPlayer/Margin/Content/Details/MusicSystemRow"]
+[node name="Selector" type="OptionButton" parent="MenuCenter/MenuContent/HomePanel/MusicPlayer/Margin/Content/Details/MusicSystemRow" unique_id=2123654314]
 layout_mode = 2
 size_flags_horizontal = 3
 mouse_default_cursor_shape = 2
 theme_override_font_sizes/font_size = 10
 metadata/match_binding = "music_system_selector"
 
-[node name="TrackList" type="OptionButton" parent="MenuCenter/MenuContent/HomePanel/MusicPlayer/Margin/Content/Details"]
+[node name="TrackList" type="OptionButton" parent="MenuCenter/MenuContent/HomePanel/MusicPlayer/Margin/Content/Details" unique_id=1041580030]
 custom_minimum_size = Vector2(0, 32)
 layout_mode = 2
 size_flags_horizontal = 3
@@ -1374,7 +1359,7 @@ theme_override_styles/disabled = SubResource("StyleBoxFlat_tnw2n")
 theme_override_styles/focus = SubResource("StyleBoxFlat_6sdb8")
 metadata/match_binding = "music_track_list"
 
-[node name="Progress" type="ProgressBar" parent="MenuCenter/MenuContent/HomePanel/MusicPlayer/Margin/Content/Details"]
+[node name="Progress" type="ProgressBar" parent="MenuCenter/MenuContent/HomePanel/MusicPlayer/Margin/Content/Details" unique_id=1884409934]
 custom_minimum_size = Vector2(0, 9)
 layout_mode = 2
 max_value = 1.0
@@ -1382,7 +1367,7 @@ step = 0.001
 show_percentage = false
 metadata/match_binding = "music_progress"
 
-[node name="Time" type="Label" parent="MenuCenter/MenuContent/HomePanel/MusicPlayer/Margin/Content/Details"]
+[node name="Time" type="Label" parent="MenuCenter/MenuContent/HomePanel/MusicPlayer/Margin/Content/Details" unique_id=1500129072]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.7254902, 0.6784314, 0.56078434, 1)
 theme_override_font_sizes/font_size = 10
@@ -1390,11 +1375,11 @@ text = "0:00 / 0:00"
 horizontal_alignment = 2
 metadata/match_binding = "music_time_label"
 
-[node name="Footer" type="HBoxContainer" parent="MenuCenter/MenuContent/HomePanel/MusicPlayer/Margin/Content/Details"]
+[node name="Footer" type="HBoxContainer" parent="MenuCenter/MenuContent/HomePanel/MusicPlayer/Margin/Content/Details" unique_id=1981062560]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="PlayPause" type="Button" parent="MenuCenter/MenuContent/HomePanel/MusicPlayer/Margin/Content/Details/Footer"]
+[node name="PlayPause" type="Button" parent="MenuCenter/MenuContent/HomePanel/MusicPlayer/Margin/Content/Details/Footer" unique_id=145453944]
 custom_minimum_size = Vector2(72, 32)
 layout_mode = 2
 mouse_default_cursor_shape = 2
@@ -1407,7 +1392,7 @@ theme_override_styles/focus = SubResource("StyleBoxFlat_6sdb8")
 text = "PAUSE"
 metadata/match_binding = "music_play_pause_button"
 
-[node name="Shuffle" type="Button" parent="MenuCenter/MenuContent/HomePanel/MusicPlayer/Margin/Content/Details/Footer"]
+[node name="Shuffle" type="Button" parent="MenuCenter/MenuContent/HomePanel/MusicPlayer/Margin/Content/Details/Footer" unique_id=738157673]
 custom_minimum_size = Vector2(82, 32)
 layout_mode = 2
 mouse_default_cursor_shape = 2
@@ -1420,7 +1405,7 @@ theme_override_styles/focus = SubResource("StyleBoxFlat_6sdb8")
 text = "SHUFFLE: OFF"
 metadata/match_binding = "music_shuffle_button"
 
-[node name="Repeat" type="Button" parent="MenuCenter/MenuContent/HomePanel/MusicPlayer/Margin/Content/Details/Footer"]
+[node name="Repeat" type="Button" parent="MenuCenter/MenuContent/HomePanel/MusicPlayer/Margin/Content/Details/Footer" unique_id=1541078087]
 custom_minimum_size = Vector2(86, 32)
 layout_mode = 2
 mouse_default_cursor_shape = 2
@@ -1433,7 +1418,7 @@ theme_override_styles/focus = SubResource("StyleBoxFlat_6sdb8")
 text = "REPEAT: OFF"
 metadata/match_binding = "music_repeat_button"
 
-[node name="UpNext" type="Label" parent="MenuCenter/MenuContent/HomePanel/MusicPlayer/Margin/Content/Details"]
+[node name="UpNext" type="Label" parent="MenuCenter/MenuContent/HomePanel/MusicPlayer/Margin/Content/Details" unique_id=431610512]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.7254902, 0.6784314, 0.56078434, 1)

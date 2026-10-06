@@ -37,14 +37,11 @@ func _process(delta: float) -> void:
 		character.scale = Vector2.ONE * (1.0 + sin(_clock * 1.6) * 0.012)
 
 func _event_available() -> bool:
-	return (host.game_started and not host.tutorial_active and not service.active_id().is_empty()
+	return (host.game_started and not service.active_id().is_empty()
 		and not host.menu_layer.visible and host.current_campaign_event != null
 		and host.current_campaign_event.slot in [EventManager.EventSlot.NOON, EventManager.EventSlot.AFTERNOON]
 		and host.event_table.visible and host.event_table.table_state == EventTableController.TABLE_STATE_EVENT
 		and host.event_table.focused_npc_id in ["", EventTableController.NPC_ZODIAC] and not host.event_table.deck_focused)
-
-func _event_overview_available() -> bool:
-	return _event_available() and host.event_table.focused_npc_id.is_empty()
 
 func configure(match_host: Control) -> void:
 	host = match_host
@@ -53,11 +50,11 @@ func configure(match_host: Control) -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	z_index = 210
-	var layer: Dictionary = host.event_table._npc_layers[EventTableController.NPC_ZODIAC]
-	badge = layer.button
-	portrait = layer.overlay
-	character = layer.sprite
-	nameplate = layer.name_tag
+	var views: Dictionary = host.event_table.zodiac_views()
+	badge = views.button
+	portrait = views.portrait
+	character = views.character
+	nameplate = views.nameplate
 	shade = ColorRect.new()
 	shade.name = "ZodiacConversation"
 	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -117,16 +114,14 @@ func configure(match_host: Control) -> void:
 	body.add_child(choices)
 	detail_button = Button.new()
 	detail_button.name = "ZodiacDetails"
-	detail_button.pressed.connect(func(): details_open = not details_open; mechanics.visible = details_open)
+	detail_button.pressed.connect(_open_handbook)
 	body.add_child(detail_button)
 	close_button = Button.new()
 	close_button.name = "CloseConversation"
 	close_button.custom_minimum_size.y = 40
-	close_button.pressed.connect(_close_conversation)
+	close_button.pressed.connect(close_conversation)
 	body.add_child(close_button)
-	service.changed.connect(func(): refresh(); host._sync_event_continue())
-	host.deal.wallet.balance_changed.connect(func(_before: int, _after: int, _delta: int, reason: String):
-		if reason.begins_with("zodiac_request:"): host._on_gieo_wallet_changed.call_deferred())
+	service.changed.connect(refresh)
 	host.event_table.focus_cleared.connect(func(): shade.hide(); scene_page = -1; refresh())
 	host.campaign.campaign_phase_changed.connect(func(_phase): shade.hide(); scene_page = -1; refresh.call_deferred())
 	refresh()
@@ -146,12 +141,13 @@ func refresh() -> void:
 	visible = _event_available()
 	if not visible: shade.hide()
 	close_button.text = ZodiacCatalog.words("Back to the table", "Về bàn")
-	detail_button.text = ZodiacCatalog.words("Tonight's boss rule", "Luật boss tối nay")
+	detail_button.text = ZodiacCatalog.words("Handbook", "Sổ tay")
+	PresentationTheme.configure_button(detail_button)
 	if shade.visible and scene_page < 0: _build_conversation()
 
 func open_conversation() -> void:
 	if not _event_available() or host.modal_overlay.visible or host.score_overlay.visible: return
-	if host.campaign.gieo_que.state not in [GieoQueService.STATE_READY, GieoQueService.STATE_COMPLETE] or host.active_drag_payload != null: return
+	if host.campaign.gieo_que.state not in [GieoQueService.STATE_READY, GieoQueService.STATE_COMPLETE] or host.interactions.drag_payload != null: return
 	if host.event_table.focused_npc_id.is_empty():
 		host.event_table.focus_npc(EventTableController.NPC_ZODIAC)
 		return
@@ -162,7 +158,7 @@ func open_conversation() -> void:
 	_build_conversation()
 	_focus_first_choice.call_deferred()
 
-func _close_conversation() -> void:
+func close_conversation() -> void:
 	shade.hide()
 	scene_page = -1
 	character.rotation = 0.0
@@ -207,26 +203,20 @@ func _build_conversation() -> void:
 		selected_card_id = ""
 		_selection_offer_key = offer_key
 	var state := service.negotiation()
-	dialogue.text = ZodiacCatalog.display_name(id) + "\n“" + String(quote.get("speech", "")) + "”"
-	contract_label.text = String(quote.get("contract", ""))
+	dialogue.text = ZodiacCatalog.display_name(id)
+	dialogue.set_meta("zodiac_id", id)
+	contract_label.text = QuickInfo.demand(demand)
 	contract_label.visible = not contract_label.text.is_empty()
 	mechanics.text = ZodiacCatalog.rule_text(id, service.mood())
-	mechanics.visible = details_open
-	status.text = ZodiacCatalog.words("%s · %d pleasing · %d displeasing", "%s · %d vừa ý · %d không vừa ý") % [ZodiacCatalog.disposition_label(service.mood()), int(state.get("successful_responses", 0)), int(state.get("failed_responses", 0))]
+	mechanics.hide()
+	status.text = ZodiacCatalog.disposition_label(service.mood())
 	if service.has_open_demand():
-		status.text += "\n" + (ZodiacCatalog.words("Demand %d of %d", "Yêu cầu %d / %d") % [int(state.cursor) + 1, int(state.demand_count)])
-		if quote.status == "counteroffer": status.text += "\n" + ZodiacCatalog.words("COUNTEROFFER · confirm with Accept. Nothing spent yet.", "ĐỀ NGHỊ KHÁC · bấm Đồng ý để xác nhận. Chưa mất gì.")
-	for promise: Dictionary in service.daily.get("promises", []):
-		status.text += "\n" + ZodiacCatalog.words("PENDING: ", "ĐANG CAM KẾT: ") + ZodiacDemand.describe(promise.get("demand", ZodiacDemand.make("PROMISE", "ANY", "PLAYER_CHOOSES", 1, "", 5000, {"condition": "wallet_floor"})))
-	if not state.get("history", []).is_empty():
-		for record: Dictionary in state.history:
-			var result: Dictionary = record.result
-			var label := ZodiacCatalog.words("Pending", "Chưa kiểm tra") if result.get("pending", false) else ZodiacCatalog.words("Kept", "Đã giữ") if result.get("resolved_successfully", false) else ZodiacCatalog.words("Broken", "Không giữ")
-			if int(service.daily.slot) == EventManager.EventSlot.AFTERNOON:
-				status.text += "\n%s · %s" % [label, ZodiacDemand.describe(record.demand)]
-	if service.has_open_demand() and not service.daily.get("last_result", {}).is_empty():
-		var last: Dictionary = service.daily.last_result
-		status.text += "\n" + (ZodiacCatalog.words("Last answer: promise reserved.", "Vừa đáp lời: đã nhận cam kết.") if last.get("pending", false) else ZodiacCatalog.words("Last answer: pleasing.", "Vừa đáp lời: vừa ý.") if last.get("resolved_successfully", false) else ZodiacCatalog.words("Last answer: displeasing.", "Vừa đáp lời: không vừa ý."))
+		status.text += " · %d/%d" % [int(state.cursor) + 1, int(state.demand_count)]
+		if quote.status == "counteroffer": status.text += " · " + ZodiacCatalog.words("Counteroffer", "Đề nghị khác")
+	var pending: Array = service.daily.get("promises", [])
+	if not pending.is_empty(): status.text += " · " + (ZodiacCatalog.words("%d pending", "%d cam kết") % pending.size())
+	var result: Dictionary = service.daily.get("last_result", {})
+	if not result.is_empty(): status.text += " · " + (ZodiacCatalog.words("Kept", "Đã giữ") if result.get("resolved_successfully", false) else ZodiacCatalog.words("Broken", "Thất hứa"))
 	targets.hide()
 	alterations.hide()
 	card_select_button.hide()
@@ -262,26 +252,29 @@ func _build_persuasion() -> void:
 	# Dialogue scrolls; the visible terms and mood remain beside the controls.
 	copy_scroll.custom_minimum_size.y = 64 if service.has_open_demand() else 96
 	selected_ids.assign(visit.get("selection", []))
-	dialogue.text = quote.speech
-	contract_label.text = quote.contract
+	# Keep the latest authored spoken line. The entire exchange is readable in the Handbook.
+	dialogue.text = String(quote.speech).strip_edges().get_slice("\n", String(quote.speech).strip_edges().get_slice_count("\n") - 1)
+	dialogue.remove_meta("zodiac_id")
+	contract_label.text = QuickInfo.demand(quote.demand)
 	contract_label.visible = not contract_label.text.is_empty()
 	mechanics.text = ZodiacCatalog.rule_text(service.active_id(), service.mood())
-	mechanics.visible = details_open
+	mechanics.hide()
 	var patience := int(visit.get("patience", 3))
 	status.text = "%s · %s\n%s %s" % [ZodiacCatalog.relationship_label(service.progress.relationship_tier(service.active_id())),
 		ZodiacCatalog.disposition_label(service.mood()), ZodiacCatalog.words("Patience", "Kiên nhẫn"), "●".repeat(patience) + "○".repeat(5 - patience)]
 	status.tooltip_text = "%d / 5" % patience
 	status.add_theme_color_override("font_color", PresentationTheme.GOLD if patience >= 4 else PresentationTheme.WARNING if patience <= 1 else PresentationTheme.TEA)
 	if quote.stage == "counteroffer":
-		status.text += "\n" + ZodiacCatalog.words("COUNTEROFFER · confirm the changed terms with Accept.", "ĐỀ NGHỊ KHÁC · Đồng ý để xác nhận điều kiện mới.")
+		status.text += " · " + ZodiacCatalog.words("Counteroffer", "Đề nghị khác")
 	elif quote.stage == "last_chance_pending":
-		status.text += "\n" + ZodiacCatalog.words("LAST CHANCE · Cat's recovery scene awaits authoring. Normal choices are suspended.", "CƠ HỘI CUỐI · Cảnh phục hồi của Mão chưa được viết. Tạm dừng lựa chọn thường.")
+		status.text += "\n" + ZodiacCatalog.words("Last chance · unavailable", "Cơ hội cuối · chưa có nội dung")
 	elif quote.stage == "locked":
-		status.text += "\n" + ZodiacCatalog.words("Today's conversation has ended.", "Cuộc trò chuyện hôm nay đã kết thúc.")
-	for result: Dictionary in visit.get("outcomes", []):
-		status.text += "\n" + (ZodiacCatalog.words("FULFILLED · ", "ĐÃ GIỮ · ") if result.resolved_successfully else ZodiacCatalog.words("BROKEN · ", "THẤT HỨA · ")) + service.persuasion.describe_terms(result.terms)
+		status.text += " · " + ZodiacCatalog.words("Visit ended", "Đã kết thúc")
+	if not visit.get("outcomes", []).is_empty():
+		var result: Dictionary = visit.outcomes[-1]
+		status.text += " · " + (ZodiacCatalog.words("Kept", "Đã giữ") if result.resolved_successfully else ZodiacCatalog.words("Broken", "Thất hứa"))
 	if quote.stage == "judged" and service.progress.relationship_tier(service.active_id()) > int(visit.get("relationship_at_start", 1)):
-		status.text += "\n" + ZodiacCatalog.words("FAMILIAR unlocked · Tier 1+ on future visits.", "Đã QUEN MẶT · Nội dung 1+ từ lần gặp sau.")
+		status.text += " · " + ZodiacCatalog.words("FAMILIAR +", "QUEN MẶT +")
 	targets.hide()
 	alterations.hide()
 	card_select_button.hide()
@@ -300,7 +293,7 @@ func _build_persuasion() -> void:
 	elif service.has_open_demand():
 		if quote.demand.get("authority", "") == "OFFER_THREE_PLAYER_CHOOSES":
 			card_select_button.show()
-			card_select_button.text = ZodiacCatalog.words("Choose one of the three cards", "Chọn một trong ba lá bài")
+			card_select_button.text = ZodiacCatalog.words("Choose 1 of 3", "Chọn 1 trong 3")
 			if not selected_ids.is_empty():
 				var cards := CardTargetQuery.resolve_ids(host.campaign.gieo_que.persistent_deck, selected_ids)
 				if not cards.is_empty(): card_select_button.text += " · " + cards[0].short_label()
@@ -371,15 +364,22 @@ func _build_target_preview(demand: Dictionary) -> void:
 
 func _add_card_previews(ids: Array, face_size: Vector2) -> void:
 	for card in CardTargetQuery.resolve_ids(host.campaign.gieo_que.persistent_deck, ids):
-		var view := TextureRect.new()
-		view.texture = load(card.texture_path())
-		view.custom_minimum_size = face_size
-		view.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		view.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		view.tooltip_text = "%s · %s\n%s" % [card.short_label(), card.unique_id, "\n".join(card.gieo_property_descriptions())]
+		var view := CardSymbolArt.create_card_badge(card, 26)
+		view.custom_minimum_size.x = face_size.x
+		view.tooltip_text = card.short_label()
 		view.mouse_filter = Control.MOUSE_FILTER_PASS
 		target_preview.add_child(view)
 	target_preview.visible = not ids.is_empty()
+
+func _open_handbook() -> void:
+	var quote := service.quote()
+	var copy := String(quote.get("speech", "")) + "\n\n" + String(quote.get("contract", "")) + "\n\n" + ZodiacCatalog.rule_text(service.active_id(), service.mood())
+	if service.uses_persuasion():
+		for result: Dictionary in service.persuasion.state().get("outcomes", []):
+			copy += "\n\n" + (ZodiacCatalog.words("Kept · ", "Đã giữ · ") if result.resolved_successfully else ZodiacCatalog.words("Broken · ", "Thất hứa · ")) + service.persuasion.describe_terms(result.terms)
+	else:
+		for record: Dictionary in service.negotiation().get("history", []): copy += "\n\n" + ZodiacDemand.describe(record.demand)
+	GameGlossary.open_entry(host, ZodiacCatalog.display_name(service.active_id()), copy, "campaign")
 
 func _open_card_deck() -> void:
 	var demand := service.current_demand()

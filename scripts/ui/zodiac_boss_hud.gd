@@ -189,7 +189,7 @@ func configure(owner: Control) -> void:
 	refresh()
 
 func _available() -> bool:
-	return host != null and host.game_started and not host.tutorial_active and not host.menu_layer.visible and host.current_campaign_event == null and CampaignManager.DEAL_PHASE_TO_PERIOD.has(host.campaign.current_phase) and (not host.deal.zodiac_boss.id.is_empty() or not host.campaign.zodiac.promise_reminder().is_empty())
+	return host != null and host.game_started and not host.menu_layer.visible and host.current_campaign_event == null and CampaignManager.DEAL_PHASE_TO_PERIOD.has(host.campaign.current_phase) and (not host.deal.zodiac_boss.id.is_empty() or not host.campaign.zodiac.promise_reminder().is_empty())
 
 func _blocked() -> bool:
 	return _presence_blocked() or host.score_overlay.visible
@@ -197,7 +197,7 @@ func _blocked() -> bool:
 func _presence_blocked() -> bool:
 	# Money's ceremony is a transparent, input-free part of the table.
 	# Keep the opponent present while cards score; dialogs still clear the art.
-	return host.modal_overlay.visible or host.discard_archive_overlay.visible or (is_instance_valid(host.deck_screen) and host.deck_screen.visible) or (is_instance_valid(host.resolve_receipt) and host.resolve_receipt.visible)
+	return host.get_tree().root.has_node("GameGlossary") or host.modal_overlay.visible or host.pile_archive.overlay.visible or (is_instance_valid(host.deck_screen) and host.deck_screen.visible) or (is_instance_valid(host.resolve_receipt) and host.resolve_receipt.visible)
 
 func _process(delta: float) -> void:
 	if host == null: return
@@ -233,19 +233,18 @@ func _input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 func _toggle_details() -> void:
-	if details_panel.visible:
-		_close_details()
-	else:
-		details_panel.show()
-		details.show()
-		feedback_panel.hide()
-		_speech_queue.clear()
-		_speech_time = 0
-	refresh()
-	if details_panel.visible:
-		(details_panel.find_child("CloseBossRule", true, false) as Button).grab_focus()
-	else:
-		(_promise_details if promise_panel.visible else detail_button).grab_focus()
+	_close_details()
+	feedback_panel.hide()
+	_speech_queue.clear()
+	_speech_time = 0
+	var id: String = host.deal.zodiac_boss.id
+	var heading := ZodiacCatalog.display_name(id) if not id.is_empty() else ZodiacCatalog.words("Promises", "Cam kết")
+	var copy: String = full_state.get_meta("semantic_source_text", full_state.text) + "\n\n" + details.get_meta("semantic_source_text", details.text)
+	for meld: MeldState in host.deal.boss_melds:
+		var cards: Array[String] = []
+		for card in meld.cards: cards.append(card.short_label())
+		copy += "\n\n#%d · %s" % [meld.meld_id, " · ".join(cards)]
+	GameGlossary.open_entry(host, heading, copy, "campaign")
 
 func _close_details() -> void:
 	details_panel.hide()
@@ -309,8 +308,12 @@ func refresh() -> void:
 	promise_panel.visible = not reminder.is_empty()
 	panel.visible = not host.deal.zodiac_boss.id.is_empty()
 	if promise_panel.visible:
-		promise_label.text = ZodiacCatalog.words("PROMISE · ", "CAM KẾT · ") + ZodiacCatalog.display_name(host.campaign.zodiac.active_id()) + "\n" + reminder
-		promise_panel.tooltip_text = promise_label.text
+		promise_label.text = ZodiacCatalog.words("PROMISE · ", "CAM KẾT · ") + ZodiacCatalog.display_name(host.campaign.zodiac.active_id())
+		for promise: Dictionary in host.campaign.zodiac.daily.get("promises", []):
+			if promise.get("engine", "") != "persuasion" or promise.get("outcome_applied", false): continue
+			promise_label.text += "\n" + QuickInfo.promise(promise.accepted_terms, host.campaign.gieo_que.persistent_deck)
+			break
+		promise_panel.tooltip_text = ZodiacCatalog.words("Handbook", "Sổ tay")
 		promise_panel.visible = not panel.visible
 	if not panel.visible:
 		dance_guide.sync({}, "")
@@ -319,7 +322,7 @@ func refresh() -> void:
 		full_state.text = ZodiacCatalog.words("PROMISE · ", "CAM KẾT · ") + ZodiacCatalog.display_name(host.campaign.zodiac.active_id())
 		details.text = reminder
 		_promise_details.text = "×" if details_panel.visible else "?"
-		_promise_details.tooltip_text = reminder
+		_promise_details.tooltip_text = ZodiacCatalog.words("Handbook", "Sổ tay")
 		(details_panel.find_child("CloseBossRule", true, false) as Button).text = ZodiacCatalog.words("Back to the table · Esc", "Về bàn · Esc")
 		if not promise_panel.visible: _close_details()
 		_layout()
@@ -343,18 +346,20 @@ func refresh() -> void:
 		evening_overlay.texture = load(overlay_path) if ResourceLoader.exists(overlay_path) else null
 		evening_overlay.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT if state.id == "dragon" else Control.PRESET_FULL_RECT)
 		evening_overlay.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED if state.id == "dragon" else TextureRect.STRETCH_KEEP_ASPECT_COVERED
-		_queue_speech(_arrival(state), "arrival:" + key)
+		# Live counters show the requirement; arrival explanations live in the Handbook.
 	panel.add_theme_stylebox_override("panel", _glass(accent, 0.68))
 	feedback_panel.add_theme_stylebox_override("panel", _glass(accent, 0.84))
 	title.add_theme_color_override("font_color", accent)
 	_speaker.add_theme_color_override("font_color", accent)
-	title.text = "%s · %s" % [ZodiacCatalog.display_name(state.id), ZodiacCatalog.disposition_label(state.disposition)]
+	title.text = ZodiacCatalog.display_name(state.id)
+	title.set_meta("zodiac_id", String(state.id))
+	_speaker.set_meta("zodiac_id", String(state.id))
 	_speaker.text = ZodiacCatalog.display_name(state.id)
 	skill.text = state.skill
 	full_state.text = state.skill + "\n" + ZodiacCatalog.state_text(state, host.deal)
 	if state.id == "dragon": full_state.text += "\n" + ZodiacCatalog.modifier_text(state, host.deal)
 	state_label.text = BossView.compact(state, host.deal)
-	state_label.tooltip_text = full_state.text
+	state_label.tooltip_text = ZodiacCatalog.words("Handbook", "Sổ tay")
 	state_label.material = null
 	state_label.add_theme_font_size_override("font_size", 13)
 	state_label.add_theme_color_override("font_color", PresentationTheme.INK)
@@ -370,10 +375,10 @@ func refresh() -> void:
 			state_label.add_theme_color_override("font_color", Color("ffb878") if count >= cap else accent)
 			_fresh_ink.set_shader_parameter("urgency", 1.0 if count >= cap else 0.0)
 			state_label.material = _fresh_ink
-			state_label.tooltip_text = full_state.text + "\n" + ZodiacCatalog.words("Change between Meld and Extend when the counter is full. Discard does not reset Fresh.", "Đổi giữa Tạo và Nối Phỏm khi đủ bộ đếm. Bỏ bài không đặt lại Fresh.")
+			state_label.tooltip_text = ZodiacCatalog.words("Handbook", "Sổ tay")
 		else:
 			state_label.text = ZodiacCatalog.words("DANCE BABY! · %d/%d", "DANCE BABY! · %d/%d") % [int(state.sequence_index) + 1, state.sequence.size()]
-	else: state_label.tooltip_text = full_state.text
+	else: state_label.tooltip_text = ZodiacCatalog.words("Handbook", "Sổ tay")
 	if state.id == "rooster" and host.deal.current_phase == 1 and not state.register_closed:
 		var remaining: int = maxi(int(ZodiacCatalog.tuning("rooster", "discard_deadline", state.difficulty)) - host.deal.discard_count, 0)
 		state_label.text = ZodiacCatalog.words("Closes in %d discard(s)", "Đóng sổ sau %d lần bỏ") % remaining
@@ -382,10 +387,10 @@ func refresh() -> void:
 	while badge_pixels > 10 and state_label.get_theme_font("font").get_string_size(state_label.text, HORIZONTAL_ALIGNMENT_LEFT, -1, badge_pixels).x > 166:
 		badge_pixels -= 1
 	state_label.add_theme_font_size_override("font_size", badge_pixels)
-	panel.tooltip_text = full_state.text + "\n\n" + state.rule
+	panel.tooltip_text = ZodiacCatalog.display_name(state.id) + "\n" + state_label.text
 	details.text = state.rule
 	detail_button.text = "×" if details_panel.visible else "?"
-	detail_button.tooltip_text = ZodiacCatalog.words("Close rule", "Đóng luật") if details_panel.visible else state.rule
+	detail_button.tooltip_text = ZodiacCatalog.words("Handbook", "Sổ tay")
 	(details_panel.find_child("CloseBossRule", true, false) as Button).text = ZodiacCatalog.words("Back to the table · Esc", "Về bàn · Esc")
 	_sync_opponent_cards()
 	_layout()
@@ -424,22 +429,6 @@ func _sync_opponent_cards() -> void:
 			ink.shader = preload("res://shaders/rat_stolen_meld.gdshader")
 			stitch.material = ink
 			face.add_child(stitch)
-
-func _arrival(state: Dictionary) -> String:
-	match String(state.id):
-		"rooster": return ZodiacCatalog.words("Make it count. I close after discard %d.", "Tranh thủ đi. Ta chốt sổ sau lần bỏ thứ %d.") % int(ZodiacCatalog.tuning("rooster", "discard_deadline", state.difficulty))
-		"cat": return ZodiacCatalog.words("Play your hand. I'll choose my prey in Phase 2.", "Cứ đánh đi. Hiệp 2, ta sẽ chọn con mồi.")
-		"dog": return ZodiacCatalog.words("Your first Meld gets my loyalty. Keep building it.", "Phỏm đầu tiên được ta bảo vệ. Cứ nối tiếp vào đó.")
-		"monkey": return ZodiacCatalog.words("Dance baby! Follow the steps above your Melds.", "Dance baby! Theo các bước phía trên Phỏm.") if state.difficulty == ZodiacCatalog.UNPLEASED else ZodiacCatalog.words("Keep it fresh. Watch the counter; switch between Meld and Extend.", "Đổi nhịp đi. Nhìn bộ đếm; đổi giữa Tạo và Nối Phỏm.")
-		"pig": return ZodiacCatalog.words("Keep earning. Reach my target and I'll return the held pool.", "Cứ kiếm tiếp. Đạt mục tiêu thì ta hoàn cả quỹ đã giữ.")
-		"ox": return ZodiacCatalog.words("Carry a card and its burden grows. Check each card's next loss.", "Giữ lá rác thì gánh nặng tăng. Xem mức phạt tới trên từng lá.")
-		"horse": return ZodiacCatalog.words("Two matching plays. Finish the pair before you discard.", "Hai lần đánh cùng loại. Hoàn thành cặp trước khi bỏ bài.")
-		"goat": return ZodiacCatalog.words("Follow the next Rank. Only the newly played cards set the note.", "Theo hạng tiếp theo. Chỉ lá vừa đánh mới đặt nhịp.")
-		"rat": return ZodiacCatalog.words("Your discards are my stock. My Melds come out of your wallet.", "Bài bạn bỏ là kho của ta. Phỏm của ta lấy tiền trong ví bạn.")
-		"tiger": return ZodiacCatalog.words("I've already taken my prey. Your remaining hand is yours to play.", "Ta đã vồ mồi rồi. Cứ đánh các lá còn lại của bạn.")
-		"snake": return ZodiacCatalog.words("My commands are above your Melds. Select a command to see its cards.", "Lệnh ở phía trên Phỏm. Chọn lệnh để thấy các lá cần đánh.")
-		"dragon": return ZodiacCatalog.words("Your own tactic, my target. The rule changes each turn.", "Chiến thuật của bạn, mục tiêu của ta. Mỗi lượt đổi một luật.")
-	return state.skill + " · " + ZodiacCatalog.state_text(state, host.deal).get_slice("\n", 0)
 
 func _queue_speech(line: String, key: String, urgent: bool = false) -> void:
 	if line.is_empty() or key == _speech_key or not visible or _blocked() or details_panel.visible: return

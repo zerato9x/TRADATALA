@@ -2,12 +2,14 @@ class_name ZodiacPersuasion
 extends RefCounted
 ## One content interpreter. All durable values live in ZodiacService.daily.
 ## This engine observes authorities; it never changes cards, Relics, or money.
+var _rng: RandomNumberGenerator
 var _owner: WeakRef
 var service: RefCounted:
 	get: return _owner.get_ref() if _owner != null else null
 
-func bind(owner: RefCounted) -> void:
+func bind(owner: RefCounted, rng: RandomNumberGenerator) -> void:
 	_owner = weakref(owner)
+	_rng = rng
 
 func state() -> Dictionary:
 	return service.daily.get("persuasion", {})
@@ -30,7 +32,7 @@ func begin() -> void:
 		for node in eligible: highest = maxi(highest, ZodiacCatalog.persuasion_content_rank(node.content_tier))
 		eligible = eligible.filter(func(node: Dictionary): return ZodiacCatalog.persuasion_content_rank(node.content_tier) == highest)
 		for index in range(eligible.size() - 1, 0, -1):
-			var swap: int = service._rng.randi_range(0, index)
+			var swap: int = _rng.randi_range(0, index)
 			var temporary: Dictionary = eligible[index]
 			eligible[index] = eligible[swap]
 			eligible[swap] = temporary
@@ -86,7 +88,7 @@ func _open_node() -> void:
 			visit.cursor += 1
 			_open_node()
 			return
-		var target: Variant = pool[service._rng.randi_range(0, pool.size() - 1)]
+		var target: Variant = pool[_rng.randi_range(0, pool.size() - 1)]
 		visit.terms["target_ids"] = [target.unique_id] if target is CardData else []
 		visit.terms["relic_id"] = target if target is String else ""
 		visit.terms["offered_ids"] = []
@@ -94,10 +96,10 @@ func _open_node() -> void:
 	service.conversation_history[service.active_id()] = visit.node.id
 
 func token() -> String:
-	return service._key("persuasion:%d:%d:%s" % [int(state().get("cursor", 0)), int(state().get("revision", 0)), state().get("stage", "")])
+	return service.record_key("persuasion:%d:%d:%s" % [int(state().get("cursor", 0)), int(state().get("revision", 0)), state().get("stage", "")])
 
 func _can_interact(expected: String = "") -> bool:
-	return (not service._committing and not service._restoring and service.campaign != null
+	return (not service.response_locked() and service.campaign != null
 		and service.campaign.current_phase == CampaignManager.CampaignPhase.NOON_EVENT
 		and int(service.daily.get("slot", -1)) == EventManager.EventSlot.NOON
 		and service.campaign.gieo_que.state in [GieoQueService.STATE_READY, GieoQueService.STATE_COMPLETE]
@@ -120,7 +122,7 @@ func answer(answer_id: String, expected: String = "") -> Dictionary:
 	if not _can_interact(expected) or not has_question(): return {"ok": false, "error": "stale_or_closed_question"}
 	for choice: Dictionary in state().node.get("answers", []):
 		if choice.id != answer_id: continue
-		service._committing = true
+		if not service.begin_commit(): return {"ok": false, "error": "interaction_busy"}
 		var visit := state()
 		var before := int(visit.patience)
 		visit.dialogue = [{"speaker": "player", "en": choice.en, "vi": choice.vi}]
@@ -137,7 +139,7 @@ func answer(answer_id: String, expected: String = "") -> Dictionary:
 		visit.history.append(result.duplicate(true))
 		service.daily.last_result = result
 		service.progress.commit(service.active_id(), token() + ":answered", {"questions_answered": 1}, ["content:" + String(visit.node.id)])
-		service._committing = false
+		service.finish_commit()
 		service.changed.emit()
 		return result
 	return {"ok": false, "error": "unknown_answer"}
@@ -241,7 +243,7 @@ func respond(response: String, ids: Array = [], expected: String = "") -> Dictio
 	if not _can_interact(expected) or not has_terms() or response not in ["ACCEPT", "REFUSE", "HAGGLE"]: return {"ok": false, "error": "stale_or_closed_offer"}
 	if response == "HAGGLE": return _haggle()
 	if response == "ACCEPT" and not can_accept(ids): return {"ok": false, "error": "invalid_target_or_resource"}
-	service._committing = true
+	if not service.begin_commit(): return {"ok": false, "error": "interaction_busy"}
 	var visit := state()
 	var offer := terms().duplicate(true)
 	var counter: bool = not visit.counteroffer.is_empty()
@@ -252,9 +254,9 @@ func respond(response: String, ids: Array = [], expected: String = "") -> Dictio
 		"terms": offer, "counteroffer_accepted": counter and response == "ACCEPT", "pending": response == "ACCEPT",
 		"dialogue": authored.dialogue.duplicate(true), "authored_delta": int(authored.delta)}
 	if response == "ACCEPT":
-		var promise_id: String = service._key("promise:%s:%d" % [offer.id, int(visit.cursor)])
+		var promise_id: String = service.record_key("promise:%s:%d" % [offer.id, int(visit.cursor)])
 		if visit.committed.has(promise_id):
-			service._committing = false
+			service.finish_commit()
 			return {"ok": false, "error": "already_committed"}
 		visit.committed[promise_id] = true
 		var promise := {"engine": "persuasion", "id": promise_id, "semantic_id": offer.id, "node_id": visit.node.id,
@@ -276,7 +278,7 @@ func respond(response: String, ids: Array = [], expected: String = "") -> Dictio
 	apply_patience(int(authored.delta))
 	visit.history.append(result.duplicate(true))
 	service.daily.last_result = result
-	service._committing = false
+	service.finish_commit()
 	service.changed.emit()
 	return result
 
@@ -287,12 +289,12 @@ func _haggle() -> Dictionary:
 	var strategy: String = state().node.responses.HAGGLE.strategy
 	if strategy == "OFFER_THREE":
 		counter.authority = "OFFER_THREE_PLAYER_CHOOSES"
-		counter.offered_ids = CardTargetQuery.physical_ids(CardTargetQuery.random_cards(pool, 3, service._rng))
+		counter.offered_ids = CardTargetQuery.physical_ids(CardTargetQuery.random_cards(pool, 3, _rng))
 		counter.target_ids = []
 	else:
 		# Cat picks another owned target, from a saved small valid set.
 		var candidates: Array = pool.slice(0, mini(3, pool.size()))
-		var target: Variant = candidates[service._rng.randi_range(0, candidates.size() - 1)]
+		var target: Variant = candidates[_rng.randi_range(0, candidates.size() - 1)]
 		counter.target_ids = [target.unique_id] if target is CardData else []
 		counter.relic_id = target if target is String else ""
 		counter["candidate_ids"] = candidates.map(func(item: Variant): return item.unique_id if item is CardData else item)
@@ -324,7 +326,7 @@ func finish_deal(period: String) -> void:
 		if promise.get("engine", "") == "persuasion" and promise.get("deal_started", false): promise.completed = true
 
 func observe_cards(ids: Array, event_id: String, interaction: String) -> void:
-	if service._restoring: return
+	if service.is_restoring(): return
 	for promise: Dictionary in service.daily.get("promises", []):
 		if promise.get("engine", "") != "persuasion" or not promise.get("started", false) or promise.get("outcome_applied", false): continue
 		if promise.accepted_terms.interaction != interaction: continue
@@ -335,7 +337,7 @@ func observe_cards(ids: Array, event_id: String, interaction: String) -> void:
 		service.changed.emit()
 
 func observe_inventory() -> void:
-	if service._restoring or service.campaign == null: return
+	if service.is_restoring() or service.campaign == null: return
 	for promise: Dictionary in service.daily.get("promises", []):
 		if promise.get("engine", "") != "persuasion" or promise.get("outcome_applied", false): continue
 		if promise.accepted_terms.interaction == "relic_loss" and promise.relic_id not in service.campaign.relic_shop.runtime.inventory:
@@ -371,7 +373,7 @@ func judge() -> void:
 	state().final_disposition = "UNPLEASED" if state().interaction_locked else ZodiacCatalog.patience_disposition(int(state().patience))
 	state().status = "judged"
 	state().stage = "judged"
-	service.progress.record_disposition(service.active_id(), service._key("persuasion_judgement"), state().final_disposition)
+	service.progress.record_disposition(service.active_id(), service.record_key("persuasion_judgement"), state().final_disposition)
 
 func reminder() -> String:
 	var lines: Array[String] = []

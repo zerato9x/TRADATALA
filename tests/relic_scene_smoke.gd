@@ -49,9 +49,6 @@ func _run() -> void:
 	root.add_child(scene)
 	current_scene = scene
 	await _pause(0.15)
-	var title := scene.get_node_or_null("TitleScreen")
-	if title != null:
-		title.queue_free()
 	scene.drink_manager.progress.save_path = ""
 	await scene._on_play_pressed()
 	scene.event_table.enter_deal()
@@ -63,23 +60,16 @@ func _run() -> void:
 	await _pause(0.7)
 	scene.event_table.focus_npc("hang_rong")
 	await _pause(0.7)
-	var panel := scene.campaign_participants.get_child(0)
+	var panel := scene.event_table.participants_container.get_child(0)
 	_check(panel.is_visible_in_tree(), "Hang Rong opens a visible table shop")
-	_check(panel.find_children("Equip_*", "Button", true, false).size() == 10, "all ten owned relics available")
-	for id: String in RelicCatalog.DEFINITIONS:
-		await _click(panel.find_child("Equip_" + id, true, false))
-		_check(scene.deal.relics.equipped.has(id), id + " pointer equip")
-		await _click(panel.find_child("Equip_" + id, true, false))
-		_check(not scene.deal.relics.equipped.has(id), id + " pointer remove")
-	for id in ["hair_clip", "comb", "rubber_band", "chewing_gum"]:
-		await _click(panel.find_child("Equip_" + id, true, false))
-		_check(scene.deal.relics.equipped.has(id), id + " pointer equip")
-	_check(panel.find_child("Equip_lipstick", true, false).disabled, "fifth relic requires removing one")
+	_check(scene.deal.relics.equipped.size() == 10, "all ten owned relics are active")
+	_check(scene.relic_grid.get_child_count() == 10, "all ten relic icons exist in the right-edge list")
+	_check(panel.find_children("Equip_*", "Button", true, false).is_empty(), "shop needs no equipment management")
+	_check(scene.relic_grid.columns == 1, "relics use one vertical icon list")
+	scene.event_table.unfocus_npc()
+	await _pause(0.2)
+	_check(scene.event_table.overview.relic_buttons.size() == 10, "every owned relic occupies the event table tray")
 	await _capture("relic_selector.png")
-	await _click(panel.find_child("Equip_comb", true, false))
-	_check(not scene.deal.relics.equipped.has("comb"), "pointer remove frees slot")
-	await _click(panel.find_child("Equip_comb", true, false))
-	_check(scene.deal.relics.equipped.has("comb"), "pointer re-equip")
 	scene.deal.relics.reset_run()
 	for id in ["hair_clip", "sunflower_seeds", "hard_candy", "buttons"]:
 		scene.deal.relics.acquire(id)
@@ -97,8 +87,8 @@ func _run() -> void:
 	_check(scene.relic_grid.get_child_count() == 4, "four HUD slots")
 	for slot: RelicSlot in scene.relic_grid.get_children():
 		_check(slot.tooltip_text.contains("VNĐ/PTS"), "equipped relic tooltip explains rate")
-	var job_id := scene._queue_scoring(result.context)
-	var job: Dictionary = scene.money_jobs.back()
+	var job_id := scene.money_feedback.queue_scoring(result.context)
+	var job: Dictionary = scene.money_playback.jobs.back()
 	var hits: Array = job.event.hits
 	var relic_count := 0
 	var saw_relic := false
@@ -116,17 +106,15 @@ func _run() -> void:
 	var saw_rate_receipt := false
 	var saw_named_payout := false
 	var receipt_above_cards := false
-	var coach_cleared := false
 	var captured_receipt := false
 	var deadline := Time.get_ticks_msec() + 16000
 	var captured := false
-	while not scene.completed_money_jobs.has(job_id) and Time.get_ticks_msec() < deadline:
+	while not scene.money_playback.completed.has(job_id) and Time.get_ticks_msec() < deadline:
 		if scene.vnd_per_point_value.text != VndWallet.format_vnd(scene.deal.vnd_per_point):
 			saw_rate = true
 		if scene.money_presentation.line_a_label.text.contains("VNĐ/PTS"):
 			saw_rate_receipt = true
 			receipt_above_cards = receipt_above_cards or scene.money_presentation.score_panel.global_position.y < scene.meld_scroll.global_position.y
-			coach_cleared = coach_cleared or not scene.campaign_coach.box.visible
 			for hit: Dictionary in hits:
 				if hit.kind == "relic" and scene.money_presentation.line_b_label.text.begins_with(String(hit.label)):
 					saw_named_payout = true
@@ -142,17 +130,16 @@ func _run() -> void:
 					captured = true
 					await _capture("relic_trigger.png")
 		await process_frame
-	_check(scene.completed_money_jobs.has(job_id), "money playback completes")
+	_check(scene.money_playback.completed.has(job_id), "money playback completes")
 	_check(pulsed.size() == 4, "every triggering relic receives the shared outline cue")
 	_check(shook.size() == 4, "every triggering relic uses the scoring card shake")
 	_check(saw_rate, "rate HUD shows an action-only relic boost")
 	_check(saw_rate_receipt, "receipt explains VNĐ/PTS boost")
 	_check(saw_named_payout, "above-card payout names the triggering relic")
 	_check(receipt_above_cards, "relic money receipt stays above the cards")
-	_check(coach_cleared, "campaign hint clears the scoring receipt")
 	_check(scene.vnd_per_point_value.text == VndWallet.format_vnd(scene.deal.vnd_per_point), "rate HUD returns to base after scoring")
 	_check(scene.deal.wallet.balance_vnd == wallet_after_commit, "presentation never changes wallet authority")
-	_check(scene.displayed_wallet_vnd == wallet_after_commit, "displayed wallet reconciles all relic payouts")
+	_check(scene.money_playback.displayed_balance == wallet_after_commit, "displayed wallet reconciles all relic payouts")
 	await _capture("relic_hud.png")
 	scene.queue_free()
 	await process_frame

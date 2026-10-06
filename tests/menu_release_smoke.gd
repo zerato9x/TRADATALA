@@ -22,7 +22,7 @@ func _run() -> void:
 	root.add_child(scene)
 	current_scene = scene
 	await process_frame
-	scene.run_save = RunSave.new("user://menu-release-%d.save" % Time.get_ticks_usec())
+	scene.session.run_save = RunSave.new("user://menu-release-%d.save" % Time.get_ticks_usec())
 	scene.drink_manager.progress.save_path = ""
 	scene.campaign.difficulty_progress = preload("res://scripts/campaign/difficulty_progress.gd").new("")
 	var front := scene.front_end

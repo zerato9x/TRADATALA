@@ -86,32 +86,26 @@ func _on_balance_changed(_previous: int, current: int, delta: int, reason: Strin
 	if reason == "reset":
 		last_transfer.clear()
 		for child in flights.get_children(): child.queue_free()
-		host.money_presentation.sync_wallet(current)
-		host.displayed_wallet_vnd = current
+		host.money_playback.synchronize(current)
 		return
 	if delta == 0:
 		return
 	_present_transfer(delta, reason)
 	if last_transfer.get("reason", "") == reason:
-		host.displayed_wallet_vnd = current
-		host.money_queue_wallet_vnd = current
-		host.money_presentation.sync_wallet(current)
+		host.money_playback.synchronize(current)
 
 func _present_transfer(delta: int, reason: String) -> void:
 	var npc := ""
 	if reason == "drink_purchase": npc = EventTableController.NPC_TRA_DA
-	elif reason.begins_with("relic_purchase:") or reason == "relic_reroll": npc = EventTableController.NPC_HANG_RONG
+	elif reason.begins_with("relic_purchase:") or reason.begins_with("card_purchase:") or reason.begins_with("card_removal:") or reason == "relic_reroll": npc = EventTableController.NPC_HANG_RONG
 	elif reason == "gieo_que_cast": npc = EventTableController.NPC_THAY_BOI
-	elif reason in ["shoe_polish", "shoe_tip"]: npc = EventTableController.NPC_DANH_GIAY
+	elif reason.begins_with("shoe_reroll_"): npc = EventTableController.NPC_DANH_GIAY
 	elif reason in ["lottery_ticket", "lottery_settlement"]: npc = EventTableController.NPC_LOTTO
 	elif reason == "daily_debt": npc = EventTableController.NPC_DOI_NO
 	if npc.is_empty():
 		return # Gameplay scoring already flies into this same wallet anchor.
 	var source := host.wallet_pile_anchor.get_global_rect().get_center()
-	var destination := Vector2(1080, 390)
-	if host.event_table._npc_layers.has(npc):
-		var sprite: Control = host.event_table._npc_layers[npc].sprite
-		if sprite.is_visible_in_tree(): destination = sprite.get_global_rect().get_center()
+	var destination: Vector2 = host.event_table.npc_anchor(npc, Vector2(1080, 390))
 	if reason == "daily_debt" and is_instance_valid(host.resolve_receipt):
 		destination = host.resolve_receipt.portrait.get_global_rect().get_center()
 	if delta > 0:

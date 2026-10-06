@@ -11,7 +11,6 @@ var box: PanelContainer
 var copy: Label
 var actions: VBoxContainer
 var scroll: ScrollContainer
-var quick_hint: Label
 var pointer: Control
 var blocker: Control
 var hats: Array[Texture2D] = []
@@ -32,6 +31,7 @@ var tour_index := 0
 var last_click := -1000
 var pending_single := false
 var click_generation := 0
+var quick_plan: Dictionary = {}
 var quick_action := ""
 var quick_card_id := ""
 var quick_signature := 0
@@ -50,6 +50,7 @@ var speech_reveal: Tween
 
 func configure(ui: MatchUI) -> void:
 	host = ui
+	host.action_rejected.connect(_reaction.bind(false))
 	layer = 900
 	name = "Strawy"
 	surface = Control.new()
@@ -134,20 +135,9 @@ func configure(ui: MatchUI) -> void:
 	pointer = preload("res://scripts/ui/tutorial_spotlight.gd").new()
 	surface.add_child(pointer)
 	pointer.z_index = -1
-	quick_hint = Label.new()
-	quick_hint.custom_minimum_size.x = 136
-	quick_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	quick_hint.add_theme_font_size_override("font_size", 16)
-	quick_hint.add_theme_color_override("font_outline_color", Color("102c2b"))
-	quick_hint.add_theme_constant_override("outline_size", 5)
-	quick_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	surface.add_child(quick_hint)
-	quick_hint.hide()
 	host.deal.state_changed.connect(_react)
 	host.campaign.day_finished.connect(func(_day):
 		if host.campaign.current_day_index == 0: tutorial_finished())
-	host.tutorial_step_changed.connect(func(step):
-		if step == host.TUTORIAL_COMPLETE: tutorial_finished())
 	host.settings.strawy_enabled_changed.connect(func(_enabled):
 		close()
 		surface.visible = _in_game())
@@ -160,15 +150,15 @@ func configure(ui: MatchUI) -> void:
 	surface.visible = _in_game()
 
 func _in_game() -> bool:
-	return not host.boss_debug_active and host.settings.strawy_enabled and host.game_started and not host.menu_layer.visible and not host.menu_transitioning
+	return not host.session.debug_active and host.settings.strawy_enabled and host.game_started and not host.menu_layer.visible and not host.menu_transitioning
 
 func tutorial_finished() -> void:
-	if not host.boss_debug_active and host.settings.tutorial_enabled: host.settings.mark_tutorial_completed()
+	if not host.session.debug_active and host.settings.tutorial_enabled: host.settings.mark_tutorial_completed()
 
 func _can_offer_choice() -> bool:
-	if not _in_game() or not window_focused or host.tutorial_active or host._restoring_run or host.interaction_locked or host.money_queue_running or host.money_presentation.presentation_active: return false
-	if box.visible or not tour.is_empty() or not quick_action.is_empty() or pending_single or host.active_drag_payload != null or host.drink_targeting_active: return false
-	if host.modal_overlay.visible or host.score_overlay.visible or host.discard_archive_overlay.visible or host.deck_screen.visible or host.zodiac_table.shade.visible or host.get_node("ActionLegend/Shade").visible or host.get_tree().root.has_node("GameGlossary") or host.get_tree().root.has_node("LotteryReceipt") or is_instance_valid(host.wallet_spiral) or _receipt_open(): return false
+	if not _in_game() or not window_focused or host.session.restoring or host.interactions.locked or host.money_playback.running or host.money_presentation.presentation_active: return false
+	if box.visible or not tour.is_empty() or not quick_action.is_empty() or pending_single or host.interactions.drag_payload != null or host.interactions.drink_targeting: return false
+	if host.modal_overlay.visible or host.score_overlay.visible or host.pile_archive.overlay.visible or host.deck_screen.visible or host.zodiac_table.shade.visible or host.get_node("ActionLegend/Shade").visible or host.get_tree().root.has_node("GameGlossary") or host.get_tree().root.has_node("LotteryReceipt") or is_instance_valid(host.wallet_spiral) or _receipt_open(): return false
 	return host.event_table.focused_npc_id.is_empty() and not host.event_table.deck_focused and not host.event_table.overview.expanded
 
 func _offer_choice() -> void:
@@ -200,7 +190,7 @@ func _answer_choice(enabled: bool) -> void:
 	host.settings.set_strawy_enabled(enabled)
 
 func _update_tooltip() -> void:
-	hit.tooltip_text = words("Tap for help · double tap to select a discard · tap again to discard", "Chạm để hỏi · chạm hai lần để chọn bài bỏ · chạm lại để bỏ")
+	hit.tooltip_text = words("Tap for help · double tap for a move preview · third tap to act", "Chạm để hỏi · chạm hai lần để xem nước đi · chạm lần ba để thực hiện")
 
 static func words(en: String, vi: String) -> String:
 	return GameGlossary.words(en, vi)
@@ -230,8 +220,7 @@ func _process(delta: float) -> void:
 		surface.visible = shown
 	if not shown: return
 	if host.settings.tutorial_completed and not host.settings.strawy_choice_made and host.settings.tutorial_enabled and _can_offer_choice(): _offer_choice()
-	if not quick_action.is_empty() and not _quick_action_valid(): _clear_quick_action()
-	quick_hint.position = dock() - Vector2(0, quick_hint.size.y + 4)
+	if not quick_action.is_empty() and not _quick_action_valid(): close()
 	clock += delta
 	blink_clock = fmod(clock + 0.6, 4.8)
 	if reaction_until < clock:
@@ -265,7 +254,7 @@ func _process(delta: float) -> void:
 			var fade := create_tween()
 			fade.tween_property(spark, "modulate:a", 0.0, 0.32)
 			fade.tween_callback(spark.queue_free)
-	if box.visible and tour.is_empty() and _context_id() != _last_context: _populate()
+	if box.visible and quick_action.is_empty() and tour.is_empty() and _context_id() != _last_context: _populate()
 
 func _clicked() -> void:
 	if not _in_game() or choice_open: return
@@ -277,7 +266,7 @@ func _clicked() -> void:
 	if now - last_click <= 320:
 		pending_single = false
 		last_click = -1000
-		if can_play_cards(): _prepare_discard()
+		if can_play_cards(): preview_action()
 		else: start_tour()
 		return
 	last_click = now
@@ -290,57 +279,78 @@ func _clicked() -> void:
 		if box.visible: close()
 		else: open_help()
 
-func _prepare_discard() -> void:
-	if not can_play_cards() or host.deal.state != DealState.STATE_ACTIVE:
-		_reaction(false)
-		return
-	var advice := host.deal.hand_advice()
-	var skip: bool = host.deal.tra_da_extra_discard_pending and advice["extra_action"] == "skip"
-	var card_id := String(advice["discard_id"])
-	if not skip and card_id.is_empty(): _reaction(false); return
+func preview_action() -> void:
+	if not can_play_cards(): _reaction(false); return
+	var plan := HandAdvice.next_action(host.deal, host.deal.queries.hand_advice())
 	close()
-	host.selected_card_ids.clear()
-	host.selected_meld_id = -1
-	if not skip: host.selected_card_ids[card_id] = true
-	host._layout_hand(false)
-	host._refresh_actions()
-	if (skip and host.settle_button.disabled) or (not skip and host.discard_button.disabled):
-		_reaction(false)
+	if plan.is_empty():
+		open_help()
+		_say(words("No legal action is available. Check the locked cards and current phase.", "Chưa có nước đi hợp lệ. Xem bài bị khóa và hiệp hiện tại."))
 		return
-	quick_action = "skip" if skip else "discard"
-	quick_card_id = "" if skip else card_id
+	host.set_card_selection(plan.cards, int(plan.get("meld_id", -1)))
+	quick_plan = plan
+	quick_action = plan.kind
+	quick_card_id = plan.cards[0].unique_id if plan.cards.size() == 1 else ""
 	quick_signature = HandAdvice.signature(host.deal)
 	quick_context = _context_id()
-	quick_hint.text = words("Tap to skip", "Chạm để bỏ qua") if skip else words("Tap to discard", "Chạm để bỏ lá")
-	quick_hint.show()
-	if not skip:
-		var target := host.hand_views.get(card_id) as Control
-		if target != null: pointer.set_targets([target] as Array[Control])
+	_last_context = quick_context
+	_clear_buttons()
+	box.show()
+	blocker.hide()
+	_say(_plan_copy(plan) + "\n\n" + words("Tap Strawy once more to confirm this move.", "Chạm Strawy thêm một lần để xác nhận nước đi này."))
+	_fit_panel()
+	var targets: Array[Control] = []
+	for card: CardData in plan.cards:
+		var target := host.card_table.hand_views.get(card.unique_id) as Control
+		if target != null: targets.append(target)
+	var meld_target := host.card_table.meld_views.get(host.interactions.selected_meld_id) as Control
+	if meld_target != null: targets.append(meld_target)
+	pointer.set_targets(targets)
 	pose = 3
 	expression = 2
 	reaction_until = clock + 0.6
 
+func _plan_copy(plan: Dictionary) -> String:
+	var labels: Array[String] = []
+	for card: CardData in plan.cards: labels.append(card.short_label())
+	var cards := ", ".join(labels)
+	match plan.kind:
+		"play":
+			var verb := words("extend the table Meld", "ghép vào Phỏm trên bàn") if plan.play.action == HandAdvisor.ACTION_EXTENSION else words("make a new Meld", "hạ Phỏm mới")
+			var drink := DrinkCatalog.display_name(host.deal.current_drink_id) + ": " if plan.play.get("use_drink", false) else ""
+			return drink + words("I'll %s with %s. Estimated payout: %d PTS.", "Tôi sẽ %s bằng %s. Dự tính nhận: %d ĐIỂM.") % [verb, cards, plan.play.estimated_points]
+		"swap": return words("I'll use %s to swap %s for %s, which can make a Meld or extend the table. This spends one use.", "Tôi sẽ dùng %s đổi %s lấy %s để có thể hạ hoặc ghép Phỏm. Tốn một lượt dùng.") % [DrinkCatalog.display_name(host.deal.current_drink_id), cards, plan.record.card.short_label()]
+		"recover", "recover_card": return words("I'll use %s to return eligible table cards to your hand so they can score again. This spends one use.", "Tôi sẽ dùng %s lấy bài hợp lệ trên bàn về tay để ghi điểm lại. Tốn một lượt dùng.") % DrinkCatalog.display_name(host.deal.current_drink_id)
+		"discard": return words("I'll discard %s. ", "Tôi sẽ bỏ %s. ") % cards + AdvisoryText.reasoning(host.deal.queries.hand_advice(), host.deal.state == DealState.STATE_FINAL_COMMIT_WINDOW)
+		"empty": return words("I'll end the empty turn and refill if another turn remains.", "Tôi sẽ kết thúc lượt trống và bù bài nếu còn lượt.")
+		"skip": return words("I'll skip Trà Đá's extra discard and refill your hand.", "Tôi sẽ bỏ qua lần bỏ thêm của Trà Đá rồi bù bài.")
+		"settle": return host.end_action_copy("settle")
+	return ""
+
 func _quick_action_valid() -> bool:
-	return can_play_cards() and host.deal.state == DealState.STATE_ACTIVE and quick_context == _context_id() and quick_signature == HandAdvice.signature(host.deal)
+	return can_play_cards() and quick_context == _context_id() and quick_signature == HandAdvice.signature(host.deal)
 
 func _clear_quick_action() -> void:
 	quick_action = ""
+	quick_plan.clear()
 	quick_card_id = ""
-	if quick_hint != null: quick_hint.hide()
 	if pointer != null and tour.is_empty(): pointer.set_targets([] as Array[Control])
 
 func _confirm_quick_action() -> void:
 	var valid := _quick_action_valid()
-	var advice := host.deal.hand_advice()
-	var skip: bool = host.deal.tra_da_extra_discard_pending and advice["extra_action"] == "skip"
-	valid = valid and ((quick_action == "skip" and skip) or (quick_action == "discard" and not skip and advice["discard_id"] == quick_card_id))
-	var kind := quick_action
+	var plan := quick_plan.duplicate()
 	close()
 	if not valid: _reaction(false); return
-	host._refresh_actions()
-	if kind == "skip" and not host.settle_button.disabled: host._on_settle_pressed()
-	elif kind == "discard" and not host.discard_button.disabled: host._on_discard_pressed()
-	else: _reaction(false)
+	host.refresh_interaction_view()
+	match plan.kind:
+		"play":
+			if plan.play.action == HandAdvisor.ACTION_EXTENSION: host.request_card_action("extend")
+			else: host.request_card_action("meld")
+		"swap": host.swap_drink_card(plan.cards[0], plan.record)
+		"recover": host.request_drink_recovery(plan.meld_id)
+		"recover_card": host.recover_drink_card(plan.meld_id, plan.card)
+		"settle", "skip": host.request_card_action("settle")
+		"discard", "empty": host.request_card_action("discard")
 
 func _input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.device == -1 and Time.get_ticks_msec() < suppress_mouse_until:
@@ -368,19 +378,25 @@ func _input(event: InputEvent) -> void:
 		if native_sequence:
 			get_viewport().set_input_as_handled()
 			if touch_ids.is_empty(): native_sequence = false
-		if box.visible and not box.get_global_rect().has_point(event.position): get_viewport().set_input_as_handled()
+		if box.visible and not box.get_global_rect().has_point(event.position) and not actor.get_global_rect().has_point(event.position):
+			if not quick_action.is_empty(): close()
+			else: get_viewport().set_input_as_handled()
 	elif event is InputEventScreenDrag and event.index == touch_index:
 		if event.position.distance_to(touch_start) > 12: touch_cancelled = true
 		get_viewport().set_input_as_handled()
 	elif event is InputEventMouseButton and event.device == -1 and actor.get_global_rect().has_point(event.position):
 		get_viewport().set_input_as_handled()
 	elif box.visible and event is InputEventMouseButton and not box.get_global_rect().has_point(event.position) and not actor.get_global_rect().has_point(event.position):
-		get_viewport().set_input_as_handled()
+		if not quick_action.is_empty(): close()
+		else: get_viewport().set_input_as_handled()
 	elif box.visible and event.is_action_pressed("ui_cancel"):
 		if choice_open: _answer_choice(host.settings.strawy_enabled)
 		else: close()
 		get_viewport().set_input_as_handled()
 	elif box.visible and event is InputEventKey:
+		if not quick_action.is_empty():
+			if event.pressed and not event.echo: close()
+			return
 		if choice_open:
 			for action in ["ui_accept", "ui_focus_next", "ui_focus_prev", "ui_up", "ui_down", "ui_left", "ui_right"]:
 				if event.is_action(action): return
@@ -399,16 +415,16 @@ func _notification(what: int) -> void:
 		window_focused = true
 
 func _context_id() -> String:
-	return str([host.game_started, host.menu_layer.visible, host.menu_page, host.campaign.current_phase, host.campaign.current_day_index, host.deal.state, host.deal.current_phase,
+	return str([host.game_started, host.menu_layer.visible, host.front_end.page, host.campaign.current_phase, host.campaign.current_day_index, host.deal.state, host.deal.current_phase,
 		host.deal.discard_count, host.event_table.focused_npc_id, host.event_table.deck_focused,
-		host.deck_screen.visible, host.zodiac_table.shade.visible, host.selected_card_ids.keys(),
-		host.drink_targeting_active, host.get_tree().root.has_node("GameGlossary"), host.modal_overlay.visible,
-		host.score_overlay.visible and not host.money_presentation.presentation_active, host.discard_archive_overlay.visible, host.get_node("ActionLegend/Shade").visible, host.get_tree().root.has_node("LotteryReceipt"), _receipt_open(), host.settings.tutorial_enabled])
+		host.deck_screen.visible, host.zodiac_table.shade.visible, host.interactions.selected_ids.keys(), host.interactions.selected_meld_id,
+		host.interactions.drink_targeting, host.get_tree().root.has_node("GameGlossary"), host.modal_overlay.visible,
+		host.score_overlay.visible and not host.money_presentation.presentation_active, host.pile_archive.overlay.visible, host.get_node("ActionLegend/Shade").visible, host.get_tree().root.has_node("LotteryReceipt"), _receipt_open(), host.settings.tutorial_enabled])
 
 func open_help() -> void:
 	if not _in_game() or choice_open: return
 	_clear_quick_action()
-	if host.active_drag_payload != null: host._cancel_card_drag()
+	if host.interactions.drag_payload != null: host.cancel_card_drag()
 	tour.clear()
 	pointer.set_targets([] as Array[Control])
 	box.show()
@@ -476,7 +492,7 @@ func _populate() -> void:
 	_last_context = _context_id()
 	_say(_context_copy())
 	if can_play_cards():
-		var advice := host.deal.hand_advice()
+		var advice := host.deal.queries.hand_advice()
 		var play: Dictionary = advice["play"]
 		if play["action"] != HandAdvisor.ACTION_NONE:
 			var extending: bool = play["action"] == HandAdvisor.ACTION_EXTENSION
@@ -485,12 +501,16 @@ func _populate() -> void:
 		if host.deal.tra_da_extra_discard_pending and advice["extra_action"] == "skip":
 			var skip_button := _button("Skip extra discard", "Bỏ qua lần bỏ thêm", func(): _command("discard"))
 			skip_button.name = "StrawyDiscard"
-		if not host.selected_card_ids.is_empty():
+		if not host.interactions.selected_ids.is_empty():
 			var info_button := _button("Card info", "Xem lá bài", _explain_cards)
 			info_button.name = "StrawyCardInfo"
 		elif host.deal.current_drink_has_charge() and host.deal.current_drink_id != DrinkCatalog.NONE:
 			_button("Drink targets", "Mục tiêu đồ uống", _explain_drink)
 		if actions.get_child_count() < 4: _button("Show controls", "Chỉ thao tác", start_tour)
+		_button("Handbook", "Sổ tay", func():
+			var detail := _context_detail()
+			close()
+			GameGlossary.open_entry(host, words("Current action", "Hành động hiện tại"), detail, _handbook_section()))
 	else:
 		_button("Show me", "Chỉ giúp tôi", start_tour)
 		if not host.get_tree().root.has_node("GameGlossary"):
@@ -504,86 +524,99 @@ func _fit_panel() -> void:
 	box.size = Vector2(320, 0)
 
 func can_play_cards() -> bool:
-	return _in_game() and not choice_open and not host.interaction_locked and host.current_campaign_event == null and not host.modal_overlay.visible and not (host.score_overlay.visible and not host.money_presentation.presentation_active) and not host.discard_archive_overlay.visible and not host.deck_screen.visible and not host.zodiac_table.shade.visible and not host.get_node("ActionLegend/Shade").visible and not host.drink_targeting_active and host.active_drag_payload == null and not host.get_tree().root.has_node("GameGlossary") and not host.get_tree().root.has_node("LotteryReceipt") and not is_instance_valid(host.wallet_spiral) and not _receipt_open()
+	return _in_game() and not choice_open and host.interaction_snapshot().can_play
 
 func _receipt_open() -> bool:
 	return is_instance_valid(host.resolve_receipt) and host.resolve_receipt.visible
 
 func _handbook_section() -> String:
 	if host.zodiac_table.shade.visible: return "campaign"
-	if host.drink_targeting_active: return "drinks"
+	if host.interactions.drink_targeting: return "drinks"
 	if host.event_table.focused_npc_id == EventTableController.NPC_THAY_BOI: return "gieo"
 	if host.event_table.focused_npc_id == "lotto" or host.get_tree().root.has_node("LotteryReceipt"): return "lottery"
 	return "npcs" if host.current_campaign_event != null else "core"
 
 func _command(kind: String) -> void:
 	if not can_play_cards(): _reaction(false); _populate(); return
-	var advice := host.deal.hand_advice()
+	var advice := host.deal.queries.hand_advice()
 	close()
 	if kind == "play":
 		var play: Dictionary = advice["play"]
 		if play["action"] == HandAdvisor.ACTION_NONE: _reaction(false); return
-		host.selected_card_ids.clear()
-		host.selected_meld_id = int(play.get("meld_id", -1))
-		for card: CardData in play["cards"]: host.selected_card_ids[card.unique_id] = true
-		host._refresh_actions()
-		if play["action"] == HandAdvisor.ACTION_EXTENSION: host._on_extend_pressed()
-		else: host._on_ha_pressed()
+		host.set_card_selection(play.cards, int(play.get("meld_id", -1)))
+		if play["action"] == HandAdvisor.ACTION_EXTENSION: host.request_card_action("extend")
+		else: host.request_card_action("meld")
 	elif kind == "discard":
 		if host.deal.state != DealState.STATE_ACTIVE: _reaction(false); return
 		if host.deal.tra_da_extra_discard_pending and advice["extra_action"] == "skip":
-			host._on_settle_pressed()
+			host.request_card_action("settle")
 		else:
 			if advice["discard_id"].is_empty(): _reaction(false); return
-			host.selected_card_ids.clear()
-			host.selected_card_ids[advice["discard_id"]] = true
-			host._refresh_actions()
-			host._on_discard_pressed()
+			host.set_card_selection(host.deal.hand.filter(func(card): return card.unique_id == advice["discard_id"]))
+			host.request_card_action("discard")
 
 func _context_copy() -> String:
+	if host.get_tree().root.has_node("GameGlossary"): return words("Choose a topic", "Chọn chủ đề")
+	if host.zodiac_table.shade.visible: return words("Choose your response", "Chọn câu trả lời")
+	if _receipt_open() or host.score_overlay.visible: return words("Results · Continue when ready", "Kết quả · Tiếp tục khi sẵn sàng")
+	if host.deck_screen.visible: return words("Select a card", "Chọn lá bài")
+	if host.interactions.drink_targeting: return words("Select target · Confirm", "Chọn mục tiêu · Xác nhận")
+	if host.modal_overlay.visible: return words("Choose · Confirm", "Chọn · Xác nhận")
+	if host.deal.tra_da_extra_discard_pending and host.current_campaign_event == null: return words("Extra discard or Skip", "Bỏ thêm hoặc Bỏ qua")
+	if host.current_campaign_event != null: return words("Select a visitor", "Chọn vị khách")
+	if host.deal.state == DealState.STATE_FINAL_COMMIT_WINDOW: return words("Last Call · Meld/Extend → Settle", "Chốt Hạ · Hạ/Ghép → Chốt")
+	if host.deal.state == DealState.STATE_PHASE_CHOICE: return words("Keep marked cards → Phase 2", "Giữ bài đánh dấu → Hiệp 2")
+	return words("Meld / Extend · or Discard", "Hạ / Ghép · hoặc Bỏ bài")
+
+func _context_detail() -> String:
 	if host.get_tree().root.has_node("GameGlossary"): return words("Search a rule or choose a topic to read how it works. Close the Handbook to return to your game.", "Tìm luật hoặc chọn chủ đề để xem cách chơi. Đóng Sổ tay để trở lại ván.")
 	if host.zodiac_table.shade.visible: return words("Read this visitor's effect, then choose an available service. Check the cost and affected cards before confirming.", "Đọc hiệu ứng của vị khách rồi chọn dịch vụ đang mở. Xem giá và bài bị ảnh hưởng trước khi xác nhận.")
-	if host.current_campaign_event == null and host.deal.state == DealState.STATE_PHASE_CHOICE: return words("KEEP carries your loose cards into phase 2. DUMP redraws the rest; your Drink's preserved cards and table Melds stay.", "GIỮ mang bài rời sang giai đoạn 2. ĐỔI rút lại phần còn lại; bài đồ uống giữ lại và Phỏm trên bàn vẫn giữ.")
+	if host.current_campaign_event == null and host.deal.state == DealState.STATE_PHASE_CHOICE: return words("Phase 2 carries only cards marked with Sâm dứa or Bạc xỉu. The rest are replaced; table Melds stay.", "Hiệp 2 chỉ giữ bài đã đánh dấu bằng Sâm dứa hoặc Bạc xỉu. Phần còn lại được thay; Phỏm trên bàn vẫn giữ.")
 	if _receipt_open() or (host.score_overlay.visible and not host.money_presentation.presentation_active): return words("Check your earned points and wallet changes. When you're ready, continue to the next part of the run.", "Xem điểm kiếm được và thay đổi trong ví. Khi sẵn sàng, tiếp tục sang bước kế của ván chơi.")
 	if host.modal_overlay.visible: return words("Read the choice and its effect before confirming. The highlighted button carries out that choice.", "Đọc lựa chọn và tác dụng trước khi xác nhận. Nút được chỉ sẽ thực hiện lựa chọn đó.")
 	if host.deck_screen.visible: return words("Search by rank or suit, then select a card to inspect its properties. Back returns to the table.", "Tìm theo số hoặc chất rồi chọn lá để xem thuộc tính. Về bàn để tiếp tục.")
-	if host.drink_targeting_active: return words("Select an eligible card or Meld, then confirm the Drink effect. Cancel if you want to keep the charge.", "Chọn bài hoặc Phỏm hợp lệ rồi xác nhận hiệu ứng đồ uống. Hủy nếu muốn giữ lượt dùng.")
+	if host.interactions.drink_targeting: return words("Select an eligible card or Meld, then confirm the Drink effect. Cancel if you want to keep the charge.", "Chọn bài hoặc Phỏm hợp lệ rồi xác nhận hiệu ứng đồ uống. Hủy nếu muốn giữ lượt dùng.")
 	if host.deal.tra_da_extra_discard_pending and host.current_campaign_event == null:
 		return words("Trà Đá lets you discard one more loose card, or Skip. Your hand refills after this choice.", "Trà Đá cho bỏ thêm một lá rời, hoặc Bỏ qua. Tay bài được bù sau lựa chọn này.")
 	if host.deal.state == DealState.STATE_FINAL_COMMIT_WINDOW and host.current_campaign_event == null: return words("Last Call: Meld/Extend, then settle. No refill.", "Chốt Hạ: Hạ/Ghép rồi chốt. Không bù bài.")
 	if host.settings.tutorial_enabled and host.campaign.current_day_index == 0:
-		var hint: Array[String] = host.campaign_coach._hint()
+		var hint: Array[String] = preload("res://scripts/ui/campaign_hints.gd").instruction(host.campaign, host.deal, host.current_campaign_event, host.event_table.focused_npc_id, host.resolve_mode)
 		if not hint[0].is_empty() and not host.campaign.onboarding.learned.has(hint[0]): return words(hint[1], hint[2])
 	if host.current_campaign_event != null:
-		var hint: Array[String] = host.campaign_coach._hint()
+		var hint: Array[String] = preload("res://scripts/ui/campaign_hints.gd").instruction(host.campaign, host.deal, host.current_campaign_event, host.event_table.focused_npc_id, host.resolve_mode)
 		return words(hint[1], hint[2])
 	return words("Select three matching ranks or a same-suit sequence, then HẠ to score. Otherwise discard one loose card to end the turn and refill.", "Chọn ba lá cùng số hoặc dãy cùng chất rồi HẠ để ghi điểm. Nếu chưa có, bỏ một lá rời để kết thúc lượt và bù bài.")
 
 func _explain_cards() -> void:
-	var advice := host.deal.hand_advice()
+	var advice := host.deal.queries.hand_advice()
 	var lines: Array[String] = []
-	for card: CardData in host._selected_cards():
-		lines.append("%s · %d PTS\n%s" % [card.short_label(), card.score_value(), HandAdvice.describe(advice["by_card"].get(card.unique_id, {}), host.deal.state == DealState.STATE_FINAL_COMMIT_WINDOW)])
-	_say("\n\n".join(lines))
+	var full: Array[String] = []
+	for card: CardData in host.interactions.selected_cards():
+		lines.append("%s · %d PTS · %s %d/100" % [card.short_label(), card.score_value(), words("Keep", "Giữ"), advice["by_card"].get(card.unique_id, {}).get("keep_score", 100)])
+		full.append("%s · %d PTS\n%s" % [card.short_label(), card.score_value(), AdvisoryText.describe(advice["by_card"].get(card.unique_id, {}), host.deal.state == DealState.STATE_FINAL_COMMIT_WINDOW)])
+	_say("\n".join(lines))
+	_button("Handbook", "Sổ tay", func(): GameGlossary.open_entry(host, words("Card info", "Lá bài"), "\n\n".join(full), "cards"))
 	_fit_panel()
 
 func explain_card(card: CardData) -> void:
 	if card == null or not host.deal.hand.has(card): return
 	suppress_mouse_until = Time.get_ticks_msec() + 800
 	open_help()
-	_say("%s · %d PTS\n%s" % [card.short_label(), card.score_value(), HandAdvice.describe(host.deal.hand_advice()["by_card"].get(card.unique_id, {}), host.deal.state == DealState.STATE_FINAL_COMMIT_WINDOW)])
+	var row: Dictionary = host.deal.queries.hand_advice()["by_card"].get(card.unique_id, {})
+	_say("%s · %d PTS · %s %d/100" % [card.short_label(), card.score_value(), words("Keep", "Giữ"), row.get("keep_score", 100)])
+	_button("Handbook", "Sổ tay", func(): GameGlossary.open_entry(host, card.short_label(), AdvisoryText.describe(row, host.deal.state == DealState.STATE_FINAL_COMMIT_WINDOW), "cards"))
 	_fit_panel()
 
 func _explain_drink() -> void:
 	tour = []
-	_add_target(host.drink_table_button, host._drink_tooltip())
-	for id in host._drink_hand_eligible_card_ids():
-		_add_target(host.hand_views.get(id), words("Select this eligible card, then confirm to use the Drink's effect and spend a charge.", "Chọn lá hợp lệ này rồi xác nhận để dùng hiệu ứng đồ uống và tiêu một lượt dùng."))
+	_add_target(host.drink_table_button, host.drink_tooltip())
+	for id in host.interactions.drink_hand_eligible_card_ids():
+		_add_target(host.card_table.hand_views.get(id), words("Select this eligible card, then confirm to use the Drink's effect and spend a charge.", "Chọn lá hợp lệ này rồi xác nhận để dùng hiệu ứng đồ uống và tiêu một lượt dùng."))
 		if tour.size() >= 3: break
 	if tour.size() < 2:
 		for meld: MeldState in host.deal.melds:
 			if host.deal.can_use_nau_da(meld.meld_id) or not host.deal.nuoc_voi_targets().filter(func(t): return t.get("meld_id", -1) == meld.meld_id).is_empty():
-				_add_target(host.meld_views.get(meld.meld_id), words("Select this Meld's eligible target, then confirm the Drink effect. Check the effect before spending a charge.", "Chọn mục tiêu hợp lệ trong Phỏm này rồi xác nhận hiệu ứng đồ uống. Xem tác dụng trước khi tiêu lượt dùng."))
+				_add_target(host.card_table.meld_views.get(meld.meld_id), words("Select this Meld's eligible target, then confirm the Drink effect. Check the effect before spending a charge.", "Chọn mục tiêu hợp lệ trong Phỏm này rồi xác nhận hiệu ứng đồ uống. Xem tác dụng trước khi tiêu lượt dùng."))
 	if not tour.is_empty(): tour_index = 0; _point()
 
 func _add_target(control: Control, text: String) -> void:
@@ -594,7 +627,7 @@ func _npc_guidance(npc: String) -> String:
 		EventTableController.NPC_DOI_NO:
 			return words("Check today's debt and your wallet, then pay to continue.", "Xem nợ hôm nay và ví rồi trả để tiếp tục.") if host.resolve_mode == "collection" else words("Meet Đòi Nợ to check today's debt. Payment is due after the Evening Deal.", "Gặp Đòi Nợ để xem nợ hôm nay. Trả nợ sau ván tối.")
 		EventTableController.NPC_DANH_GIAY:
-			return words("Visit Đánh Giày to polish two random cards for a bonus throughout today. Check the price before ordering.", "Ghé Đánh Giày để đánh bóng hai lá ngẫu nhiên, được thưởng suốt hôm nay. Xem giá trước khi gọi dịch vụ.")
+			return words("At Starter, commit one or two cards to Đánh Giày. Reroll their Rank or Suit permanently; each service doubles in price. Your chosen cards stay locked for this visit.", "Ở đầu ngày, chốt một hoặc hai lá với Đánh Giày. Đổi vĩnh viễn số hoặc chất; mỗi dịch vụ tăng gấp đôi riêng. Các lá đã chọn được giữ cho chuyến này.")
 		EventTableController.NPC_TRA_DA:
 			return words("Choose a glass, read its effect, then Order. This Drink changes how you play the next Deals.", "Chọn ly, đọc hiệu ứng rồi GỌI MÓN. Đồ uống thay đổi cách chơi các ván tiếp theo.")
 		EventTableController.NPC_THAY_BOI:
@@ -606,10 +639,6 @@ func _npc_guidance(npc: String) -> String:
 	return words("Choose this visitor to inspect their services before spending.", "Chọn vị khách này để xem dịch vụ trước khi chi tiền.")
 
 func _button_guidance(button: Button) -> String:
-	if host.modal_mode == "phase_choice" and button == host.modal_primary:
-		return words("Choose KEEP to carry your current loose cards into phase 2. Table Melds stay.", "Chọn GIỮ để mang bài rời hiện tại sang giai đoạn 2. Phỏm trên bàn vẫn giữ.")
-	if host.modal_mode == "phase_choice" and button == host.modal_secondary:
-		return words("Choose DUMP to redraw loose cards for phase 2. Cards preserved by your Drink and table Melds stay.", "Chọn ĐỔI để rút lại bài rời cho giai đoạn 2. Bài đồ uống giữ lại và Phỏm trên bàn vẫn giữ.")
 	var detail := button.tooltip_text.strip_edges()
 	if detail.is_empty() or detail == button.text:
 		detail = _npc_guidance(host.event_table.focused_npc_id) if host.current_campaign_event != null and not host.event_table.focused_npc_id.is_empty() else _context_copy()
@@ -618,13 +647,13 @@ func _button_guidance(button: Button) -> String:
 func start_tour() -> void:
 	if not _in_game() or choice_open: return
 	_clear_quick_action()
-	if host.active_drag_payload != null: host._cancel_card_drag()
+	if host.interactions.drag_payload != null: host.cancel_card_drag()
 	pending_single = false
 	tour.clear()
 	var handbook := host.get_tree().root.get_node_or_null("GameGlossary") as GameGlossary
 	var receipt := host.get_tree().root.get_node_or_null("LotteryReceipt")
 	if handbook != null:
-		_add_target(handbook._search, words("Search the current Handbook topics.", "Tìm các chủ đề trong Sổ tay."))
+		_add_target(handbook.find_child("HandbookSearch", true, false), words("Search the current Handbook topics.", "Tìm các chủ đề trong Sổ tay."))
 		_add_target(handbook.find_child("CloseHandbook", true, false), words("Return to your game here.", "Trở lại ván tại đây."))
 	elif receipt != null:
 		_add_buttons(receipt)
@@ -638,25 +667,23 @@ func start_tour() -> void:
 		_add_buttons(host.modal_overlay)
 	elif host.score_overlay.visible and not host.money_presentation.presentation_active:
 		_add_buttons(host.score_overlay)
-	elif host.discard_archive_overlay.visible:
-		_add_buttons(host.discard_archive_overlay)
+	elif host.pile_archive.overlay.visible:
+		_add_buttons(host.pile_archive.overlay)
 	elif host.deck_screen.visible:
-		_add_target(host.deck_screen._search, words("Search by rank, suit, or original card identity.", "Tìm theo số, chất hoặc lá gốc."))
+		_add_target(host.deck_screen.find_child("DeckSearch", true, false), words("Search by rank, suit, or original card identity.", "Tìm theo số, chất hoặc lá gốc."))
 		_add_target(host.deck_screen.find_child("DeckBack", true, false), words("Return to the table here.", "Về bàn tại đây."))
 	elif host.current_campaign_event != null:
 		if host.event_table.focused_npc_id.is_empty():
-			var required := host.event_table._required_npc_id
-			if host.event_table._npc_layers.has(required): _add_target(host.event_table._npc_layers[required]["button"], _npc_guidance(required))
-			for id in host.event_table._npc_layers:
-				if id != required: _add_target(host.event_table._npc_layers[id]["button"], _npc_guidance(id))
+			for target: Dictionary in host.event_table.guidance_targets():
+				_add_target(target.button, _npc_guidance(target.id))
 				if tour.size() >= 3: break
 		else:
-			for button in host.campaign_participants.find_children("*", "Button", true, false):
+			for button in host.event_table.participants_container.find_children("*", "Button", true, false):
 				if button.is_visible_in_tree() and not button.disabled: _add_target(button, _button_guidance(button))
 				if tour.size() >= 2: break
 			_add_target(host.event_table.back_button, words("Return to the other visitors.", "Trở lại để gặp người khác."))
 	else:
-		var advice := host.deal.hand_advice()
+		var advice := host.deal.queries.hand_advice()
 		var play: Dictionary = advice["play"]
 		if play["action"] != HandAdvisor.ACTION_NONE:
 			var extending: bool = play["action"] == HandAdvisor.ACTION_EXTENSION
@@ -665,9 +692,9 @@ func start_tour() -> void:
 			var instruction := words("Select %s, then HẠ to make a scoring Meld.", "Chọn %s rồi HẠ để tạo Phỏm ghi điểm.") % ", ".join(labels)
 			if extending: instruction = words("Select %s and the destination Meld, then GHÉP to add these cards and score.", "Chọn %s và Phỏm muốn ghép rồi GHÉP để thêm bài và ghi điểm.") % ", ".join(labels)
 			for card: CardData in play["cards"]:
-				_add_target(host.hand_views.get(card.unique_id), "%s · %s" % [card.short_label(), instruction])
+				_add_target(host.card_table.hand_views.get(card.unique_id), "%s · %s" % [card.short_label(), instruction])
 				if tour.size() >= 2: break
-			if extending: _add_target(host.meld_views.get(play.get("meld_id", -1)), words("Choose this table Meld as the destination for the selected card, then GHÉP.", "Chọn Phỏm này làm nơi ghép lá đã chọn rồi GHÉP."))
+			if extending: _add_target(host.card_table.meld_views.get(play.get("meld_id", -1)), words("Choose this table Meld as the destination for the selected card, then GHÉP.", "Chọn Phỏm này làm nơi ghép lá đã chọn rồi GHÉP."))
 			_add_target(host.extend_button if extending else host.ha_button, instruction)
 		else:
 			if host.deal.state == DealState.STATE_FINAL_COMMIT_WINDOW:
@@ -675,7 +702,7 @@ func start_tour() -> void:
 			elif host.deal.tra_da_extra_discard_pending and advice["extra_action"] == "skip":
 				_add_target(host.settle_button, words("Skip the optional extra discard to keep these cards. Your hand then refills for the next turn.", "Bỏ qua lần bỏ thêm để giữ các lá này. Tay bài sẽ được bù cho lượt tiếp theo."))
 			else:
-				_add_target(host.hand_views.get(advice["discard_id"]), words("This is the suggested discard after comparing your next refill. Select it, then BỎ BÀI to end the turn.", "Đây là lá gợi ý bỏ sau khi so lần bù tiếp theo. Chọn lá rồi BỎ BÀI để kết thúc lượt."))
+				_add_target(host.card_table.hand_views.get(advice["discard_id"]), words("This is the suggested discard after comparing your next refill. Select it, then BỎ BÀI to end the turn.", "Đây là lá gợi ý bỏ sau khi so lần bù tiếp theo. Chọn lá rồi BỎ BÀI để kết thúc lượt."))
 				_add_target(host.discard_button, words("Discard the selected loose card to end your turn. Your hand refills afterward; Trà Đá can offer one extra discard first.", "Bỏ lá rời đã chọn để kết thúc lượt. Tay bài được bù sau đó; Trà Đá có thể cho bỏ thêm một lá trước."))
 	if tour.is_empty(): open_help(); return
 	box.show()
@@ -710,7 +737,8 @@ func _point() -> void:
 	reaction_until = clock + 1.0
 
 func _react(result: Dictionary) -> void:
-	_clear_quick_action()
+	if not quick_action.is_empty(): close()
+	else: _clear_quick_action()
 	if result.get("action", "") in ["new_meld", "extension", "discard", "phase_settlement"]:
 		_reaction(result.get("ok", false))
 

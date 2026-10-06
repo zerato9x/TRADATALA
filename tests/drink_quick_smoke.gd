@@ -20,7 +20,7 @@ func card(rank: int, suit: String = "Spades") -> CardData:
 	return CardData.new("quick_%d" % serial, label, rank, suit, rank)
 func prepare(id: String, cards: Array[CardData]) -> void:
 	scene.money_presentation.hide_ceremony()
-	scene._reset_tutorial_ui_state()
+	scene.reset_transient_presentation()
 	scene.deal._reset_drink_usage()
 	scene.deal.melds.clear()
 	scene.deal.discard_history.clear()
@@ -34,13 +34,13 @@ func prepare(id: String, cards: Array[CardData]) -> void:
 	scene.deal.set_current_drink(id)
 	scene.deal.state = DealState.STATE_FINAL_COMMIT_WINDOW
 	scene.deal.wallet.reset(100000)
-	scene.displayed_wallet_vnd = 100000
-	scene.money_queue_wallet_vnd = 100000
-	scene.interaction_locked = false
+	scene.money_playback.displayed_balance = 100000
+	scene.money_playback.queued_balance = 100000
+	scene.interactions.locked = false
 	scene.game_started = true
 	scene.game_layer.position = Vector2.ZERO
 	scene.menu_layer.hide()
-	scene.campaign_overlay.hide()
+	scene.event_table.hide()
 	scene._sync_all()
 	await create_timer(0.3).timeout
 func center(control: Control) -> Vector2:
@@ -70,7 +70,7 @@ func drag(control: Control, target: Vector2, capture: bool = false) -> void:
 	mouse(start, true)
 	motion(start + Vector2(20, 0), true)
 	await process_frame
-	check(scene.active_drag_payload != null or scene.quick_drink_input.dragging, "pointer motion starts a real drag")
+	check(scene.interactions.drag_payload != null or scene.quick_drink_input.dragging, "pointer motion starts a real drag")
 	motion(target, true)
 	await process_frame
 	if capture and "--capture" in OS.get_cmdline_user_args():
@@ -80,9 +80,9 @@ func drag(control: Control, target: Vector2, capture: bool = false) -> void:
 	await process_frame
 func wait_action() -> void:
 	var deadline := Time.get_ticks_msec() + 4000
-	while scene.interaction_locked and Time.get_ticks_msec() < deadline:
+	while scene.interactions.locked and Time.get_ticks_msec() < deadline:
 		await process_frame
-	check(not scene.interaction_locked, "interaction resolves without locking the table")
+	check(not scene.interactions.locked, "interaction resolves without locking the table")
 func count(id: String) -> int:
 	return int(scene.ui_feedback.play_counts.get(StringName("drink_" + id), 0))
 func _run() -> void:
@@ -127,7 +127,7 @@ func _run() -> void:
 		var cards: Array[CardData] = [card(7), card(7, "Hearts")]
 		if id == DrinkCatalog.C2_ICED_TEA: cards = [card(5), card(6, "Hearts"), card(7, "Clubs"), card(8, "Diamonds")]
 		await prepare(id, cards)
-		for value in cards: await click(scene.hand_views[value.unique_id])
+		for value in cards: await click(scene.card_table.hand_views[value.unique_id])
 		var before := count(id)
 		await click(scene.drink_table_button)
 		if id in [DrinkCatalog.SAM_DUA, DrinkCatalog.BAC_XIU]:
@@ -135,24 +135,24 @@ func _run() -> void:
 		else:
 			check(scene.deal.melds.size() == 1 and scene.deal.melds[0].cards.size() == cards.size(), id + " selected-first single click creates full group")
 		check(count(id) == before + 1, id + " successful use plays once")
-		check(not scene.drink_targeting_active, id + " exits targeting after use")
+		check(not scene.interactions.drink_targeting, id + " exits targeting after use")
 	# Exact pairs auto-commit after two choices; C2 keeps its variable-length group.
 	for id in [DrinkCatalog.STING, DrinkCatalog.BO_HUC]:
 		var cards: Array[CardData] = [card(8), card(8, "Hearts"), card(4)]
 		await prepare(id, cards)
 		await click(scene.drink_table_button)
-		await click(scene.hand_views[cards[0].unique_id])
-		check(scene.pending_drink_card_ids.has(cards[0].unique_id), id + " first choice remains pending")
-		await click(scene.hand_views[cards[1].unique_id])
+		await click(scene.card_table.hand_views[cards[0].unique_id])
+		check(scene.interactions.drink_ids.has(cards[0].unique_id), id + " first choice remains pending")
+		await click(scene.card_table.hand_views[cards[1].unique_id])
 		check(scene.deal.melds.size() == 1, id + " second choice commits without another cup click")
 	# Both armed and unarmed groups can drag, including four-card C2 runs.
 	for armed in [false, true]:
 		var cards: Array[CardData] = [card(5), card(6, "Hearts"), card(7, "Clubs"), card(8, "Diamonds")]
 		await prepare(DrinkCatalog.C2_ICED_TEA, cards)
 		if armed: await click(scene.drink_table_button)
-		for value in cards: await click(scene.hand_views[value.unique_id])
-		check((scene.hand_views[cards[0].unique_id] as PlayingCardView).drag_enabled, "C2 targeting never disables card drags")
-		await drag(scene.hand_views[cards[0].unique_id], center(scene.drink_table_button), armed)
+		for value in cards: await click(scene.card_table.hand_views[value.unique_id])
+		check((scene.card_table.hand_views[cards[0].unique_id] as PlayingCardView).drag_enabled, "C2 targeting never disables card drags")
+		await drag(scene.card_table.hand_views[cards[0].unique_id], center(scene.drink_table_button), armed)
 		check(scene.deal.melds.size() == 1 and scene.deal.melds[0].cards.size() == 4, "C2 group drag commits all four selected cards")
 	# Default table drops recognize a drink-only Pair, without wasting C2 on an ordinary run.
 	for ordinary in [false, true]:
@@ -160,32 +160,32 @@ func _run() -> void:
 		var cards: Array[CardData] = [card(4), card(5), card(6)]
 		if not ordinary: cards = [card(7), card(7, "Hearts")]
 		await prepare(id, cards)
-		for value in cards: await click(scene.hand_views[value.unique_id])
+		for value in cards: await click(scene.card_table.hand_views[value.unique_id])
 		check(not scene.ha_button.disabled, "quick meld has an enabled action button")
-		await drag(scene.hand_views[cards[0].unique_id], center(scene.table_surface) + Vector2(0, -60))
+		await drag(scene.card_table.hand_views[cards[0].unique_id], center(scene.table_surface) + Vector2(0, -60))
 		await wait_action()
 		check(scene.deal.melds.size() == 1, "ordinary table drop accepts the selected group")
 		check(not scene.deal.c2_used if ordinary else scene.deal.pair_used_phases.has(1), "table drop spends only a necessary drink permission")
 		if not ordinary:
 			scene.deal.set_current_drink(DrinkCatalog.NAU_DA)
 			scene._sync_all()
-			var face := (scene.meld_views[scene.deal.melds[0].meld_id] as MeldView).get_scoring_card_control(cards[0].unique_id)
+			var face := (scene.card_table.meld_views[scene.deal.melds[0].meld_id] as MeldView).get_scoring_card_control(cards[0].unique_id)
 			await drag(face, center(scene.hand_layer))
 			check(scene.deal.melds.is_empty(), "recovery remains usable during a nonblocking payout")
 			var deadline := Time.get_ticks_msec() + 6000
-			while scene.money_queue_running and Time.get_ticks_msec() < deadline:
+			while scene.money_playback.running and Time.get_ticks_msec() < deadline:
 				await process_frame
-			check(not scene.money_queue_running, "receipt completes after its physical Meld is recovered")
+			check(not scene.money_playback.running, "receipt completes after its physical Meld is recovered")
 	# Preservation groups can drop on the cup; over-limit drops keep charge and selection.
 	for id in [DrinkCatalog.SAM_DUA, DrinkCatalog.BAC_XIU]:
 		var cards: Array[CardData] = [card(2), card(4), card(6), card(9)]
 		await prepare(id, cards)
-		for value in cards: await click(scene.hand_views[value.unique_id])
-		await drag(scene.hand_views[cards[0].unique_id], center(scene.drink_table_button))
+		for value in cards: await click(scene.card_table.hand_views[value.unique_id])
+		await drag(scene.card_table.hand_views[cards[0].unique_id], center(scene.drink_table_button))
 		if id == DrinkCatalog.SAM_DUA:
-			check(not scene.deal.sam_dua_used and scene.selected_card_ids.size() == 4, "Sam dua over-limit drop neither spends nor clears selection")
-			await click(scene.hand_views[cards[3].unique_id])
-			await drag(scene.hand_views[cards[0].unique_id], center(scene.drink_table_button))
+			check(not scene.deal.sam_dua_used and scene.interactions.selected_ids.size() == 4, "Sam dua over-limit drop neither spends nor clears selection")
+			await click(scene.card_table.hand_views[cards[3].unique_id])
+			await drag(scene.card_table.hand_views[cards[0].unique_id], center(scene.drink_table_button))
 			check(scene.deal.sam_dua_preserved_cards.size() == 3, "Sam dua drag preserves three")
 		else:
 			check(scene.deal.sam_dua_preserved_cards.size() == 4, "Bac xiu drag preserves unrestricted group")
@@ -198,7 +198,7 @@ func _run() -> void:
 			scene.deal.melds.append(meld)
 			scene._sync_all()
 			await create_timer(0.25).timeout
-			var face := (scene.meld_views[911] as MeldView).get_scoring_card_control(run[0].unique_id)
+			var face := (scene.card_table.meld_views[911] as MeldView).get_scoring_card_control(run[0].unique_id)
 			var before := count(id)
 			if cup_first:
 				await drag(scene.drink_table_button, center(face))
@@ -220,20 +220,20 @@ func _run() -> void:
 			await process_frame
 			if id == DrinkCatalog.DEN_DA:
 				# Select-first cup opens the legal archive without an extra arming click.
-				await click(scene.hand_views[outgoing.unique_id])
+				await click(scene.card_table.hand_views[outgoing.unique_id])
 				await click(scene.drink_table_button)
-				check(scene.discard_archive_overlay.visible, "Den da one cup click opens swap picker with selection intact")
-				var grid: GridContainer = scene.discard_archive_suit_grids["Clubs"]
+				check(scene.pile_archive.overlay.visible, "Den da one cup click opens swap picker with selection intact")
+				var grid: GridContainer = scene.pile_archive.grids["Clubs"]
 				if reverse:
-					await drag(grid.get_child(0), center(scene.hand_views[outgoing.unique_id]))
+					await drag(grid.get_child(0), center(scene.card_table.hand_views[outgoing.unique_id]))
 				else:
 					await click(grid.get_child(0))
 			else:
-				var holder: Control = scene.discard_history_target_holders[scene._discard_history_target_key(record)]
+				var holder: Control = scene.card_table.discard_history_target_holders[record.target_key()]
 				if reverse:
-					await drag(holder, center(scene.hand_views[outgoing.unique_id]))
+					await drag(holder, center(scene.card_table.hand_views[outgoing.unique_id]))
 				else:
-					await drag(scene.hand_views[outgoing.unique_id], center(holder))
+					await drag(scene.card_table.hand_views[outgoing.unique_id], center(holder))
 			await wait_action()
 			check(scene.deal.hand.has(incoming) and not scene.deal.hand.has(outgoing), id + " swap gesture uses requested cards")
 			check(record.card == outgoing, id + " swap retains discard record")
@@ -244,8 +244,8 @@ func _run() -> void:
 		var cards: Array[CardData] = [card(4, first), card(5, second), card(6, first)]
 		await prepare(id, cards)
 		var before := count(id)
-		for value in cards: await click(scene.hand_views[value.unique_id])
-		await drag(scene.hand_views[cards[0].unique_id], center(scene.table_surface) + Vector2(0, -60))
+		for value in cards: await click(scene.card_table.hand_views[value.unique_id])
+		await drag(scene.card_table.hand_views[cards[0].unique_id], center(scene.table_surface) + Vector2(0, -60))
 		await wait_action()
 		check(scene.deal.melds.size() == 1, id + " normal drag automatically uses passive run permission")
 		check(count(id) == before + 1, id + " passive run has sound")
@@ -254,8 +254,9 @@ func _run() -> void:
 	scene.deal.tra_da_extra_discard_pending = true
 	scene._refresh_actions()
 	var before := count(DrinkCatalog.TRA_DA)
-	await click(scene.hand_views[scene.deal.hand[-1].unique_id])
+	await click(scene.card_table.hand_views[scene.deal.hand[-1].unique_id])
 	await click(scene.discard_button)
+	check(not scene.deal.tra_da_extra_discard_pending, "ordinary extra discard commits on its first click")
 	await wait_action()
 	check(count(DrinkCatalog.TRA_DA) == before + 1, "Tra da ordinary extra discard plays its Objects cue")
 	# Invalid recovery / Escape cancel / stale charges never mutate or leave a preview.
@@ -264,7 +265,7 @@ func _run() -> void:
 	scene.deal.melds.append(MeldState.new(912, MeldRules.TYPE_RUN, run))
 	scene._sync_all()
 	await create_timer(0.25).timeout
-	var middle := (scene.meld_views[912] as MeldView).get_scoring_card_control(run[1].unique_id)
+	var middle := (scene.card_table.meld_views[912] as MeldView).get_scoring_card_control(run[1].unique_id)
 	await drag(middle, center(scene.hand_layer))
 	check(scene.deal.melds[0].cards.size() == 4 and scene.deal.current_drink_has_charge(), "invalid middle-of-run recovery leaves cards and charge intact")
 	var point := center(scene.drink_table_button)

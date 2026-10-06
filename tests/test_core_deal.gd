@@ -111,19 +111,19 @@ func test_base_new_phom_scoring_uses_value_sum_times_card_count() -> void:
 
 func test_gieo_making_phom_retrigger_doubles_only_its_card_contribution() -> void:
 	var cards: Array[CardData] = [_card("K", "Spades"), _card("K", "Hearts"), _card("K", "Diamonds")]
-	cards[0].add_gieo_property(GieoQueService.PROPERTY_GOLD_MAKING_PHOM)
+	cards[0].adjust_fortune(2)
 	var context := ScoringPipeline.new().score_new_meld(cards, MeldRules.TYPE_SET, 1)
 	assert_eq(context.card_value_sum, 52)
 	assert_eq(context.theoretical_score, 156)
 	assert_eq(context.final_points, 156)
-	assert_eq(context.value_equation(), "13 + 13 + 13 + 13")
+	assert_eq(context.value_equation(), "13×2 + 13 + 13")
 
 
 func test_gieo_extend_retrigger_doubles_only_newly_committed_card_contribution() -> void:
 	var cards: Array[CardData] = [
 		_card("4", "Hearts"), _card("5", "Hearts"), _card("6", "Hearts"), _card("7", "Hearts"),
 	]
-	cards[-1].add_gieo_property(GieoQueService.PROPERTY_GOLD_EXTEND)
+	cards[-1].adjust_fortune(2)
 	var context := ScoringPipeline.new().score_extension(cards, MeldRules.TYPE_RUN, 45, 1, [cards[-1]])
 	assert_eq(context.card_value_sum, 29)
 	assert_eq(context.theoretical_score, 116)
@@ -132,8 +132,8 @@ func test_gieo_extend_retrigger_doubles_only_newly_committed_card_contribution()
 
 func test_gieo_set_retrigger_cards_add_full_non_recursive_scoring_passes() -> void:
 	var cards := _kings(3)
-	cards[0].add_gieo_property(GieoQueService.PROPERTY_MELD_RETRIGGER)
-	cards[1].add_gieo_property(GieoQueService.PROPERTY_MELD_RETRIGGER)
+	cards[0].add_jackpot(CardData.JACKPOT_LIQUID)
+	cards[1].add_jackpot(CardData.JACKPOT_LIQUID)
 	var context := ScoringPipeline.new().score_new_meld(cards, MeldRules.TYPE_SET, 1)
 	assert_eq(context.theoretical_score, 117)
 	assert_eq(context.final_points, 351)
@@ -148,7 +148,7 @@ func test_gieo_run_retrigger_adds_full_pass_after_extension_delta() -> void:
 	var cards: Array[CardData] = [
 		_card("4", "Clubs"), _card("5", "Clubs"), _card("6", "Clubs"), _card("7", "Clubs"),
 	]
-	cards[0].add_gieo_property(GieoQueService.PROPERTY_MELD_RETRIGGER)
+	cards[0].add_jackpot(CardData.JACKPOT_LIQUID)
 	var context := ScoringPipeline.new().score_extension(cards, MeldRules.TYPE_RUN, 45, 1, [cards[-1]])
 	assert_eq(context.theoretical_score, 88)
 	assert_eq(context.base_extension_score, 43)
@@ -419,13 +419,16 @@ func test_extension_does_not_count_as_a_new_phom_for_mom() -> void:
 	assert_true(deal.settle_phase()["phase_resolution"]["mom"])
 
 
-func test_keep_and_dump_happen_only_after_phase_one_settlement() -> void:
+func test_only_marked_cards_carry_after_phase_one_settlement() -> void:
 	var keep_deal := _fresh_deal(17, DrinkCatalog.SAM_DUA)
 	_advance_to_last_call(keep_deal)
 	assert_false(keep_deal.choose_phase_two(true)["ok"])
+	var marked: Array[CardData] = [keep_deal.hand[0], keep_deal.hand[1]]
+	assert_true(keep_deal.select_sam_dua_preserves(marked).ok)
 	keep_deal.settle_phase()
-	var kept_ids := _ids(keep_deal.hand)
-	assert_true(keep_deal.choose_phase_two(true)["ok"])
+	var kept_ids := _ids(marked)
+	assert_false(keep_deal.choose_phase_two(true).ok)
+	assert_true(keep_deal.choose_phase_two().ok)
 	for kept_id in kept_ids:
 		assert_true(_hand_has_id(keep_deal.hand, kept_id))
 
@@ -875,7 +878,7 @@ func test_nhan_tran_cue_only_triggers_when_a_discard_completes_a_hand_meld() -> 
 	deal.state = DealState.STATE_ACTIVE
 	deal.hand = [
 		_card("5", "Spades", "cue"), _card("6", "Spades", "cue"),
-		_card("K", "Hearts", "cue"),
+		_card("K", "Hearts", "cue"), _card("Q", "Diamonds", "cue"),
 	] as Array[CardData]
 	var irrelevant := _card("Q", "Clubs", "irrelevant")
 	var useful := _card("7", "Spades", "useful")
@@ -942,7 +945,7 @@ func test_nuoc_voi_returns_only_a_legal_meld_card_once_per_phase_without_unscori
 	assert_true(set_deal.can_use_nuoc_voi(2, set_cards[1]))
 
 
-func test_sam_dua_preserves_up_to_three_selected_loose_cards_only_on_dump() -> void:
+func test_sam_dua_marks_are_editable_and_carry_only_selected_loose_cards() -> void:
 	var deal := _fresh_deal(223, DrinkCatalog.SAM_DUA)
 	_advance_to_last_call(deal)
 	var cue := deal.drink_cue_trigger()
@@ -953,9 +956,9 @@ func test_sam_dua_preserves_up_to_three_selected_loose_cards_only_on_dump() -> v
 	var chosen: Array[CardData] = [deal.hand[0], deal.hand[1], deal.hand[2]]
 	assert_false(deal.select_sam_dua_preserves([deal.hand[0], deal.hand[1], deal.hand[2], deal.hand[3]] as Array[CardData])["ok"])
 	assert_true(deal.select_sam_dua_preserves(chosen)["ok"])
-	assert_false(deal.current_drink_has_charge())
-	assert_false(deal.drink_cue_trigger()["active"])
-	assert_false(deal.select_sam_dua_preserves(chosen)["ok"])
+	assert_true(deal.current_drink_has_charge())
+	assert_true(deal.drink_cue_trigger()["active"])
+	assert_true(deal.select_sam_dua_preserves(chosen)["ok"])
 	var result := deal.choose_phase_two(false)
 	assert_true(result["ok"])
 	assert_eq(result["preserved"], chosen)
@@ -1024,7 +1027,7 @@ func test_legal_action_card_ids_distinguish_new_melds_extensions_and_both() -> v
 		_card("3", "Spades", "table"), _card("4", "Spades", "table"), _card("5", "Spades", "table"),
 	] as Array[CardData])]
 	deal.state = DealState.STATE_ACTIVE
-	var actionable := deal.legal_action_card_ids()
+	var actionable := deal.queries.legal_action_card_ids()
 	assert_true(actionable["meld"].has(six_spades.unique_id))
 	assert_true(actionable["extend"].has(six_spades.unique_id))
 	assert_true(actionable["meld"].has(six_hearts.unique_id))
@@ -1044,19 +1047,19 @@ func test_legal_action_targets_require_and_follow_the_current_selection() -> voi
 		_card("3", "Spades", "table"), _card("4", "Spades", "table"), _card("5", "Spades", "table"),
 	] as Array[CardData])]
 	deal.state = DealState.STATE_ACTIVE
-	var idle_targets := deal.legal_action_targets_for_selection([] as Array[CardData])
+	var idle_targets := deal.queries.legal_action_targets_for_selection([] as Array[CardData])
 	assert_true(idle_targets["hand"].is_empty())
 	assert_true(idle_targets["melds"].is_empty())
-	var meld_targets := deal.legal_action_targets_for_selection([six_hearts] as Array[CardData])
+	var meld_targets := deal.queries.legal_action_targets_for_selection([six_hearts] as Array[CardData])
 	assert_eq(meld_targets["hand"].size(), 3)
 	assert_true(meld_targets["hand"].has(six_spades.unique_id))
 	assert_true(meld_targets["hand"].has(six_hearts.unique_id))
 	assert_true(meld_targets["hand"].has(six_diamonds.unique_id))
 	assert_true(meld_targets["melds"].is_empty())
-	var table_targets := deal.legal_action_targets_for_selection([] as Array[CardData], 1)
+	var table_targets := deal.queries.legal_action_targets_for_selection([] as Array[CardData], 1)
 	assert_eq(table_targets["hand"].size(), 1)
 	assert_true(table_targets["hand"].has(six_spades.unique_id))
-	var extension_targets := deal.legal_action_targets_for_selection([six_spades] as Array[CardData])
+	var extension_targets := deal.queries.legal_action_targets_for_selection([six_spades] as Array[CardData])
 	assert_true(extension_targets["melds"].has(1))
 
 
@@ -1166,7 +1169,7 @@ func test_meld_probability_labels_follow_the_active_locale() -> void:
 		if english_translation != null:
 			translated_template = String(english_translation.get_message(candidate["label_key"]))
 	else:
-		assert_eq(MeldProbabilityAdvisor.localized_label(candidate), "SET 7")
+		assert_eq(AdvisoryText.localized_label(candidate), "SET 7")
 	assert_eq(translated_template % candidate["label_args"], "SET 7")
 	TranslationServer.set_locale(original_locale)
 
@@ -1409,7 +1412,7 @@ func test_set_extension_liquid_echo_waits_for_four_card_milestone() -> void:
 	var pipeline := ScoringPipeline.new()
 	for count: int in [4, 5, 6, 7, 8, 9, 11, 12]:
 		var cards := _kings(count)
-		cards[0].gieo_properties.append(GieoQueService.PROPERTY_MELD_RETRIGGER)
+		cards[0].add_jackpot(CardData.JACKPOT_LIQUID)
 		var added: Array[CardData] = [cards[-1]]
 		var old_score := 13 * (count - 1) * (count - 1)
 		var result := pipeline.preview_extension(cards, MeldRules.TYPE_SET, old_score, 1, added)
@@ -1420,3 +1423,38 @@ func test_set_extension_liquid_echo_waits_for_four_card_milestone() -> void:
 			assert_eq(result.final_points, result.base_extension_score)
 			for hit: Dictionary in result.scoring_passes[0].presentation_hits:
 				assert_true(hit.card_id.is_empty() or hit.card_id == cards[-1].unique_id, "ordinary extension never replays old cards")
+
+
+func test_hand_order_is_physical_intent_without_gameplay_side_effects() -> void:
+	var deal := DealState.new()
+	deal.start_deal(771, true)
+	var original: Array[CardData] = deal.hand.duplicate()
+	var ordered: Array[CardData] = original.duplicate()
+	ordered.reverse()
+	var wallet_before := deal.wallet.report().duplicate(true)
+	var actions_before := deal.action_history.duplicate(true)
+	var deck_before: Array[CardData] = deal.deck.draw_pile.duplicate()
+	assert_true(deal.reorder_hand(ordered))
+	assert_eq(deal.hand, ordered)
+	for card in original: assert_true(deal.hand.has(card))
+	assert_true(deal.physical_card_accounting_is_valid())
+	assert_eq(deal.wallet.report(), wallet_before)
+	assert_eq(deal.action_history, actions_before)
+	assert_eq(deal.deck.draw_pile, deck_before)
+	assert_false(deal.reorder_hand(ordered))
+
+
+func test_hand_order_rejects_missing_duplicate_and_impostor_cards() -> void:
+	var deal := DealState.new()
+	deal.start_deal(772, true)
+	var original: Array[CardData] = deal.hand.duplicate()
+	var missing: Array[CardData] = original.slice(1)
+	assert_false(deal.reorder_hand(missing))
+	var duplicate: Array[CardData] = original.duplicate()
+	duplicate[0] = duplicate[1]
+	assert_false(deal.reorder_hand(duplicate))
+	var impostor: Array[CardData] = original.duplicate()
+	impostor[0] = original[0].copy_for_deal()
+	assert_false(deal.reorder_hand(impostor))
+	assert_eq(deal.hand, original)
+	assert_true(deal.physical_card_accounting_is_valid())

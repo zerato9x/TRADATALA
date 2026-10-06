@@ -28,10 +28,18 @@ func capture(label: String) -> void:
 		root.get_texture().get_image().save_png("res://.godot/overhaul-" + ("en-" if OS.get_cmdline_user_args().has("--english") else "vi-") + label + ".png")
 
 func click(button: Button) -> void:
+	await process_frame
 	var point := button.get_global_transform_with_canvas() * (button.size * 0.5)
+	if DisplayServer.get_name() != "headless": Input.warp_mouse(root.get_final_transform() * point)
+	var motion := InputEventMouseMotion.new()
+	motion.position = point
+	motion.global_position = point
+	root.push_input(motion, true)
+	await process_frame
 	for down in [true, false]:
 		var event := InputEventMouseButton.new()
 		event.position = point
+		event.global_position = point
 		event.button_index = MOUSE_BUTTON_LEFT
 		event.pressed = down
 		root.push_input(event, true)
@@ -44,17 +52,15 @@ func _run() -> void:
 	scene = load("res://scenes/match.tscn").instantiate()
 	root.add_child(scene)
 	current_scene = scene
-	scene.run_save = RunSave.new("user://overhaul-scene-test.save")
+	scene.session.run_save = RunSave.new("user://overhaul-scene-test.save")
 	scene.drink_manager.progress.save_path = ""
 	await pause()
-	var title := scene.get_node_or_null("TitleScreen")
-	if title: title.queue_free()
 	TranslationServer.set_locale("vi" if not OS.get_cmdline_user_args().has("--english") else "en")
 	scene._refresh_localized_ui()
 	scene.run_seed_input = "MONDAY-OVERHAUL"
 	await scene._on_play_pressed()
 	await pause(3.0)
-	check(not scene.tutorial_active, "campaign has no standalone tutorial")
+	check(not scene.get("tutorial_active"), "campaign has no standalone tutorial")
 	check(scene.event_table.focused_npc_id == "doi_no", "collector opens Starter Event")
 	check(scene.campaign_money_hud.panel.is_visible_in_tree(), "single top wallet remains visible in event")
 	check(not scene.event_table.overview.cash_anchor.is_visible_in_tree(), "table cash is hidden during collector focus")
@@ -69,11 +75,14 @@ func _run() -> void:
 	if not DemoBuild.enabled():
 		scene.event_table.focus_npc("danh_giay")
 		await pause()
-		var shoe := scene.campaign_participants.get_child(0)
-		await click(shoe._polish_button)
-		check(scene.campaign.shoe_shine.last_polished_ids.size() == 2, "pointer polishes two physical cards")
-		check(scene.campaign_money_hud.last_transfer.reason == "shoe_polish", "shoe payment flies from common wallet")
-		await capture("polish")
+		var shoe := scene.event_table.participants_container.get_child(0)
+		shoe._choose_card(scene.campaign.gieo_que.persistent_deck[0].unique_id)
+		await click(shoe._slots[0].rank)
+		await pause()
+		check(scene.campaign.shoe_shine.selected_card_ids.size() == 1, "one exact physical card is committed")
+		check(scene.campaign.shoe_shine.rank_rerolls == 1, "pointer rerolls the actual Rank")
+		check(scene.campaign_money_hud.last_transfer.reason == "shoe_reroll_rank", "shoe payment flies from common wallet")
+		await capture("identity-work")
 		scene.event_table.unfocus_npc()
 		await pause()
 	scene.event_table.focus_npc("tra_da_auntie")
@@ -82,7 +91,7 @@ func _run() -> void:
 	scene._on_campaign_drink_pressed(0, "choose_drink", DrinkCatalog.TRA_DA)
 	scene.event_table.unfocus_npc()
 	await pause()
-	await click(scene.campaign_continue_button)
+	await click(scene.event_table.continue_button)
 	await pause()
 	check(scene.deal.hand.filter(func(card): return card.rank_index == 9).size() == 3, "real Morning starts with curated Set")
 	check(scene.deal.physical_card_accounting_is_valid(), "52 identities retained")
@@ -94,9 +103,9 @@ func _run() -> void:
 	await scene._on_ha_pressed()
 	await pause()
 	check(scene.campaign.onboarding.learned.has("new_meld"), "real action learns Hạ")
-	check(scene.campaign_coach.current_id != "new_meld", "learned Hạ hint retires")
+	check(scene.campaign.onboarding.learned.has("new_meld") and preload("res://scripts/ui/campaign_hints.gd").instruction(scene.campaign, scene.deal, scene.current_campaign_event, scene.event_table.focused_npc_id, scene.resolve_mode)[0] != "new_meld", "learned Hạ hint retires")
 	var saved_hand := scene.deal.hand.map(func(card): return card.unique_id)
-	scene._on_tutorial_pressed()
+	scene.open_handbook("campaign")
 	await pause()
 	check(root.get_node_or_null("GameGlossary") != null, "former tutorial opens handbook")
 	check(scene.deal.hand.map(func(card): return card.unique_id) == saved_hand, "handbook preserves live hand")
@@ -111,13 +120,13 @@ func _run() -> void:
 	if not DemoBuild.enabled():
 		scene.event_table.focus_npc("hang_rong")
 		await pause()
-		var shop = scene.campaign_participants.get_child(0)
-		check(shop._tiles.size() == 3, "three physical table relic offers")
-		var first: Button = shop._tiles.values()[0]
+		var shop = scene.event_table.participants_container.get_child(0)
+		check(scene.campaign.relic_shop.offers.size() == RelicShop.STOCK_SIZE and scene.campaign.relic_shop.card_stock.size() == RelicShop.CARD_STOCK_SIZE and shop._tiles.has("remove"), "physical relic and card offers plus removal are presented")
+		var first: Button = shop._tiles[scene.campaign.relic_shop.offers[0]]
 		await click(first)
 		await capture("relics")
 		check(not shop.selected.is_empty(), "pointer selects relic without buying")
-		check(shop._detail.text.contains("VNĐ/PTS"), "relic shop explains the action rate boost")
+		check(scene.event_table.conversation._full_line.contains(RelicCatalog.effect(shop.selected)), "Auntie explains the selected relic catalog effect")
 		if not shop._buy.disabled:
 			await click(shop._buy)
 			check(not scene.deal.relics.inventory.is_empty(), "pointer purchase enters inventory")
@@ -127,7 +136,7 @@ func _run() -> void:
 		scene.event_table.focus_npc("thay_boi")
 		await pause()
 		await capture("gieo-cabinet")
-		var gieo = scene.campaign_participants.get_child(0)
+		var gieo = scene.event_table.participants_container.get_child(0)
 		var guides := gieo.find_children("GieoGuide", "Button", true, false)
 		check(guides.size() == 1, "permanent Gieo guide exists")
 		if not guides.is_empty(): await click(guides[0])
@@ -139,7 +148,7 @@ func _run() -> void:
 		await pause()
 		scene.event_table.focus_npc("lotto")
 		await pause()
-		var lottery_panel := scene.campaign_participants.get_child(0)
+		var lottery_panel := scene.event_table.participants_container.get_child(0)
 		var buy_all: Button = lottery_panel.get_node("BuyAll")
 		await capture("lottery-buy")
 		if not buy_all.disabled:
@@ -189,7 +198,7 @@ func _run() -> void:
 		check(scene.campaign_money_hud.last_transfer.reason == "daily_debt", "debt uses common wallet flight")
 		check(scene.campaign_money_hud.last_transfer.committed_balance == before - due, "flight starts after committed payment")
 		check(scene.deal.wallet.journal.filter(func(entry): return entry.reason == "daily_debt").size() == 1, "repeated continuation journals one payment")
-		check(scene.campaign_participants.get_node("DebtAmountDue").text == VndWallet.format_vnd(scene.campaign.daily_requirement()), "next briefing shows current authoritative debt")
+		check(scene.event_table.participants_container.get_node("DebtAmountDue").text == VndWallet.format_vnd(scene.campaign.daily_requirement()), "next briefing shows current authoritative debt")
 		check(not scene._collection_departing, "departure releases UI gate")
 		scene.event_table.unfocus_npc()
 		await pause()
@@ -221,7 +230,7 @@ func _play_deal() -> void:
 		if d.state == DealState.STATE_PHASE_CHOICE:
 			d.choose_phase_two(false)
 			continue
-		var action := d.recommend_action()
+		var action := d.queries.recommend_action()
 		if action.action == HandAdvisor.ACTION_NEW_MELD:
 			d.create_meld(action.cards)
 		elif action.action == HandAdvisor.ACTION_EXTENSION:

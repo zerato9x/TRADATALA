@@ -2,57 +2,43 @@ class_name RelicRuntime
 extends RefCounted
 
 signal inventory_changed()
-const MAX_EQUIPPED := 4
+## Every owned relic is active. "equipped" remains a save/API compatibility mirror.
 var shop_wallet: VndWallet
-
-func price_for(id: String) -> int:
-	if inventory.has(id) or shop_wallet == null:
-		return 0
-	return shop_wallet.scaled_cost(50_000, 5)
-
-func purchase_and_equip(id: String) -> bool:
-	if not RelicCatalog.DEFINITIONS.has(id) or equipped.size() >= MAX_EQUIPPED:
-		return false
-	var price := price_for(id)
-	if price > 0 and shop_wallet.balance_vnd < price:
-		return false
-	# Own and equip before emitting payment; repeat requests cannot buy twice.
-	if not inventory.has(id):
-		inventory.append(id)
-	if not equipped.has(id):
-		equipped.append(id)
-	if price > 0:
-		shop_wallet.apply_vnd(-price, "relic_purchase:" + id)
-	inventory_changed.emit()
-	return true
-
 var inventory: Array[String] = []
 var equipped: Array[String] = []
 var extension_counts: Dictionary = {}
+var _purchasing := false
 
-func acquire(id: String) -> bool:
-	if not RelicCatalog.DEFINITIONS.has(id):
-		return false
-	if not inventory.has(id):
-		inventory.append(id)
-		inventory_changed.emit()
+func price_for(id: String) -> int:
+	if inventory.has(id) or shop_wallet == null: return 0
+	return shop_wallet.scaled_cost(50_000, 5)
+
+func purchase_and_equip(id: String) -> bool:
+	if _purchasing or not RelicCatalog.DEFINITIONS.has(id) or shop_wallet == null: return false
+	if inventory.has(id): return true
+	var cost := price_for(id)
+	if shop_wallet.balance_vnd < cost: return false
+	_purchasing = true
+	acquire(id, false)
+	shop_wallet.apply_vnd(-cost, "relic_purchase:" + id)
+	inventory_changed.emit()
+	_purchasing = false
+	return true
+
+func acquire(id: String, notify: bool = true) -> bool:
+	if not RelicCatalog.DEFINITIONS.has(id): return false
+	var added := not inventory.has(id)
+	if added: inventory.append(id)
+	if not equipped.has(id): equipped.append(id)
+	if added and notify: inventory_changed.emit()
 	return true
 
 func equip(id: String) -> bool:
-	if not inventory.has(id):
-		return false
-	if equipped.has(id):
-		return true
-	if equipped.size() >= MAX_EQUIPPED:
-		return false
-	equipped.append(id)
-	inventory_changed.emit()
+	if not inventory.has(id): return false
+	if not equipped.has(id):
+		equipped.append(id)
+		inventory_changed.emit()
 	return true
-
-func remove(id: String) -> void:
-	equipped.erase(id)
-	inventory_changed.emit()
-
 
 func gift(id: String) -> bool:
 	if not inventory.has(id): return false
@@ -75,7 +61,8 @@ func snapshot() -> Dictionary:
 
 func restore(data: Dictionary) -> void:
 	inventory.assign(data.get("inventory", []))
-	equipped.assign(data.get("equipped", []))
+	# Formerly unequipped owned relics join the active list, in existing order.
+	equipped.assign(inventory)
 	extension_counts = data.get("extensions", {}).duplicate()
 	inventory_changed.emit()
 

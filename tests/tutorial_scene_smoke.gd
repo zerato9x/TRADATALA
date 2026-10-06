@@ -10,7 +10,7 @@ func _run() -> void:
 	root.add_child(scene)
 	current_scene = scene
 	await process_frame
-	scene.run_save = RunSave.new("user://handbook-safety-test.save")
+	scene.session.run_save = RunSave.new("user://handbook-safety-test.save")
 	scene.drink_manager.progress.save_path = ""
 	scene.game_started = true
 	scene.menu_layer.hide()
@@ -24,10 +24,10 @@ func _run() -> void:
 	var before := scene.deal.snapshot_state()
 	var hand := scene.deal.hand.map(func(card): return card.unique_id)
 	for live in [false, true]:
-		scene._start_tutorial_deal(live)
+		scene.open_handbook("core" if live else "campaign")
 		await process_frame
-		check(not scene.tutorial_active, "legacy tutorial never activates")
-		check(root.get_node_or_null("GameGlossary") != null, "legacy entry opens reference")
+		check(not scene.has_method("_start_tutorial_deal"), "retired tutorial entry point is removed")
+		check(root.get_node_or_null("GameGlossary") != null, "Handbook intent opens reference")
 		check(scene.deal.hand.map(func(card): return card.unique_id) == hand, "reference preserves hand")
 		check(scene.deal.wallet.balance_vnd == before.wallet_balance_vnd, "reference preserves money")
 		check(scene.deal.current_drink_id == before.current_drink_id, "reference preserves Drink")
@@ -38,13 +38,13 @@ func _run() -> void:
 			click.button_index = MOUSE_BUTTON_LEFT
 			click.pressed = down
 			root.push_input(click, true)
-		check(not scene.drink_targeting_active, "handbook blocks underlying cup shortcut")
+		check(not scene.interactions.drink_targeting, "handbook blocks underlying cup shortcut")
 		check(scene.deal.current_drink_has_charge(), "handbook cannot consume drink charge")
 		root.get_node("GameGlossary").queue_free()
 		await process_frame
-	check(not scene.tutorial_coach.visible, "old scripted coach stays hidden")
+	check(not scene.has_signal("tutorial_step_changed"), "Retired standalone tutorial no longer publishes step events")
 	scene._on_card_pressed(scene.deal.hand[-1])
-	check(not scene.selected_card_ids.is_empty(), "onboarding permits arbitrary card selection")
+	check(not scene.interactions.selected_ids.is_empty(), "onboarding permits arbitrary card selection")
 	check(not scene.discard_button.disabled, "legal discard remains actionable before guided Hạ")
 	scene.queue_free()
 	# Allow the audio mixer to release stopped playback before process teardown.

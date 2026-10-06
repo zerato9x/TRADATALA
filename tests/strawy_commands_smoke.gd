@@ -20,7 +20,7 @@ func prepare(ids: Array[String]) -> void:
 		else: ui.deal.deck.draw_pile.append(c)
 	ui.deal.hand.sort_custom(func(a,b): return a.unique_id < b.unique_id)
 	ui.deal.set_current_drink(DrinkCatalog.TRA_DA)
-	ui.interaction_locked = false
+	ui.interactions.locked = false
 	ui._sync_all()
 
 func helper_tap(emulated: bool = false, mouse_only: bool = false) -> void:
@@ -66,10 +66,8 @@ func _run() -> void:
 	root.add_child(ui)
 	current_scene = ui
 	await create_timer(0.3).timeout
-	ui.run_save = RunSave.new("user://strawy-commands.save")
+	ui.session.run_save = RunSave.new("user://strawy-commands.save")
 	ui.drink_manager.progress.save_path = ""
-	var title := ui.get_node_or_null("TitleScreen")
-	if title: title.queue_free()
 	ui.game_started = true
 	ui.game_layer.position = Vector2.ZERO
 	ui.menu_layer.hide()
@@ -90,7 +88,7 @@ func _run() -> void:
 	var seven: CardData
 	for c in ui.deal.hand:
 		if c.rank_index == 7: seven = c
-	check(seven != null and ui.deal.hand_advice().play.action == HandAdvisor.ACTION_EXTENSION,"current recommendation is an Extend")
+	check(seven != null and ui.deal.queries.hand_advice().play.action == HandAdvisor.ACTION_EXTENSION,"current recommendation is an Extend")
 	var journal_before := ui.deal.wallet.journal.size()
 	await native_command("StrawyPlay")
 	await create_timer(0.2).timeout
@@ -102,7 +100,7 @@ func _run() -> void:
 	ui.strawy._command("discard")
 	await create_timer(0.2).timeout
 	check(ui.deal.tra_da_extra_discard_pending,"mandatory discard leaves Trà Đá choice pending")
-	check(ui.deal.hand_advice().extra_action == "skip","strong retained pair recommends Skip")
+	check(ui.deal.queries.hand_advice().extra_action == "skip","strong retained pair recommends Skip")
 	var history := ui.deal.discard_history.size()
 	ui.strawy._command("discard")
 	await create_timer(0.2).timeout
@@ -111,7 +109,7 @@ func _run() -> void:
 	prepare(["standard_7_spades","standard_7_hearts","standard_k_clubs","standard_q_clubs"])
 	ui.strawy._command("discard")
 	await create_timer(0.2).timeout
-	check(ui.deal.hand_advice().extra_action == "discard","loose face card recommends extra discard")
+	check(ui.deal.queries.hand_advice().extra_action == "discard","loose face card recommends extra discard")
 	history = ui.deal.discard_history.size()
 	ui.strawy._command("discard")
 	await create_timer(0.2).timeout
@@ -119,19 +117,19 @@ func _run() -> void:
 	check(ui.deal.physical_card_accounting_is_valid(),"Trà Đá actions retain all physical cards")
 	await create_timer(0.5).timeout
 	prepare(["standard_7_spades","standard_7_hearts","standard_k_clubs"])
-	var expected_id: String = ui.deal.hand_advice().discard_id
+	var expected_id: String = ui.deal.queries.hand_advice().discard_id
 	await process_frame # Let the preceding fixture's deferred autosave finish.
 	var preview_snapshot := var_to_str(ui.deal.snapshot_state())
 	var preview_rng: int = ui.deal.deck._rng.state
-	var save_before := FileAccess.get_file_as_bytes(ui.run_save.path)
+	var save_before := FileAccess.get_file_as_bytes(ui.session.run_save.path)
 	await helper_tap(true)
 	await helper_tap(true)
-	check(ui.strawy.quick_action == "discard" and ui.selected_card_ids.keys() == [expected_id],"double native tap selects exactly the recommended physical discard")
-	check(ui.hand_views[expected_id].selected and not ui.strawy.box.visible and ui.strawy.tour.is_empty(),"double tap highlights the card without a menu or tour")
+	check(ui.strawy.quick_action == "discard" and ui.interactions.selected_ids.keys() == [expected_id],"double native tap selects exactly the recommended physical discard")
+	check(ui.card_table.hand_views[expected_id].selected and ui.strawy.box.visible and ui.strawy.tour.is_empty(),"double tap highlights the card and explains the move in a bubble")
 	check(var_to_str(ui.deal.snapshot_state()) == preview_snapshot and ui.deal.deck._rng.state == preview_rng,"double tap preview cannot commit cards, wallet, or RNG")
-	check(FileAccess.get_file_as_bytes(ui.run_save.path) == save_before,"preview does not write a save")
+	check(FileAccess.get_file_as_bytes(ui.session.run_save.path) == save_before,"preview does not write a save")
 	await create_timer(0.4).timeout
-	check(ui.strawy.quick_action == "discard" and not ui.strawy.box.visible,"pending single-click timer cannot replace the preview")
+	check(ui.strawy.quick_action == "discard" and ui.strawy.box.visible,"pending single-click timer cannot replace the preview")
 	history = ui.deal.discard_history.size()
 	await helper_tap(true)
 	await create_timer(0.2).timeout
@@ -139,7 +137,7 @@ func _run() -> void:
 	check(ui.strawy.quick_action.is_empty(),"confirmation consumes the pending action")
 	await helper_tap(true)
 	await helper_tap(true)
-	check(ui.strawy.quick_action == "skip" and ui.selected_card_ids.is_empty(),"Trà Đá preview recommends Skip without selecting another discard")
+	check(ui.strawy.quick_action == "skip" and ui.interactions.selected_ids.is_empty(),"Trà Đá preview recommends Skip without selecting another discard")
 	history = ui.deal.discard_history.size()
 	await helper_tap(true)
 	await create_timer(0.2).timeout
@@ -162,8 +160,8 @@ func _run() -> void:
 	prepare(["standard_7_spades","standard_7_hearts","standard_k_clubs"])
 	await helper_tap(true)
 	await helper_tap(true)
-	ui.selected_card_ids.clear()
-	ui.selected_card_ids["standard_7_hearts"] = true
+	ui.interactions.selected_ids.clear()
+	ui.interactions.selected_ids["standard_7_hearts"] = true
 	preview_snapshot = var_to_str(ui.deal.snapshot_state())
 	await helper_tap(true)
 	await create_timer(0.4).timeout
@@ -218,16 +216,16 @@ func _run() -> void:
 	await helper_tap(true)
 	await helper_tap(true)
 	check(var_to_str(ui.deal.snapshot_state()) == before,"Last Call rejects helper discards")
-	check(ui.strawy.quick_action.is_empty(),"Last Call cannot arm a discard")
-	ui.drink_targeting_active = true
+	check(ui.strawy.quick_action == "settle","Last Call previews settlement when no scoring play remains")
+	ui.interactions.drink_targeting = true
 	check(not ui.strawy.can_play_cards(),"Drink targeting blocks helper commands")
-	ui.drink_targeting_active = false
-	ui.interaction_locked = true
+	ui.interactions.drink_targeting = false
+	ui.interactions.locked = true
 	check(not ui.strawy.can_play_cards(),"required transitions block helper commands")
-	ui.interaction_locked = false
+	ui.interactions.locked = false
 	ui.strawy.close()
 	await create_timer(0.4).timeout
-	var save := ui.run_save.load_run()
+	var save := ui.session.run_save.load_run()
 	check(not save.is_empty() and save.deal.wallet_balance_vnd == ui.deal.wallet.balance_vnd,"normal autosave records helper wallet results")
 	print("STRAWY_COMMANDS_SMOKE checks=%d failures=%d" % [checks,failures.size()])
 	ui.queue_free()

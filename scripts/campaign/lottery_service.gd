@@ -166,3 +166,19 @@ func _shuffled_numbers() -> Array[int]:
 		numbers[index] = numbers[swap]
 		numbers[swap] = old
 	return numbers
+
+# Stable fields of the existing V3 run envelope. Change this schema explicitly.
+const RUN_SAVE_FIELDS_V3 := ["day_index", "event_slot", "_draw", "_offers", "_tickets", "_settled", "last_receipt"]
+const RUN_SNAPSHOT_FIELDS := preload("res://scripts/campaign/run_snapshot_fields.gd")
+
+func run_snapshot() -> Dictionary:
+	return RUN_SNAPSHOT_FIELDS.fields(self, RUN_SAVE_FIELDS_V3)
+
+func restore_run_snapshot(data: Dictionary) -> void:
+	RUN_SNAPSHOT_FIELDS.apply_fields(self, data, RUN_SAVE_FIELDS_V3)
+
+func run_rng_state() -> int:
+	return _rng.state
+
+func restore_run_rng(state_value: int) -> void:
+	_rng.state = state_value

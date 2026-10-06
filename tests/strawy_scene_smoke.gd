@@ -74,14 +74,12 @@ func _run() -> void:
 	root.add_child(scene)
 	current_scene = scene
 	await pause(0.7)
-	scene.run_save = RunSave.new("user://strawy-%d.save" % Time.get_ticks_usec())
+	scene.session.run_save = RunSave.new("user://strawy-%d.save" % Time.get_ticks_usec())
 	scene.drink_manager.progress.save_path = ""
 	scene.settings.set_music_system("playing_tracks")
 	scene.settings.set_locale("vi" if "--vi" in OS.get_cmdline_user_args() else "en")
-	var title := scene.get_node_or_null("TitleScreen")
-	if title: title.queue_free()
 	check(not scene.strawy.actor.is_visible_in_tree(), "Strawy stays out of Home")
-	check(not scene.strawy.box.visible and not scene.campaign_coach.box.visible, "no unrequested speech")
+	check(not scene.strawy.box.visible, "no unrequested speech")
 	check(scene.strawy.hats.size() == 8 and scene.strawy.expressions.size() == 16, "all supplied poses and expressions load")
 	await capture("home" + ("-vi" if "--vi" in OS.get_cmdline_user_args() else "-en"))
 	scene.strawy.open_help()
@@ -93,9 +91,9 @@ func _run() -> void:
 	await capture("settings" + ("-vi" if "--vi" in OS.get_cmdline_user_args() else "-en"))
 	check(not scene.strawy.actor.is_visible_in_tree() and scene.front_end.footer.get_node_or_null("StrawyDockSpace") == null, "Settings has no helper or reserved helper space")
 	scene.front_end.show_home()
-	scene._restoring_run = true
+	scene.session.restoring = true
 	await scene._on_play_pressed()
-	scene._restoring_run = false
+	scene.session.restoring = false
 	await pause(3)
 	scene.event_table.npc_focused.connect(func(_id): focuses += 1)
 	await overview()
@@ -128,7 +126,7 @@ func _run() -> void:
 	if scene.zodiac_table.badge.is_visible_in_tree():
 		await tap(scene.zodiac_table.badge,true)
 		check(scene.zodiac_table.shade.visible and scene.event_table.focused_npc_id.is_empty(),"native touch on the Zodiac visitor cannot select an NPC underneath")
-		scene.zodiac_table._close_conversation()
+		scene.zodiac_table.close_conversation()
 	check(not scene.strawy.actor.get_global_rect().intersects(scene.game_layer.get_node("ActionDock").get_global_rect()), "action dock clears Strawy")
 	for slot in [0,1,2,3]:
 		if slot > 0:
@@ -244,12 +242,12 @@ func _run() -> void:
 	scene._on_campaign_drink_pressed(0,"choose_drink",DrinkCatalog.TRA_DA)
 	scene.campaign.complete_current_event()
 	await pause(0.8)
-	check(scene.current_campaign_event == null and not scene.interaction_locked, "real Deal accepts helper actions")
-	var displayed_odds := MeldProbabilityAdvisor.best_new_meld_chance_by_card(scene.deal.hand,scene.deal.probability_draw_pool(),scene.deal.probability_draw_horizon())
+	check(scene.current_campaign_event == null and not scene.interactions.locked, "real Deal accepts helper actions")
+	var displayed_odds := MeldProbabilityAdvisor.best_new_meld_chance_by_card(scene.deal.hand,scene.deal.queries.probability_draw_pool(),scene.deal.queries.probability_draw_horizon())
 	var ready_card: CardData
 	var chance_card: CardData
 	for c in scene.deal.hand:
-		var view: PlayingCardView = scene.hand_views[c.unique_id]
+		var view: PlayingCardView = scene.card_table.hand_views[c.unique_id]
 		check(not view._meld_chance_badge.visible and view.get_node_or_null("PlayableLabel") == null and view.get_node_or_null("MeldChance/KeepDetails") == null,"idle card has no badge, text label, or advice hit target")
 		view._on_mouse_entered()
 		var candidate: Dictionary = displayed_odds.get(c.unique_id,{})
@@ -263,15 +261,15 @@ func _run() -> void:
 		view._on_mouse_exited()
 	await capture("deal-ready" + ("-vi" if "--vi" in OS.get_cmdline_user_args() else "-en"))
 	if ready_card != null:
-		scene.hand_views[ready_card.unique_id]._on_mouse_entered()
+		scene.card_table.hand_views[ready_card.unique_id]._on_mouse_entered()
 		await pause(0.25)
 		await capture("odds-ready" + ("-vi" if "--vi" in OS.get_cmdline_user_args() else "-en"))
-		scene.hand_views[ready_card.unique_id]._on_mouse_exited()
+		scene.card_table.hand_views[ready_card.unique_id]._on_mouse_exited()
 	if chance_card != null:
-		scene.hand_views[chance_card.unique_id]._on_mouse_entered()
+		scene.card_table.hand_views[chance_card.unique_id]._on_mouse_entered()
 		await pause(0.25)
 		await capture("odds-percent" + ("-vi" if "--vi" in OS.get_cmdline_user_args() else "-en"))
-		scene.hand_views[chance_card.unique_id]._on_mouse_exited()
+		scene.card_table.hand_views[chance_card.unique_id]._on_mouse_exited()
 	scene.strawy.open_help()
 	await pause()
 	check(scene.strawy.actions.get_child_count() <= 4 and scene.strawy.box.size.y < 340,"Deal menu is compact and contains only relevant actions")
@@ -279,12 +277,12 @@ func _run() -> void:
 	scene.strawy.close()
 	await tap(scene.strawy.hit,true)
 	await tap(scene.strawy.hit,true)
-	check(scene.strawy.quick_action == "discard" and not scene.strawy.box.visible,"Deal double tap previews without opening a menu")
+	check(not scene.strawy.quick_action.is_empty() and scene.strawy.box.visible and scene.strawy.actions.get_child_count() == 1,"Deal double tap previews a legal move with a speech bubble")
 	await capture("discard-preview" + ("-vi" if "--vi" in OS.get_cmdline_user_args() else "-en"))
 	scene.strawy.close()
 	var detail_card: CardData = scene.deal.hand[0]
-	scene.selected_card_ids.clear()
-	scene.selected_card_ids[detail_card.unique_id] = true
+	scene.interactions.selected_ids.clear()
+	scene.interactions.selected_ids[detail_card.unique_id] = true
 	scene.strawy.open_help()
 	await process_frame
 	await tap(scene.strawy.box.find_child("StrawyCardInfo",true,false),true)
@@ -293,7 +291,12 @@ func _run() -> void:
 	scene.deal.zodiac_boss.locked_ids.append(detail_card.unique_id)
 	scene._sync_all()
 	scene.strawy.explain_card(detail_card)
-	check(scene.strawy.box.visible and scene.strawy.copy.text.contains(GameGlossary.words("Locked","khóa")),"requested locked-card advice remains separate from its hover badge")
+	(scene.strawy.actions.get_child(-1) as Button).pressed.emit()
+	await process_frame
+	var card_book := root.get_node_or_null("GameGlossary") as GameGlossary
+	check(card_book != null and card_book._entries[0].body.contains(GameGlossary.words("Locked", "khóa")), "Requested locked-card detail is available in Handbook")
+	if card_book != null: card_book.queue_free()
+	await process_frame
 	scene.strawy.close()
 	scene.deal.zodiac_boss.locked_ids.erase(detail_card.unique_id)
 	scene._sync_all()
@@ -302,7 +305,7 @@ func _run() -> void:
 	await pause()
 	check(scene.deal.action_counts.get("new_meld",0) == before_meld+1, "one helper request performs one real meld")
 	for card in scene.deal.hand:
-		var view: PlayingCardView = scene.hand_views[card.unique_id]
+		var view: PlayingCardView = scene.card_table.hand_views[card.unique_id]
 		check(not view._meld_chance_badge.visible and not view._meld_chance_value.text.contains(GameGlossary.words("KEEP","GIỮ")), "card odds stay hidden and omit Keep scores " + card.unique_id)
 	var discard_before := scene.deal.discard_history.size()
 	scene.strawy._command("discard")
@@ -310,10 +313,10 @@ func _run() -> void:
 	check(scene.deal.discard_history.size() == discard_before+1, "one helper request performs one real discard")
 	check(scene.deal.tra_da_extra_discard_pending, "extra discard is left to a separate request")
 	check(scene.deal.physical_card_accounting_is_valid(), "helper retains physical identities")
-	var saved := scene.run_save.load_run()
+	var saved := scene.session.run_save.load_run()
 	check(not saved.is_empty() and saved.deal.discard_history.size() == scene.deal.discard_history.size() and saved.deal.wallet_balance_vnd == scene.deal.wallet.balance_vnd, "helper commits through ordinary autosave and wallet flow")
 	await capture("deal" + ("-vi" if "--vi" in OS.get_cmdline_user_args() else "-en"))
-	scene.selected_card_ids[scene.deal.hand[0].unique_id] = true
+	scene.interactions.selected_ids[scene.deal.hand[0].unique_id] = true
 	scene.strawy.open_help()
 	scene.strawy._explain_cards()
 	check(scene.strawy.copy.text.contains(scene.deal.hand[0].short_label()) and scene.strawy.copy.text.contains("100"), "touch-accessible selected card Keep details")
@@ -342,7 +345,7 @@ func _run() -> void:
 	scene.deck_screen.open_deck(scene.campaign.gieo_que.persistent_deck,GameGlossary.words("Your deck","Bộ bài của bạn"),"")
 	await pause()
 	check(scene.deck_screen.visible and not scene.strawy.can_play_cards(), "deck inspection blocks helper commands")
-	check(scene.deck_screen._back.text == GameGlossary.words("Back to the table","Về bàn"), "deck navigation follows the current locale")
+	check(scene.deck_screen._back.text == GameGlossary.words("Back","Về bàn"), "deck navigation follows the current locale")
 	await capture("deck" + ("-vi" if "--vi" in OS.get_cmdline_user_args() else "-en"))
 	scene.deck_screen.close()
 	scene._ensure_resolve_receipt()

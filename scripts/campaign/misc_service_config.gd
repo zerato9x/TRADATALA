@@ -2,9 +2,6 @@ class_name MiscServiceConfig
 extends RefCounted
 
 # Provisional balance; tune here without changing service or UI authority.
-const POLISH_COST_VND := 10_000
-const TIP_VND := 5_000
-const FAVORS := {"lottery_special": {"tips_required_vnd": 20_000}}
 const TICKET_STAKE_VND := 10_000
 const TICKETS_PER_APPEARANCE := 8
 const PRIZES := [

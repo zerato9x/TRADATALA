@@ -113,8 +113,8 @@ func test_card_legality_and_current_persistent_queries() -> void:
 	var plain := cards[0]
 	assert_false(ZodiacDemand.legal(plain, ZodiacDemand.make("REMOVE_PROPERTY")))
 	assert_false(ZodiacDemand.legal(plain, ZodiacDemand.make("RESET")))
-	plain.add_gieo_property("GOLD_SET")
-	plain.add_gieo_property("MELD_RETRIGGER")
+	plain.adjust_fortune(2)
+	plain.add_jackpot(CardData.JACKPOT_LIQUID)
 	assert_true(ZodiacDemand.legal(plain, ZodiacDemand.make("RESET")))
 	plain.apply_rank("K", 13)
 	plain.apply_suit("Hearts")
@@ -139,8 +139,8 @@ func test_all_card_verbs_preserve_ids_and_atomic_invalid_selection() -> void:
 		var card: CardData = campaign.gieo_que.persistent_deck[0]
 		var id := card.unique_id
 		card.apply_rank("K", 13)
-		card.add_gieo_property("GOLD_SET")
-		card.add_gieo_property("GOLD_RUN")
+		card.adjust_fortune(2)
+		card.add_jackpot(CardData.JACKPOT_LIQUID)
 		var destination := "2" if verb == "SET_RANK" else "Hearts" if verb == "SET_SUIT" else ""
 		assert_false(service.debug_offer(ZodiacDemand.make(verb, "ANY", "PLAYER_CHOOSES", 1, destination)).is_empty())
 		assert_false(service.respond("ACCEPT", "not_owned").ok)
@@ -148,8 +148,8 @@ func test_all_card_verbs_preserve_ids_and_atomic_invalid_selection() -> void:
 		assert_eq(campaign.gieo_que.persistent_deck.size(), 52)
 		assert_eq(card.unique_id, id)
 		match verb:
-			"RESET": assert_eq(card.rank, "A"); assert_true(card.gieo_properties.is_empty())
-			"REMOVE_PROPERTY": assert_eq(card.gieo_properties, ["GOLD_SET"])
+			"RESET": assert_eq(card.rank, "A"); assert_false(card.has_fortune_properties())
+			"REMOVE_PROPERTY": assert_eq(card.fortune, 2); assert_false(card.liquid)
 			"SEAL":
 				card.apply_rank("2", 2)
 				assert_eq(card.rank, "K")
@@ -215,7 +215,7 @@ func test_haggle_changes_severity_quantity_authority_and_favorite_relic() -> voi
 	var campaign := _noon()
 	var service := campaign.zodiac
 	var card: CardData = campaign.gieo_que.persistent_deck[0]
-	card.add_gieo_property("GOLD_SET")
+	card.adjust_fortune(2)
 	service.debug_offer(ZodiacDemand.make("RESET", "HAS_GIEO_PROPERTY", "ZODIAC_CHOOSES"))
 	var original_ids: Array = service.current_demand().target_ids.duplicate()
 	var before := card.permanent_snapshot()

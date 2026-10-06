@@ -25,7 +25,7 @@ func observe(result: Dictionary, deal: DealState) -> void:
 		var meld := deal.get_meld(int(result.get("meld_id", -1)))
 		if meld != null:
 			mark("set" if meld.meld_type == MeldRules.TYPE_SET else "run")
-	if action in ["keep", "dump"]:
+	if action == "phase_transition":
 		mark("phase_choice")
 	if action == "phase_settlement":
 		mark("last_call")
@@ -40,7 +40,7 @@ func opening_ids(period: String, cards: Array[CardData], equipped: Array[String]
 	if period == "noon":
 		# Bring a real changed/shiny physical card and matching ranks into play.
 		for card in cards:
-			if card.shiny or not card.gieo_properties.is_empty() or card.unique_id != "standard_%s_%s" % [card.rank.to_lower(), card.suit.to_lower()]:
+			if card.shiny or card.has_fortune_properties() or card.unique_id != "standard_%s_%s" % [card.rank.to_lower(), card.suit.to_lower()]:
 				ids.append(card.unique_id)
 				for other in cards:
 					if other.unique_id != card.unique_id and other.rank_index == card.rank_index and ids.size() < 3:
@@ -62,3 +62,12 @@ func opening_ids(period: String, cards: Array[CardData], equipped: Array[String]
 				ids.erase(preferred[index])
 				ids.push_front(preferred[index])
 	return ids
+
+func run_snapshot() -> Dictionary:
+	return {"learned": learned.duplicate(), "dismissed": dismissed.duplicate(), "first_seed_enabled": first_seed_enabled}
+
+func restore_run_snapshot(data: Dictionary) -> void:
+	reset()
+	first_seed_enabled = bool(data.get("first_seed_enabled", true))
+	learned = data.get("learned", {}).duplicate()
+	dismissed = data.get("dismissed", {}).duplicate()

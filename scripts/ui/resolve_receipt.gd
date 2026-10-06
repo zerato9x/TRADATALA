@@ -21,6 +21,7 @@ var _footer: Label
 var _report: Dictionary
 var _page_animation: Tween
 var _animation: Tween
+var _suspended := false
 var _leaving := false
 var _page := "overview"
 var _mode := ""
@@ -128,6 +129,7 @@ func _ready() -> void:
 	add_child(_collector_arrival)
 	visibility_changed.connect(func():
 		if not is_visible_in_tree():
+			if _suspended: return
 			_collector_arrival.stop()
 			# Hidden receipts must release their report and generated controls.
 			_report = {}
@@ -137,13 +139,25 @@ func _ready() -> void:
 	)
 	visible = false
 
+func suspend_presentation() -> void:
+	_suspended = true
+	_collector_arrival.stop()
+	if _animation and _animation.is_running(): _animation.kill()
+	_leaving = false
+	primary.disabled = false
+	_body.modulate = Color.WHITE
+	(get_parent() as CanvasLayer).hide()
+
+func resume_presentation() -> void:
+	(get_parent() as CanvasLayer).show()
+	_suspended = false
 func _clear(node: Node) -> void:
 	for child in node.get_children():
 		node.remove_child(child)
 		child.queue_free()
 
 func _continue() -> void:
-	if _leaving or not visible:
+	if _leaving or _suspended or not visible:
 		return
 	_collector_arrival.stop()
 	_leaving = true
@@ -346,6 +360,7 @@ func _cards() -> void:
 			var path := str(data.hit.get("texture_path", ""))
 			if ResourceLoader.exists(path):
 				face.texture = load(path)
+			GieoCardFX.apply_snapshot(face, data.hit)
 			var inspect := Button.new()
 			inspect.custom_minimum_size = Vector2(116, 126)
 			inspect.flat = true
@@ -361,8 +376,9 @@ func _cards() -> void:
 			triggers.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 			tile.add_child(triggers)
 			var properties: PackedStringArray = []
-			for property_id: String in data.hit.get("properties", []):
-				properties.append(tr(CardData.gieo_property_label_key(property_id)))
+			properties.append(tr("CARD_FORTUNE") + " %+d" % int(data.hit.get("fortune", 0)))
+			var state := CardData.from_permanent_snapshot(data.hit)
+			if not state.jackpot_state().is_empty(): properties.append(tr(CardData.property_label_key(state.jackpot_state())))
 			if data.hit.get("shiny", false):
 				properties.append(words("Polished", "Đã đánh bóng"))
 			var description := str(data.hit.get("label", "")) + " · " + (", ".join(properties) if not properties.is_empty() else words("Standard card", "Bài thường"))
@@ -406,15 +422,17 @@ func reason_name(reason: String) -> String:
 	var names := {
 		"originating": ["Initial scoring", "Tính điểm ban đầu"],
 		"new_meld": ["New melds", "Phỏm mới"], "extension": ["Extensions", "Nối phỏm"],
-		"deadwood": ["Deadwood", "Bài rác"], "daily_debt": ["Debt collected", "Đã trả nợ"],
+		"deadwood": ["Deadwood", "Bài rác"], "black_ink": ["Black Ink profit", "Mực Đen sinh lời"], "daily_debt": ["Debt collected", "Đã trả nợ"],
 		"relic_reroll": ["Shop rerolls", "Đổi hàng"], "drink_purchase": ["Drinks", "Đồ uống"], "gieo_que_cast": ["Gieo Quẻ", "Gieo Quẻ"],
 		"shoe_polish": ["Shoe polish", "Đánh giày"], "shoe_tip": ["Tips", "Tiền boa"],
+		"shoe_reroll_rank": ["Rank rerolls", "Đổi số"], "shoe_reroll_suit": ["Suit rerolls", "Đổi chất"],
 		"lottery_ticket": ["Lottery tickets", "Vé số"], "lottery_settlement": ["Lottery winnings", "Trúng vé số"],
 		"u_bonus": ["Ù bonus", "Thưởng Ù"], "u_khan": ["Ù khan", "Ù khan"],
 		"native_retrigger": ["Meld retriggers", "Kích hoạt lại phỏm"], "gieo_retrigger": ["Gieo retriggers", "Gieo kích hoạt lại"],
 		"u": ["Ù", "Ù"], "u_khan_count": ["Ù khan", "Ù khan"], "mom": ["Móm", "Móm"],
 		"cards_drawn": ["Cards drawn", "Bài đã rút"], "phase_settlement": ["Phases settled", "Lượt chốt pha"],
 		"keep": ["Hands kept", "Giữ bài"], "dump": ["Hands redrawn", "Đổi bài"],
+		"phase_transition": ["Phase transitions", "Lượt chuyển hiệp"],
 		"set_milestone": ["SET milestones", "Mốc bộ SET"], "perfected_run": ["Perfected RUN", "Sảnh hoàn hảo"],
 		"exhaustion_meld": ["Exhaustion payouts", "Thu từ cạn bài"],
 		"new_meld_count": ["Melds", "Phỏm"], "card_triggers": ["Card triggers", "Lượt kích hoạt bài"],
@@ -434,7 +452,7 @@ func _relic_name(id: String) -> String:
 
 
 func _endless() -> void:
-	if _leaving or not visible:
+	if _leaving or _suspended or not visible:
 		return
 	_leaving = true
 	primary.disabled = true

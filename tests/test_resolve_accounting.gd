@@ -97,7 +97,7 @@ func test_full_deal_records_real_actions_without_presentation_payments() -> void
 	assert_eq(deal.wallet.balance_vnd, before)
 
 
-func test_relic_purchase_uses_real_wallet_and_reequip_is_free() -> void:
+func test_relic_purchase_uses_real_wallet_and_owned_relics_cannot_charge_twice() -> void:
 	var wallet := VndWallet.new()
 	wallet.reset(1_000_000)
 	wallet.economy_scaling = true
@@ -105,7 +105,7 @@ func test_relic_purchase_uses_real_wallet_and_reequip_is_free() -> void:
 	relics.shop_wallet = wallet
 	assert_true(relics.purchase_and_equip("comb"))
 	assert_eq(wallet.balance_vnd, 950_000)
-	relics.remove("comb")
+	assert_true(relics.equipped.has("comb"))
 	assert_true(relics.purchase_and_equip("comb"))
 	assert_eq(wallet.balance_vnd, 950_000)
 	assert_eq(wallet.journal.size(), 1)

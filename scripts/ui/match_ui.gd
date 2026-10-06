@@ -1,20 +1,13 @@
 class_name MatchUI
 extends Control
 
-signal tutorial_step_changed(step: StringName)
-signal money_job_completed(job_id: int)
+signal action_rejected()
 
 const CARD_SIZE := PlayingCardView.CARD_SIZE
-const INITIAL_RELIC_SLOT_COUNT := 4
 const MUSIC_BAND_COUNT := 4
 const GAME_SETTINGS_SCRIPT := preload("res://scripts/settings/game_settings.gd")
-const TUTORIAL_SPOTLIGHT_SCRIPT := preload("res://scripts/ui/tutorial_spotlight.gd")
 const CARD_DRAG_PAYLOAD_SCRIPT := preload("res://scripts/ui/card_drag_payload.gd")
-const CARD_ACTION_OUTLINE_SCRIPT := preload("res://scripts/ui/card_action_outline.gd")
-const CARD_SYMBOL_ART_SCRIPT := preload("res://scripts/ui/card_symbol_art.gd")
-const GAMEPLAY_MUSIC_CONDUCTOR_SCRIPT := preload("res://scripts/audio/gameplay_music_conductor.gd")
 const EVENT_TABLE_CONTROLLER_SCRIPT := preload("res://scripts/ui/event_table_controller.gd")
-const GIEO_QUE_PANEL_SCRIPT := preload("res://scripts/ui/gieo_que_panel.gd")
 const DRINK_CUE_STREAMS: Array[AudioStream] = [
 	preload("res://assets/audio/sfx/glass_clink.mp3"),
 	preload("res://assets/audio/sfx/glass_clink_2.mp3"),
@@ -51,39 +44,15 @@ const DRINK_HALF_TEXTURES := {
 	DrinkCatalog.NHAN_TRAN: preload("res://assets/drinks/nhan_tran_half.png"),
 	DrinkCatalog.SAM_DUA: preload("res://assets/drinks/sam_dua_half.png"),
 }
-const DRINK_TABLE_PROP_SIZE := Vector2(112, 178)
-const DRINK_TABLE_SPRITE_SIZE := Vector2(112, 144)
 const DRINK_TABLE_MORNING_POSITION := Vector2(1033, 398)
 const DRINK_TABLE_NOON_POSITION := Vector2(1033, 398)
-const DROP_TARGET_NONE := &"none"
-const DROP_TARGET_HAND := &"hand"
-const DROP_TARGET_TABLE := &"table"
-const DROP_TARGET_MELD := &"meld"
-const DROP_TARGET_DISCARD := &"discard"
-const DRAG_ACTION_NONE := &"none"
-const DRAG_ACTION_REORDER := &"reorder"
-const DRAG_ACTION_CREATE_MELD := &"create_meld"
-const DRAG_ACTION_EXTEND_MELD := &"extend_meld"
-const DRAG_ACTION_DISCARD := &"discard"
-const TUTORIAL_SELECT_RUN := &"select_run"
-const TUTORIAL_PLAY_RUN := &"play_run"
-const TUTORIAL_MELD_SCORE := &"meld_score"
-const TUTORIAL_SELECT_DISCARD := &"select_discard"
-const TUTORIAL_DISCARD := &"discard"
-const TUTORIAL_SELECT_EXTEND := &"select_extend"
-const TUTORIAL_SELECT_MELD := &"select_meld"
-const TUTORIAL_EXTEND := &"extend"
-const TUTORIAL_EXTEND_SCORE := &"extend_score"
-const TUTORIAL_SELECT_FINAL_DISCARD := &"select_final_discard"
-const TUTORIAL_FINAL_DISCARD := &"final_discard"
-const TUTORIAL_MOM := &"mom"
-const TUTORIAL_U := &"u"
-const TUTORIAL_U_KHAN := &"u_khan"
-const TUTORIAL_COMPLETE := &"complete"
-const TUTORIAL_RUN_IDS := [&"standard_4_hearts", &"standard_5_hearts", &"standard_6_hearts"]
-const TUTORIAL_FIRST_DISCARD_ID := &"standard_q_diamonds"
-const TUTORIAL_EXTENSION_ID := &"standard_7_hearts"
-const TUTORIAL_FINAL_DISCARD_ID := &"standard_k_spades"
+
+var session := preload("res://scripts/campaign/run_session_coordinator.gd").new()
+const INTERACTION_SCRIPT := preload("res://scripts/ui/match_interaction.gd")
+var interactions := INTERACTION_SCRIPT.new()
+var money_playback := preload("res://scripts/ui/money_playback_queue.gd").new()
+var money_feedback := preload("res://scripts/ui/money_feedback.gd").new()
+var music := preload("res://scripts/audio/match_music.gd").new()
 
 var deal := DealState.new()
 var event_manager: EventManager
@@ -93,22 +62,9 @@ var zodiac_table: Control
 var zodiac_boss_hud: Control
 var deck_screen: DeckScreen
 var deck_canvas_layer: CanvasLayer
-var gameplay_music: RefCounted
 var current_campaign_event: EventInstance
-var selected_card_ids: Dictionary = {}
-var selected_meld_id: int = -1
-var hand_views: Dictionary = {}
-var displayed_wallet_vnd: int = 0
-var pending_u_presentations: Array[Dictionary] = []
-var pending_u_khan_presentations: Array[Dictionary] = []
-var pending_exhaustion_presentations: Array[Dictionary] = []
-var money_jobs: Array[Dictionary] = []
-var completed_money_jobs: Dictionary = {}
-var money_queue_running: bool = false
-var money_queue_generation := 0
-var next_money_job_id: int = 1
-var money_queue_wallet_vnd: int = 0
-var interaction_locked: bool = false
+var card_table := preload("res://scripts/ui/card_table_presentation.gd").new()
+var pile_archive := preload("res://scripts/ui/pile_archive.gd").new()
 var sort_mode: int = 0
 var modal_mode: String = ""
 var game_started: bool = false
@@ -117,69 +73,9 @@ var settings
 
 var game_layer: Control
 var menu_layer: Control
-var menu_home_panel: VBoxContainer
-var how_to_play_panel: PanelContainer
-var options_panel: PanelContainer
-var play_button: Button
-var how_to_play_button: Button
-var tutorial_button: Button
-var options_button: Button
-var how_to_play_back_button: Button
-var options_back_button: Button
 var menu_button: Button
-var return_to_game_button: Button
 var _menu_interaction_was_locked := false
 var _collection_departing := false
-var music_slider: HSlider
-var sound_slider: HSlider
-var music_settings_label: Label
-var sound_settings_label: Label
-var language_settings_label: Label
-var music_value_label: Label
-var sound_value_label: Label
-var language_selector: OptionButton
-var music_player_panel: PanelContainer
-var music_cover: TextureRect
-var music_track_title: Label
-var music_variant_label: Label
-var music_progress: ProgressBar
-var music_time_label: Label
-var music_up_next_label: Label
-var music_play_pause_button: Button
-var music_system_selector: OptionButton
-var music_track_list: OptionButton
-var music_shuffle_button: Button
-var music_repeat_button: Button
-var music_track_list_syncing: bool = false
-var music_policy_syncing: bool = false
-var menu_page: StringName = &"home"
-var menu_localized_controls: Dictionary = {}
-var tutorial_active: bool = false
-var tutorial_step: StringName = &""
-var tutorial_wallet_before: int = 0
-var tutorial_journal_before: Array[Dictionary] = []
-var tutorial_journal_opening := 0
-var tutorial_deal_snapshot: Dictionary = {}
-var tutorial_return_to_gameplay: bool = false
-var tutorial_meld_id: int = -1
-var tutorial_outcome_visible: bool = false
-var tutorial_coach: PanelContainer
-var tutorial_progress_label: Label
-var tutorial_title_label: Label
-var tutorial_body_label: Label
-var tutorial_exit_button: Button
-var tutorial_spotlight: TutorialSpotlight
-var how_to_play_tab: StringName = &"cards"
-var how_tab_buttons: Dictionary = {}
-var how_tab_pages: Dictionary = {}
-var how_scoring_topic: StringName = &"basic"
-var how_scoring_topic_buttons: Dictionary = {}
-var how_scoring_topic_pages: Dictionary = {}
-var logo_segments: Array[Label] = []
-var logo_bounce_tweens: Dictionary = {}
-var reactive_hand_cards_by_band: Dictionary = {}
-var reactive_meld_cards_by_band: Dictionary = {}
-var music_controller: ReactiveMusicController
 var relic_grid: GridContainer
 var drink_name_label: Label
 var drink_charge_outline: Control
@@ -187,12 +83,7 @@ var drink_table_button: Button
 var drink_table_texture: TextureRect
 var pending_drink_unlocks: Array[String] = []
 var unlock_notice_playing := false
-var drink_targeting_active: bool = false
 var drink_hover_active: bool = false
-var pending_drink_card_ids: Dictionary = {}
-var selected_drink_meld_id: int = -1
-var selected_drink_meld_card_id: String = ""
-var selected_drink_discard_key: String = ""
 var drink_cue_player: AudioStreamPlayer
 var drink_cue_active: bool = false
 var drink_cue_signature: String = ""
@@ -228,11 +119,8 @@ var hand_layer: Control
 var meld_scroll: ScrollContainer
 var meld_row: HBoxContainer
 var empty_meld_label: Label
-var meld_views: Dictionary = {}
 var discard_history_row: HBoxContainer
 var discard_history_title: Label
-var discard_history_target_outlines: Dictionary = {}
-var discard_history_target_holders: Dictionary = {}
 var draw_pile_visual: Control
 var discard_pile_visual: Control
 var ha_button: Button
@@ -244,18 +132,7 @@ var sort_button: Button
 var relic_title_label: Label
 var particle_layer: Control
 var quick_drink_input: Node
-var active_drag_payload
-var active_drag_source: PlayingCardView
-var drag_preview: Control
-var drag_target_overlays: Array[Control] = []
 
-var discard_archive_overlay: Control
-var pile_archive_title: Label
-var pile_archive_mode: String = "discard"
-var discard_archive_count: Label
-var discard_archive_suit_grids: Dictionary = {}
-var discard_archive_suit_titles: Dictionary = {}
-var discard_archive_close: Button
 
 var ui_feedback: UIFeedback
 var _banner_tween: Tween
@@ -278,30 +155,17 @@ var modal_secondary: Button
 var banner_panel: PanelContainer
 var banner_label: Label
 
-var run_save := RunSave.new()
-var save_files: MetaSaveFiles
-var boss_debug_active := false
 var boss_debug_toolbar: PanelContainer
-var _regular_run_save: RunSave
-var _regular_progress: Dictionary = {}
-var _debug_history: Array = []
 var _boss_lab_hidden_modal := false
+var _boss_lab_hidden_receipt := false
 var run_seed_input := ""
-var _run_save_pending := false
-var _restoring_run := false
 var front_end: FrontEnd
 var resolve_receipt: Control
 var campaign_money_hud: CanvasLayer
 var table_hud_presentation: Node
-var campaign_coach: CanvasLayer
 var strawy: StrawyController
 var resolve_mode := ""
-var campaign_overlay: Control
-var campaign_event_kicker: Label
-var campaign_event_title: Label
-var campaign_event_wallet: Label
-var campaign_participants: VBoxContainer
-var campaign_continue_button: Button
+var event_services := preload("res://scripts/ui/event_table_services.gd").new()
 var event_table: EventTableController
 var pending_deal_presentation_unlock: bool = false
 var wallet_spiral: Control
@@ -309,24 +173,46 @@ var wallet_click_times: Array[int] = []
 
 
 func _ready() -> void:
+	interactions.configure(deal)
 	theme = PresentationTheme.create_game_theme()
 	var text_reveal := preload("res://scripts/ui/text_reveal.gd").new()
 	text_reveal.name = "TextReveal"
 	add_child(text_reveal)
 	_bind_editor_interface()
+	add_child(card_table)
+	card_table.configure(deal, interactions, {"hand_layer": hand_layer, "draw_pile_visual": draw_pile_visual,
+		"meld_row": meld_row, "empty_meld_label": empty_meld_label, "draw_count": draw_count,
+		"discard_count_label": discard_count_label, "discard_texture": discard_texture,
+		"discard_history_row": discard_history_row, "discard_history_title": discard_history_title,
+		"particle_layer": particle_layer, "table_surface": table_surface,
+		"discard_pile_visual": discard_pile_visual, "drink_table_button": drink_table_button})
+	card_table.card_pressed.connect(_on_card_pressed)
+	card_table.card_drag_started.connect(_on_card_drag_started)
+	card_table.meld_pressed.connect(select_meld)
+	card_table.meld_card_pressed.connect(select_meld_card)
+	card_table.discard_pressed.connect(target_drink_discard)
+	add_child(pile_archive)
+	pile_archive.configure(deal, interactions, game_layer.get_node("DiscardArchiveOverlay"))
+	pile_archive.discard_selected.connect(target_drink_discard)
 	for pile in [draw_pile_visual, discard_pile_visual]:
 		for face in pile.find_children("*", "TextureRect", true, false):
 			face.add_child(preload("res://scripts/ui/passive_card_sway.gd").new())
 	if DemoBuild.enabled():
 		relic_title_label.get_parent().hide()
+	add_child(money_playback)
+	money_playback.configure(money_presentation, _return_exhaustion_visual)
+	money_playback.balance_presented.connect(func(_balance): _refresh_stats())
 	money_presentation.configure(wallet_value, wallet_pile_anchor)
+	add_child(money_feedback)
+	money_feedback.configure(deal, money_playback, hand_layer, meld_scroll, wallet_pile_anchor,
+		_scoring_card_control, _reveal_scoring_card, _pulse_relic, _show_scoring_rate, _present_scoring_suppression)
 	money_presentation.major_event_started.connect(func(_reason: String): ui_feedback.play(&"jackpot"))
 	money_presentation.major_event_finished.connect(func(): ui_feedback.stop(&"jackpot"))
 	deal.relics.inventory_changed.connect(_refresh_relics)
 	_refresh_relics()
 	_setup_event_table_presentation()
 	_connect_editor_interface_signals()
-	interaction_locked = true
+	interactions.locked = true
 	settings = get_node_or_null("/root/GameSettings")
 	if settings == null:
 		settings = GAME_SETTINGS_SCRIPT.new()
@@ -349,8 +235,8 @@ func _ready() -> void:
 	_refresh_localized_ui()
 	get_viewport().size_changed.connect(_on_viewport_size_changed)
 	var result := deal.start_deal(-1, true)
-	displayed_wallet_vnd = deal.wallet.balance_vnd
-	money_queue_wallet_vnd = displayed_wallet_vnd
+	money_playback.displayed_balance = deal.wallet.balance_vnd
+	money_playback.queued_balance = money_playback.displayed_balance
 	event_manager = EventManager.new()
 	CampaignNpcCatalog.register_initial_npcs(event_manager)
 	deal.relics.shop_wallet = deal.wallet
@@ -359,17 +245,41 @@ func _ready() -> void:
 	drink_manager.progress.drink_unlocked.connect(_on_drink_unlocked)
 	deal.state_changed.connect(_on_demo_progress_action)
 	campaign = CampaignManager.new(deal.wallet, event_manager, drink_manager)
-	save_files = MetaSaveFiles.new()
-	save_files.attach(campaign)
-	run_save = RunSave.new(save_files.run_path())
+	campaign.bind_deal(deal)
+	interactions.selection_changed.connect(func():
+		if not interactions.selected_ids.is_empty(): campaign.onboarding.mark("selection"))
+	add_child(event_services)
+	event_services.configure(event_table, campaign, deal, drink_manager)
+	event_services.wallet_committed.connect(_on_event_wallet_committed)
+	event_services.notice.connect(_show_banner)
+	event_services.gieo_impact_requested.connect(_on_gieo_impact_requested)
+	event_services.reels_stop_requested.connect(ui_feedback.stop.bind(&"reels"))
+	event_services.commitment_changed.connect(_on_gieo_commitment_changed)
+	event_services.card_pick_requested.connect(_open_gieo_card_picker)
+	event_services.identity_pick_requested.connect(_open_identity_card_picker)
+	event_services.identity_feedback_requested.connect(func(cue): ui_feedback.play(cue))
+	event_services.removal_pick_requested.connect(_open_removal_card_picker)
+	campaign.relic_shop.changed.connect(_on_shop_changed)
+	event_services.drink_order_requested.connect(_on_campaign_drink_pressed)
+	event_services.debt_briefing_seen.connect(_on_debt_briefing_seen)
+	event_services.zodiac_requested.connect(func(): zodiac_table.open_conversation())
+	event_services.handbook_requested.connect(open_handbook)
+	add_child(music)
+	music.configure(settings, $ReactiveMusic, campaign, deal, func(): return game_started)
+	music.controller.band_pulse.connect(_on_music_band_pulse)
+	music.notice.connect(func(en, vi): _show_banner(GameGlossary.words(en, vi)))
+	session.save_files = MetaSaveFiles.new()
+	session.save_files.attach(campaign)
+	session.run_save = RunSave.new(session.save_files.run_path())
 	_connect_signal_once(drink_manager.progress.drink_unlocked, _on_drink_unlocked)
 	campaign.zodiac.bind(campaign, deal)
+	campaign.zodiac.changed.connect(_sync_event_continue)
+	deal.wallet.balance_changed.connect(_on_wallet_balance_changed)
 	campaign.relic_shop.runtime = deal.relics
 	_setup_run_saving()
 	campaign.lottery.settled.connect(_on_lottery_settled)
 	campaign.collection_requested.connect(_on_collection_requested)
 	campaign.campaign_started.connect(_on_campaign_started)
-	campaign.day_started.connect(_on_campaign_day_started)
 	campaign.event_started.connect(_on_campaign_event_started)
 	campaign.deal_requested.connect(_on_campaign_deal_requested)
 	campaign.requirement_passed.connect(_on_campaign_requirement_passed)
@@ -382,17 +292,14 @@ func _ready() -> void:
 	table_hud_presentation = preload("res://scripts/ui/table_hud_presentation.gd").new()
 	add_child(table_hud_presentation)
 	table_hud_presentation.configure(self)
-	_setup_return_navigation()
+	event_table.menu_requested.connect(_on_menu_pressed)
 	front_end = preload("res://scenes/ui/front_end.tscn").instantiate() as FrontEnd
 	menu_layer.add_child(front_end)
 	front_end.configure(self)
 	front_end.start_requested.connect(_on_front_start_requested)
 	front_end.resume_requested.connect(_on_front_resume_requested)
 	front_end.return_requested.connect(_close_menu_to_game)
-	front_end.handbook_requested.connect(_open_glossary)
-	campaign_coach = preload("res://scripts/ui/campaign_coach.gd").new()
-	add_child(campaign_coach)
-	campaign_coach.configure(self)
+	front_end.handbook_requested.connect(open_handbook)
 	zodiac_table = preload("res://scripts/ui/zodiac_table.gd").new()
 	game_layer.add_child(zodiac_table)
 	zodiac_table.configure(self)
@@ -419,23 +326,11 @@ func _ready() -> void:
 	add_child(strawy)
 	strawy.configure(self)
 	event_table.input_obstructed = func() -> bool:
-		return menu_layer.visible or modal_overlay.visible or score_overlay.visible or discard_archive_overlay.visible or deck_screen.visible or zodiac_table.shade.visible or get_node("ActionLegend/Shade").visible or strawy.box.visible or get_tree().root.has_node("GameGlossary") or get_tree().root.has_node("LotteryReceipt") or is_instance_valid(wallet_spiral) or (is_instance_valid(resolve_receipt) and resolve_receipt.visible)
+		return interaction_snapshot().blocked or score_overlay.visible or strawy.box.visible
 	_sync_all(result, true)
-	_set_hand_interaction_enabled(false)
+	card_table.set_hand_interaction_enabled(false)
 	_park_game_layer()
-	_initialize_jukebox.call_deferred()
-
-
-func _initialize_jukebox() -> void:
-	if not game_started and settings.music_system == settings.MUSIC_SYSTEM_AUTHORED_DJ and not music_controller.dj_mode:
-		if not _activate_selected_authored_set():
-			settings.set_music_system(settings.MUSIC_SYSTEM_PLAYING_TRACKS)
-	_sync_music_player()
-
-
-func _process(_delta: float) -> void:
-	if menu_layer != null and menu_layer.visible and (menu_page == &"home" or menu_page == &"music"):
-		_sync_music_player_progress()
+	music.initialize_jukebox.call_deferred()
 
 
 func _exit_tree() -> void:
@@ -452,7 +347,6 @@ func _exit_tree() -> void:
 		return
 	var connections := [
 		[&"campaign_started", Callable(self, "_on_campaign_started")],
-		[&"day_started", Callable(self, "_on_campaign_day_started")],
 		[&"event_started", Callable(self, "_on_campaign_event_started")],
 		[&"deal_requested", Callable(self, "_on_campaign_deal_requested")],
 		[&"requirement_passed", Callable(self, "_on_campaign_requirement_passed")],
@@ -514,9 +408,9 @@ func _bind_editor_interface() -> void:
 
 
 func _setup_event_table_presentation() -> void:
-	if campaign_overlay != null:
-		campaign_overlay.visible = false
-		campaign_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if event_table != null:
+		event_table.visible = false
+		event_table.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	event_table = EVENT_TABLE_CONTROLLER_SCRIPT.new()
 	event_table.name = "EventTableController"
 	game_layer.add_child(event_table)
@@ -527,42 +421,14 @@ func _setup_event_table_presentation() -> void:
 		game_layer.get_node("UtilityRail") as Control,
 		game_layer.get_node("ActionDock") as Control,
 	])
-	campaign_overlay = event_table
-	campaign_event_kicker = event_table.period_label
-	campaign_event_title = event_table.day_label
-	campaign_event_wallet = event_table.money_label
-	campaign_participants = event_table.participants_container
-	campaign_continue_button = event_table.continue_button
-	_connect_signal_once(event_table.npc_focused, _on_event_table_npc_focused)
+	_connect_signal_once(event_table.npc_focused, func(id): event_services.present_npc(id, current_campaign_event))
 	_connect_signal_once(event_table.deal_presentation_ready, _on_event_table_deal_ready)
 	_connect_signal_once(event_table.deck_inspect_requested, _on_event_deck_inspect_requested)
 
 
 func _connect_editor_interface_signals() -> void:
-	_connect_signal_once(play_button.pressed, _show_run_menu)
-	_connect_signal_once(how_to_play_button.pressed, _open_glossary)
-	_connect_signal_once(tutorial_button.pressed, _on_tutorial_pressed)
-	_connect_signal_once(options_button.pressed, _show_menu_page.bind(&"options"))
-	_connect_signal_once(how_to_play_back_button.pressed, _show_menu_page.bind(&"home"))
-	_connect_signal_once(options_back_button.pressed, _show_menu_page.bind(&"home"))
-	for tab_id in how_tab_buttons:
-		_connect_signal_once((how_tab_buttons[tab_id] as Button).pressed, _show_how_tab.bind(StringName(tab_id)))
-	for topic_id in how_scoring_topic_buttons:
-		_connect_signal_once((how_scoring_topic_buttons[topic_id] as Button).pressed, _show_how_scoring_topic.bind(StringName(topic_id)))
-	_connect_signal_once(music_slider.value_changed, _on_music_volume_changed)
-	_connect_signal_once(sound_slider.value_changed, _on_sound_volume_changed)
-	_connect_signal_once(language_selector.item_selected, _on_language_selected)
-	_connect_signal_once(music_controller.band_pulse, _on_music_band_pulse)
-	_connect_signal_once(music_controller.mix_started, _on_music_mix_started)
-	_connect_signal_once(music_controller.pause_changed, _on_music_pause_changed)
-	_connect_signal_once(music_controller.playback_options_changed, _on_music_playback_options_changed)
-	_connect_signal_once(music_play_pause_button.pressed, _on_music_play_pause_pressed)
-	_connect_signal_once(music_system_selector.item_selected, _on_music_system_selected)
-	_connect_signal_once(music_track_list.item_selected, _on_music_track_selected)
-	_connect_signal_once(music_shuffle_button.pressed, _on_music_shuffle_pressed)
-	_connect_signal_once(music_repeat_button.pressed, _on_music_repeat_pressed)
 	_connect_signal_once(menu_button.pressed, _on_menu_pressed)
-	_connect_signal_once(drink_table_button.pressed, _on_drink_pressed)
+	_connect_signal_once(drink_table_button.pressed, activate_drink)
 	_connect_signal_once(drink_table_button.mouse_entered, _on_drink_hover_started)
 	_connect_signal_once(drink_table_button.mouse_exited, _on_drink_hover_ended)
 	_connect_signal_once((pile_archive_buttons["draw"] as Button).pressed, _on_draw_archive_pressed)
@@ -573,251 +439,16 @@ func _connect_editor_interface_signals() -> void:
 	_connect_signal_once(extend_button.pressed, _on_extend_pressed)
 	_connect_signal_once(discard_button.pressed, _on_discard_pressed)
 	_connect_signal_once(settle_button.pressed, _on_settle_pressed)
-	_connect_signal_once(deal.new_phom_scored, _on_deal_new_phom_scored)
-	_connect_signal_once(deal.u_triggered, _on_deal_u_triggered)
 	_connect_signal_once(deal.meld_exhaustion_triggered, _on_deal_meld_exhaustion_triggered)
 	_connect_signal_once(deal.exhaustion_triggered, _on_deal_exhaustion_triggered)
-	_connect_signal_once(tutorial_exit_button.pressed, _on_tutorial_exit_pressed)
-	var archive_dim := discard_archive_overlay.find_child("ArchiveDim", true, false)
-	if archive_dim != null:
-		_connect_signal_once(archive_dim.gui_input, _on_discard_archive_dim_input)
-	_connect_signal_once(discard_archive_close.pressed, _hide_discard_archive)
 	_connect_signal_once(modal_primary.pressed, _on_modal_primary_pressed)
 	_connect_signal_once(modal_secondary.pressed, _on_modal_secondary_pressed)
-	_connect_signal_once(campaign_continue_button.pressed, _on_campaign_continue_pressed)
+	_connect_signal_once(event_table.continue_button.pressed, _on_campaign_continue_pressed)
 
 
 func _connect_signal_once(signal_ref: Signal, callable: Callable) -> void:
 	if not signal_ref.is_connected(callable):
 		signal_ref.connect(callable)
-
-
-func _show_how_scoring_topic(topic_id: StringName) -> void:
-	if not how_scoring_topic_pages.has(topic_id):
-		return
-	how_scoring_topic = topic_id
-	for candidate in how_scoring_topic_pages:
-		(how_scoring_topic_pages[candidate] as Control).visible = candidate == topic_id
-		(how_scoring_topic_buttons[candidate] as Button).set_pressed_no_signal(candidate == topic_id)
-
-
-func _show_how_tab(tab_id: StringName) -> void:
-	if not how_tab_pages.has(tab_id):
-		return
-	if tab_id == &"scoring":
-		_show_how_scoring_topic(&"basic")
-	how_to_play_tab = tab_id
-	for candidate in how_tab_pages:
-		(how_tab_pages[candidate] as Control).visible = candidate == tab_id
-		(how_tab_buttons[candidate] as Button).set_pressed_no_signal(candidate == tab_id)
-
-
-func _show_menu_page(page: StringName) -> void:
-	if front_end != null:
-		if page == &"how_to_play":
-			_open_glossary()
-		elif page == &"options":
-			front_end._show_page("settings")
-		else:
-			front_end.show_home()
-		menu_page = page
-		return
-	if ui_feedback != null and menu_page != page:
-		ui_feedback.play(&"transition")
-	menu_page = page
-	menu_home_panel.visible = page == &"home"
-	how_to_play_panel.visible = page == &"how_to_play"
-	options_panel.visible = page == &"options"
-	if page == &"home":
-		_sync_music_player()
-		play_button.call_deferred("grab_focus")
-	elif page == &"how_to_play":
-		_show_how_tab(&"cards")
-		(how_tab_buttons[&"cards"] as Button).call_deferred("grab_focus")
-	else:
-		language_selector.call_deferred("grab_focus")
-
-
-func _on_music_volume_changed(value: float) -> void:
-	music_value_label.text = "%d%%" % roundi(value)
-	settings.set_music_volume(value)
-
-
-func _on_music_play_pause_pressed() -> void:
-	music_controller.toggle_music_paused()
-
-
-func _on_music_mix_started(_mix_path: String, _theme_id: StringName, _variant: int) -> void:
-	_sync_music_player()
-	_queue_run_save()
-
-
-func _on_music_pause_changed(_paused: bool) -> void:
-	_sync_music_player()
-	_queue_run_save()
-
-
-func _on_music_playback_options_changed() -> void:
-	_sync_music_player()
-	_queue_run_save()
-
-
-func _on_music_track_selected(track_index: int) -> void:
-	if music_track_list_syncing:
-		return
-	if settings.music_system == settings.MUSIC_SYSTEM_AUTHORED_DJ:
-		_on_authored_music_set_selected(track_index)
-		return
-	if gameplay_music != null:
-		gameplay_music.stop_campaign()
-	music_controller.play_track(track_index)
-
-
-func _on_music_system_selected(index: int) -> void:
-	if music_policy_syncing or index < 0 or index >= settings.SUPPORTED_MUSIC_SYSTEMS.size():
-		return
-	var previous_system: String = settings.music_system
-	settings.set_music_system(settings.SUPPORTED_MUSIC_SYSTEMS[index])
-	if settings.music_system == settings.MUSIC_SYSTEM_PLAYING_TRACKS and music_controller.dj_mode:
-		if gameplay_music != null:
-			gameplay_music.stop_campaign()
-		music_controller.play_track(music_controller.current_track_index, false)
-	elif settings.music_system == settings.MUSIC_SYSTEM_AUTHORED_DJ and not music_controller.dj_mode:
-		if not _activate_selected_authored_set():
-			settings.set_music_system(previous_system)
-	_sync_music_player()
-	_queue_run_save()
-
-
-func _on_authored_music_set_selected(index: int) -> void:
-	if music_policy_syncing or index < 0 or index >= settings.SUPPORTED_AUTHORED_SETS.size():
-		return
-	var previous_set: String = settings.authored_music_set
-	settings.set_authored_music_set(settings.SUPPORTED_AUTHORED_SETS[index])
-	if settings.music_system == settings.MUSIC_SYSTEM_AUTHORED_DJ \
-			and (not music_controller.dj_mode or gameplay_music == null or gameplay_music.active_set_id != settings.authored_music_set):
-		if not _activate_selected_authored_set():
-			settings.set_authored_music_set(previous_set)
-	_sync_music_player()
-	_queue_run_save()
-
-
-func _activate_selected_authored_set() -> bool:
-	var period := "starter_event"
-	if game_started and not campaign.run_seed.is_empty():
-		period = String(CampaignManager.DEAL_PHASE_TO_PERIOD.get(campaign.current_phase, ""))
-		if period.is_empty():
-			match campaign.current_phase:
-				CampaignManager.CampaignPhase.DAY_START, CampaignManager.CampaignPhase.STARTER_EVENT: period = "starter_event"
-				CampaignManager.CampaignPhase.MORNING_EVENT: period = "morning_event"
-				CampaignManager.CampaignPhase.NOON_EVENT: period = "noon_event"
-				CampaignManager.CampaignPhase.AFTERNOON_EVENT: period = "afternoon_event"
-				_: period = "collection"
-	var previous_transport := music_controller.snapshot_state()
-	var conductor := GAMEPLAY_MUSIC_CONDUCTOR_SCRIPT.new(music_controller)
-	if not conductor.start_at_state(settings.authored_music_set, period, deal.current_phase,
-			deal.phase_new_meld_count, deal.state == DealState.STATE_DEAL_OVER):
-		music_controller.restore_snapshot(previous_transport)
-		_show_banner(_run_words("Could not start DJ set: ", "Không thể bắt đầu DJ set: ") + conductor.last_error)
-		return false
-	gameplay_music = conductor
-	return true
-
-
-func _refresh_music_policy_controls() -> void:
-	if music_system_selector == null or settings == null:
-		return
-	music_policy_syncing = true
-	music_system_selector.clear()
-	music_system_selector.add_item(tr("MUSIC_SYSTEM_PLAYING_TRACKS"))
-	music_system_selector.add_item(tr("MUSIC_SYSTEM_AUTHORED_DJ"))
-	music_system_selector.select(maxi(settings.SUPPORTED_MUSIC_SYSTEMS.find(settings.music_system), 0))
-	music_policy_syncing = false
-
-
-func _on_music_shuffle_pressed() -> void:
-	music_controller.toggle_shuffle()
-
-
-func _on_music_repeat_pressed() -> void:
-	music_controller.cycle_repeat_mode()
-
-
-func _sync_music_player() -> void:
-	if music_controller == null or music_cover == null:
-		return
-	_refresh_music_policy_controls()
-	var playing_tracks: bool = settings.music_system == settings.MUSIC_SYSTEM_PLAYING_TRACKS
-	music_track_list.disabled = false
-	music_shuffle_button.disabled = not playing_tracks
-	music_repeat_button.disabled = not playing_tracks
-	music_shuffle_button.visible = playing_tracks
-	music_repeat_button.visible = playing_tracks
-	music_track_list_syncing = true
-	music_track_list.clear()
-	if playing_tracks:
-		for track_index in music_controller.playlist.size():
-			music_track_list.add_item(music_controller.track_label(track_index))
-		music_track_list.select(music_controller.current_track_index)
-		music_track_list.tooltip_text = tr("MUSIC_SYSTEM_PLAYING_TRACKS")
-	else:
-		for set_id in settings.SUPPORTED_AUTHORED_SETS:
-			music_track_list.add_item(tr("MUSIC_AUTHORED_SET_%s" % set_id.to_upper()))
-		var selected_set: String = gameplay_music.active_set_id if gameplay_music != null and gameplay_music.active else settings.authored_music_set
-		music_track_list.select(maxi(settings.SUPPORTED_AUTHORED_SETS.find(selected_set), 0))
-		music_track_list.tooltip_text = tr("MUSIC_SYSTEM_AUTHORED_DJ")
-	var theme_id := music_controller.current_theme_id
-	var cover_path := "res://assets/audio/covers/%s.png" % theme_id
-	music_cover.texture = load(cover_path) as Texture2D
-	music_track_title.text = ReactiveMusicController.display_title_for_theme(theme_id)
-	music_track_list_syncing = false
-	music_variant_label.text = "%s  ·  %s" % [
-		String(theme_id).to_upper(),
-		tr("MUSIC_PLAYER_SIDE") % music_controller.current_variant,
-	]
-	if not playing_tracks:
-		var authored_set: String = String(settings.authored_music_set)
-		if gameplay_music != null and gameplay_music.active and not gameplay_music.active_set_id.is_empty():
-			authored_set = gameplay_music.active_set_id
-		var status := "MUSIC_PLAYER_DJ_ACTIVE" if music_controller.dj_mode else "MUSIC_PLAYER_DJ_SELECT"
-		music_up_next_label.text = "%s: %s" % [tr(status), tr("MUSIC_AUTHORED_SET_%s" % authored_set.to_upper())]
-	else:
-		var next_request := music_controller.next_mix_request()
-		if next_request.is_empty():
-			music_up_next_label.text = tr("MUSIC_PLAYER_UP_NEXT") + ": -"
-		else:
-			music_up_next_label.text = "%s: %s · %s" % [
-				tr("MUSIC_PLAYER_UP_NEXT"), String(next_request["theme_id"]).to_upper(),
-				tr("MUSIC_PLAYER_SIDE") % int(next_request["variant"])]
-	music_play_pause_button.text = tr("MUSIC_PLAYER_PLAY") if music_controller.music_paused else tr("MUSIC_PLAYER_PAUSE")
-	music_shuffle_button.text = tr("MUSIC_PLAYER_SHUFFLE_ON") if music_controller.shuffle_enabled else tr("MUSIC_PLAYER_SHUFFLE_OFF")
-	match music_controller.repeat_mode:
-		ReactiveMusicController.REPEAT_ALL:
-			music_repeat_button.text = tr("MUSIC_PLAYER_REPEAT_ALL")
-		ReactiveMusicController.REPEAT_ONE:
-			music_repeat_button.text = tr("MUSIC_PLAYER_REPEAT_ONE")
-		_:
-			music_repeat_button.text = tr("MUSIC_PLAYER_REPEAT_OFF")
-	_sync_music_player_progress()
-
-
-func _sync_music_player_progress() -> void:
-	if music_controller == null or music_progress == null:
-		return
-	var duration := music_controller.stream_length_seconds
-	var elapsed := clampf(music_controller.playback_position_seconds, 0.0, duration)
-	music_progress.value = elapsed / duration if duration > 0.0 else 0.0
-	music_time_label.text = "%s / %s" % [_format_music_time(elapsed), _format_music_time(duration)]
-
-
-func _format_music_time(seconds: float) -> String:
-	var whole_seconds := maxi(0, floori(seconds))
-	return "%d:%02d" % [whole_seconds / 60, whole_seconds % 60]
-
-
-func _on_sound_volume_changed(value: float) -> void:
-	sound_value_label.text = "%d%%" % roundi(value)
-	settings.set_sound_volume(value)
 
 
 func _setup_drink_cue_audio() -> void:
@@ -857,7 +488,7 @@ func _play_card_sfx(kind: StringName) -> void:
 
 
 func _sync_card_action_sfx(result: Dictionary, animated_cards: Array[CardData]) -> void:
-	if not game_started and not tutorial_active:
+	if not game_started:
 		return
 	if bool(result.get("shuffled", false)):
 		_play_card_sfx(CARD_SFX_SHUFFLE)
@@ -886,20 +517,6 @@ func _sync_drink_reactive_cue() -> void:
 	drink_cue_play_count += 1
 
 
-func _on_language_selected(index: int) -> void:
-	if index < 0 or index >= settings.SUPPORTED_LOCALES.size():
-		return
-	settings.set_locale(settings.SUPPORTED_LOCALES[index])
-
-
-func _refresh_language_options() -> void:
-	var selected_index: int = int(settings.locale_index())
-	language_selector.clear()
-	language_selector.add_item(tr("LANG_VI"))
-	language_selector.add_item(tr("LANG_EN"))
-	language_selector.select(selected_index)
-
-
 func _on_locale_changed(_locale_code: String) -> void:
 	_refresh_localized_ui()
 
@@ -907,17 +524,6 @@ func _on_locale_changed(_locale_code: String) -> void:
 func _refresh_localized_ui() -> void:
 	if zodiac_table != null: zodiac_table.refresh()
 	if zodiac_boss_hud != null: zodiac_boss_hud.refresh()
-	for control in menu_localized_controls:
-		if is_instance_valid(control):
-			control.set("text", tr(String(menu_localized_controls[control])))
-	music_settings_label.text = tr("MENU_MUSIC")
-	_refresh_music_policy_controls()
-	_sync_music_player()
-	sound_settings_label.text = tr("MENU_SOUND")
-	language_settings_label.text = tr("MENU_LANGUAGE")
-	_refresh_language_options()
-	if return_to_game_button != null:
-		return_to_game_button.text = _run_words("BACK TO GAME", "TRỞ LẠI BÀN")
 	menu_button.text = tr("HUD_MENU")
 	menu_button.tooltip_text = tr("HUD_MENU_TOOLTIP")
 	discard_history_title.text = ZodiacCatalog.words("TURN REGISTER", "SỔ LƯỢT")
@@ -944,31 +550,14 @@ func _refresh_localized_ui() -> void:
 	discard_button.tooltip_text = tr("ACTION_DISCARD_TOOLTIP")
 	settle_button.text = tr("ACTION_SETTLE")
 	settle_button.tooltip_text = tr("ACTION_SETTLE_TOOLTIP")
-	discard_archive_close.text = tr("ARCHIVE_CLOSE")
+	pile_archive.refresh_localized_ui()
 	if event_table != null:
 		event_table.refresh_localized_ui()
-	if tutorial_active:
-		_refresh_tutorial_coach()
-	if campaign_overlay.visible and current_campaign_event != null:
+	if event_table.visible and current_campaign_event != null:
 		_show_campaign_event(current_campaign_event)
 		if not event_table.focused_npc_id.is_empty():
-			_on_event_table_npc_focused(event_table.focused_npc_id)
-	for suit in DeckManager.SUITS:
-		var title_control := discard_archive_suit_titles.get(suit) as Control
-		if title_control == null:
-			continue
-		var title_label := title_control.get_node_or_null("Title") as Label
-		if title_label != null:
-			title_label.text = _discard_suit_title(suit)
-		var symbol := title_control.get_node_or_null("Icon") as TextureRect
-		if symbol != null:
-			CARD_SYMBOL_ART_SCRIPT.tint_icon(symbol, _discard_suit_color(suit))
+			event_services.present_npc(event_table.focused_npc_id, current_campaign_event)
 	_sync_all()
-
-
-func _refresh_logo_pivots() -> void:
-	for segment in logo_segments:
-		segment.pivot_offset = segment.size * 0.5
 
 
 func _on_music_band_pulse(band_index: int, strength: float) -> void:
@@ -978,51 +567,10 @@ func _on_music_band_pulse(band_index: int, strength: float) -> void:
 	if band_index < 0 or band_index >= MUSIC_BAND_COUNT:
 		return
 	if menu_layer != null and menu_layer.visible:
-		_pulse_logo_band(band_index, strength)
 		return
-	if not game_started or interaction_locked or modal_overlay.visible or score_overlay.visible or discard_archive_overlay.visible:
+	if not game_started or interactions.locked or modal_overlay.visible or score_overlay.visible or pile_archive.overlay.visible:
 		return
-	var hand_assignments: Array = reactive_hand_cards_by_band.get(band_index, [])
-	for assignment_index in range(hand_assignments.size()):
-		var hand_view = hand_assignments[assignment_index]
-		if is_instance_valid(hand_view):
-			hand_view.play_beat_pulse(strength)
-	var meld_assignments: Array = reactive_meld_cards_by_band.get(band_index, [])
-	for assignment_index in range(meld_assignments.size()):
-		var assignment: Dictionary = meld_assignments[assignment_index]
-		if not is_instance_valid(assignment.get("view")):
-			continue
-		var meld_view := assignment.get("view") as MeldView
-		if meld_view != null:
-			meld_view.play_card_beat_pulse(String(assignment.get("card_id", "")), strength)
-	if drink_hover_active or drink_targeting_active:
-		_pulse_drink_eligible_targets(strength)
-
-
-func _pulse_logo_band(band_index: int, strength: float) -> void:
-	if band_index >= logo_segments.size():
-		return
-	var pulse_strength := clampf(strength, 0.2, 1.0)
-	var segment := logo_segments[band_index]
-	var previous := logo_bounce_tweens.get(band_index) as Tween
-	if previous != null and previous.is_valid():
-		previous.kill()
-	segment.pivot_offset = segment.size * 0.5
-	segment.scale = Vector2.ONE
-	segment.rotation = 0.0
-	var peak_scale := Vector2(
-		1.0 + lerpf(0.035, 0.075, pulse_strength),
-		1.0 + lerpf(0.07, 0.15, pulse_strength)
-	)
-	var tilt := deg_to_rad(lerpf(0.35, 1.2, pulse_strength))
-	if band_index % 2 == 0:
-		tilt = -tilt
-	var tween := create_tween()
-	logo_bounce_tweens[band_index] = tween
-	tween.tween_property(segment, "scale", peak_scale, 0.075).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	tween.parallel().tween_property(segment, "rotation", tilt, 0.075).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	tween.tween_property(segment, "scale", Vector2.ONE, 0.19).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	tween.parallel().tween_property(segment, "rotation", 0.0, 0.19).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	card_table.play_beat_pulse(band_index, strength, drink_hover_active or interactions.drink_targeting)
 
 
 func _park_game_layer() -> void:
@@ -1036,7 +584,6 @@ func _on_play_pressed() -> void:
 		return
 	if game_started:
 		menu_transitioning = true
-		play_button.disabled = true
 		menu_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		var close_tween := create_tween()
 		close_tween.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
@@ -1046,13 +593,11 @@ func _on_play_pressed() -> void:
 		menu_layer.position = Vector2.ZERO
 		menu_layer.modulate = Color.WHITE
 		menu_transitioning = false
-		interaction_locked = false
-		_set_hand_interaction_enabled(true)
+		interactions.locked = false
+		card_table.set_hand_interaction_enabled(true)
 		_start_campaign()
-		play_button.disabled = false
 		return
 	menu_transitioning = true
-	play_button.disabled = true
 	menu_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var viewport_width := get_viewport_rect().size.x
 	var tween := create_tween().set_parallel(true)
@@ -1067,45 +612,13 @@ func _on_play_pressed() -> void:
 	_start_campaign()
 
 
-func _open_glossary() -> void:
-	GameGlossary.open(self)
+func open_handbook(section: String = "") -> void:
+	GameGlossary.open(self, section)
 
 
-func _on_tutorial_pressed() -> void:
-	# The old standalone tutorial is retired. Reference never replaces a live Deal.
-	GameGlossary.open(self, "campaign")
-
-
-func _start_tutorial_deal(_return_to_gameplay: bool = false) -> void:
-	# Deprecated compatibility entry point; no second tutorial ruleset is launched.
-	GameGlossary.open(self, "core")
-
-
-func _deactivate_tutorial(restore_wallet: bool) -> void:
-	if not tutorial_active:
-		return
-	tutorial_active = false
-	tutorial_step = &""
-	tutorial_meld_id = -1
-	tutorial_outcome_visible = false
-	tutorial_coach.visible = false
-	tutorial_spotlight.set_targets([] as Array[Control])
-	if money_presentation != null:
-		money_presentation.hide_ceremony()
-	else:
-		score_overlay.visible = false
-	_reset_tutorial_ui_state()
-	if restore_wallet:
-		deal.wallet.reset(tutorial_wallet_before)
-		deal.wallet.journal.assign(tutorial_journal_before)
-		deal.wallet.journal_opening_vnd = tutorial_journal_opening
-		displayed_wallet_vnd = tutorial_wallet_before
-		money_queue_wallet_vnd = displayed_wallet_vnd
-
-
-func _reset_tutorial_ui_state() -> void:
-	selected_card_ids.clear()
-	selected_meld_id = -1
+func reset_transient_presentation() -> void:
+	interactions.selected_ids.clear()
+	interactions.selected_meld_id = -1
 	drink_hover_active = false
 	_cancel_drink_targeting()
 	if quick_drink_input != null:
@@ -1114,228 +627,34 @@ func _reset_tutorial_ui_state() -> void:
 	drink_cue_signature = ""
 	if drink_cue_player != null:
 		drink_cue_player.stop()
-	if active_drag_payload != null:
-		_cancel_card_drag()
-	else:
-		_clear_card_drag_visuals()
+	cancel_card_drag()
 	modal_mode = ""
 	if modal_overlay != null:
 		modal_overlay.visible = false
-	if discard_archive_overlay != null and discard_archive_overlay.visible:
-		_hide_discard_archive()
+	if pile_archive.overlay != null and pile_archive.overlay.visible:
+		pile_archive.close()
 	pending_deal_presentation_unlock = false
-	pending_u_presentations.clear()
-	pending_u_khan_presentations.clear()
-	pending_exhaustion_presentations.clear()
+	money_feedback.clear_pending()
 	for snapshot in meld_row.get_children():
 		if snapshot.get_meta("exhaustion_snapshot", false):
 			snapshot.queue_free()
-	money_queue_generation += 1
-	money_jobs.clear()
-	completed_money_jobs.clear()
-	money_queue_running = false
-	money_presentation.reset_fast_forward()
-	money_queue_wallet_vnd = displayed_wallet_vnd
-
-
-func _on_tutorial_exit_pressed() -> void:
-	match tutorial_step:
-		TUTORIAL_MOM:
-			_set_tutorial_step(TUTORIAL_U)
-			return
-		TUTORIAL_U:
-			_set_tutorial_step(TUTORIAL_U_KHAN)
-			return
-		TUTORIAL_U_KHAN:
-			_set_tutorial_step(TUTORIAL_COMPLETE)
-			return
-	var completed := tutorial_step == TUTORIAL_COMPLETE
-	var resume_gameplay := tutorial_return_to_gameplay and not completed and not tutorial_deal_snapshot.is_empty()
-	var resume_snapshot := tutorial_deal_snapshot.duplicate(false)
-	_deactivate_tutorial(true)
-	interaction_locked = false
-	if completed:
-		tutorial_deal_snapshot.clear()
-		tutorial_return_to_gameplay = false
-		_start_campaign()
-	elif resume_gameplay:
-		_restore_interrupted_deal(resume_snapshot)
-		tutorial_deal_snapshot.clear()
-		tutorial_return_to_gameplay = false
-	else:
-		_start_new_deal()
-		tutorial_deal_snapshot.clear()
-		tutorial_return_to_gameplay = false
-		_on_menu_pressed()
-
-
-func _set_tutorial_step(step: StringName) -> void:
-	if not tutorial_active:
-		return
-	tutorial_step = step
-	tutorial_step_changed.emit(step)
-	_refresh_tutorial_outcome()
-	_refresh_tutorial_coach()
-	_refresh_tutorial_spotlight()
-	_sync_card_action_outlines()
-	_refresh_actions()
-
-
-func _refresh_tutorial_coach() -> void:
-	if not tutorial_active or tutorial_coach == null:
-		return
-	tutorial_coach.visible = true
-	tutorial_exit_button.disabled = interaction_locked
-	if tutorial_step == TUTORIAL_COMPLETE:
-		tutorial_exit_button.text = tr("TUTORIAL_PLAY_REAL_DEAL")
-	elif tutorial_step in [TUTORIAL_MOM, TUTORIAL_U, TUTORIAL_U_KHAN]:
-		tutorial_exit_button.text = tr("TUTORIAL_NEXT")
-	else:
-		tutorial_exit_button.text = tr("TUTORIAL_EXIT")
-	match tutorial_step:
-		TUTORIAL_SELECT_RUN:
-			_set_tutorial_copy(_tutorial_progress(1, "1 / 10"), "TUTORIAL_SELECT_RUN_TITLE", "TUTORIAL_SELECT_RUN_BODY")
-		TUTORIAL_PLAY_RUN:
-			_set_tutorial_copy(_tutorial_progress(1, "2 / 10"), "TUTORIAL_PLAY_RUN_TITLE", "TUTORIAL_PLAY_RUN_BODY")
-		TUTORIAL_MELD_SCORE:
-			_set_tutorial_copy(_tutorial_progress(1, "3 / 10"), "TUTORIAL_MELD_SCORE_TITLE", "TUTORIAL_MELD_SCORE_BODY")
-		TUTORIAL_SELECT_DISCARD:
-			_set_tutorial_copy(_tutorial_progress(1, "4 / 10"), "TUTORIAL_SELECT_DISCARD_TITLE", "TUTORIAL_SELECT_DISCARD_BODY")
-		TUTORIAL_DISCARD:
-			_set_tutorial_copy(_tutorial_progress(1, "4 / 10"), "TUTORIAL_DISCARD_TITLE", "TUTORIAL_DISCARD_BODY")
-		TUTORIAL_SELECT_EXTEND:
-			_set_tutorial_copy(_tutorial_progress(2, "5 / 10"), "TUTORIAL_SELECT_EXTEND_TITLE", "TUTORIAL_SELECT_EXTEND_BODY")
-		TUTORIAL_SELECT_MELD:
-			_set_tutorial_copy(_tutorial_progress(2, "5 / 10"), "TUTORIAL_SELECT_MELD_TITLE", "TUTORIAL_SELECT_MELD_BODY")
-		TUTORIAL_EXTEND:
-			_set_tutorial_copy(_tutorial_progress(2, "5 / 10"), "TUTORIAL_EXTEND_TITLE", "TUTORIAL_EXTEND_BODY")
-		TUTORIAL_EXTEND_SCORE:
-			_set_tutorial_copy(_tutorial_progress(2, "6 / 10"), "TUTORIAL_EXTEND_SCORE_TITLE", "TUTORIAL_EXTEND_SCORE_BODY")
-		TUTORIAL_SELECT_FINAL_DISCARD:
-			_set_tutorial_copy(_tutorial_progress(2, "7 / 10"), "TUTORIAL_SELECT_FINAL_DISCARD_TITLE", "TUTORIAL_SELECT_FINAL_DISCARD_BODY")
-		TUTORIAL_FINAL_DISCARD:
-			_set_tutorial_copy(_tutorial_progress(2, "7 / 10"), "TUTORIAL_FINAL_DISCARD_TITLE", "TUTORIAL_FINAL_DISCARD_BODY")
-		TUTORIAL_MOM:
-			_set_tutorial_copy(tr("TUTORIAL_SPECIAL_PROGRESS") % [8, 10], "TUTORIAL_MOM_TITLE", "TUTORIAL_MOM_BODY")
-		TUTORIAL_U:
-			_set_tutorial_copy(tr("TUTORIAL_SPECIAL_PROGRESS") % [9, 10], "TUTORIAL_U_TITLE", "TUTORIAL_U_BODY")
-		TUTORIAL_U_KHAN:
-			_set_tutorial_copy(tr("TUTORIAL_SPECIAL_PROGRESS") % [10, 10], "TUTORIAL_U_KHAN_TITLE", "TUTORIAL_U_KHAN_BODY")
-		TUTORIAL_COMPLETE:
-			_set_tutorial_copy(tr("TUTORIAL_SPECIAL_COMPLETE"), "TUTORIAL_COMPLETE_TITLE", "TUTORIAL_COMPLETE_BODY")
-
-
-func _refresh_tutorial_outcome() -> void:
-	var is_special := tutorial_step in [TUTORIAL_MOM, TUTORIAL_U, TUTORIAL_U_KHAN]
-	if not is_special:
-		if tutorial_outcome_visible:
-			tutorial_outcome_visible = false
-			money_presentation.hide_ceremony()
-		return
-	tutorial_outcome_visible = true
-	match tutorial_step:
-		TUTORIAL_MOM:
-			money_presentation.show_static(
-				tr("TUTORIAL_MOM_PANEL_TITLE"),
-				tr("TUTORIAL_MOM_PANEL_LINE_A"),
-				tr("TUTORIAL_MOM_PANEL_LINE_B"),
-				tr("TUTORIAL_MOM_PANEL_RESULT"),
-				true
-			)
-		TUTORIAL_U:
-			money_presentation.show_static(
-				tr("TUTORIAL_U_PANEL_TITLE"),
-				tr("TUTORIAL_U_PANEL_LINE_A"),
-				tr("TUTORIAL_U_PANEL_LINE_B"),
-				tr("TUTORIAL_U_PANEL_RESULT")
-			)
-		TUTORIAL_U_KHAN:
-			money_presentation.show_static(
-				tr("TUTORIAL_U_KHAN_PANEL_TITLE"),
-				tr("TUTORIAL_U_KHAN_PANEL_LINE_A"),
-				tr("TUTORIAL_U_KHAN_PANEL_LINE_B"),
-				tr("TUTORIAL_U_KHAN_PANEL_RESULT")
-			)
-
-
-func _set_tutorial_copy(progress: String, title_key: String, body_key: String) -> void:
-	tutorial_progress_label.text = progress
-	tutorial_title_label.text = tr(title_key)
-	tutorial_body_label.text = tr(body_key)
-
-
-func _tutorial_progress(turn_number: int, step_text: String) -> String:
-	return "%s\n%s" % [tr("TUTORIAL_CONTEXT") % [1, turn_number], step_text]
-
-
-func _refresh_tutorial_spotlight() -> void:
-	if not tutorial_active or tutorial_spotlight == null:
-		return
-	var targets: Array[Control] = []
-	match tutorial_step:
-		TUTORIAL_SELECT_RUN:
-			for card_id in TUTORIAL_RUN_IDS:
-				var run_view := hand_views.get(String(card_id)) as Control
-				if run_view != null:
-					targets.append(run_view)
-		TUTORIAL_PLAY_RUN:
-			targets.append(ha_button)
-		TUTORIAL_MELD_SCORE, TUTORIAL_EXTEND_SCORE, TUTORIAL_MOM, TUTORIAL_U, TUTORIAL_U_KHAN:
-			targets.append(score_panel)
-		TUTORIAL_SELECT_DISCARD:
-			var discard_view := hand_views.get(String(TUTORIAL_FIRST_DISCARD_ID)) as Control
-			if discard_view != null:
-				targets.append(discard_view)
-		TUTORIAL_DISCARD, TUTORIAL_FINAL_DISCARD:
-			targets.append(discard_button)
-		TUTORIAL_SELECT_EXTEND:
-			var extend_card_view := hand_views.get(String(TUTORIAL_EXTENSION_ID)) as Control
-			if extend_card_view != null:
-				targets.append(extend_card_view)
-		TUTORIAL_SELECT_MELD:
-			var meld_view := meld_views.get(tutorial_meld_id) as Control
-			if meld_view != null:
-				targets.append(meld_view)
-		TUTORIAL_EXTEND:
-			targets.append(extend_button)
-		TUTORIAL_SELECT_FINAL_DISCARD:
-			var final_discard_view := hand_views.get(String(TUTORIAL_FINAL_DISCARD_ID)) as Control
-			if final_discard_view != null:
-				targets.append(final_discard_view)
-		TUTORIAL_COMPLETE:
-			targets.append(tutorial_exit_button)
-	tutorial_spotlight.set_targets(targets)
-
-
-func _setup_return_navigation() -> void:
-	event_table.menu_requested.connect(_on_menu_pressed)
-	return_to_game_button = Button.new()
-	return_to_game_button.name = "ReturnToGame"
-	return_to_game_button.position = Vector2(24, 24)
-	return_to_game_button.size = Vector2(240, 48)
-	return_to_game_button.text = _run_words("BACK TO GAME", "TRỞ LẠI BÀN")
-	PresentationTheme.configure_button(return_to_game_button, "gold")
-	return_to_game_button.pressed.connect(_close_menu_to_game)
-	menu_layer.add_child(return_to_game_button)
-	return_to_game_button.hide()
+	money_playback.cancel()
 
 
 func _on_menu_pressed() -> void:
 	if _collection_departing: return
-	if not game_started or menu_transitioning or (interaction_locked and current_campaign_event == null) or modal_overlay.visible or score_overlay.visible or discard_archive_overlay.visible:
+	if not game_started or menu_transitioning or (interactions.locked and current_campaign_event == null) or modal_overlay.visible or score_overlay.visible or pile_archive.overlay.visible:
 		return
-	_flush_run_save()
-	_menu_interaction_was_locked = interaction_locked
+	session.flush()
+	_menu_interaction_was_locked = interactions.locked
 	event_table.collector_arrival.stop()
-	return_to_game_button.show()
-	interaction_locked = true
-	_set_hand_interaction_enabled(false)
-	_show_menu_page(&"home")
+	interactions.locked = true
+	card_table.set_hand_interaction_enabled(false)
+	front_end.show_home()
 	menu_layer.position = Vector2.ZERO
 	menu_layer.modulate = Color(1, 1, 1, 0)
 	menu_layer.visible = true
 	menu_layer.mouse_filter = Control.MOUSE_FILTER_STOP
-	play_button.disabled = false
 	var tween := create_tween()
 	tween.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	tween.tween_property(menu_layer, "modulate", Color.WHITE, 0.18)
@@ -1353,11 +672,14 @@ func _close_menu_to_game() -> void:
 	menu_layer.visible = false
 	menu_layer.modulate = Color.WHITE
 	menu_transitioning = false
-	interaction_locked = _menu_interaction_was_locked
+	interactions.locked = _menu_interaction_was_locked
 	if _boss_lab_hidden_modal:
 		modal_overlay.show()
 		_boss_lab_hidden_modal = false
-	_set_hand_interaction_enabled(not interaction_locked)
+	if _boss_lab_hidden_receipt and is_instance_valid(resolve_receipt):
+		resolve_receipt.resume_presentation()
+		_boss_lab_hidden_receipt = false
+	card_table.set_hand_interaction_enabled(not interactions.locked)
 	_refresh_actions()
 
 
@@ -1370,34 +692,24 @@ func _on_discard_archive_pressed() -> void:
 
 
 func _toggle_pile_archive(mode: String) -> void:
-	if discard_archive_overlay.visible and pile_archive_mode == mode:
-		_hide_discard_archive()
+	if pile_archive.overlay.visible and pile_archive.mode == mode:
+		pile_archive.close()
 	else:
-		pile_archive_mode = mode
-		_show_discard_archive()
+		pile_archive.mode = mode
+		open_discard_archive()
 
 
-func _show_discard_archive() -> void:
-	if not game_started or interaction_locked or modal_overlay.visible or (score_overlay.visible and not money_presentation.presentation_active):
+func open_discard_archive() -> void:
+	if not game_started or interactions.locked or modal_overlay.visible or (score_overlay.visible and not money_presentation.presentation_active):
 		return
-	_sync_pile_archive()
-	discard_archive_overlay.visible = true
-	discard_archive_overlay.modulate = Color(1, 1, 1, 0)
-	var panel := discard_archive_overlay.get_node("ArchivePanel") as Panel
-	panel.scale = Vector2(0.97, 0.97)
-	panel.pivot_offset = panel.size * 0.5
-	var tween := create_tween().set_parallel(true)
-	tween.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	tween.tween_property(discard_archive_overlay, "modulate", Color.WHITE, 0.14)
-	tween.tween_property(panel, "scale", Vector2.ONE, 0.18)
-	discard_archive_close.grab_focus()
+	pile_archive.open()
 
 
 func _on_event_deck_inspect_requested() -> void:
 	if current_campaign_event == null or event_table == null or not event_table.visible:
 		return
 	deck_screen.open_deck(campaign.gieo_que.persistent_deck, GameGlossary.words("Your deck", "Bộ bài của bạn"),
-		GameGlossary.words("Your 52 physical campaign cards. Sort, search, and inspect permanent changes.", "52 lá bài thật của chiến dịch. Sắp xếp, tìm kiếm và xem biến đổi vĩnh viễn."))
+		GameGlossary.words("Your physical campaign cards. Sort, search, and inspect permanent changes.", "Các lá bài thật của chiến dịch. Sắp xếp, tìm kiếm và xem biến đổi vĩnh viễn."))
 
 
 func _on_deck_screen_closed() -> void:
@@ -1412,131 +724,23 @@ func _open_gieo_card_picker(cards: Array[CardData], reason: String, callback: Ca
 	deck_screen.open_deck(campaign.gieo_que.persistent_deck, tr("GIEO_CHOOSE_TARGET"), reason, available, callback)
 
 
-func _hide_discard_archive() -> void:
-	discard_archive_overlay.visible = false
-	discard_archive_close.release_focus()
+func _open_identity_card_picker(cards: Array[CardData], reason: String, callback: Callable) -> void:
+	deck_screen.open_deck(campaign.gieo_que.persistent_deck, tr("SHOE_PICK_TITLE"), reason, cards, callback, tr("SHOE_PICK_CONFIRM"))
 
+func _on_shop_changed() -> void:
+	_sync_event_continue()
+	_refresh_stats()
 
-func _on_discard_archive_dim_input(event: InputEvent) -> void:
-	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
-		_hide_discard_archive()
-
-
-func _sync_pile_archive() -> void:
-	var source_cards: Array[CardData] = deal.deck.draw_pile if pile_archive_mode == "draw" else deal.deck.discard_pile
-	var drink_records: Array = []
-	if pile_archive_mode == "discard" and deal.current_drink_id in [DrinkCatalog.NHAN_TRAN, DrinkCatalog.DEN_DA]:
-		drink_records = deal.drink_mandatory_discard_targets()
-		if drink_targeting_active:
-			source_cards = []
-			for record: DiscardRecord in drink_records:
-				source_cards.append(record.card)
-	pile_archive_title.text = tr("ARCHIVE_DRAW_TITLE") if pile_archive_mode == "draw" else tr("ARCHIVE_DISCARD_TITLE")
-	if not drink_records.is_empty():
-		pile_archive_title.text = tr("DRINK_PICK_DISCARD")
-	discard_archive_count.text = tr("ARCHIVE_COUNT") % source_cards.size()
-	var cards_by_suit := {}
-	for suit in DeckManager.SUITS:
-		cards_by_suit[suit] = [] as Array[CardData]
-	for card in source_cards:
-		if cards_by_suit.has(card.suit):
-			cards_by_suit[card.suit].append(card)
-	for suit in DeckManager.SUITS:
-		var grid: GridContainer = discard_archive_suit_grids[suit]
-		for child in grid.get_children():
-			grid.remove_child(child)
-			child.queue_free()
-		var suit_cards: Array[CardData] = cards_by_suit[suit]
-		suit_cards.sort_custom(_discard_card_less)
-		if suit_cards.is_empty():
-			var empty := Label.new()
-			empty.custom_minimum_size = Vector2(172, 52)
-			empty.text = tr("ARCHIVE_DRAW_EMPTY") if pile_archive_mode == "draw" else tr("ARCHIVE_DISCARD_EMPTY")
-			empty.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-			empty.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-			empty.add_theme_font_size_override("font_size", 10)
-			empty.add_theme_color_override("font_color", PresentationTheme.MUTED)
-			grid.add_child(empty)
-			continue
-		for card in suit_cards:
-			var holder := _build_discard_archive_card(card)
-			grid.add_child(holder)
-			for record: DiscardRecord in drink_records:
-				if record.card == card:
-					holder.set_meta("drink_record", record)
-					holder.mouse_filter = Control.MOUSE_FILTER_STOP
-					holder.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-					holder.gui_input.connect(_on_drink_archive_card_input.bind(record))
-					var outline := CARD_ACTION_OUTLINE_SCRIPT.new()
-					outline.position = Vector2(-4, -4)
-					outline.size = holder.custom_minimum_size + Vector2(8, 8)
-					holder.add_child(outline)
-					outline.set_cues(false, false, true, true)
-					break
-
-
-func _on_drink_archive_card_input(event: InputEvent, record: DiscardRecord) -> void:
-	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
-		get_viewport().set_input_as_handled()
-		_hide_discard_archive()
-		_on_drink_discard_targeted(record)
-
-
-func _build_discard_archive_card(card: CardData) -> Control:
-	var holder := Control.new()
-	holder.custom_minimum_size = Vector2(54, 75)
-	holder.tooltip_text = tr("CARD_POINTS") % [card.short_label(), card.score_value()]
-	var gieo_descriptions := card.gieo_property_descriptions()
-	if not gieo_descriptions.is_empty():
-		holder.tooltip_text += "\n\nGIEO QUẺ\n" + "\n".join(gieo_descriptions)
-	var texture := TextureRect.new()
-	texture.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	texture.texture = load(card.texture_path()) as Texture2D
-	GieoCardFX.attach_texture(texture, card)
-	texture.add_child(preload("res://scripts/ui/passive_card_sway.gd").new())
-	texture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	texture.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	texture.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	texture.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	holder.add_child(texture)
-	return holder
-
-
-func _discard_card_less(left: CardData, right: CardData) -> bool:
-	if left.rank_index != right.rank_index:
-		return left.rank_index < right.rank_index
-	return left.unique_id < right.unique_id
-
-
-func _discard_suit_title(suit: String) -> String:
-	match suit:
-		"Spades": return tr("SUIT_SPADES")
-		"Hearts": return tr("SUIT_HEARTS")
-		"Diamonds": return tr("SUIT_DIAMONDS")
-		_: return tr("SUIT_CLUBS")
-
-
-func _discard_suit_color(suit: String) -> Color:
-	return PresentationTheme.RED if suit in ["Hearts", "Diamonds"] else PresentationTheme.INK
-
-
-func _make_action_button(parent: Container, text_value: String, tone: String, width: float) -> Button:
-	var button := Button.new()
-	button.text = text_value
-	button.custom_minimum_size = Vector2(width, 40)
-	PresentationTheme.configure_button(button, tone)
-	parent.add_child(button)
-	return button
-
-
+func _open_removal_card_picker(cards: Array[CardData], reason: String, callback: Callable) -> void:
+	deck_screen.open_deck(campaign.gieo_que.persistent_deck, GameGlossary.words("CARD REMOVAL · PAID", "BỎ BÀI · ĐÃ TRẢ TIỀN"), reason, cards, callback, GameGlossary.words("SELECT FOR REMOVAL", "CHỌN LÁ ĐỂ BỎ"))
 
 func _sync_event_continue(committed: bool = false) -> void:
 	if current_campaign_event == null or event_table == null:
 		return
 	var reason := ""
 	var required_npc := ""
-	for interaction in current_campaign_event.interactions:
-		if not interaction.mandatory or interaction.completed:
+	for interaction in current_campaign_event.mandatory_interactions():
+		if interaction.completed:
 			continue
 		required_npc = interaction.participant_id
 		reason = ZodiacCatalog.words("Buy a drink from Auntie to continue.", "Mua nước ở quán cô để tiếp tục.") if interaction.action_type == "choose_drink" else ZodiacCatalog.words("Finish the required visit to continue.", "Hoàn thành cuộc gặp bắt buộc để tiếp tục.")
@@ -1547,18 +751,21 @@ func _sync_event_continue(committed: bool = false) -> void:
 	if zodiac_pending:
 		reason = ZodiacCatalog.words("Finish the Zodiac negotiation to continue.", "Xong cuộc thương lượng với Con Giáp rồi hãy tiếp tục.")
 		required_npc = EventTableController.NPC_ZODIAC
-	event_table.set_continue_enabled(current_campaign_event.can_exit and not committed and not zodiac_pending, reason, required_npc)
+	if campaign.relic_shop.removal_pending:
+		reason = GameGlossary.words("Finish your paid card removal at Hàng Rong.", "Xong lượt bỏ bài đã trả tiền ở Hàng Rong rồi hãy tiếp tục.")
+		required_npc = EventTableController.NPC_HANG_RONG
+	event_table.set_continue_enabled(current_campaign_event.can_exit and not committed and not zodiac_pending and not campaign.relic_shop.removal_pending, reason, required_npc)
 
 func _show_campaign_event(event: EventInstance) -> void:
 	current_campaign_event = event
-	interaction_locked = true
-	_set_hand_interaction_enabled(false)
+	interactions.locked = true
+	card_table.set_hand_interaction_enabled(false)
 	modal_overlay.visible = false
 	var day: Dictionary = event.context.get("day", campaign.current_day())
 	event_table.set_zodiac_visitor(campaign.zodiac.active_id(), campaign.zodiac.visitor_available(event.slot))
 	event_table.enter_event(
 		event.slot,
-		_campaign_day_name(),
+		CampaignText.day_name(campaign),
 		tr(EventManager.slot_name_key(event.slot)),
 		_event_money_text(deal.wallet.balance_vnd),
 		campaign.gieo_que.persistent_deck.size()
@@ -1569,69 +776,6 @@ func _show_campaign_event(event: EventInstance) -> void:
 	_refresh_stats()
 	if event.slot == EventManager.EventSlot.STARTER and not event.completed_interactions.has("debt_intro"):
 		event_table.focus_npc(EventTableController.NPC_DOI_NO)
-
-
-func _on_event_table_npc_focused(npc_id: String) -> void:
-	if DemoBuild.enabled() and npc_id not in [EventTableController.NPC_TRA_DA, EventTableController.NPC_DOI_NO]:
-		return
-	_clear_campaign_participants()
-	_restore_event_content_frame()
-	event_table.continue_button.visible = false
-	event_table.content_panel.position = Vector2(350, 305)
-	event_table.content_panel.size = Vector2(580, 360)
-	event_table.back_button.disabled = false
-	if npc_id == EventTableController.NPC_ZODIAC:
-		zodiac_table.open_conversation()
-		return
-	var participant: NPCDefinition
-	if current_campaign_event != null:
-		for candidate in current_campaign_event.participants:
-			if candidate.id == npc_id:
-				participant = candidate
-				break
-	if npc_id == EventTableController.NPC_DOI_NO:
-		_build_debt_ledger()
-	elif npc_id == EventTableController.NPC_THAY_BOI and participant != null:
-		_build_gieo_que_service()
-	elif npc_id in [EventTableController.NPC_DANH_GIAY, EventTableController.NPC_LOTTO] and participant != null:
-		_build_misc_npc_service(npc_id)
-	elif npc_id == EventTableController.NPC_HANG_RONG:
-		event_table.continue_button.visible = false
-		event_table.content_panel.position = Vector2(115, 285)
-		event_table.content_panel.size = Vector2(740, 400)
-		event_table.content_panel.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
-		var panel := preload("res://scripts/ui/relic_table_shop.gd").new()
-		campaign_participants.add_child(panel)
-		panel.configure(deal.relics, campaign.relic_shop)
-		panel.wallet_changed.connect(_on_gieo_wallet_changed)
-	elif npc_id == EventTableController.NPC_TRA_DA and participant != null:
-		_build_campaign_participant(participant, current_campaign_event)
-	else:
-		_build_event_placeholder(npc_id)
-	event_table.say(tr("NPC_GREETING_" + npc_id.to_upper()))
-	if npc_id == EventTableController.NPC_TRA_DA and current_campaign_event != null:
-		for interaction in current_campaign_event.interactions:
-			if interaction.action_type == "choose_drink" and interaction.completed:
-				event_table.say(tr("DRINK_RECEIPT") % DrinkCatalog.display_name(drink_manager.active_drink_id))
-
-
-func _build_misc_npc_service(npc_id: String) -> void:
-	event_table.continue_button.visible = false
-	var service_rect: Rect2 = EventTableController.MISC_SERVICE_RECTS[npc_id]
-	event_table.content_panel.position = service_rect.position
-	event_table.content_panel.size = service_rect.size
-	event_table.content_panel.add_theme_stylebox_override("panel", PresentationTheme.panel_style(Color("#102338c8"), PresentationTheme.GOLD_DARK, 1, 4))
-	var margin := event_table.content_panel.get_child(0) as MarginContainer
-	for side in ["left", "top", "right", "bottom"]:
-		margin.add_theme_constant_override("margin_" + side, 0)
-	var panel := MiscNpcPanel.new()
-	campaign_participants.add_child(panel)
-	panel.wallet_changed.connect(_on_gieo_wallet_changed)
-	panel.dialogue_requested.connect(event_table.say)
-	if npc_id == EventTableController.NPC_DANH_GIAY:
-		panel.configure_shoe(campaign.shoe_shine)
-	else:
-		panel.configure_lottery(campaign.lottery)
 
 
 func _on_lottery_settled(receipt: Dictionary) -> void:
@@ -1645,62 +789,26 @@ func _present_afternoon_results(receipt: Dictionary) -> void:
 		if result_view != null:
 			result_view.find_child("CloseReceipt", true, false).pressed.connect(func():
 				campaign.onboarding.mark("lottery_result")
-				_queue_run_save()
+				session.queue_save()
 			)
 
 
-func _build_gieo_que_service() -> void:
-	# Keep the event header and wallet readable above the full-height cabinet.
-	event_table.content_panel.position = Vector2(380, 120)
-	event_table.content_panel.size = Vector2(870, 600)
-	event_table.continue_button.visible = false
-	event_table.content_panel.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
-	var content_margin := event_table.content_panel.get_child(0) as MarginContainer
-	if content_margin != null:
-		for constant_name in [&"margin_left", &"margin_top", &"margin_right", &"margin_bottom"]:
-			content_margin.add_theme_constant_override(constant_name, 0)
-	var panel := GIEO_QUE_PANEL_SCRIPT.new() as GieoQuePanel
-	campaign_participants.add_child(panel)
-	panel.configure(campaign.gieo_que)
-	panel.wallet_changed.connect(_on_gieo_wallet_changed)
-	panel.feedback_requested.connect(_show_banner)
-	panel.impact_requested.connect(_on_gieo_impact_requested)
-	panel.tree_exiting.connect(ui_feedback.stop.bind(&"reels"))
-	panel.commitment_changed.connect(_on_gieo_commitment_changed)
-	panel.card_pick_requested.connect(_open_gieo_card_picker)
-	var committed := campaign.gieo_que.state not in [GieoQueService.STATE_READY, GieoQueService.STATE_COMPLETE]
-	_on_gieo_commitment_changed(committed)
+func _on_wallet_balance_changed(_before: int, _after: int, _delta: int, reason: String) -> void:
+	if reason.begins_with("zodiac_request:"):
+		_on_event_wallet_committed.call_deferred()
 
 
-func _restore_event_content_frame() -> void:
-	if event_table == null or event_table.content_panel == null:
-		return
-	var style := PresentationTheme.panel_style(Color("#102338c8"), Color("#8d5b30"), 1, 3, 3)
-	style.content_margin_left = 22
-	style.content_margin_top = 18
-	style.content_margin_right = 22
-	style.content_margin_bottom = 18
-	event_table.content_panel.add_theme_stylebox_override("panel", style)
-	var content_margin := event_table.content_panel.get_child(0) as MarginContainer
-	if content_margin != null:
-		content_margin.add_theme_constant_override("margin_left", 16)
-		content_margin.add_theme_constant_override("margin_top", 14)
-		content_margin.add_theme_constant_override("margin_right", 16)
-		content_margin.add_theme_constant_override("margin_bottom", 14)
-
-
-func _on_gieo_wallet_changed() -> void:
-	_queue_run_save()
-	displayed_wallet_vnd = deal.wallet.balance_vnd
-	money_queue_wallet_vnd = displayed_wallet_vnd
-	event_table.event_money_feedback(_event_money_text(displayed_wallet_vnd))
+func _on_event_wallet_committed() -> void:
+	session.queue_save()
+	money_playback.displayed_balance = deal.wallet.balance_vnd
+	money_playback.queued_balance = money_playback.displayed_balance
+	event_table.event_money_feedback(_event_money_text(money_playback.displayed_balance))
 	_refresh_stats()
 
 
 func _on_gieo_impact_requested(kind: StringName) -> void:
 	match kind:
-		&"cast", &"lever":
-			ui_feedback.play(&"lever")
+		&"lever": ui_feedback.play(&"lever")
 		&"lever_clunk":
 			ui_feedback.play(&"reels")
 		&"result_reveal":
@@ -1728,122 +836,24 @@ func _on_gieo_commitment_changed(committed: bool) -> void:
 		_sync_event_continue(committed)
 
 
-func _build_event_placeholder(npc_id: String) -> void:
-	var title := Label.new()
-	title.text = event_table.npc_display_name(npc_id)
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 26)
-	title.add_theme_color_override("font_color", PresentationTheme.GOLD)
-	campaign_participants.add_child(title)
-	var system_label := Label.new()
-	var system_key := _event_placeholder_key(npc_id)
-	var system_name := tr(system_key)
-	system_label.text = system_name
-	system_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	system_label.add_theme_font_size_override("font_size", 16)
-	system_label.add_theme_color_override("font_color", PresentationTheme.TEA)
-	campaign_participants.add_child(system_label)
-	var note := Label.new()
-	note.text = tr("EVENT_PLACEHOLDER_NOTE")
-	note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	note.add_theme_color_override("font_color", PresentationTheme.MUTED)
-	campaign_participants.add_child(note)
-	var cards := HBoxContainer.new()
-	cards.alignment = BoxContainer.ALIGNMENT_CENTER
-	cards.add_theme_constant_override("separation", 12)
-	campaign_participants.add_child(cards)
-	for index in range(3):
-		var card := Button.new()
-		card.custom_minimum_size = Vector2(148, 110)
-		card.text = "%s\n%02d" % [system_label.text, index + 1]
-		card.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		card.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-		PresentationTheme.configure_button(card, "neutral")
-		card.pressed.connect(_on_event_placeholder_pressed.bind(system_key))
-		cards.add_child(card)
-
-
-func _event_placeholder_key(npc_id: String) -> String:
-	match npc_id:
-		EventTableController.NPC_THAY_BOI:
-			return "EVENT_PLACEHOLDER_THAY_BOI"
-		EventTableController.NPC_HANG_RONG:
-			return "EVENT_PLACEHOLDER_HANG_RONG"
-		EventTableController.NPC_DANH_GIAY:
-			return "EVENT_PLACEHOLDER_DANH_GIAY"
-		EventTableController.NPC_LOTTO:
-			return "EVENT_PLACEHOLDER_LOTTO_RESULT" if current_campaign_event != null and current_campaign_event.slot == EventManager.EventSlot.AFTERNOON else "EVENT_PLACEHOLDER_LOTTO_CHOICE"
-		_:
-			return "EVENT_PLACEHOLDER_GENERIC"
-
-
-func _on_event_placeholder_pressed(system_key: String) -> void:
-	_show_banner(tr("EVENT_PLACEHOLDER_READY") % tr(system_key))
-
+func _release_deal_input() -> void:
+	if menu_layer.visible:
+		_menu_interaction_was_locked = false
+	else:
+		interactions.locked = false
+		card_table.set_hand_interaction_enabled(true)
 
 func _on_event_table_deal_ready() -> void:
 	if not pending_deal_presentation_unlock:
 		return
+	var presentation_generation := money_playback.generation
 	pending_deal_presentation_unlock = false
-	_drain_pending_exhaustion_presentations()
-	await _drain_pending_u_khan_presentations()
+	money_feedback.drain_exhaustion()
+	await money_feedback.drain_u_khan()
+	if presentation_generation != money_playback.generation: return
 	if resolve_mode.is_empty() and not modal_overlay.visible:
-		interaction_locked = false
-		_set_hand_interaction_enabled(true)
+		_release_deal_input()
 	_refresh_actions()
-
-
-func _clear_campaign_participants() -> void:
-	for child in campaign_participants.get_children():
-		campaign_participants.remove_child(child)
-		child.queue_free()
-
-
-func _build_campaign_participant(participant: NPCDefinition, event: EventInstance) -> void:
-	if participant.id == EventTableController.NPC_TRA_DA:
-		event_table.content_panel.position = Vector2(145, 245 if DemoBuild.enabled() else 270)
-		event_table.content_panel.size = Vector2(730, 355)
-		event_table.content_panel.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
-		for interaction in event.interactions:
-			if interaction.participant_id == participant.id and interaction.action_type == "choose_drink":
-				_build_drink_choices(campaign_participants, event, interaction)
-		return
-	var panel := PanelContainer.new()
-	panel.add_theme_stylebox_override("panel", PresentationTheme.panel_style(Color("#102338c8"), Color("#8d5b30"), 1, 8, 4))
-	campaign_participants.add_child(panel)
-	var margin := MarginContainer.new()
-	for side in ["left", "top", "right", "bottom"]:
-		margin.add_theme_constant_override("margin_%s" % side, 10)
-	panel.add_child(margin)
-	var column := VBoxContainer.new()
-	column.add_theme_constant_override("separation", 7)
-	margin.add_child(column)
-	var name_label := Label.new()
-	name_label.text = tr(participant.display_name_key)
-	name_label.add_theme_font_size_override("font_size", 19)
-	name_label.add_theme_color_override("font_color", PresentationTheme.GOLD)
-	column.add_child(name_label)
-	for interaction in event.interactions:
-		if interaction.participant_id != participant.id:
-			continue
-		if interaction.action_type == "choose_drink":
-			_build_drink_choices(column, event, interaction)
-		else:
-			var interact_button := Button.new()
-			interact_button.text = tr("EVENT_INTERACT_DONE") if interaction.completed else tr("EVENT_INTERACT")
-			interact_button.disabled = interaction.completed
-			PresentationTheme.configure_button(interact_button, "neutral")
-			interact_button.pressed.connect(_on_campaign_interaction_pressed.bind(interaction.id))
-			column.add_child(interact_button)
-
-
-func _build_drink_choices(parent: VBoxContainer, event: EventInstance, interaction: EventInteraction) -> void:
-	var shop := preload("res://scenes/ui/drink_shop.tscn").instantiate() as DrinkShop
-	parent.add_child(shop)
-	shop.configure(drink_manager, interaction.completed)
-	shop.drink_inspected.connect(func(id: String) -> void: event_table.say(tr("DRINK_EXPLAIN") % [DrinkCatalog.display_name(id), DrinkCatalog.effect_text(id)]))
-	shop.order_requested.connect(func(id: String) -> void: _on_campaign_drink_pressed(event.slot, interaction.id, id))
 
 
 func _sync_all(result: Dictionary = {}, animate_all_cards: bool = false) -> void:
@@ -1857,19 +867,19 @@ func _sync_all(result: Dictionary = {}, animate_all_cards: bool = false) -> void
 		animated_cards.clear()
 		animated_cards.append_array(deal.hand)
 	_sync_card_action_sfx(result, animated_cards)
-	_sync_hand(animated_cards)
-	_sync_card_probability_badges()
-	_sync_discard_history()
-	_sync_card_action_outlines()
-	_sync_melds()
-	_sync_music_reactive_cards()
-	_sync_piles()
-	if discard_archive_overlay.visible:
-		_sync_pile_archive()
+	card_table.sync_hand(animated_cards)
+	card_table.sync_probabilities()
+	card_table.sync_discard_history()
+	card_table.sync_action_outlines()
+	card_table.sync_melds()
+	card_table.sync_reactive_targets()
+	card_table.sync_piles()
+	if pile_archive.overlay.visible:
+		pile_archive.sync()
 	if drink_name_label != null:
 		drink_name_label.text = tr(DrinkCatalog.display_name(deal.current_drink_id)).to_upper()
-		drink_table_button.tooltip_text = _drink_tooltip()
-		drink_charge_outline.set_drink_cue(deal.current_drink_has_charge() or bool(deal.drink_cue_trigger().get("active", false)))
+		drink_table_button.tooltip_text = drink_tooltip()
+		drink_charge_outline.set_drink_cue(not interactions.drink_swap_opportunities().is_empty() if deal.current_drink_id in [DrinkCatalog.NHAN_TRAN, DrinkCatalog.DEN_DA] else deal.current_drink_has_charge() or bool(deal.drink_cue_trigger().get("active", false)))
 		_sync_drink_table_visual()
 	_sync_drink_reactive_cue()
 	_refresh_stats()
@@ -1895,7 +905,7 @@ func _drink_is_spent_in_current_window() -> bool:
 		DrinkCatalog.NUOC_VOI:
 			return deal.nuoc_voi_used_phases.has(deal.current_phase)
 		DrinkCatalog.SAM_DUA, DrinkCatalog.BAC_XIU:
-			return deal.sam_dua_used
+			return deal.current_phase == 2
 	return false
 
 
@@ -1913,457 +923,7 @@ func _sync_drink_table_visual() -> void:
 	drink_table_texture.texture = texture
 	var tint: Color = Color.WHITE if DrinkCatalog.basic_ids().has(deal.current_drink_id) else DrinkShop.COLORS.get(DrinkCatalog.category(deal.current_drink_id), Color.WHITE)
 	drink_table_texture.modulate = tint * (Color(0.94, 0.94, 0.94, 0.92) if spent else Color.WHITE)
-	drink_table_button.tooltip_text = _drink_tooltip()
-
-
-func _sync_hand(animated_cards: Array[CardData]) -> void:
-	var active_ids := {}
-	var animated_ids := {}
-	for card in animated_cards:
-		animated_ids[card.unique_id] = true
-	for card in deal.hand:
-		active_ids[card.unique_id] = true
-		var view := hand_views.get(card.unique_id) as PlayingCardView
-		var is_new := view == null
-		if is_new:
-			view = PlayingCardView.new()
-			hand_layer.add_child(view)
-			view.card_pressed.connect(_on_card_pressed)
-			view.card_drag_started.connect(_on_card_drag_started.bind(view))
-			hand_views[card.unique_id] = view
-		view.set_card(card)
-		view.set_zodiac_locked(deal.zodiac_boss.is_locked(card))
-		view.set_zodiac_hint(preload("res://scripts/ui/zodiac_presentation.gd").hand_hint(deal.zodiac_boss, card, deal.hand))
-		if is_new and animated_ids.has(card.unique_id):
-			var origin := draw_pile_visual.get_global_rect().get_center() - hand_layer.global_position
-			view.spawn_from(origin)
-	for existing_id in hand_views.keys():
-		if not active_ids.has(existing_id):
-			var old_view: PlayingCardView = hand_views[existing_id]
-			old_view.queue_free()
-			hand_views.erase(existing_id)
-	_layout_hand(true)
-
-
-func _sync_card_probability_badges() -> void:
-	var draw_pool := deal.probability_draw_pool()
-	var draw_number := deal.probability_draw_horizon()
-	var best_by_card := MeldProbabilityAdvisor.best_new_meld_chance_by_card(deal.hand, draw_pool, draw_number)
-	for card in deal.hand:
-		var view: PlayingCardView = hand_views.get(card.unique_id)
-		if view == null:
-			continue
-		var candidate: Dictionary = best_by_card.get(card.unique_id, {})
-		if candidate.is_empty():
-			view.set_meld_chance(0.0, false, tr("PROBABILITY_NO_TARGET"), "—", draw_number)
-			continue
-		var needed_text := "—" if candidate["needed_labels"].is_empty() else " / ".join(candidate["needed_labels"])
-		view.set_meld_chance(
-			float(candidate["probability"]),
-			bool(candidate["ready"]),
-			MeldProbabilityAdvisor.localized_label(candidate),
-			needed_text,
-			draw_number
-		)
-
-
-func _sync_card_action_outlines() -> Dictionary:
-	var actionable := deal.legal_action_card_ids()
-	var meld_card_ids: Dictionary = actionable["meld"]
-	var extension_card_ids: Dictionary = actionable["extend"]
-	if tutorial_active:
-		meld_card_ids = {}
-		extension_card_ids = {}
-		if tutorial_step in [TUTORIAL_SELECT_RUN, TUTORIAL_PLAY_RUN]:
-			for card_id in TUTORIAL_RUN_IDS:
-				meld_card_ids[card_id] = true
-		elif tutorial_step in [TUTORIAL_SELECT_EXTEND, TUTORIAL_SELECT_MELD, TUTORIAL_EXTEND]:
-			extension_card_ids[TUTORIAL_EXTENSION_ID] = true
-		actionable = {"meld": meld_card_ids, "extend": extension_card_ids}
-	var drink_eligible_card_ids := _drink_hand_eligible_card_ids()
-	for card in deal.hand:
-		var view: PlayingCardView = hand_views.get(card.unique_id)
-		if view != null:
-			var drink_marked := deal.sam_dua_preserved_cards.has(card) or pending_drink_card_ids.has(card.unique_id)
-			var drink_eligible := drink_eligible_card_ids.has(card.unique_id)
-			view.set_action_cues(
-				meld_card_ids.has(card.unique_id),
-				extension_card_ids.has(card.unique_id),
-				drink_marked or drink_eligible,
-				drink_marked or (drink_targeting_active and drink_eligible)
-			)
-	return actionable
-
-
-func _drink_hand_eligible_card_ids() -> Dictionary:
-	var eligible := {}
-	if not _drink_preview_active():
-		return eligible
-	if deal.current_drink_id in [DrinkCatalog.STING, DrinkCatalog.BO_HUC, DrinkCatalog.C2_ICED_TEA]:
-		return deal.drink_creation_target_ids(_pending_drink_cards())
-	var discard_targets := deal.drink_mandatory_discard_targets()
-	for card in deal.hand:
-		var card_is_eligible := false
-		match deal.current_drink_id:
-			DrinkCatalog.NHAN_TRAN, DrinkCatalog.DEN_DA:
-				for record in discard_targets:
-					if (deal.can_use_nhan_tran(card, record) or deal.can_use_den_da(card, record)):
-						card_is_eligible = true
-						break
-			DrinkCatalog.SAM_DUA, DrinkCatalog.BAC_XIU:
-				card_is_eligible = deal.current_phase == 1 and deal.state == DealState.STATE_FINAL_COMMIT_WINDOW and not deal.sam_dua_used
-		if card_is_eligible:
-			eligible[card.unique_id] = true
-	return eligible
-
-
-func _drink_preview_active() -> bool:
-	return deal.current_drink_has_charge() and not tutorial_active and not interaction_locked
-
-
-func _pulse_drink_eligible_targets(strength: float = 0.6) -> void:
-	var hand_ids := _drink_hand_eligible_card_ids()
-	for card_id in hand_ids:
-		var view := hand_views.get(card_id) as PlayingCardView
-		if view != null:
-			view.pulse_action_eligibility(strength)
-	for meld_view_value in meld_views.values():
-		var meld_view := meld_view_value as MeldView
-		if meld_view != null:
-			meld_view.pulse_drink_targets(strength)
-	for outline_value in discard_history_target_outlines.values():
-		var outline := outline_value as Control
-		if outline != null and (outline.cue_mode() & CardActionOutline.CUE_DRINK) != 0:
-			outline.play_target_pulse(strength)
-
-
-func _sync_music_reactive_cards() -> void:
-	_reactive_assignments_clear()
-	var selected := _selected_cards()
-	var targets := deal.legal_action_targets_for_selection(selected, selected_meld_id)
-	var hand_card_ids: Dictionary = targets.get("hand", {})
-	var hand_assignment_index := 0
-	for card in deal.hand:
-		if not hand_card_ids.has(card.unique_id):
-			continue
-		var view := hand_views.get(card.unique_id) as PlayingCardView
-		if view != null:
-			reactive_hand_cards_by_band[hand_assignment_index % MUSIC_BAND_COUNT].append(view)
-			hand_assignment_index += 1
-
-	var table_meld_ids: Dictionary = targets.get("melds", {})
-	for meld in deal.melds:
-		if not table_meld_ids.has(meld.meld_id) and meld.cards.size() < (13 if meld.meld_type == MeldRules.TYPE_RUN else 12):
-			continue
-		var view := meld_views.get(meld.meld_id) as MeldView
-		if view == null:
-			continue
-		for card_index in range(meld.cards.size()):
-			var card: CardData = meld.cards[card_index]
-			reactive_meld_cards_by_band[card_index % MUSIC_BAND_COUNT].append({
-				"view": view,
-				"card_id": card.unique_id,
-			})
-
-
-func _reactive_assignments_clear() -> void:
-	reactive_hand_cards_by_band.clear()
-	reactive_meld_cards_by_band.clear()
-	for band_index in range(MUSIC_BAND_COUNT):
-		reactive_hand_cards_by_band[band_index] = []
-		reactive_meld_cards_by_band[band_index] = []
-
-
-func _layout_hand(animate: bool) -> void:
-	if hand_layer == null or hand_layer.size.x <= 0:
-		return
-	var count := deal.hand.size()
-	if count == 0:
-		return
-	var spacing := 0.0
-	if count > 1:
-		spacing = minf(76.0, maxf((hand_layer.size.x - CARD_SIZE.x - 34.0) / float(count - 1), 1.0))
-	var total_width := CARD_SIZE.x + spacing * float(count - 1)
-	var start_x := (hand_layer.size.x - total_width) * 0.5
-	for index in range(count):
-		var card := deal.hand[index]
-		var view: PlayingCardView = hand_views[card.unique_id]
-		var normalized := 0.0 if count == 1 else (float(index) / float(count - 1) - 0.5) * 2.0
-		var arc_y := 9.0 + normalized * normalized * 14.0
-		view.set_stack_order(index)
-		view.drag_enabled = true
-		view.set_selected(pending_drink_card_ids.has(card.unique_id) if drink_targeting_active else selected_card_ids.has(card.unique_id), false)
-		view.layout_to(Vector2(start_x + spacing * index, arc_y), normalized * 0.055, animate)
-
-
-func _sync_melds() -> void:
-	empty_meld_label.visible = deal.melds.is_empty()
-	var active_meld_ids := {}
-	for meld in deal.melds:
-		active_meld_ids[meld.meld_id] = true
-	for existing_id in meld_views.keys():
-		if active_meld_ids.has(existing_id):
-			continue
-		var stale_view := meld_views[existing_id] as MeldView
-		if stale_view != null:
-			meld_row.remove_child(stale_view)
-			stale_view.queue_free()
-		meld_views.erase(existing_id)
-	if deal.melds.is_empty():
-		selected_meld_id = -1
-		selected_drink_meld_id = -1
-		selected_drink_meld_card_id = ""
-		return
-	if selected_meld_id >= 0 and deal.get_meld(selected_meld_id) == null:
-		selected_meld_id = -1
-	if selected_drink_meld_id >= 0 and deal.get_meld(selected_drink_meld_id) == null:
-		selected_drink_meld_id = -1
-		selected_drink_meld_card_id = ""
-	var selected_cards := _selected_cards()
-	for index in range(deal.melds.size()):
-		var meld := deal.melds[index]
-		var view: MeldView = meld_views.get(meld.meld_id)
-		var is_new := view == null
-		if is_new:
-			view = MeldView.new()
-			meld_row.add_child(view)
-			meld_views[meld.meld_id] = view
-			view.meld_pressed.connect(_on_meld_pressed)
-			view.meld_card_pressed.connect(_on_meld_card_pressed)
-		elif view.get_index() != index:
-			meld_row.move_child(view, index)
-		var legal := deal.can_extend_meld(meld.meld_id, selected_cards)
-		var drink_highlight_enabled := _drink_preview_active() and deal.current_drink_id in [DrinkCatalog.NUOC_VOI, DrinkCatalog.NAU_DA] and deal.current_drink_has_charge() and deal.state in [DealState.STATE_ACTIVE, DealState.STATE_FINAL_COMMIT_WINDOW]
-		var drink_selection_enabled := drink_targeting_active and drink_highlight_enabled
-		var removable_card_ids := {}
-		if drink_highlight_enabled:
-			for table_card in meld.cards:
-				if deal.can_use_nuoc_voi(meld.meld_id, table_card) or deal.can_use_nau_da(meld.meld_id):
-					removable_card_ids[table_card.unique_id] = true
-		view.set_meld(
-			meld,
-			meld.meld_id == selected_meld_id,
-			legal,
-			drink_highlight_enabled,
-			drink_selection_enabled,
-			removable_card_ids,
-			selected_drink_meld_card_id if selected_drink_meld_id == meld.meld_id else "",
-			deal.vnd_per_point,
-			deal.current_drink_id == DrinkCatalog.NAU_DA
-		)
-		view.set_boss_payout_suppressed(deal.zodiac_boss.suppresses(deal.current_phase))
-		var boss_effect: Dictionary = preload("res://scripts/ui/zodiac_presentation.gd").effective(deal.zodiac_boss)
-		view.set_dog_loyal(boss_effect.get("id", "") == "dog" and meld.meld_id == int(boss_effect.get("loyal_meld_id", -1)))
-		if not is_new:
-			continue
-		view.modulate = Color(1, 1, 1, 0)
-		view.scale = Vector2(0.94, 0.94)
-		var tween := view.create_tween().set_parallel(true)
-		tween.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-		tween.tween_property(view, "modulate", Color.WHITE, 0.18)
-		tween.tween_property(view, "scale", Vector2.ONE, 0.2)
-
-
-func _sync_piles() -> void:
-	draw_count.text = tr("PILE_COUNT") % deal.deck.draw_pile.size()
-	discard_count_label.text = tr("PILE_COUNT") % deal.deck.discard_pile.size()
-	if deal.deck.discard_pile.is_empty():
-		discard_texture.texture = load("res://cards/red_backing.png") as Texture2D
-		GieoCardFX.apply_properties(discard_texture, [])
-		discard_texture.modulate = Color(1, 1, 1, 0.12)
-	else:
-		discard_texture.texture = load(deal.deck.discard_pile[-1].texture_path()) as Texture2D
-		GieoCardFX.attach_texture(discard_texture, deal.deck.discard_pile[-1])
-		discard_texture.modulate = Color.WHITE
-	var claws := discard_texture.get_node_or_null("TigerClaws") as ColorRect
-	var effect: Dictionary = preload("res://scripts/ui/zodiac_presentation.gd").effective(deal.zodiac_boss)
-	var snatched: bool = effect.get("id", "") == "tiger" and not deal.deck.discard_pile.is_empty() and deal.deck.discard_pile[-1].unique_id in effect.get("removed_ids", [])
-	if snatched and claws == null:
-		claws = ColorRect.new()
-		claws.name = "TigerClaws"
-		claws.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		claws.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		var ink := ShaderMaterial.new()
-		ink.shader = preload("res://shaders/tiger_claws.gdshader")
-		claws.material = ink
-		discard_texture.add_child(claws)
-	if claws != null: claws.visible = snatched
-
-
-func _sync_discard_history() -> void:
-	discard_history_target_outlines.clear()
-	discard_history_target_holders.clear()
-	for child in discard_history_row.get_children():
-		discard_history_row.remove_child(child)
-		child.queue_free()
-	discard_history_title.text = ZodiacCatalog.words("TURNS · PHASE %d", "LƯỢT · HIỆP %d") % deal.current_phase
-	if deal.zodiac_boss.id == "rooster":
-		var deadline := int(ZodiacCatalog.tuning("rooster", "discard_deadline", deal.zodiac_boss.difficulty))
-		discard_history_title.text += ZodiacCatalog.words(" · CLOSE AFTER DISCARD %d", " · CHỐT SAU LẦN BỎ %d") % deadline
-	for phase_number in [1, 2]:
-		var records := deal.discard_history_for_phase(phase_number)
-		var phase_label := Label.new()
-		phase_label.text = tr("HUD_PHASE_SHORT") % phase_number
-		phase_label.custom_minimum_size = Vector2(16, 58)
-		phase_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		phase_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		phase_label.add_theme_font_size_override("font_size", 10)
-		phase_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		phase_label.add_theme_color_override("font_color", PresentationTheme.GOLD if phase_number == deal.current_phase else PresentationTheme.MUTED)
-		discard_history_row.add_child(phase_label)
-		var by_number := {}
-		for record in records:
-			by_number[record.discard_number] = record
-		var count := deal.phase_discard_limit(phase_number)
-		for number in range(1, count + 1):
-			var record := by_number.get(number) as DiscardRecord
-			var holder := _build_discard_thumbnail(record) if record != null else _build_empty_turn_slot()
-			holder.name = "Phase%dTurn%d" % [phase_number, number]
-			holder.set_meta("turn_phase", phase_number)
-			holder.set_meta("turn_number", number)
-			holder.set_meta("turn_filled", record != null)
-			var modifier: String = preload("res://scripts/ui/zodiac_card_fx.gd").turn_modifier(deal.zodiac_boss, phase_number, number)
-			holder.set_meta("turn_modifier", modifier)
-			var active: bool = phase_number == deal.current_phase and number == deal.discard_count + 1 and deal.state == DealState.STATE_ACTIVE
-			holder.set_meta("turn_active", active)
-			var frame := Panel.new()
-			frame.name = "TurnFrame"
-			frame.position = Vector2(-2, -2)
-			frame.size = Vector2(44, 62)
-			frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			var accent := PresentationTheme.RED if not modifier.is_empty() else PresentationTheme.GOLD if active else Color("61778f")
-			frame.add_theme_stylebox_override("panel", PresentationTheme.panel_style(Color.TRANSPARENT, Color(accent, 0.9 if active or not modifier.is_empty() else 0.3), 1, 3))
-			holder.add_child(frame)
-			if not modifier.is_empty():
-				var aura: ColorRect = preload("res://scripts/ui/zodiac_card_fx.gd").aura(holder, Vector2(40, 58), Color("ff574f"), float(number), 9)
-				aura.name = "RoosterRegisterAura"
-				holder.move_child(aura, 0)
-				holder.tooltip_text += "\n" + (ZodiacCatalog.words("Register closes after this discard.", "Chốt sổ sau lần bỏ này.") if modifier == "closing" else ZodiacCatalog.words("Register closed: legal scoring pays 0 VNĐ in Phase 1.", "Sổ đã đóng: ghi điểm hợp lệ trả 0 VNĐ trong Hiệp 1."))
-			var badge: Label = holder.get_node("TurnNumber")
-			badge.text = str(number) + (" ×" if modifier == "closing" else " · 0" if modifier == "closed" else "")
-			badge.add_theme_color_override("font_color", Color("ffb4aa") if not modifier.is_empty() else PresentationTheme.INK)
-			if active:
-				var current := Label.new()
-				current.name = "CurrentTurn"
-				current.set_anchors_preset(Control.PRESET_TOP_WIDE)
-				current.offset_bottom = 13
-				current.text = ZodiacCatalog.words("NOW", "HIỆN TẠI")
-				current.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-				current.mouse_filter = Control.MOUSE_FILTER_IGNORE
-				current.add_theme_font_size_override("font_size", 8)
-				current.add_theme_color_override("font_color", PresentationTheme.GOLD)
-				current.add_theme_stylebox_override("normal", PresentationTheme.panel_style(Color("101722df")))
-				holder.add_child(current)
-			discard_history_row.add_child(holder)
-	_sync_discard_history_drink_targets()
-
-
-func _build_empty_turn_slot() -> Control:
-	var holder := Control.new()
-	holder.custom_minimum_size = Vector2(40, 58)
-	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var face := TextureRect.new()
-	face.name = "TurnCard"
-	face.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	face.texture = preload("res://cards/grey_backing.png")
-	face.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	face.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	face.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	face.modulate = Color(0.2, 0.23, 0.29, 0.78)
-	face.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	holder.add_child(face)
-	var badge := _turn_number_badge()
-	holder.add_child(badge)
-	return holder
-
-
-func _turn_number_badge() -> Label:
-	var badge := Label.new()
-	badge.name = "TurnNumber"
-	badge.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
-	badge.offset_top = -16
-	badge.offset_bottom = 0
-	badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	badge.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	badge.add_theme_font_size_override("font_size", 11)
-	badge.add_theme_stylebox_override("normal", PresentationTheme.panel_style(Color("101722d9"), Color.TRANSPARENT, 0, 2))
-	badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	return badge
-
-
-func _build_discard_thumbnail(record: DiscardRecord) -> Control:
-	var holder := Control.new()
-	holder.custom_minimum_size = Vector2(40, 58)
-	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	holder.mouse_default_cursor_shape = Control.CURSOR_ARROW
-	holder.tooltip_text = tr("HUD_DISCARD_TOOLTIP") % [record.phase, record.discard_number, record.card.short_label()]
-	var gieo_descriptions := record.card.gieo_property_descriptions()
-	if not gieo_descriptions.is_empty():
-		holder.tooltip_text += "\n\nGIEO QUẺ\n" + "\n".join(gieo_descriptions)
-	holder.set_meta("default_tooltip", holder.tooltip_text)
-	holder.set_meta("action_target_kind", "mandatory_discard")
-	holder.set_meta("action_target_card_id", record.card.unique_id)
-	holder.gui_input.connect(_on_discard_history_gui_input.bind(record))
-	var texture := TextureRect.new()
-	texture.name = "TurnCard"
-	texture.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	texture.texture = load(record.card.texture_path()) as Texture2D
-	GieoCardFX.attach_texture(texture, record.card)
-	texture.add_child(preload("res://scripts/ui/passive_card_sway.gd").new())
-	texture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	texture.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	texture.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	texture.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	holder.add_child(texture)
-	var outline := CARD_ACTION_OUTLINE_SCRIPT.new()
-	outline.name = "ActionOutline"
-	outline.position = Vector2(-4, -4)
-	outline.size = Vector2(48, 66)
-	outline.visible = false
-	holder.add_child(outline)
-	discard_history_target_outlines[_discard_history_target_key(record)] = outline
-	var badge := _turn_number_badge()
-	badge.text = str(record.discard_number)
-	holder.add_child(badge)
-	discard_history_target_holders[_discard_history_target_key(record)] = holder
-	return holder
-
-
-func _sync_discard_history_drink_targets() -> void:
-	var target_keys := {}
-	for record in deal.drink_mandatory_discard_targets():
-		target_keys[_discard_history_target_key(record)] = true
-	set_discard_history_drink_eligibility(target_keys, drink_targeting_active)
-
-
-func set_discard_history_drink_eligibility(target_keys: Dictionary, emphasized: bool = false) -> void:
-	for target_key in discard_history_target_outlines:
-		var outline := discard_history_target_outlines[target_key] as Control
-		if outline != null:
-			var eligible: bool = target_keys.has(target_key)
-			var selected: bool = selected_drink_discard_key == target_key
-			outline.set_cues(false, false, eligible or selected, emphasized and (eligible or selected))
-			var holder := discard_history_target_holders.get(target_key) as Control
-			if holder != null:
-				holder.mouse_filter = Control.MOUSE_FILTER_STOP if eligible or selected else Control.MOUSE_FILTER_IGNORE
-				holder.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND if eligible or selected else Control.CURSOR_ARROW
-				holder.tooltip_text = tr("DRINK_DISCARD_TARGET_VALID") if eligible or selected else String(holder.get_meta("default_tooltip", ""))
-
-
-func _on_discard_history_gui_input(event: InputEvent, record: DiscardRecord) -> void:
-	if not drink_targeting_active:
-		return
-	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
-		accept_event()
-		_on_drink_discard_targeted(record)
-
-
-func _discard_history_target_key(record: DiscardRecord) -> String:
-	return "%d:%d:%s" % [record.phase, record.discard_number, record.card.unique_id]
-
-
-func _points_to_vnd(points: int) -> int:
-	return VndWallet.points_to_vnd(points, deal.vnd_per_point)
+	drink_table_button.tooltip_text = drink_tooltip()
 
 
 func _refresh_relics() -> void:
@@ -2372,17 +932,18 @@ func _refresh_relics() -> void:
 	for child in relic_grid.get_children():
 		relic_grid.remove_child(child)
 		child.queue_free()
-	for index in RelicRuntime.MAX_EQUIPPED:
+	for index in deal.relics.equipped.size():
 		var slot := RelicSlot.new()
 		relic_grid.add_child(slot)
-		slot.configure(deal.relics.equipped[index] if index < deal.relics.equipped.size() else "", index)
+		slot.configure(deal.relics.equipped[index], index)
 
 
 func _pulse_relic(id: String) -> void:
 	for slot in relic_grid.get_children():
 		if slot is RelicSlot and slot.relic_id == id:
+			(relic_grid.get_parent() as ScrollContainer).ensure_control_visible(slot)
 			slot.trigger()
-			money_presentation._shake_scoring_card(slot, Color("#f5bf42"), 0.65)
+			money_presentation.pulse_scoring_card(slot, Color("#f5bf42"), 0.65)
 
 
 func _show_scoring_rate(rate_vnd: int) -> void:
@@ -2392,23 +953,26 @@ func _show_scoring_rate(rate_vnd: int) -> void:
 
 
 func _refresh_stats() -> void:
+	var relic_area: Control = get_node("GameLayer/UtilityRail/RelicsArea")
+	relic_area.offset_bottom = -260.0 if deal.zodiac_boss.id == "dragon" else -78.0
 	vnd_per_point_value.text = VndWallet.format_vnd(_scoring_rate_override_vnd if _scoring_rate_override_vnd != 0 else deal.vnd_per_point)
 	earnings_value.text = VndWallet.format_amount(deal.current_deal_earnings_vnd(), true)
-	wallet_value.text = VndWallet.format_amount(displayed_wallet_vnd)
-	money_presentation.sync_wallet(displayed_wallet_vnd)
+	wallet_value.text = VndWallet.format_amount(money_playback.displayed_balance)
+	money_presentation.sync_wallet(money_playback.displayed_balance)
 	if campaign_value != null:
 		if campaign == null or campaign.current_day().is_empty():
 			campaign_value.text = "—"
 		else:
 			campaign_value.text = "%s  •  %s" % [
-				_campaign_day_name(),
+				CampaignText.day_name(campaign),
 				VndWallet.format_vnd(campaign.daily_requirement()),
 			]
-			campaign_value.tooltip_text = _run_words("Run seed: ", "Hạt giống: ") + campaign.run_seed
+			campaign_value.tooltip_text = GameGlossary.words("Run seed: ", "Hạt giống: ") + campaign.run_seed
 	_refresh_campaign_period()
 	if table_hud_presentation != null: table_hud_presentation.refresh()
 	if event_table != null and event_table.visible and event_table.current_event_slot >= 0:
 		event_table.money_label.text = _event_money_text(deal.wallet.balance_vnd)
+		event_table.set_event_deck_count(campaign.gieo_que.persistent_deck.size())
 		event_table.overview.sync(money_presentation, deal.wallet.balance_vnd, deal.relics.equipped, campaign.current_day_index, event_table.current_event_slot, campaign.daily_requirement(), campaign.campaign_days)
 
 
@@ -2417,10 +981,10 @@ func _refresh_campaign_period() -> void:
 		return
 	var period := _current_campaign_period()
 	if period == "dragon":
-		campaign_period_value.text = _run_words("DRAGON", "THÌN")
+		campaign_period_value.text = GameGlossary.words("DRAGON", "THÌN")
 		campaign_period_icon.texture = _campaign_period_texture("evening")
 		campaign_period_icon.visible = campaign_period_icon.texture != null
-		campaign_period_icon.tooltip_text = _run_words("DRAGON ENDGAME", "THỬ THÁCH THÌN")
+		campaign_period_icon.tooltip_text = GameGlossary.words("DRAGON ENDGAME", "THỬ THÁCH THÌN")
 		campaign_period_value.tooltip_text = campaign_period_icon.tooltip_text
 		return
 	if period.is_empty() or not TIME_PERIOD_REGIONS.has(period):
@@ -2428,7 +992,7 @@ func _refresh_campaign_period() -> void:
 		campaign_period_icon.texture = null
 		campaign_period_icon.visible = false
 		return
-	campaign_period_value.text = tr(_campaign_period_key(period))
+	campaign_period_value.text = tr(CampaignText.period_key(period))
 	campaign_period_icon.texture = _campaign_period_texture(period)
 	campaign_period_icon.visible = campaign_period_icon.texture != null
 	campaign_period_icon.tooltip_text = campaign_period_value.text
@@ -2474,46 +1038,47 @@ func _campaign_period_texture(period: String) -> AtlasTexture:
 
 
 func _refresh_actions() -> void:
-	var selected := _selected_cards()
-	var quick_drink_meld := not tutorial_active and not deal.can_create_meld(selected) and deal.can_create_meld(selected, true)
-	ha_button.text = tr("ACTION_DRINK_CONFIRM") if drink_targeting_active or quick_drink_meld else tr("ACTION_MELD")
-	ha_button.tooltip_text = _drink_target_status() if drink_targeting_active or quick_drink_meld else tr("ACTION_MELD_TOOLTIP")
-	hint_button.text = tr("ACTION_DRINK_CANCEL") if drink_targeting_active else tr("ACTION_HINT")
-	hint_button.tooltip_text = tr("ACTION_DRINK_CANCEL") if drink_targeting_active else tr("ACTION_HINT_TOOLTIP")
+	card_table.sync_discard_targets()
+	card_table.sync_action_outlines()
+	if drink_charge_outline != null and deal.current_drink_id in [DrinkCatalog.NHAN_TRAN, DrinkCatalog.DEN_DA]:
+		drink_charge_outline.set_drink_cue(not interactions.drink_swap_opportunities().is_empty())
+	var selected := interactions.selected_cards()
+	var quick_drink_meld := not deal.can_create_meld(selected) and deal.can_create_meld(selected, true)
+	ha_button.text = tr("ACTION_DRINK_CONFIRM") if interactions.drink_targeting or quick_drink_meld else tr("ACTION_MELD")
+	ha_button.tooltip_text = _drink_target_status() if interactions.drink_targeting or quick_drink_meld else tr("ACTION_MELD_TOOLTIP")
+	hint_button.visible = true
+	hint_button.text = tr("ACTION_DRINK_CANCEL") if interactions.drink_targeting else tr("ACTION_HINT")
+	hint_button.tooltip_text = tr("ACTION_DRINK_CANCEL") if interactions.drink_targeting else tr("ACTION_HINT_TOOLTIP")
 	if drink_table_button != null:
-		drink_table_button.disabled = tutorial_active or interaction_locked or deal.current_drink_id == DrinkCatalog.NONE or (not drink_targeting_active and not deal.current_drink_has_charge())
-	var card_window := deal.state in [DealState.STATE_ACTIVE, DealState.STATE_FINAL_COMMIT_WINDOW] and not interaction_locked
-	var active_turn := deal.state == DealState.STATE_ACTIVE and not interaction_locked
-	ha_button.disabled = not card_window or not (deal.can_create_meld(selected) or (not tutorial_active and deal.can_create_meld(selected, true)))
-	extend_button.disabled = not card_window or selected_meld_id < 0 or not deal.can_extend_meld(selected_meld_id, selected)
+		drink_table_button.disabled = interactions.locked or deal.current_drink_id == DrinkCatalog.NONE or (not interactions.drink_targeting and not deal.current_drink_has_charge())
+	var card_window := deal.state in [DealState.STATE_ACTIVE, DealState.STATE_FINAL_COMMIT_WINDOW] and not interactions.locked
+	var active_turn := deal.state == DealState.STATE_ACTIVE and not interactions.locked
+	ha_button.disabled = not card_window or not (deal.can_create_meld(selected) or (deal.can_create_meld(selected, true)))
+	extend_button.disabled = not card_window or interactions.selected_meld_id < 0 or not deal.can_extend_meld(interactions.selected_meld_id, selected)
 	discard_button.disabled = not active_turn or (selected.size() != 1 and not deal.hand.is_empty())
-	discard_button.text = _run_words("END EMPTY TURN", "KẾT THÚC LƯỢT TRỐNG") if deal.hand.is_empty() else tr("ACTION_DISCARD")
+	if selected.size() == 1 and deal.zodiac_boss.is_locked(selected[0]): discard_button.disabled = true
+	discard_button.text = GameGlossary.words("END EMPTY TURN", "KẾT THÚC LƯỢT TRỐNG") if deal.hand.is_empty() else tr("ACTION_DISCARD")
 	discard_button.tooltip_text = tr("ACTION_DISCARD_TOOLTIP")
 	var can_skip_tra_da_extra := deal.state == DealState.STATE_ACTIVE and deal.tra_da_extra_discard_pending
 	settle_button.text = tr("ACTION_END_TURN") if can_skip_tra_da_extra else tr("ACTION_SETTLE")
 	settle_button.tooltip_text = tr("ACTION_END_TURN_TOOLTIP") if can_skip_tra_da_extra else tr("ACTION_SETTLE_TOOLTIP")
-	settle_button.disabled = (deal.state != DealState.STATE_FINAL_COMMIT_WINDOW and not can_skip_tra_da_extra) or interaction_locked
+	if deal.state == DealState.STATE_FINAL_COMMIT_WINDOW:
+		settle_button.tooltip_text = _end_action_detail("settle")
+	settle_button.disabled = (deal.state != DealState.STATE_FINAL_COMMIT_WINDOW and not can_skip_tra_da_extra) or interactions.locked
 	hint_button.disabled = not card_window or deal.hand.is_empty()
 	sort_button.disabled = not card_window or deal.hand.size() < 2
-	if drink_targeting_active:
-		ha_button.disabled = interaction_locked or not _can_confirm_drink()
+	if interactions.drink_targeting:
+		ha_button.disabled = interactions.locked or not _can_confirm_drink()
 		extend_button.disabled = true
 		discard_button.disabled = true
 		settle_button.disabled = true
-		hint_button.disabled = interaction_locked
+		hint_button.disabled = interactions.locked
 		sort_button.disabled = true
-	if tutorial_active:
-		ha_button.disabled = ha_button.disabled or tutorial_step != TUTORIAL_PLAY_RUN
-		extend_button.disabled = extend_button.disabled or tutorial_step != TUTORIAL_EXTEND
-		discard_button.disabled = discard_button.disabled or tutorial_step not in [TUTORIAL_DISCARD, TUTORIAL_FINAL_DISCARD]
-		settle_button.disabled = true
-		hint_button.disabled = true
-		tutorial_exit_button.disabled = interaction_locked
-	if interaction_locked:
+	if interactions.locked:
 		status_label.text = tr("STATUS_RESOLVING")
 		status_label.add_theme_color_override("font_color", PresentationTheme.MUTED)
 		return
-	if drink_targeting_active:
+	if interactions.drink_targeting:
 		status_label.text = _drink_target_status()
 		status_label.add_theme_color_override("font_color", CardActionOutline.DRINK_HIGHLIGHT)
 		return
@@ -2536,24 +1101,24 @@ func _refresh_actions() -> void:
 		status_label.add_theme_color_override("font_color", PresentationTheme.MUTED)
 	elif deal.can_create_meld(selected) or quick_drink_meld:
 		var kind: String = deal.meld_creation_rule(selected, quick_drink_meld)["type"]
-		var preview := deal.preview_boss_payout(deal.scoring.preview_new_meld(selected, kind, deal.current_phase, deal.phase_new_meld_count, deal.state == DealState.STATE_FINAL_COMMIT_WINDOW), deal._next_meld_id)
+		var preview := deal.preview_new_meld_payout(selected, kind, deal.state == DealState.STATE_FINAL_COMMIT_WINDOW)
 		var points: int = preview.points
 		status_label.text = tr("STATUS_VALID_MELD") % [
 			tr("MELD_RUN") if kind == MeldRules.TYPE_RUN else tr("MELD_SET"),
 			points,
-			VndWallet.format_vnd(_points_to_vnd(points), true),
+			VndWallet.format_vnd(VndWallet.points_to_vnd(points, deal.vnd_per_point), true),
 		]
 		status_label.add_theme_color_override("font_color", PresentationTheme.MONEY_GAIN)
-	elif selected_meld_id >= 0 and deal.can_extend_meld(selected_meld_id, selected):
-		var meld := deal.get_meld(selected_meld_id)
+	elif interactions.selected_meld_id >= 0 and deal.can_extend_meld(interactions.selected_meld_id, selected):
+		var meld := deal.get_meld(interactions.selected_meld_id)
 		var combined: Array[CardData] = meld.cards.duplicate()
 		combined.append_array(selected)
-		var preview := deal.preview_boss_payout(deal.scoring.preview_extension(combined, meld.meld_type, ScoringPipeline.meld_value(meld.cards), deal.current_phase, selected, deal.state == DealState.STATE_FINAL_COMMIT_WINDOW), selected_meld_id)
+		var preview := deal.preview_extension_payout(meld, selected, deal.state == DealState.STATE_FINAL_COMMIT_WINDOW)
 		var points: int = preview.points
 		status_label.text = tr("STATUS_VALID_EXTEND") % [
-			selected_meld_id,
+			interactions.selected_meld_id,
 			points,
-			VndWallet.format_vnd(_points_to_vnd(points), true),
+			VndWallet.format_vnd(VndWallet.points_to_vnd(points, deal.vnd_per_point), true),
 		]
 		status_label.add_theme_color_override("font_color", PresentationTheme.WARNING)
 		if points == 0 and not String(preview.reason).is_empty(): status_label.text = ZodiacCatalog.feedback(preview.reason) + " · 0 VNĐ"
@@ -2576,24 +1141,24 @@ func _drink_target_status() -> String:
 		DrinkCatalog.C2_ICED_TEA:
 			return tr("DRINK_TARGET_RUN")
 		DrinkCatalog.BAC_XIU:
-			return tr("DRINK_TARGET_PRESERVE_ANY") % pending_drink_card_ids.size()
+			return tr("DRINK_TARGET_PRESERVE_ANY") % interactions.drink_ids.size()
 	match deal.current_drink_id:
 		DrinkCatalog.NHAN_TRAN, DrinkCatalog.DEN_DA:
-			if pending_drink_card_ids.is_empty() and selected_drink_discard_key.is_empty():
+			if interactions.drink_ids.is_empty() and interactions.drink_discard_key.is_empty():
 				return tr("STATUS_DRINK_TARGETING_NHAN_TRAN")
-			if pending_drink_card_ids.is_empty():
+			if interactions.drink_ids.is_empty():
 				return tr("STATUS_DRINK_TARGETING_NHAN_TRAN_HAND")
-			if selected_drink_discard_key.is_empty():
+			if interactions.drink_discard_key.is_empty():
 				return tr("STATUS_DRINK_TARGETING_NHAN_TRAN_DISCARD")
 			return tr("STATUS_DRINK_TARGETING_NHAN_TRAN")
 		DrinkCatalog.SAM_DUA, DrinkCatalog.BAC_XIU:
-			return tr("STATUS_DRINK_TARGETING_SAM_DUA") % pending_drink_card_ids.size()
+			return tr("STATUS_DRINK_TARGETING_SAM_DUA") % interactions.drink_ids.size()
 		_:
 			return tr("STATUS_DRINK_TARGETING_ONE")
 
 
 func _on_event_cash_clicked() -> void:
-	if event_table.focused_npc_id.is_empty() and not event_table.deck_focused and not money_queue_running and deal.wallet.balance_vnd > 0:
+	if event_table.focused_npc_id.is_empty() and not event_table.deck_focused and not money_playback.running and deal.wallet.balance_vnd > 0:
 		_try_wallet_easter_egg(event_table.overview.cash_anchor)
 
 
@@ -2611,7 +1176,7 @@ func _try_wallet_easter_egg(source: Control = null) -> void:
 
 func _input(event: InputEvent) -> void:
 	if event.is_action_pressed(&"boss_debug_lab") and BossDebugSession.available():
-		_open_boss_lab()
+		open_boss_lab()
 		get_viewport().set_input_as_handled()
 		return
 	if zodiac_table != null and zodiac_table.shade.visible: return
@@ -2622,8 +1187,7 @@ func _input(event: InputEvent) -> void:
 	if _try_fast_forward_money(event):
 		return
 	if event.is_action_pressed("ui_cancel") and event_table != null and event_table.is_visible_in_tree() and event_table.overview.expanded:
-		event_table.overview._set_expanded(false)
-		event_table.overview._refresh_journey()
+		event_table.overview.collapse()
 		get_viewport().set_input_as_handled()
 		return
 	if is_instance_valid(wallet_spiral):
@@ -2632,7 +1196,7 @@ func _input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 		return
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
-		if game_started and not interaction_locked and not money_queue_running and not menu_layer.visible and not modal_overlay.visible and not score_overlay.visible and not discard_archive_overlay.visible and deal.wallet.balance_vnd > 0:
+		if game_started and not interactions.locked and not money_playback.running and not menu_layer.visible and not modal_overlay.visible and not score_overlay.visible and not pile_archive.overlay.visible and deal.wallet.balance_vnd > 0:
 			var wallet_panel := wallet_pile_anchor.get_parent().get_parent().get_parent() as Control
 			if Rect2(Vector2.ZERO, wallet_panel.size).has_point(wallet_panel.get_global_transform_with_canvas().affine_inverse() * event.position):
 				_try_wallet_easter_egg()
@@ -2641,13 +1205,13 @@ func _input(event: InputEvent) -> void:
 					return
 			else:
 				wallet_click_times.clear()
-	if active_drag_payload == null:
+	if interactions.drag_payload == null:
 		return
 	if event is InputEventKey and event.is_action_pressed(&"ui_cancel"):
 		get_viewport().set_input_as_handled()
-		_cancel_card_drag()
+		cancel_card_drag()
 	elif event is InputEventMouseMotion:
-		_update_card_drag(event.position)
+		card_table.update_drag(event.position)
 	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and not event.pressed:
 		var drop_position: Vector2 = event.position
 		get_viewport().set_input_as_handled()
@@ -2655,7 +1219,7 @@ func _input(event: InputEvent) -> void:
 
 
 func _on_card_drag_started(card: CardData, global_position: Vector2, source: PlayingCardView) -> void:
-	if interaction_locked or deal.state not in [DealState.STATE_ACTIVE, DealState.STATE_FINAL_COMMIT_WINDOW]:
+	if interactions.locked or deal.state not in [DealState.STATE_ACTIVE, DealState.STATE_FINAL_COMMIT_WINDOW]:
 		source.finish_drag_interaction()
 		return
 	if deal.zodiac_boss.is_locked(card):
@@ -2664,154 +1228,71 @@ func _on_card_drag_started(card: CardData, global_position: Vector2, source: Pla
 		source.finish_drag_interaction()
 		return
 	var payload_cards: Array[CardData] = [card]
-	if drink_targeting_active and pending_drink_card_ids.has(card.unique_id):
-		payload_cards = _pending_drink_cards()
-	elif selected_card_ids.has(card.unique_id):
-		payload_cards = _selected_cards()
-	active_drag_payload = CARD_DRAG_PAYLOAD_SCRIPT.new(
+	if interactions.drink_targeting and interactions.drink_ids.has(card.unique_id):
+		payload_cards = interactions.pending_drink_cards()
+	elif interactions.selected_ids.has(card.unique_id):
+		payload_cards = interactions.selected_cards()
+	interactions.drag_payload = CARD_DRAG_PAYLOAD_SCRIPT.new(
 		CARD_DRAG_PAYLOAD_SCRIPT.SOURCE_HAND,
 		-1,
 		card.unique_id,
 		payload_cards
 	)
-	active_drag_source = source
-	_build_card_drag_preview(active_drag_payload)
-	_refresh_card_drag_targets(active_drag_payload)
-	_update_card_drag(global_position)
-
-
-func _update_card_drag(global_position: Vector2) -> void:
-	if drag_preview == null or particle_layer == null:
-		return
-	drag_preview.position = _drag_layer_local_position(global_position) - CARD_SIZE * 0.5
+	card_table.begin_drag(interactions.drag_payload, source)
+	card_table.update_drag(global_position)
 
 
 func _finish_card_drag(global_position: Vector2) -> void:
-	var payload = active_drag_payload
-	var source := active_drag_source
-	var target := _card_drop_target_at(global_position)
-	_clear_card_drag_visuals()
-	if source != null:
-		source.finish_drag_interaction()
+	var payload = interactions.drag_payload
+	var target := card_table.drop_target_at(global_position, drink_record_at(global_position))
+	var source := card_table.clear_drag_visuals()
+	interactions.drag_payload = null
 	_perform_card_drop(payload, target, global_position, source)
 
 
-func _card_drop_target_at(global_position: Vector2) -> Dictionary:
-	if _control_hit(drink_table_button, global_position):
-		return {"kind": &"drink"}
-	var record := _drink_record_at(global_position)
-	if record != null:
-		return {"kind": &"drink_discard", "record": record}
-	if discard_pile_visual != null and discard_pile_visual.get_global_rect().has_point(global_position):
-		return {"kind": DROP_TARGET_DISCARD, "meld_id": -1}
-	for meld in deal.melds:
-		var meld_view := meld_views.get(meld.meld_id) as MeldView
-		if meld_view != null and meld_view.get_global_rect().has_point(global_position):
-			return {"kind": DROP_TARGET_MELD, "meld_id": meld.meld_id}
-	if hand_layer != null and hand_layer.get_global_rect().grow(28.0).has_point(global_position):
-		return {"kind": DROP_TARGET_HAND, "meld_id": -1}
-	if table_surface != null and table_surface.get_global_rect().has_point(global_position):
-		if draw_pile_visual == null or not draw_pile_visual.get_global_rect().has_point(global_position):
-			return {"kind": DROP_TARGET_TABLE, "meld_id": -1}
-	return {"kind": DROP_TARGET_NONE, "meld_id": -1}
-
-
-func _card_drag_action(payload, target: Dictionary) -> StringName:
-	if payload == null:
-		return DRAG_ACTION_NONE
-	var target_kind: StringName = target.get("kind", DROP_TARGET_NONE)
-	if payload.source_zone == CARD_DRAG_PAYLOAD_SCRIPT.SOURCE_HAND:
-		match target_kind:
-			DROP_TARGET_HAND:
-				return DRAG_ACTION_REORDER
-			DROP_TARGET_TABLE:
-				return DRAG_ACTION_CREATE_MELD
-			DROP_TARGET_MELD:
-				return DRAG_ACTION_EXTEND_MELD
-			DROP_TARGET_DISCARD:
-				return DRAG_ACTION_DISCARD
-	return DRAG_ACTION_NONE
-
-
-func _cards_for_drop_target(payload, target: Dictionary) -> Array[CardData]:
-	var cards: Array[CardData] = []
-	if payload == null:
-		return cards
-	var anchor := payload.anchor_card() as CardData
-	if _drink_drop_is_valid(payload.cards, target):
-		cards.append_array(payload.cards)
-		return cards
-	if drink_targeting_active and target.get("kind") != DROP_TARGET_HAND:
-		return cards
-	var action := _card_drag_action(payload, target)
-	match action:
-		DRAG_ACTION_REORDER:
-			if not tutorial_active and anchor != null:
-				cards.append(anchor)
-		DRAG_ACTION_DISCARD:
-			if deal.state == DealState.STATE_ACTIVE and anchor != null and deal.hand.has(anchor):
-				if not tutorial_active or tutorial_step in [TUTORIAL_DISCARD, TUTORIAL_FINAL_DISCARD]:
-					cards.append(anchor)
-		DRAG_ACTION_CREATE_MELD:
-			if (not tutorial_active or tutorial_step == TUTORIAL_PLAY_RUN) and (deal.can_create_meld(payload.cards) or (not tutorial_active and deal.can_create_meld(payload.cards, true))):
-				cards.append_array(payload.cards)
-		DRAG_ACTION_EXTEND_MELD:
-			var meld_id := int(target.get("meld_id", -1))
-			if tutorial_active and tutorial_step != TUTORIAL_EXTEND:
-				return cards
-			if deal.can_extend_meld(meld_id, payload.cards):
-				cards.append_array(payload.cards)
-			elif anchor != null and deal.can_extend_meld(meld_id, [anchor] as Array[CardData]):
-				cards.append(anchor)
-	return cards
-
-
 func _perform_card_drop(payload, target: Dictionary, global_position: Vector2, source: PlayingCardView) -> void:
-	if payload == null or interaction_locked:
-		_layout_hand(true)
+	if payload == null or interactions.locked:
+		card_table.layout_hand(true)
 		return
-	if _try_drink_card_drop(payload.cards, target):
+	if try_drink_card_drop(payload.cards, target):
 		return
-	if drink_targeting_active and target.get("kind") != DROP_TARGET_HAND:
+	if interactions.drink_targeting and target.get("kind") != MatchInteraction.DROP_TARGET_HAND:
 		ui_feedback.play(&"reject")
-		_layout_hand(true)
+		card_table.layout_hand(true)
 		return
-	var target_kind: StringName = target.get("kind", DROP_TARGET_NONE)
-	if target_kind == DROP_TARGET_NONE:
-		_layout_hand(true)
+	var target_kind: StringName = target.get("kind", MatchInteraction.DROP_TARGET_NONE)
+	if target_kind == MatchInteraction.DROP_TARGET_NONE:
+		card_table.layout_hand(true)
 		return
-	var action := _card_drag_action(payload, target)
-	var drop_cards := _cards_for_drop_target(payload, target)
+	var action := interactions.card_drag_action(payload, target)
+	var drop_cards := interactions.cards_for_drop_target(payload, target)
 	if drop_cards.is_empty():
 		ui_feedback.play(&"reject")
 		if source != null:
 			source.play_reject()
-		_layout_hand(true)
+		card_table.layout_hand(true)
 		return
 	match action:
-		DRAG_ACTION_REORDER:
+		MatchInteraction.DRAG_ACTION_REORDER:
 			_reorder_hand_card(drop_cards[0], global_position.x)
-		DRAG_ACTION_CREATE_MELD:
+		MatchInteraction.DRAG_ACTION_CREATE_MELD:
 			_apply_drag_selection(drop_cards, -1)
 			_on_ha_pressed()
-		DRAG_ACTION_EXTEND_MELD:
+		MatchInteraction.DRAG_ACTION_EXTEND_MELD:
 			_apply_drag_selection(drop_cards, int(target.get("meld_id", -1)))
 			_on_extend_pressed()
-		DRAG_ACTION_DISCARD:
+		MatchInteraction.DRAG_ACTION_DISCARD:
 			_apply_drag_selection(drop_cards, -1)
 			_on_discard_pressed()
 
 
 func _apply_drag_selection(cards: Array[CardData], meld_id: int) -> void:
-	selected_card_ids.clear()
-	for card in cards:
-		selected_card_ids[card.unique_id] = true
+	if not interactions.select(cards, meld_id): return
 	if not cards.is_empty():
 		_play_card_sfx(CARD_SFX_CHOOSE)
-	selected_meld_id = meld_id
-	_layout_hand(true)
-	_sync_melds()
-	_sync_music_reactive_cards()
+	card_table.layout_hand(true)
+	card_table.sync_melds()
+	card_table.sync_reactive_targets()
 	_refresh_actions()
 
 
@@ -2823,213 +1304,63 @@ func _reorder_hand_card(card: CardData, global_x: float) -> bool:
 	for existing_card in deal.hand:
 		if existing_card == card:
 			continue
-		var existing_view := hand_views.get(existing_card.unique_id) as PlayingCardView
+		var existing_view := card_table.hand_views.get(existing_card.unique_id) as PlayingCardView
 		if existing_view != null and global_x > existing_view.get_global_rect().get_center().x:
 			insertion_index += 1
 		reordered.append(existing_card)
 	insertion_index = clampi(insertion_index, 0, reordered.size())
 	reordered.insert(insertion_index, card)
-	var changed := reordered != deal.hand
-	if changed:
-		deal.hand.clear()
-		deal.hand.append_array(reordered)
-	_layout_hand(true)
-	_sync_music_reactive_cards()
+	var changed := deal.reorder_hand(reordered)
+	card_table.layout_hand(true)
+	card_table.sync_reactive_targets()
 	return changed
 
 
-func _build_card_drag_preview(payload) -> void:
-	if particle_layer == null:
-		return
-	drag_preview = Control.new()
-	drag_preview.name = "CardDragPreview"
-	drag_preview.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	drag_preview.z_index = 10
-	particle_layer.add_child(drag_preview)
-	var shown_count := mini(payload.cards.size(), 4)
-	for index in range(shown_count):
-		var card: CardData = payload.cards[index]
-		var texture := TextureRect.new()
-		texture.position = Vector2(index * 9.0, -index * 4.0)
-		texture.size = CARD_SIZE
-		texture.texture = load(card.texture_path()) as Texture2D
-		GieoCardFX.attach_texture(texture, card)
-		texture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		texture.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		texture.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-		texture.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		texture.modulate = Color(1, 1, 1, 0.9)
-		drag_preview.add_child(texture)
-	if payload.cards.size() > 1:
-		var count_badge := Label.new()
-		count_badge.position = Vector2(CARD_SIZE.x - 8, -12)
-		count_badge.size = Vector2(30, 24)
-		count_badge.text = "×%d" % payload.cards.size()
-		count_badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		count_badge.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		count_badge.add_theme_font_size_override("font_size", 12)
-		count_badge.add_theme_color_override("font_color", Color.WHITE)
-		count_badge.add_theme_stylebox_override("normal", PresentationTheme.panel_style(Color("#17120ff2"), PresentationTheme.TEA, 2, 2, 2))
-		count_badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		drag_preview.add_child(count_badge)
-
-
-func _refresh_card_drag_targets(payload) -> void:
-	_clear_card_drag_target_overlays()
-	if particle_layer == null:
-		return
-	var table_target := {"kind": DROP_TARGET_TABLE, "meld_id": -1}
-	if not _cards_for_drop_target(payload, table_target).is_empty():
-		_add_card_drag_target_overlay(table_surface.get_global_rect(), PresentationTheme.TEA)
-	if _drink_drop_is_valid(payload.cards, {"kind": &"drink"}):
-		_add_card_drag_target_overlay(drink_table_button.get_global_rect(), CardActionOutline.DRINK_HIGHLIGHT)
-	for record in deal.drink_mandatory_discard_targets():
-		if _drink_drop_is_valid(payload.cards, {"kind": &"drink_discard", "record": record}):
-			var holder := discard_history_target_holders.get(_discard_history_target_key(record)) as Control
-			if holder != null:
-				_add_card_drag_target_overlay(holder.get_global_rect(), CardActionOutline.DRINK_HIGHLIGHT)
-	if not tutorial_active:
-		_add_card_drag_target_overlay(hand_layer.get_global_rect().grow(18.0), Color("#70a7df"))
-	var discard_target := {"kind": DROP_TARGET_DISCARD, "meld_id": -1}
-	if not _cards_for_drop_target(payload, discard_target).is_empty():
-		_add_card_drag_target_overlay(discard_pile_visual.get_global_rect(), PresentationTheme.RED)
-	for meld in deal.melds:
-		var target := {"kind": DROP_TARGET_MELD, "meld_id": meld.meld_id}
-		if _cards_for_drop_target(payload, target).is_empty():
-			continue
-		var meld_view := meld_views.get(meld.meld_id) as MeldView
-		if meld_view != null:
-			_add_card_drag_target_overlay(meld_view.get_global_rect(), PresentationTheme.GOLD)
-
-
-func _add_card_drag_target_overlay(global_rect: Rect2, color: Color) -> void:
-	var overlay := Panel.new()
-	overlay.name = "CardDropTarget"
-	overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	overlay.position = _drag_layer_local_position(global_rect.position)
-	overlay.size = _drag_layer_local_position(global_rect.end) - overlay.position
-	var fill := color
-	fill.a = 0.13
-	var border := color
-	border.a = 0.9
-	overlay.add_theme_stylebox_override("panel", PresentationTheme.panel_style(fill, border, 3, 3, 5))
-	particle_layer.add_child(overlay)
-	drag_target_overlays.append(overlay)
-
-
-func _drag_layer_local_position(global_position: Vector2) -> Vector2:
-	return particle_layer.get_global_transform_with_canvas().affine_inverse() * global_position
-
-
-func _clear_card_drag_target_overlays() -> void:
-	for overlay in drag_target_overlays:
-		if is_instance_valid(overlay):
-			overlay.queue_free()
-	drag_target_overlays.clear()
-
-
-func _clear_card_drag_visuals() -> void:
-	_clear_card_drag_target_overlays()
-	if drag_preview != null:
-		drag_preview.queue_free()
-	drag_preview = null
-	active_drag_payload = null
-	active_drag_source = null
-
-
-func _cancel_card_drag() -> void:
-	var source := active_drag_source
-	_clear_card_drag_visuals()
-	if source != null and is_instance_valid(source):
-		source.finish_drag_interaction()
-	_layout_hand(true)
+func cancel_card_drag() -> void:
+	card_table.clear_drag_visuals()
+	interactions.drag_payload = null
+	card_table.layout_hand(true)
 
 
 func _on_card_pressed(card: CardData) -> void:
-	if interaction_locked or deal.state not in [DealState.STATE_ACTIVE, DealState.STATE_FINAL_COMMIT_WINDOW]:
+	if interactions.locked or deal.state not in [DealState.STATE_ACTIVE, DealState.STATE_FINAL_COMMIT_WINDOW]:
 		return
 	if zodiac_boss_hud != null and deal.zodiac_boss.is_locked(card):
 		zodiac_boss_hud.react_locked_card(card)
-	if drink_targeting_active:
-		_on_drink_hand_card_targeted(card)
+	if interactions.drink_targeting:
+		target_drink_card(card)
 		return
-	if tutorial_active and not _tutorial_card_press_allowed(card):
-		var rejected_view := hand_views.get(card.unique_id) as PlayingCardView
-		if rejected_view != null:
-			rejected_view.play_reject()
-		_show_banner(tr("TUTORIAL_FOLLOW_STEP"))
-		return
-	if selected_card_ids.has(card.unique_id):
-		selected_card_ids.erase(card.unique_id)
-	else:
-		selected_card_ids[card.unique_id] = true
-		_play_card_sfx(CARD_SFX_CHOOSE)
-	selected_drink_meld_id = -1
-	selected_drink_meld_card_id = ""
-	_layout_hand(true)
-	_sync_melds()
-	_sync_music_reactive_cards()
+	var selecting := not interactions.selected_ids.has(card.unique_id)
+	if not interactions.toggle(card): return
+	if selecting: _play_card_sfx(CARD_SFX_CHOOSE)
+	interactions.drink_meld_id = -1
+	interactions.drink_meld_card_id = ""
+	card_table.layout_hand(true)
+	card_table.sync_melds()
+	card_table.sync_reactive_targets()
 	_refresh_stats()
 	_refresh_actions()
-	_advance_tutorial_after_card_selection()
 
 
-func _tutorial_card_press_allowed(card: CardData) -> bool:
-	match tutorial_step:
-		TUTORIAL_SELECT_RUN:
-			return StringName(card.unique_id) in TUTORIAL_RUN_IDS
-		TUTORIAL_SELECT_DISCARD:
-			return StringName(card.unique_id) == TUTORIAL_FIRST_DISCARD_ID
-		TUTORIAL_SELECT_EXTEND:
-			return StringName(card.unique_id) == TUTORIAL_EXTENSION_ID
-		TUTORIAL_SELECT_FINAL_DISCARD:
-			return StringName(card.unique_id) == TUTORIAL_FINAL_DISCARD_ID
-		_:
-			return false
-
-
-func _advance_tutorial_after_card_selection() -> void:
-	if not tutorial_active:
+func select_meld(meld_id: int) -> void:
+	if not interactions.locked and interactions.drink_targeting and deal.can_use_nau_da(meld_id):
+		present_drink_result(deal.use_nau_da(meld_id))
 		return
-	if tutorial_step == TUTORIAL_SELECT_RUN:
-		for card_id in TUTORIAL_RUN_IDS:
-			if not selected_card_ids.has(String(card_id)):
-				return
-		_set_tutorial_step(TUTORIAL_PLAY_RUN)
-	elif tutorial_step == TUTORIAL_SELECT_DISCARD and selected_card_ids.has(String(TUTORIAL_FIRST_DISCARD_ID)):
-		_set_tutorial_step(TUTORIAL_DISCARD)
-	elif tutorial_step == TUTORIAL_SELECT_EXTEND and selected_card_ids.has(String(TUTORIAL_EXTENSION_ID)):
-		_set_tutorial_step(TUTORIAL_SELECT_MELD)
-	elif tutorial_step == TUTORIAL_SELECT_FINAL_DISCARD and selected_card_ids.has(String(TUTORIAL_FINAL_DISCARD_ID)):
-		_set_tutorial_step(TUTORIAL_FINAL_DISCARD)
-
-
-func _on_meld_pressed(meld_id: int) -> void:
-	if not interaction_locked and drink_targeting_active and deal.can_use_nau_da(meld_id):
-		_finish_drink_use(deal.use_nau_da(meld_id))
+	if interactions.locked or deal.state not in [DealState.STATE_ACTIVE, DealState.STATE_FINAL_COMMIT_WINDOW]:
 		return
-	if interaction_locked or deal.state not in [DealState.STATE_ACTIVE, DealState.STATE_FINAL_COMMIT_WINDOW]:
+	if interactions.drink_targeting:
 		return
-	if drink_targeting_active:
-		return
-	if tutorial_active and (tutorial_step != TUTORIAL_SELECT_MELD or meld_id != tutorial_meld_id):
-		_show_banner(tr("TUTORIAL_FOLLOW_STEP"))
-		return
-	selected_meld_id = -1 if selected_meld_id == meld_id else meld_id
-	selected_drink_meld_id = -1
-	selected_drink_meld_card_id = ""
-	_sync_melds()
-	_sync_music_reactive_cards()
+	interactions.selected_meld_id = -1 if interactions.selected_meld_id == meld_id else meld_id
+	interactions.drink_meld_id = -1
+	interactions.drink_meld_card_id = ""
+	card_table.sync_melds()
+	card_table.sync_reactive_targets()
 	_refresh_actions()
-	if tutorial_active and tutorial_step == TUTORIAL_SELECT_MELD and selected_meld_id == tutorial_meld_id:
-		_set_tutorial_step(TUTORIAL_EXTEND)
-
-
-func _on_meld_card_pressed(meld_id: int, card: CardData) -> void:
-	if not interaction_locked and drink_targeting_active and deal.can_use_nau_da(meld_id):
-		_finish_drink_use(deal.use_nau_da(meld_id))
+func select_meld_card(meld_id: int, card: CardData) -> void:
+	if not interactions.locked and interactions.drink_targeting and deal.can_use_nau_da(meld_id):
+		present_drink_result(deal.use_nau_da(meld_id))
 		return
-	if interaction_locked or not drink_targeting_active or deal.current_drink_id != DrinkCatalog.NUOC_VOI:
+	if interactions.locked or not interactions.drink_targeting or deal.current_drink_id != DrinkCatalog.NUOC_VOI:
 		return
 	if deal.state not in [DealState.STATE_ACTIVE, DealState.STATE_FINAL_COMMIT_WINDOW]:
 		return
@@ -3037,53 +1368,51 @@ func _on_meld_card_pressed(meld_id: int, card: CardData) -> void:
 		_show_banner(tr("DRINK_NUOC_VOI_CARD_INVALID"))
 		return
 	_play_card_sfx(CARD_SFX_CHOOSE)
-	selected_drink_meld_id = meld_id
-	selected_drink_meld_card_id = card.unique_id
-	_sync_melds()
+	interactions.drink_meld_id = meld_id
+	interactions.drink_meld_card_id = card.unique_id
+	card_table.sync_melds()
 	_refresh_actions()
-	_resolve_nuoc_voi_target(meld_id, card)
+	recover_drink_card(meld_id, card)
 
 
 func _on_drink_hover_started() -> void:
 	drink_hover_active = true
-	_sync_discard_history()
-	_sync_card_action_outlines()
-	_sync_melds()
-	_pulse_drink_eligible_targets(0.7)
+	card_table.sync_discard_history()
+	card_table.sync_action_outlines()
+	card_table.sync_melds()
+	card_table.pulse_drink_targets(0.7)
 
 
 func _on_drink_hover_ended() -> void:
 	drink_hover_active = false
-	_sync_discard_history()
-	_sync_card_action_outlines()
-	_sync_melds()
+	card_table.sync_discard_history()
+	card_table.sync_action_outlines()
+	card_table.sync_melds()
 
 
 func _can_confirm_drink() -> bool:
 	if deal.current_drink_id in [DrinkCatalog.STING, DrinkCatalog.BO_HUC, DrinkCatalog.C2_ICED_TEA]:
-		return deal.can_create_meld(_pending_drink_cards(), true)
-	return deal.has_phase_transition_choice()
+		return deal.can_create_meld(interactions.pending_drink_cards(), true)
+	return deal.has_preservation_drink()
 
 
-func _on_drink_pressed() -> void:
-	if tutorial_active or interaction_locked:
-		return
-	if not drink_targeting_active:
-		if _commit_selected_drink(_selected_cards()):
+func activate_drink() -> void:
+	if not interactions.drink_targeting:
+		if commit_selected_drink(interactions.selected_cards()):
 			return
-		if deal.can_use_nau_da(selected_meld_id):
-			_finish_drink_use(deal.use_nau_da(selected_meld_id))
+		if deal.can_use_nau_da(interactions.selected_meld_id):
+			present_drink_result(deal.use_nau_da(interactions.selected_meld_id))
 			return
-	if drink_targeting_active:
+	if interactions.drink_targeting:
 		if deal.current_drink_id in [DrinkCatalog.STING, DrinkCatalog.BO_HUC, DrinkCatalog.C2_ICED_TEA]:
-			var cards := _pending_drink_cards()
+			var cards := interactions.pending_drink_cards()
 			if not deal.can_create_meld(cards, true):
 				_reject_action(DrinkCatalog.effect_text(deal.current_drink_id))
 				return
-			_finish_drink_use(deal.create_meld(cards, true))
-		elif deal.has_phase_transition_choice():
-			var preserved := _pending_drink_cards()
-			_finish_drink_use(deal.select_sam_dua_preserves(preserved))
+			present_drink_result(interactions.execute_drink("create", cards))
+		elif deal.has_preservation_drink():
+			var preserved := interactions.pending_drink_cards()
+			present_drink_result(deal.select_sam_dua_preserves(preserved))
 		else:
 			_cancel_drink_targeting()
 		return
@@ -3108,23 +1437,24 @@ func _on_drink_pressed() -> void:
 				_reject_action(tr("DRINK_NUOC_VOI_NO_TARGET"))
 				return
 		DrinkCatalog.SAM_DUA, DrinkCatalog.BAC_XIU:
-			if deal.current_phase != 1 or deal.state != DealState.STATE_FINAL_COMMIT_WINDOW:
+			if not deal.current_drink_has_charge():
 				_reject_action(tr("DRINK_SAM_DUA_WRONG_TIME"))
 				return
 		_:
 			_reject_action(tr("DRINK_NO_BASIC_EFFECT"))
 			return
-	var previous_selection := _selected_cards()
-	drink_targeting_active = true
-	pending_drink_card_ids.clear()
+	var previous_selection := interactions.selected_cards()
+	if deal.has_preservation_drink() and previous_selection.is_empty(): previous_selection.assign(deal.sam_dua_preserved_cards)
+	interactions.drink_targeting = true
+	interactions.drink_ids.clear()
 	for card in previous_selection:
-		if deal.drink_creation_target_ids(_pending_drink_cards()).has(card.unique_id) or deal.has_phase_transition_choice() or deal.current_drink_id in [DrinkCatalog.NHAN_TRAN, DrinkCatalog.DEN_DA]:
-			pending_drink_card_ids[card.unique_id] = true
-	selected_card_ids.clear()
-	selected_meld_id = -1
-	selected_drink_meld_id = -1
-	selected_drink_meld_card_id = ""
-	selected_drink_discard_key = ""
+		if not deal.zodiac_boss.is_locked(card) and (deal.drink_creation_target_ids(interactions.pending_drink_cards()).has(card.unique_id) or (deal.has_preservation_drink() and interactions.drink_ids.size() < deal.preservation_limit()) or deal.current_drink_id in [DrinkCatalog.NHAN_TRAN, DrinkCatalog.DEN_DA]):
+			interactions.drink_ids[card.unique_id] = true
+	interactions.selected_ids.clear()
+	interactions.selected_meld_id = -1
+	interactions.drink_meld_id = -1
+	interactions.drink_meld_card_id = ""
+	interactions.drink_discard_key = ""
 	_sync_all()
 	var banner_key: String = {
 		DrinkCatalog.NHAN_TRAN: "BANNER_DRINK_TARGET_NHAN_TRAN",
@@ -3134,28 +1464,28 @@ func _on_drink_pressed() -> void:
 	_show_banner(tr(banner_key) if DrinkCatalog.basic_ids().has(deal.current_drink_id) else _drink_target_status())
 
 
-func _on_drink_hand_card_targeted(card: CardData) -> void:
+func target_drink_card(card: CardData) -> void:
 	if deal.current_drink_id in [DrinkCatalog.STING, DrinkCatalog.BO_HUC, DrinkCatalog.C2_ICED_TEA]:
-		if pending_drink_card_ids.has(card.unique_id):
-			pending_drink_card_ids.erase(card.unique_id)
+		if interactions.drink_ids.has(card.unique_id):
+			interactions.drink_ids.erase(card.unique_id)
 		else:
-			if not deal.drink_creation_target_ids(_pending_drink_cards()).has(card.unique_id):
+			if not deal.drink_creation_target_ids(interactions.pending_drink_cards()).has(card.unique_id):
 				_show_banner(_drink_target_status())
 				return
-			pending_drink_card_ids[card.unique_id] = true
-		if deal.current_drink_id in [DrinkCatalog.STING, DrinkCatalog.BO_HUC] and deal.can_create_meld(_pending_drink_cards(), true):
-			_finish_drink_use(deal.create_meld(_pending_drink_cards(), true))
+			interactions.drink_ids[card.unique_id] = true
+		if deal.current_drink_id in [DrinkCatalog.STING, DrinkCatalog.BO_HUC] and deal.can_create_meld(interactions.pending_drink_cards(), true):
+			present_drink_result(deal.create_meld(interactions.pending_drink_cards(), true))
 			return
 		_sync_all()
 		return
-	if deal.has_phase_transition_choice():
-		if pending_drink_card_ids.has(card.unique_id):
-			pending_drink_card_ids.erase(card.unique_id)
-		elif pending_drink_card_ids.size() < deal.preservation_limit():
-			pending_drink_card_ids[card.unique_id] = true
+	if deal.has_preservation_drink():
+		if interactions.drink_ids.has(card.unique_id):
+			interactions.drink_ids.erase(card.unique_id)
+		elif interactions.drink_ids.size() < deal.preservation_limit():
+			interactions.drink_ids[card.unique_id] = true
 			_play_card_sfx(CARD_SFX_CHOOSE)
 		else:
-			var rejected_view := hand_views.get(card.unique_id) as PlayingCardView
+			var rejected_view := card_table.hand_views.get(card.unique_id) as PlayingCardView
 			if rejected_view != null:
 				rejected_view.play_reject()
 			_show_banner(tr("BANNER_DRINK_SAM_DUA_LIMIT"))
@@ -3168,149 +1498,139 @@ func _on_drink_hand_card_targeted(card: CardData) -> void:
 	if card == null or not deal.hand.has(card):
 		return
 	_play_card_sfx(CARD_SFX_CHOOSE)
-	pending_drink_card_ids.clear()
-	pending_drink_card_ids[card.unique_id] = true
+	interactions.drink_ids.clear()
+	interactions.drink_ids[card.unique_id] = true
 	var record := _selected_drink_discard_record()
 	if record == null:
 		_sync_all()
 		_show_banner(tr("STATUS_DRINK_TARGETING_NHAN_TRAN_DISCARD"))
-		pile_archive_mode = "discard"
-		_show_discard_archive()
+		pile_archive.mode = "discard"
+		open_discard_archive()
 		return
 	if not (deal.can_use_nhan_tran(card, record) or deal.can_use_den_da(card, record)):
 		_reject_action(tr("DRINK_DISCARD_TARGET_INVALID"))
 		return
 	_sync_all()
-	_resolve_hand_drink_target(card, record)
+	swap_drink_card(card, record)
 
 
-func _on_drink_discard_targeted(record: DiscardRecord) -> void:
-	if interaction_locked or not drink_targeting_active or record == null:
+func target_drink_discard(record: DiscardRecord) -> void:
+	if interactions.locked or not interactions.drink_targeting or record == null:
 		return
-	_hide_discard_archive()
+	pile_archive.close()
 	var target_keys := {}
 	for candidate in deal.drink_mandatory_discard_targets():
-		target_keys[_discard_history_target_key(candidate)] = true
-	var target_key := _discard_history_target_key(record)
+		target_keys[candidate.target_key()] = true
+	var target_key := record.target_key()
 	if not target_keys.has(target_key):
 		_show_banner(tr("DRINK_DISCARD_TARGET_INVALID"))
 		return
-	selected_drink_discard_key = target_key
-	var pending := _pending_drink_cards()
+	interactions.drink_discard_key = target_key
+	var pending := interactions.pending_drink_cards()
 	if deal.current_drink_id in [DrinkCatalog.NHAN_TRAN, DrinkCatalog.DEN_DA]:
 		if pending.is_empty():
 			_sync_all()
 			_show_banner(tr("STATUS_DRINK_TARGETING_NHAN_TRAN_HAND"))
 		else:
 			_sync_all()
-			_resolve_hand_drink_target(pending[0], record)
+			swap_drink_card(pending[0], record)
 
 
 func _selected_drink_discard_record() -> DiscardRecord:
-	if selected_drink_discard_key.is_empty():
+	if interactions.drink_discard_key.is_empty():
 		return null
 	for record in deal.drink_mandatory_discard_targets():
-		if _discard_history_target_key(record) == selected_drink_discard_key:
+		if record.target_key() == interactions.drink_discard_key:
 			return record
 	return null
 
 
 func _discard_history_target_center(record: DiscardRecord) -> Vector2:
 	if record != null:
-		var holder := discard_history_target_holders.get(_discard_history_target_key(record)) as Control
+		var holder := card_table.discard_history_target_holders.get(record.target_key()) as Control
 		if holder != null:
 			return holder.get_global_rect().get_center()
 	return discard_texture.get_global_rect().get_center()
 
 
-func _resolve_hand_drink_target(card: CardData, record: DiscardRecord) -> void:
-	interaction_locked = true
+func swap_drink_card(card: CardData, record: DiscardRecord) -> void:
+	interactions.locked = true
 	_refresh_actions()
 	_fly_cards([card] as Array[CardData], _discard_history_target_center(record))
-	var result: Dictionary = deal.use_den_da(card, record) if deal.current_drink_id == DrinkCatalog.DEN_DA else deal.use_nhan_tran(card, record)
-	_finish_drink_use(result)
+	var result: Dictionary = interactions.execute_drink("swap", [card] as Array[CardData], -1, record)
+	present_drink_result(result)
 
 
-func _resolve_nuoc_voi_target(meld_id: int, card: CardData) -> void:
-	interaction_locked = true
+func recover_drink_card(meld_id: int, card: CardData) -> void:
+	var presentation_generation := money_playback.generation
+	interactions.locked = true
 	_refresh_actions()
 	await get_tree().create_timer(0.16).timeout
-	_finish_drink_use(deal.use_nuoc_voi(meld_id, card))
+	if presentation_generation != money_playback.generation: return
+	present_drink_result(interactions.execute_drink("recover_card", [card] as Array[CardData], meld_id))
 
 
-func _finish_drink_use(result: Dictionary) -> void:
+func present_drink_result(result: Dictionary) -> void:
 	if not result.get("ok", false):
-		interaction_locked = false
+		_release_deal_input()
 		_sync_all()
 		_reject_action(result.get("message", tr("DRINK_USE_FAILED")))
 		return
 	ui_feedback.play_drink(deal.current_drink_id)
-	drink_targeting_active = false
-	pending_drink_card_ids.clear()
-	selected_card_ids.clear()
-	selected_drink_meld_id = -1
-	selected_drink_meld_card_id = ""
-	selected_drink_discard_key = ""
-	interaction_locked = false
+	interactions.drink_targeting = false
+	interactions.drink_ids.clear()
+	interactions.selected_ids.clear()
+	interactions.drink_meld_id = -1
+	interactions.drink_meld_card_id = ""
+	interactions.drink_discard_key = ""
+	_release_deal_input()
 	_sync_all(result)
 	if result.has("context") and result["context"] is ScoringContext:
-		selected_meld_id = int(result.get("meld_id", -1))
-		_queue_scoring(result["context"] as ScoringContext, meld_scroll)
+		interactions.selected_meld_id = int(result.get("meld_id", -1))
+		money_feedback.queue_scoring(result["context"] as ScoringContext, meld_scroll)
 	else:
-		_queue_zodiac_wallet_entries(result.get("boss_wallet_entries", []))
+		money_feedback.queue_zodiac_entries(result.get("boss_wallet_entries", []))
 	var banner_key: String = {
 		DrinkCatalog.TRA_DA: "BANNER_DRINK_TRA_DA",
 		DrinkCatalog.NHAN_TRAN: "BANNER_DRINK_NHAN_TRAN",
 		DrinkCatalog.NUOC_VOI: "BANNER_DRINK_NUOC_VOI",
 		DrinkCatalog.SAM_DUA: "BANNER_DRINK_SAM_DUA",
 	}.get(deal.current_drink_id, "BANNER_DRINK_USED")
-	if deal.has_phase_transition_choice():
+	if deal.has_preservation_drink():
 		_show_banner((tr("BANNER_DRINK_SAM_DUA") % result.get("preserved", []).size()).replace("SÂM DỨA", DrinkCatalog.display_name(deal.current_drink_id).to_upper()))
 	else:
 		_show_banner(tr(banner_key))
 
 
 func _cancel_drink_targeting() -> void:
-	_hide_discard_archive()
-	drink_targeting_active = false
-	pending_drink_card_ids.clear()
-	selected_drink_meld_id = -1
-	selected_drink_meld_card_id = ""
-	selected_drink_discard_key = ""
+	pile_archive.close()
+	interactions.reset_drink_targets()
 	_sync_all()
-
-
-func _pending_drink_cards() -> Array[CardData]:
-	var cards: Array[CardData] = []
-	for card in deal.hand:
-		if pending_drink_card_ids.has(card.unique_id):
-			cards.append(card)
-	return cards
 
 
 func _has_nuoc_voi_target() -> bool:
 	return not deal.nuoc_voi_targets().is_empty()
 
 
-func _drink_tooltip() -> String:
-	var status := _drink_target_status() if drink_targeting_active else (tr("DRINK_QUICK_HINT") if bool(DrinkCatalog.DEFINITIONS.get(deal.current_drink_id, {}).get("active", false)) else "")
-	if deal.has_phase_transition_choice() and deal.sam_dua_used:
+func drink_tooltip() -> String:
+	var status := QuickInfo.drink(deal.current_drink_id)
+	if deal.has_preservation_drink() and deal.sam_dua_used:
 		status = tr("DRINK_SAM_DUA_SELECTED") % deal.sam_dua_preserved_cards.size()
-	return "%s\n\n%s\n%s" % [DrinkCatalog.display_name(deal.current_drink_id), DrinkCatalog.effect_text(deal.current_drink_id), status]
+	return "%s\n%s" % [DrinkCatalog.display_name(deal.current_drink_id), status]
 
 
 
 func _on_ha_pressed() -> void:
 	if ha_button.disabled:
 		return
-	if drink_targeting_active:
-		_on_drink_pressed()
+	if interactions.drink_targeting:
+		activate_drink()
 		return
-	var selected := _selected_cards()
-	interaction_locked = true
+	var selected := interactions.selected_cards()
+	interactions.locked = true
 	_refresh_actions()
 	_fly_cards(selected, meld_scroll.get_global_rect().get_center())
-	var use_drink := not deal.can_create_meld(selected) and not tutorial_active
+	var use_drink := not deal.can_create_meld(selected)
 	var result := deal.create_meld(selected, use_drink)
 	if not result.get("ok", false):
 		_reject_action(result.get("message", "Hạ failed."))
@@ -3318,53 +1638,82 @@ func _on_ha_pressed() -> void:
 	if use_drink:
 		ui_feedback.play_drink(deal.current_drink_id)
 	_play_card_sfx(CARD_SFX_PLACE)
-	selected_card_ids.clear()
-	selected_meld_id = result["meld_id"]
-	if tutorial_active:
-		tutorial_meld_id = selected_meld_id
+	interactions.selected_ids.clear()
+	interactions.selected_meld_id = result["meld_id"]
 	_sync_all(result)
-	if tutorial_active:
-		_set_tutorial_step(TUTORIAL_MELD_SCORE)
-	_queue_scoring(result["context"], meld_views.get(selected_meld_id) as Control)
-	interaction_locked = false
-	if tutorial_active:
-		_set_tutorial_step(TUTORIAL_SELECT_DISCARD)
-	else:
-		_refresh_actions()
+	money_feedback.queue_scoring(result["context"], card_table.meld_views.get(interactions.selected_meld_id) as Control)
+	interactions.locked = false
+	_refresh_actions()
 
 
 func _on_extend_pressed() -> void:
 	if extend_button.disabled:
 		return
-	var selected := _selected_cards()
-	interaction_locked = true
+	var selected := interactions.selected_cards()
+	interactions.locked = true
 	_refresh_actions()
 	_fly_cards(selected, meld_scroll.get_global_rect().get_center())
-	var result := deal.extend_meld(selected_meld_id, selected)
+	var result := deal.extend_meld(interactions.selected_meld_id, selected)
 	if not result.get("ok", false):
 		_reject_action(result.get("message", "Extension failed."))
 		return
 	_play_card_sfx(CARD_SFX_PLACE)
-	selected_card_ids.clear()
+	interactions.selected_ids.clear()
 	_sync_all(result)
-	if tutorial_active:
-		_set_tutorial_step(TUTORIAL_EXTEND_SCORE)
-	_queue_scoring(result["context"], meld_views.get(selected_meld_id) as Control)
-	interaction_locked = false
-	if tutorial_active:
-		selected_meld_id = -1
-		_set_tutorial_step(TUTORIAL_SELECT_FINAL_DISCARD)
+	money_feedback.queue_scoring(result["context"], card_table.meld_views.get(interactions.selected_meld_id) as Control)
+	interactions.locked = false
+	_refresh_actions()
+
+
+func end_action_copy(kind: String) -> String:
+	if kind == "discard":
+		var cards := interactions.selected_cards()
+		var action := GameGlossary.words("End Turn?", "Kết lượt?") if cards.is_empty() else GameGlossary.words("Discard %s?", "Bỏ %s?") % cards[0].short_label()
+		if deal.current_drink_id == DrinkCatalog.TRA_DA and not deal.tra_da_extra_discard_pending:
+			return action + "\n" + GameGlossary.words("Trà Đá: +1 optional discard", "Trà Đá: +1 lần bỏ tùy chọn")
+		return action + "\n" + (GameGlossary.words("Last Call · no refill", "Chốt Hạ · không bù bài") if deal.discard_count + (0 if deal.tra_da_extra_discard_pending else 1) >= deal.phase_discard_limit() else GameGlossary.words("Deadwood · refill → 10", "Phạt bài rời · bù → 10"))
+	if deal.tra_da_extra_discard_pending: return GameGlossary.words("Skip extra discard?\nDeadwood · refill", "Bỏ qua lần bỏ thêm?\nPhạt bài rời · bù bài")
+	var message := GameGlossary.words("Settle Phase %d?", "Chốt Hiệp %d?") % deal.current_phase
+	if deal.current_phase == 1:
+		var kept: Array[String] = []
+		if deal.has_preservation_drink():
+			for card in deal.sam_dua_preserved_cards:
+				if deal.hand.has(card): kept.append(card.short_label())
+		var carry := ", ".join(kept) if not kept.is_empty() and kept.size() <= 3 else str(kept.size())
+		message += "\n" + (GameGlossary.words("Keep %s · Replace %d · Deadwood", "Giữ %s · Thay %d · Phạt bài rời") % [carry, deal.hand.size() - kept.size()])
+	else: message += "\n" + GameGlossary.words("End Deal · Deadwood", "Kết Ván · Phạt bài rời")
+	return message
+
+
+func _end_action_detail(kind: String) -> String:
+	if kind == "discard":
+		var cards := interactions.selected_cards()
+		var action := GameGlossary.words("End this empty turn.", "Kết thúc lượt trống này.") if cards.is_empty() else GameGlossary.words("Discard %s to end this turn.", "Bỏ %s để kết thúc lượt này.") % cards[0].short_label()
+		if deal.current_drink_id == DrinkCatalog.TRA_DA and not deal.tra_da_extra_discard_pending:
+			return action + "\n" + GameGlossary.words("Trà Đá then offers one extra discard before refill.", "Trà Đá cho chọn bỏ thêm một lá trước khi bù bài.")
+		return action + "\n" + (GameGlossary.words("Last Call follows; no refill.", "Sau đó là Chốt Hạ; không bù bài.") if deal.discard_count + (0 if deal.tra_da_extra_discard_pending else 1) >= deal.phase_discard_limit() else GameGlossary.words("Loose cards count as turn deadwood, then refill toward 10.", "Bài rời tính phạt lượt, rồi bù lên 10."))
+	if deal.tra_da_extra_discard_pending:
+		return GameGlossary.words("Skip the extra discard. Count turn deadwood, then refill if another turn remains.", "Bỏ qua lần bỏ thêm. Tính phạt lượt rồi bù bài nếu còn lượt.")
+	var message := GameGlossary.words("Settle this Phase. All loose cards count as deadwood before any refill.", "Chốt hiệp này. Toàn bộ bài rời tính phạt trước khi bù bài.")
+	if deal.current_phase == 1:
+		var kept: Array[String] = []
+		if deal.has_preservation_drink():
+			for card in deal.sam_dua_preserved_cards:
+				if deal.hand.has(card): kept.append(card.short_label())
+		message += "\n" + (GameGlossary.words("Carry %d card(s) into Phase 2: %s.", "Giữ %d lá sang Hiệp 2: %s.") % [kept.size(), ", ".join(kept)] if not kept.is_empty() else GameGlossary.words("No loose cards are marked to carry into Phase 2.", "Chưa đánh dấu bài rời nào để giữ sang Hiệp 2."))
+		message += "\n" + GameGlossary.words("Replace the other %d cards and refill toward 10. Table Melds stay.", "Thay %d lá còn lại rồi bù lên 10. Phỏm trên bàn vẫn giữ.") % (deal.hand.size() - kept.size())
 	else:
-		_refresh_actions()
+		message += "\n" + GameGlossary.words("This completes the Deal.", "Ván chơi sẽ kết thúc.")
+	return message
 
 
 func _on_discard_pressed() -> void:
+	var presentation_generation := money_playback.generation
 	if discard_button.disabled:
 		return
-	var completed_tutorial_step := tutorial_step
-	var selected := _selected_cards()
+	var selected := interactions.selected_cards()
 	var card: CardData = selected[0] if not selected.is_empty() else null
-	interaction_locked = true
+	interactions.locked = true
 	_refresh_actions()
 	_fly_cards(selected, discard_texture.get_global_rect().get_center())
 	var result: Dictionary = deal.end_empty_turn() if card == null else deal.discard_card(card)
@@ -3372,39 +1721,36 @@ func _on_discard_pressed() -> void:
 		_reject_action(result.get("message", "Discard failed."))
 		return
 	_play_card_sfx(CARD_SFX_PLACE)
-	selected_card_ids.clear()
+	interactions.selected_ids.clear()
 	_sync_all(result)
-	await _drain_pending_u_presentations()
-	_queue_zodiac_wallet_entries(result.get("boss_wallet_entries", []))
+	await money_feedback.drain_u()
+	if presentation_generation != money_playback.generation: return
 	if result.has("turn_resolution"):
-		_show_turn_deadwood(result["turn_resolution"])
-	_drain_pending_exhaustion_presentations()
-	await _drain_pending_u_khan_presentations()
+		money_feedback.show_turn_deadwood(result["turn_resolution"], result.get("boss_wallet_entries", []))
+	else:
+		money_feedback.queue_zodiac_entries(result.get("boss_wallet_entries", []))
+	money_feedback.drain_exhaustion()
+	await money_feedback.drain_u_khan()
+	if presentation_generation != money_playback.generation: return
 	if result.get("extra_discard_pending", false):
 		_show_banner(tr("BANNER_TRA_DA_EXTRA_DISCARD"))
-		interaction_locked = false
+		_release_deal_input()
 		_refresh_actions()
 	elif result.get("final_commit_window", false):
 		_show_banner(tr("BANNER_LAST_CALL"))
-		interaction_locked = false
+		_release_deal_input()
 		_refresh_actions()
 	else:
 		var drawn: Array[CardData] = _cards_from_result(result)
 		_show_banner(tr("BANNER_DRAW") % [drawn.size(), deal.discard_count, deal.phase_discard_limit()])
-		interaction_locked = false
+		_release_deal_input()
 		_refresh_actions()
-	if tutorial_active and completed_tutorial_step == TUTORIAL_DISCARD:
-		selected_meld_id = -1
-		_set_tutorial_step(TUTORIAL_SELECT_EXTEND)
-	elif tutorial_active and completed_tutorial_step == TUTORIAL_FINAL_DISCARD:
-		_set_tutorial_step(TUTORIAL_MOM)
-
-
 func _on_settle_pressed() -> void:
+	var presentation_generation := money_playback.generation
 	if settle_button.disabled:
 		return
 	if deal.state == DealState.STATE_ACTIVE and deal.tra_da_extra_discard_pending:
-		interaction_locked = true
+		interactions.locked = true
 		_refresh_actions()
 		var turn_result := deal.end_turn_without_tra_da_extra()
 		if not turn_result.get("ok", false):
@@ -3412,29 +1758,30 @@ func _on_settle_pressed() -> void:
 			return
 		_sync_all(turn_result)
 		if turn_result.has("turn_resolution"):
-			_show_turn_deadwood(turn_result["turn_resolution"])
-		_drain_pending_exhaustion_presentations()
+			money_feedback.show_turn_deadwood(turn_result["turn_resolution"], turn_result.get("boss_wallet_entries", []))
+		money_feedback.drain_exhaustion()
 		if turn_result.get("final_commit_window", false):
 			_show_banner(tr("BANNER_LAST_CALL"))
 		else:
 			var turn_drawn: Array[CardData] = _cards_from_result(turn_result)
 			_show_banner(tr("BANNER_DRAW") % [turn_drawn.size(), deal.discard_count, deal.phase_discard_limit()])
-		interaction_locked = false
+		interactions.locked = false
 		_refresh_actions()
 		return
-	interaction_locked = true
+	interactions.locked = true
 	_refresh_actions()
 	var result := deal.settle_phase()
 	if not result.get("ok", false):
 		_reject_action(result.get("message", "Settlement failed."))
 		return
-	selected_card_ids.clear()
-	selected_meld_id = -1
+	interactions.selected_ids.clear()
+	interactions.selected_meld_id = -1
 	_sync_all(result)
 	var resolution: Dictionary = result["phase_resolution"]
-	if int(resolution.get("phase", 0)) == 2 and gameplay_music != null:
-		gameplay_music.on_deal_resolved()
-	await _show_phase_resolution(resolution, result.get("boss_wallet_entries", []))
+	if int(resolution.get("phase", 0)) == 2:
+		music.conductor.on_deal_resolved()
+	await money_feedback.show_phase_resolution(resolution, result.get("boss_wallet_entries", []))
+	if presentation_generation != money_playback.generation: return
 	if resolution["phase"] == 1:
 		_show_phase_choice(resolution)
 	else:
@@ -3445,15 +1792,16 @@ func _on_sort_pressed() -> void:
 	if sort_button.disabled:
 		return
 	sort_mode = (sort_mode + 1) % 2
+	var ordered: Array[CardData] = deal.hand.duplicate()
 	if sort_mode == 0:
-		deal.hand.sort_custom(func(left: CardData, right: CardData) -> bool:
+		ordered.sort_custom(func(left: CardData, right: CardData) -> bool:
 			if left.rank_index == right.rank_index:
 				return DeckManager.SUITS.find(left.suit) < DeckManager.SUITS.find(right.suit)
 			return left.rank_index < right.rank_index
 		)
 		sort_button.text = tr("ACTION_SORT_RANK")
 	else:
-		deal.hand.sort_custom(func(left: CardData, right: CardData) -> bool:
+		ordered.sort_custom(func(left: CardData, right: CardData) -> bool:
 			var left_suit := DeckManager.SUITS.find(left.suit)
 			var right_suit := DeckManager.SUITS.find(right.suit)
 			if left_suit == right_suit:
@@ -3461,101 +1809,43 @@ func _on_sort_pressed() -> void:
 			return left_suit < right_suit
 		)
 		sort_button.text = tr("ACTION_SORT_SUIT")
-	_layout_hand(true)
-	_sync_music_reactive_cards()
+	deal.reorder_hand(ordered)
+	card_table.layout_hand(true)
+	card_table.sync_reactive_targets()
 
 
 func _on_hint_pressed() -> void:
-	if hint_button.disabled:
-		return
-	if drink_targeting_active:
+	if hint_button.disabled: return
+	if interactions.drink_targeting:
 		_cancel_drink_targeting()
 		return
-	selected_card_ids.clear()
-	selected_meld_id = -1
-	var recommendation := deal.recommend_action()
+	if strawy != null: strawy.close()
+	interactions.selected_ids.clear()
+	interactions.selected_meld_id = -1
+	var recommendation := deal.queries.recommend_action()
 	if recommendation["action"] == HandAdvisor.ACTION_NONE:
 		_show_banner(tr("BANNER_NO_HINT"))
 	else:
-		for card: CardData in recommendation["cards"]:
-			selected_card_ids[card.unique_id] = true
-		if recommendation["action"] == HandAdvisor.ACTION_EXTENSION:
-			selected_meld_id = recommendation["meld_id"]
+		interactions.select(recommendation["cards"], recommendation["meld_id"] if recommendation["action"] == HandAdvisor.ACTION_EXTENSION else -1)
 		var verb := tr("MELD_ACTION") if recommendation["action"] == HandAdvisor.ACTION_NEW_MELD else tr("EXTEND_ACTION")
 		_show_banner(tr("BANNER_HINT") % [verb, recommendation["estimated_points"]])
-	_layout_hand(true)
-	_sync_melds()
-	_sync_music_reactive_cards()
+	card_table.layout_hand(true)
+	card_table.sync_melds()
+	card_table.sync_reactive_targets()
 	_refresh_stats()
 	_refresh_actions()
 
 
-func _show_scoring(context: ScoringContext, source_override: Control = null) -> void:
-	var last_job_id := _queue_scoring(context, source_override)
-	if last_job_id >= 0:
-		await _wait_for_money_job(last_job_id)
-
-
-func _queue_scoring(context: ScoringContext, source_override: Control = null, recycle_visual: Dictionary = {}) -> int:
-	if not context.suppression_reason.is_empty():
-		if zodiac_boss_hud != null and zodiac_boss_hud.visible:
-			zodiac_boss_hud.present_suppression(context)
-		else:
-			_show_banner(ZodiacCatalog.feedback(context.suppression_reason) + ZodiacCatalog.words(" · legal play, 0 VNĐ", " · bài hợp lệ, 0 VNĐ"))
-		return _queue_zodiac_wallet_entries(context.boss_transactions)
-	var passes: Array = context.scoring_passes if not context.scoring_passes.is_empty() else [context]
-	var gross_multiplier := deal.gross_payout_multiplier()
-	var hits: Array[Dictionary] = []
-	var liquid_echo := 0
-	for scoring_pass: ScoringContext in passes:
-		if scoring_pass.trigger_index > 0:
-			if scoring_pass.trigger_origin == ScoringPipeline.TRIGGER_GIEO_RETRIGGER:
-				liquid_echo += 1
-			var replay: Dictionary = {}
-			for source_hit in scoring_pass.presentation_hits:
-				if source_hit["card_id"] == scoring_pass.retrigger_source_id:
-					replay = source_hit.duplicate(true)
-					break
-			replay.merge({
-				"kind": "meld_retrigger", "card_id": scoring_pass.retrigger_source_id,
-				"property": scoring_pass.retrigger_property, "points": 0,
-				"pass": scoring_pass.trigger_index + 1, "echo": liquid_echo,
-			}, true)
-			hits.append(replay)
-		for hit in scoring_pass.presentation_hits:
-			var receipt := hit.duplicate(true)
-			receipt["amount_vnd"] = _points_to_vnd(int(hit["points"]) * gross_multiplier)
-			receipt["pass"] = scoring_pass.trigger_index + 1
-			receipt["echo"] = liquid_echo
-			hits.append(receipt)
-	var amount_vnd := _points_to_vnd(context.final_points * gross_multiplier)
-	for bonus in context.relic_bonuses:
-		var relic_vnd := int(bonus.amount_vnd)
-		amount_vnd += relic_vnd
-		hits.append({"kind": "relic", "relic_id": bonus.id, "label": bonus.name,
-			"action_points": bonus.action_points, "base_rate_vnd": bonus.base_rate_vnd,
-			"rate_bonus_vnd": bonus.rate_bonus_vnd, "rate_percent": bonus.rate_percent,
-			"amount_vnd": relic_vnd})
-	var start_wallet := money_queue_wallet_vnd
-	money_queue_wallet_vnd += amount_vnd
-	var event := {
-		"hits": hits, "amount_vnd": amount_vnd,
-		"start_wallet_vnd": start_wallet, "target_wallet_vnd": money_queue_wallet_vnd,
-		"source_control": source_override if is_instance_valid(source_override) else meld_scroll,
-		"card_locator": _scoring_card_control, "reveal_card": _reveal_scoring_card,
-		"relic_cue": _pulse_relic,
-		"rate_cue": _show_scoring_rate,
-		"base_rate_vnd": deal.vnd_per_point,
-		"title": tr("EXTEND_ACTION") if context.action_type == "extension" else tr("MELD_ACTION"),
-	}
-	var final_job := _enqueue_money_job("scoring", event, recycle_visual)
-	var boss_job := _queue_zodiac_wallet_entries(context.boss_transactions)
-	return boss_job if boss_job >= 0 else final_job
+func _present_scoring_suppression(context: ScoringContext) -> void:
+	if zodiac_boss_hud != null and zodiac_boss_hud.visible:
+		zodiac_boss_hud.present_suppression(context)
+	else:
+		_show_banner(ZodiacCatalog.feedback(context.suppression_reason) + ZodiacCatalog.words(" · legal play, 0 VNĐ", " · bài hợp lệ, 0 VNĐ"))
 
 
 func _scoring_card_control(card_id: String) -> Control:
 	# Resolve at playback time; rapid input can rebuild meld views while queued.
-	for view: MeldView in meld_views.values():
+	for view: MeldView in card_table.meld_views.values():
 		if is_instance_valid(view):
 			var face := view.get_scoring_card_control(card_id)
 			if face != null:
@@ -3571,63 +1861,9 @@ func _scoring_card_control(card_id: String) -> Control:
 			return child as Control
 	return null
 
-func _show_phase_resolution(resolution: Dictionary, boss_entries: Array = []) -> void:
-	var boss_total := 0
-	for entry: Dictionary in boss_entries: boss_total += int(entry.amount_vnd)
-	var target_wallet := deal.wallet.balance_vnd - boss_total
-	var event := {
-		"phase": int(resolution.get("phase", 1)),
-		"title": "%s!" % tr("MOM") if bool(resolution.get("mom", false)) else "P%d" % int(resolution.get("phase", 1)),
-		"mom": bool(resolution.get("mom", false)),
-		"u": bool(resolution.get("u", false)),
-		"raw_gross_vnd": _points_to_vnd(int(resolution.get("raw_gross", 0))),
-		"gross_vnd": int(resolution.get("net_vnd", _points_to_vnd(int(resolution.get("net", 0))))) + _points_to_vnd(int(resolution.get("deadwood_points", 0))),
-		"deadwood_value_sum": int(resolution.get("deadwood_value_sum", 0)),
-		"deadwood_multiplier": int(resolution.get("deadwood_multiplier", 1)),
-		"deadwood_vnd": _points_to_vnd(int(resolution.get("turn_deadwood", resolution.get("deadwood_points", 0)))),
-		"deadwood_total_vnd": _points_to_vnd(int(resolution.get("deadwood_points", 0))),
-		"net_vnd": int(resolution.get("net_vnd", _points_to_vnd(int(resolution.get("net", 0))))),
-		"u_bonus_paid_early": bool(resolution.get("u_bonus_paid_early", false)),
-		"start_wallet_vnd": money_queue_wallet_vnd,
-		"target_wallet_vnd": target_wallet,
-		"source_control": hand_layer,
-	}
-	money_queue_wallet_vnd = target_wallet
-	var job_id := _enqueue_money_job("phase", event)
-	var boss_job := _queue_zodiac_wallet_entries(boss_entries)
-	await _wait_for_money_job(boss_job if boss_job >= 0 else job_id)
-
-
-func _show_turn_deadwood(resolution: Dictionary) -> void:
-	var deadwood_points := maxi(int(resolution.get("deadwood", 0)), 0)
-	var amount_vnd := _points_to_vnd(deadwood_points)
-	if amount_vnd <= 0:
-		return
-	var start_wallet := money_queue_wallet_vnd
-	var target_wallet := start_wallet - amount_vnd
-	var event := {
-		"direction": "loss",
-		"amount_vnd": amount_vnd,
-		"start_wallet_vnd": start_wallet,
-		"target_wallet_vnd": target_wallet,
-		"source_control": hand_layer,
-		"destination_control": hand_layer,
-		"intensity": 1.05,
-		"title": tr("TURN_DEADWOOD_TITLE") % int(resolution.get("turn", deal.discard_count)),
-		"steps": [
-			str(int(resolution.get("value_sum", deadwood_points))),
-			"× %d" % maxi(int(resolution.get("multiplier", 1)), 1),
-		],
-		"payout": VndWallet.format_vnd(-amount_vnd, true),
-		"reason": "deadwood",
-	}
-	money_queue_wallet_vnd = target_wallet
-	_enqueue_money_job("transaction", event)
-
-
 func _try_fast_forward_money(event: InputEvent) -> bool:
-	if not money_queue_running or money_presentation.fast_forward_enabled or menu_layer.visible \
-			or modal_overlay.visible or discard_archive_overlay.visible or is_instance_valid(wallet_spiral) \
+	if not money_playback.running or money_presentation.fast_forward_enabled or menu_layer.visible \
+			or modal_overlay.visible or pile_archive.overlay.visible or is_instance_valid(wallet_spiral) \
 			or (event_table != null and event_table.overview.expanded):
 		return false
 	var pressed := false
@@ -3639,97 +1875,26 @@ func _try_fast_forward_money(event: InputEvent) -> bool:
 		pressed = event.is_pressed()
 	if not pressed:
 		return false
-	money_presentation.request_fast_forward()
+	money_playback.request_fast_forward()
 	# This press only speeds up committed feedback; it cannot activate a card or
 	# the focused action button underneath. Later inputs keep their normal meaning.
 	get_viewport().set_input_as_handled()
 	return true
 
 
-func _enqueue_money_job(kind: String, event: Dictionary, recycle_visual: Dictionary = {}) -> int:
-	var job_id := next_money_job_id
-	next_money_job_id += 1
-	money_jobs.append({
-		"id": job_id,
-		"kind": kind,
-		"event": event,
-		"recycle_visual": recycle_visual,
-	})
-	if not money_queue_running:
-		money_queue_running = true
-		money_presentation.reset_fast_forward()
-		call_deferred("_drain_money_jobs")
-	return job_id
-
-
-func _drain_money_jobs() -> void:
-	var generation := money_queue_generation
-	while not money_jobs.is_empty():
-		var job: Dictionary = money_jobs.pop_front()
-		var event: Dictionary = job["event"]
-		if String(job["kind"]) == "scoring":
-			await money_presentation.present_scoring(event)
-		elif String(job["kind"]) == "phase":
-			await money_presentation.present_phase(event)
-		else:
-			await money_presentation.present_transaction(event)
-		if generation != money_queue_generation:
-			return
-		displayed_wallet_vnd = int(event.get("target_wallet_vnd", displayed_wallet_vnd))
-		_refresh_stats()
-		for visual: Dictionary in event.get("recycle_visuals", []):
-			await _return_exhaustion_visual(visual)
-			if generation != money_queue_generation:
-				return
-		var recycle_visual: Dictionary = job.get("recycle_visual", {})
-		if not recycle_visual.is_empty():
-			await _return_exhaustion_visual(recycle_visual)
-			if generation != money_queue_generation:
-				return
-		var job_id := int(job["id"])
-		completed_money_jobs[job_id] = true
-		money_job_completed.emit(job_id)
-	money_queue_running = false
-	money_presentation.reset_fast_forward()
-
-
-func _wait_for_money_job(job_id: int) -> void:
-	var generation := money_queue_generation
-	while not completed_money_jobs.has(job_id) and generation == money_queue_generation:
-		await get_tree().process_frame
-	completed_money_jobs.erase(job_id)
-
-
-func _show_phase_choice(resolution: Dictionary) -> void:
-	interaction_locked = false
-	if not deal.has_phase_transition_choice():
-		_begin_phase_two(false)
-		return
-	modal_mode = "phase_choice"
-	modal_kicker.text = tr("MODAL_PHASE1_KICKER") % (tr("MOM") if resolution["mom"] else tr("SAFE"))
-	modal_title.text = tr("MODAL_KEEP_OR_REDRAW")
-	if deal.has_phase_transition_choice():
-		modal_body.text = (tr("MODAL_PHASE1_BODY_SAM_DUA") % [deal.hand.size(), deal.sam_dua_preserved_cards.size()]).replace("Sâm dứa", DrinkCatalog.display_name(deal.current_drink_id))
-	else:
-		modal_body.text = tr("MODAL_PHASE1_BODY") % deal.hand.size()
-	modal_detail.text = tr("MODAL_PHASE1_DETAIL")
-	modal_primary.text = tr("MODAL_KEEP") % deal.hand.size()
-	modal_primary.add_theme_color_override("font_color", ActionVocabulary.color_for("keep"))
-	modal_secondary.add_theme_color_override("font_color", ActionVocabulary.color_for("dump"))
-	modal_secondary.text = tr("MODAL_REDRAW_SAM_DUA") % deal.sam_dua_preserved_cards.size() if deal.has_phase_transition_choice() else tr("MODAL_REDRAW")
-	modal_secondary.visible = true
-	_show_modal()
-	_refresh_actions()
+func _show_phase_choice(_resolution: Dictionary) -> void:
+	interactions.locked = false
+	_begin_phase_two()
 
 
 func _show_deal_over(_resolution: Dictionary) -> void:
-	interaction_locked = true
-	_set_hand_interaction_enabled(false)
+	interactions.locked = true
+	card_table.set_hand_interaction_enabled(false)
 	modal_overlay.visible = false
-	if boss_debug_active:
+	if session.debug_active:
 		campaign.debug_context.finished = true
-		_show_banner(_run_words("DEBUG encounter complete · Replay or choose another boss.", "Đã xong thử nghiệm · Chơi lại hoặc chọn Con Giáp khác."))
-		_flush_run_save()
+		_show_banner(GameGlossary.words("DEBUG encounter complete · Replay or choose another boss.", "Đã xong thử nghiệm · Chơi lại hoặc chọn Con Giáp khác."))
+		session.flush()
 		return
 	# Resolution feedback has already played. Archive once and return to the
 	# event table without constructing an inspection screen for every deal.
@@ -3739,14 +1904,14 @@ func _show_deal_over(_resolution: Dictionary) -> void:
 		result["details"] = deal.accounting_report()
 		campaign.complete_deal(result)
 	elif campaign == null:
-		interaction_locked = false
+		interactions.locked = false
 		_start_new_deal()
 
 
 func _show_modal() -> void:
-	if discard_archive_overlay.visible:
-		_hide_discard_archive()
-	_set_hand_interaction_enabled(false)
+	if pile_archive.overlay.visible:
+		pile_archive.close()
+	card_table.set_hand_interaction_enabled(false)
 	modal_overlay.visible = true
 	modal_overlay.modulate = Color(1, 1, 1, 0)
 	var panel: Panel = modal_title.get_parent().get_parent()
@@ -3761,10 +1926,8 @@ func _show_modal() -> void:
 func _on_modal_primary_pressed() -> void:
 	if modal_mode == "zodiac_endgame":
 		_choose_zodiac_endgame(true)
-	elif modal_mode == "phase_choice":
-		_begin_phase_two(true)
 	elif modal_mode == "campaign_deal_over":
-		interaction_locked = true
+		interactions.locked = true
 		modal_overlay.visible = false
 		campaign.complete_deal(deal.last_phase_resolution)
 	elif modal_mode == "deal_over":
@@ -3774,60 +1937,54 @@ func _on_modal_primary_pressed() -> void:
 func _on_modal_secondary_pressed() -> void:
 	if modal_mode == "zodiac_endgame":
 		_choose_zodiac_endgame(false)
-	elif modal_mode == "phase_choice":
-		_begin_phase_two(false)
 
 
-func _begin_phase_two(keep_hand: bool) -> void:
-	if interaction_locked:
+func _begin_phase_two() -> void:
+	var presentation_generation := money_playback.generation
+	if interactions.locked:
 		return
-	interaction_locked = true
+	interactions.locked = true
 	modal_overlay.visible = false
-	_set_hand_interaction_enabled(true)
-	if not keep_hand:
-		var cards_to_dump: Array[CardData] = []
-		for card in deal.hand:
-			if not deal.sam_dua_preserved_cards.has(card):
-				cards_to_dump.append(card)
-		await _fly_cards(cards_to_dump, discard_texture.get_global_rect().get_center())
-	var result := deal.choose_phase_two(keep_hand)
+	card_table.set_hand_interaction_enabled(true)
+	var cards_to_dump: Array[CardData] = []
+	for card in deal.hand:
+		if not deal.has_preservation_drink() or not deal.sam_dua_preserved_cards.has(card): cards_to_dump.append(card)
+	await _fly_cards(cards_to_dump, discard_texture.get_global_rect().get_center())
+	if presentation_generation != money_playback.generation: return
+	var result := deal.choose_phase_two()
 	if not result.get("ok", false):
 		_reject_action(result.get("message", "Phase transition failed."))
 		return
-	selected_card_ids.clear()
-	selected_meld_id = -1
-	if gameplay_music != null:
-		gameplay_music.on_deal_phase_started(deal.current_phase)
+	interactions.selected_ids.clear()
+	interactions.selected_meld_id = -1
+	music.conductor.on_deal_phase_started(deal.current_phase)
 	_sync_all(result)
-	_drain_pending_exhaustion_presentations()
-	if not keep_hand and not result.get("preserved", []).is_empty():
+	money_feedback.drain_exhaustion()
+	if not result.get("preserved", []).is_empty():
 		_show_banner(tr("BANNER_PHASE2_SAM_DUA") % result["preserved"].size())
 	else:
-		_show_banner(tr("BANNER_PHASE2") % (tr("KEEP_HAND") if keep_hand else tr("REDRAW_HAND")))
-	interaction_locked = false
+		_show_banner(GameGlossary.words("PHASE 2 · HAND REFILLED", "HIỆP 2 · ĐÃ BÙ BÀI"))
+	_release_deal_input()
 	_refresh_actions()
 
 
 func _start_campaign() -> void:
+	_reset_session_view()
 	event_table.table_state = EventTableController.TABLE_STATE_DEAL
 	resolve_mode = ""
 	if is_instance_valid(resolve_receipt):
 		resolve_receipt.hide()
-	if tutorial_active:
-		_deactivate_tutorial(true)
-	interaction_locked = true
+	interactions.locked = true
 	modal_overlay.visible = false
-	campaign_overlay.visible = false
-	selected_card_ids.clear()
-	selected_meld_id = -1
-	displayed_wallet_vnd = 0
-	pending_u_presentations.clear()
-	pending_u_khan_presentations.clear()
-	pending_exhaustion_presentations.clear()
+	event_table.visible = false
+	interactions.selected_ids.clear()
+	interactions.selected_meld_id = -1
+	money_playback.displayed_balance = 0
+	money_feedback.clear_pending()
 	for snapshot in meld_row.get_children():
 		if snapshot.get_meta("exhaustion_snapshot", false):
 			snapshot.queue_free()
-	money_queue_wallet_vnd = displayed_wallet_vnd
+	money_playback.queued_balance = money_playback.displayed_balance
 	deal.relics.reset_run()
 	campaign.onboarding.first_seed_enabled = settings.first_seed_enabled
 	campaign.start_campaign(true, run_seed_input)
@@ -3839,45 +1996,28 @@ func _on_campaign_event_started(event: EventInstance) -> void:
 	if _collection_departing:
 		current_campaign_event = event
 		return
-	if gameplay_music != null:
+	if music.conductor != null:
 		match event.slot:
 			EventManager.EventSlot.NOON:
-				gameplay_music.on_event_started("noon")
+				music.conductor.on_event_started("noon")
 			EventManager.EventSlot.AFTERNOON:
-				gameplay_music.on_event_started("afternoon")
+				music.conductor.on_event_started("afternoon")
 	_show_campaign_event(event)
 
 
 func _on_campaign_started() -> void:
 	deal.set_campaign_deck(campaign.gieo_que.persistent_deck)
-	if gameplay_music == null:
-		gameplay_music = GAMEPLAY_MUSIC_CONDUCTOR_SCRIPT.new(music_controller)
-	if settings.music_system != settings.MUSIC_SYSTEM_AUTHORED_DJ:
-		gameplay_music.stop_campaign()
-		if music_controller.dj_mode:
-			music_controller.play_track(music_controller.current_track_index, false)
-	_sync_music_player()
-
-
-func _on_campaign_day_started(_day: Dictionary) -> void:
-	if gameplay_music == null:
-		gameplay_music = GAMEPLAY_MUSIC_CONDUCTOR_SCRIPT.new(music_controller)
-	if settings.music_system == settings.MUSIC_SYSTEM_AUTHORED_DJ:
-		gameplay_music.start_campaign(settings.authored_music_set)
-	_sync_music_player()
-
 
 
 func _on_campaign_deal_requested(day: Dictionary, period: String, drink_id: String) -> void:
 	if drink_manager.progress != null:
 		drink_manager.progress.begin_deal()
-	_sync_music_player()
 	current_campaign_event = null
-	interaction_locked = true
+	interactions.locked = true
 	modal_overlay.visible = false
-	_set_hand_interaction_enabled(false)
-	selected_card_ids.clear()
-	selected_meld_id = -1
+	card_table.set_hand_interaction_enabled(false)
+	interactions.selected_ids.clear()
+	interactions.selected_meld_id = -1
 	var drink_result := deal.set_current_drink(drink_id)
 	if not drink_result.get("ok", false):
 		deal.set_current_drink(DrinkCatalog.TRA_DA)
@@ -3887,93 +2027,22 @@ func _on_campaign_deal_requested(day: Dictionary, period: String, drink_id: Stri
 	var shuffle_seed := CampaignOnboarding.SEED if campaign.current_day_index == 0 and campaign.onboarding.first_seed_enabled else campaign.seed_for("deal", campaign.current_day_index * 4 + ["morning", "noon", "afternoon", "evening", "dragon"].find(period))
 	if period == "dragon": shuffle_seed = campaign.seed_for("dragon_deal", campaign.current_day_index)
 	var result := deal.start_deal(shuffle_seed, false, opening)
-	if result.get("ok", false) and gameplay_music != null:
-		gameplay_music.on_deal_started(period)
-	displayed_wallet_vnd = deal.wallet.balance_vnd
-	money_queue_wallet_vnd = displayed_wallet_vnd
+	if result.get("ok", false):
+		music.conductor.on_deal_started(period)
+	money_playback.displayed_balance = deal.wallet.balance_vnd
+	money_playback.queued_balance = money_playback.displayed_balance
 	_sync_all(result, true)
 	pending_deal_presentation_unlock = true
 	event_table.enter_deal()
 	_show_banner(tr("CAMPAIGN_DEAL_BANNER") % [
-		_campaign_day_name(),
-		_run_words("DRAGON ENDGAME", "THỬ THÁCH THÌN") if period == "dragon" else tr(_campaign_period_key(period)),
+		CampaignText.day_name(campaign),
+		GameGlossary.words("DRAGON ENDGAME", "THỬ THÁCH THÌN") if period == "dragon" else tr(CampaignText.period_key(period)),
 	])
 
-func _on_deal_new_phom_scored(_context: ScoringContext) -> void:
-	if gameplay_music != null:
-		gameplay_music.on_new_phom(deal.current_phase, deal.phase_new_meld_count)
-
-
-func _on_deal_u_triggered(context: Dictionary) -> void:
-	var queued := context.duplicate(true)
-	if not bool(context.get("u_khan", false)):
-		pending_u_presentations.append(queued)
-		return
-	var amount_vnd := _points_to_vnd(int(context.get("payout", 0)))
-	queued["amount_vnd"] = amount_vnd
-	queued["target_wallet_vnd"] = deal.wallet.balance_vnd
-	queued["start_wallet_vnd"] = deal.wallet.balance_vnd - amount_vnd
-	pending_u_khan_presentations.append(queued)
-
-
-func _drain_pending_u_presentations() -> void:
-	while not pending_u_presentations.is_empty():
-		var context: Dictionary = pending_u_presentations.pop_front()
-		var amount_vnd := int(context.get("payout_vnd", _points_to_vnd(int(context.get("payout", 0)))))
-		var deal_earnings_vnd := int(context.get("deal_earnings_vnd", amount_vnd))
-		var start_wallet := money_queue_wallet_vnd
-		var target_wallet := start_wallet + amount_vnd
-		var event := {
-			"direction": "gain",
-			"amount_vnd": amount_vnd,
-			"start_wallet_vnd": start_wallet,
-			"target_wallet_vnd": target_wallet,
-			"source_control": hand_layer,
-			"destination_control": wallet_pile_anchor,
-			"intensity": 1.8,
-			"title": "%s!" % tr("HOW_U_TITLE"),
-			"steps": [VndWallet.format_vnd(deal_earnings_vnd, true), "×2"],
-			"payout": VndWallet.format_vnd(amount_vnd, true),
-			"reason": "u",
-		}
-		money_queue_wallet_vnd = target_wallet
-		var job_id := _enqueue_money_job("transaction", event)
-		await _wait_for_money_job(job_id)
-
-
-func _drain_pending_u_khan_presentations() -> void:
-	while not pending_u_khan_presentations.is_empty():
-		var context: Dictionary = pending_u_khan_presentations.pop_front()
-		var hand_sum := 0
-		for card_value in context.get("hand", []):
-			var card := card_value as CardData
-			if card != null:
-				hand_sum += card.score_value()
-		var event := {
-			"direction": "gain",
-			"amount_vnd": int(context.get("amount_vnd", 0)),
-			"start_wallet_vnd": int(context.get("start_wallet_vnd", displayed_wallet_vnd)),
-			"target_wallet_vnd": int(context.get("target_wallet_vnd", deal.wallet.balance_vnd)),
-			"source_control": hand_layer,
-			"destination_control": wallet_pile_anchor,
-			"intensity": 2.0,
-			"title": "%s!" % tr("HOW_U_KHAN_TITLE"),
-			"steps": [str(hand_sum), "×10" if int(context.get("gross_multiplier", 1)) == 1 else "×10  •  Ù ×2"],
-			"payout": VndWallet.format_vnd(int(context.get("amount_vnd", 0)), true),
-			"reason": "u_khan",
-		}
-		money_queue_wallet_vnd = int(event["target_wallet_vnd"])
-		var job_id := _enqueue_money_job("transaction", event)
-		await _wait_for_money_job(job_id)
-
-
 func _on_deal_meld_exhaustion_triggered(meld: MeldState, context: Dictionary) -> void:
-	var view := meld_views.get(meld.meld_id) as MeldView
+	var view := card_table.meld_views.get(meld.meld_id) as MeldView
 	var visual := _capture_exhaustion_visual(meld, view)
-	pending_exhaustion_presentations.append({
-		"context": context.get("scoring_context") as ScoringContext,
-		"visual": visual,
-	})
+	money_feedback.buffer_exhaustion(context.get("scoring_context") as ScoringContext, visual)
 
 
 func _capture_exhaustion_visual(meld: MeldState, view: MeldView) -> Dictionary:
@@ -4039,34 +2108,9 @@ func _return_exhaustion_visual(visual: Dictionary) -> void:
 		anchor.queue_free()
 
 func _on_deal_exhaustion_triggered(_context: Dictionary) -> void:
-	if pending_exhaustion_presentations.is_empty():
-		pending_exhaustion_presentations.append({})
-	selected_meld_id = -1
+	money_feedback.ensure_exhaustion()
+	interactions.selected_meld_id = -1
 	_show_banner(tr("BANNER_EXHAUSTION"))
-
-
-func _drain_pending_exhaustion_presentations() -> void:
-	if pending_exhaustion_presentations.is_empty():
-		return
-	var amount := 0
-	var visuals: Array[Dictionary] = []
-	while not pending_exhaustion_presentations.is_empty():
-		var pending: Dictionary = pending_exhaustion_presentations.pop_front()
-		var context := pending.get("context") as ScoringContext
-		if context != null:
-			amount += _points_to_vnd(context.final_points)
-		visuals.append(pending.get("visual", {}))
-	var start := money_queue_wallet_vnd
-	money_queue_wallet_vnd += amount
-	_enqueue_money_job("transaction", {
-		"reason": "exhaustion", "title": tr("MAJOR_EXHAUSTION_TITLE"),
-		"amount_vnd": amount, "start_wallet_vnd": start,
-		"target_wallet_vnd": money_queue_wallet_vnd,
-		"steps": [tr("MAJOR_EXHAUSTION_BODY")],
-		"payout": VndWallet.format_vnd(amount, true),
-		"recycle_visuals": visuals,
-	})
-
 
 
 func _on_campaign_drink_pressed(event_slot: int, interaction_id: String, drink_id: String) -> void:
@@ -4079,37 +2123,27 @@ func _on_campaign_drink_pressed(event_slot: int, interaction_id: String, drink_i
 	ui_feedback.play_drink(drink_id)
 	event_manager.complete_interaction(interaction_id)
 	var target_wallet := deal.wallet.balance_vnd
-	displayed_wallet_vnd = target_wallet
-	money_queue_wallet_vnd = target_wallet
+	money_playback.synchronize(target_wallet)
 	event_table.event_money_feedback(_event_money_text(target_wallet))
 	if current_campaign_event != null:
 		_sync_event_continue()
-		_on_event_table_npc_focused(event_table.focused_npc_id)
+		event_services.present_npc(event_table.focused_npc_id, current_campaign_event)
 	_refresh_stats()
-
-
-func _on_campaign_interaction_pressed(interaction_id: String) -> void:
-	event_manager.complete_interaction(interaction_id)
-	if current_campaign_event != null:
-		_sync_event_continue()
-		_on_event_table_npc_focused(event_table.focused_npc_id)
 
 
 func _on_campaign_continue_pressed() -> void:
 	if campaign.current_phase in [CampaignManager.CampaignPhase.CAMPAIGN_VICTORY, CampaignManager.CampaignPhase.CAMPAIGN_FAILURE]:
 		_start_campaign()
 		return
-	if current_campaign_event == null or not current_campaign_event.can_exit:
+	if current_campaign_event == null or not current_campaign_event.can_exit or campaign.relic_shop.removal_pending:
 		return
 	if campaign.gieo_que.state not in [GieoQueService.STATE_READY, GieoQueService.STATE_COMPLETE]:
 		return
-	campaign_continue_button.disabled = true
+	event_table.continue_button.disabled = true
 	current_campaign_event = null
 	campaign.complete_current_event()
 
 func _on_campaign_requirement_passed(day: Dictionary) -> void:
-	if drink_manager.progress != null and day.get("id") == "monday":
-		drink_manager.progress.add_progress("mondays")
 	_show_banner(tr("CAMPAIGN_REQUIREMENT_PASSED") % [
 		tr(String(day.get("name_key", ""))),
 		VndWallet.format_vnd(int(day.get("required_vnd", 0))),
@@ -4126,13 +2160,10 @@ func _on_campaign_lost() -> void:
 
 
 func _show_campaign_outcome(won: bool) -> void:
-	if won and not campaign.endless and campaign._base_day_count == 7 and campaign.campaign_complete:
-		campaign.difficulty_progress.complete_week(campaign.difficulty)
-	event_table._hide_all_npcs()
-	event_table.hide()
+	event_table.enter_resolution()
 	current_campaign_event = null
-	interaction_locked = true
-	_set_hand_interaction_enabled(false)
+	interactions.locked = true
+	card_table.set_hand_interaction_enabled(false)
 	modal_overlay.visible = false
 	resolve_mode = "outcome"
 	_ensure_resolve_receipt()
@@ -4150,7 +2181,7 @@ func _show_campaign_outcome(won: bool) -> void:
 	report["next_difficulty"] = campaign.difficulty_progress.unlocked
 	report["endless_debt"] = mini(4_000_000_000_000_000, int(ceil(float(campaign.daily_requirement()) * 1.5 / 500.0)) * 500)
 	report["can_endless"] = won and campaign.campaign_complete
-	resolve_receipt.show_report(report, "outcome", tr("CAMPAIGN_VICTORY" if won else "CAMPAIGN_FAILURE"), _run_words("EXIT TO MENU", "VỀ MENU"))
+	resolve_receipt.show_report(report, "outcome", tr("CAMPAIGN_VICTORY" if won else "CAMPAIGN_FAILURE"), GameGlossary.words("EXIT TO MENU", "VỀ MENU"))
 	_refresh_stats()
 
 
@@ -4168,16 +2199,13 @@ func _ensure_resolve_receipt() -> void:
 
 func _on_collection_requested(report: Dictionary) -> void:
 	# A collection owns the stage even when restored from an event save.
-	event_table._hide_all_npcs()
-	event_table._clear_content()
-	event_table.hide()
-	displayed_wallet_vnd = deal.wallet.balance_vnd
-	money_queue_wallet_vnd = displayed_wallet_vnd
-	money_presentation.sync_wallet(displayed_wallet_vnd)
-	event_table._animate_deal_out()
+	event_table.enter_resolution(true)
+	money_playback.displayed_balance = deal.wallet.balance_vnd
+	money_playback.queued_balance = money_playback.displayed_balance
+	money_presentation.sync_wallet(money_playback.displayed_balance)
 	current_campaign_event = null
-	interaction_locked = true
-	_set_hand_interaction_enabled(false)
+	interactions.locked = true
+	card_table.set_hand_interaction_enabled(false)
 	modal_overlay.visible = false
 	resolve_mode = "collection"
 	_ensure_resolve_receipt()
@@ -4218,7 +2246,6 @@ func _on_receipt_continue() -> void:
 	resolve_mode = ""
 	if mode == "collection" and deal.wallet.balance_vnd >= campaign.daily_requirement():
 		_collection_departing = true
-		resolve_receipt._collector_arrival.stop()
 		# Keep the receiving character on screen while committed banknotes arrive.
 		var departure := CanvasLayer.new()
 		departure.layer = 244
@@ -4241,8 +2268,8 @@ func _on_receipt_continue() -> void:
 		_collection_departing = false
 		if current_campaign_event != null:
 			_on_campaign_event_started(current_campaign_event)
-		displayed_wallet_vnd = deal.wallet.balance_vnd
-		money_queue_wallet_vnd = displayed_wallet_vnd
+		money_playback.displayed_balance = deal.wallet.balance_vnd
+		money_playback.queued_balance = money_playback.displayed_balance
 		_refresh_stats()
 		return
 	resolve_receipt.hide()
@@ -4253,12 +2280,12 @@ func _on_receipt_continue() -> void:
 				result["details"] = deal.accounting_report()
 				campaign.complete_deal(result)
 			else:
-				interaction_locked = false
+				interactions.locked = false
 				_start_new_deal()
 		"collection":
 			campaign.collect_day_debt()
-			displayed_wallet_vnd = deal.wallet.balance_vnd
-			money_queue_wallet_vnd = displayed_wallet_vnd
+			money_playback.displayed_balance = deal.wallet.balance_vnd
+			money_playback.queued_balance = money_playback.displayed_balance
 			_refresh_stats()
 		"outcome":
 			_exit_completed_run()
@@ -4268,53 +2295,20 @@ func _event_money_text(amount_vnd: int) -> String:
 	return VndWallet.format_amount(amount_vnd)
 
 
-func _campaign_period_key(period: String) -> String:
-	match period:
-		"morning":
-			return "PERIOD_MORNING"
-		"noon":
-			return "PERIOD_NOON"
-		"afternoon":
-			return "PERIOD_AFTERNOON"
-		"evening":
-			return "PERIOD_EVENING"
-	return ""
-
-
 func _start_new_deal() -> void:
-	if interaction_locked:
+	if interactions.locked:
 		return
-	if tutorial_active:
-		_deactivate_tutorial(true)
-		tutorial_deal_snapshot.clear()
-		tutorial_return_to_gameplay = false
-	interaction_locked = true
+	interactions.locked = true
 	modal_overlay.visible = false
-	_set_hand_interaction_enabled(true)
-	selected_card_ids.clear()
-	selected_meld_id = -1
+	card_table.set_hand_interaction_enabled(true)
+	interactions.selected_ids.clear()
+	interactions.selected_meld_id = -1
 	var result := deal.start_deal(-1, false)
-	displayed_wallet_vnd = deal.wallet.balance_vnd
-	money_queue_wallet_vnd = displayed_wallet_vnd
+	money_playback.displayed_balance = deal.wallet.balance_vnd
+	money_playback.queued_balance = money_playback.displayed_balance
 	_sync_all(result, true)
 	_show_banner(tr("BANNER_NEW_DEAL_WALLET"))
-	interaction_locked = false
-	_refresh_actions()
-
-
-func _restore_interrupted_deal(snapshot: Dictionary) -> void:
-	interaction_locked = true
-	_set_hand_interaction_enabled(false)
-	deal.restore_snapshot(snapshot)
-	displayed_wallet_vnd = deal.wallet.balance_vnd
-	money_queue_wallet_vnd = displayed_wallet_vnd
-	_sync_all()
-	_set_hand_interaction_enabled(true)
-	interaction_locked = false
-	menu_layer.visible = false
-	menu_layer.modulate = Color.WHITE
-	menu_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	menu_transitioning = false
+	interactions.locked = false
 	_refresh_actions()
 
 
@@ -4325,9 +2319,9 @@ func _fly_cards(cards: Array[CardData], target_global: Vector2) -> void:
 	var tween := create_tween().set_parallel(true)
 	for index in range(cards.size()):
 		var card := cards[index]
-		if not hand_views.has(card.unique_id):
+		if not card_table.hand_views.has(card.unique_id):
 			continue
-		var source: PlayingCardView = hand_views[card.unique_id]
+		var source: PlayingCardView = card_table.hand_views[card.unique_id]
 		var ghost := TextureRect.new()
 		ghost.set_meta("scoring_card_id", card.unique_id)
 		ghost.texture = load(card.texture_path()) as Texture2D
@@ -4369,33 +2363,16 @@ func _show_banner(message: String) -> void:
 
 
 func _reject_action(message: String) -> void:
-	if strawy != null: strawy._reaction(false)
+	action_rejected.emit()
 	ui_feedback.play(&"reject")
-	interaction_locked = false
+	_release_deal_input()
 	_show_banner(message)
 	status_label.text = message.to_upper()
 	status_label.add_theme_color_override("font_color", PresentationTheme.DANGER)
-	for card in _selected_cards():
-		if hand_views.has(card.unique_id):
-			hand_views[card.unique_id].play_reject()
+	for card in interactions.selected_cards():
+		if card_table.hand_views.has(card.unique_id):
+			card_table.hand_views[card.unique_id].play_reject()
 	_refresh_actions()
-
-
-func _selected_cards() -> Array[CardData]:
-	var selected: Array[CardData] = []
-	for card in deal.hand:
-		if selected_card_ids.has(card.unique_id):
-			selected.append(card)
-	return selected
-
-
-func _set_hand_interaction_enabled(enabled: bool) -> void:
-	for value in hand_views.values():
-		var view := value as PlayingCardView
-		if view != null:
-			view.set_interaction_enabled(enabled)
-	if not enabled and active_drag_payload != null:
-		_cancel_card_drag()
 
 
 func _cards_from_result(result: Dictionary) -> Array[CardData]:
@@ -4410,50 +2387,26 @@ func _cards_from_result(result: Dictionary) -> Array[CardData]:
 
 func _on_viewport_size_changed() -> void:
 	_park_game_layer()
-	_layout_hand(false)
-
-
-func _rewind_tutorial_selection() -> void:
-	var rewind_step := tutorial_step
-	match tutorial_step:
-		TUTORIAL_PLAY_RUN:
-			rewind_step = TUTORIAL_SELECT_RUN
-		TUTORIAL_DISCARD:
-			rewind_step = TUTORIAL_SELECT_DISCARD
-		TUTORIAL_SELECT_MELD, TUTORIAL_EXTEND:
-			rewind_step = TUTORIAL_SELECT_EXTEND
-		TUTORIAL_FINAL_DISCARD:
-			rewind_step = TUTORIAL_SELECT_FINAL_DISCARD
-		TUTORIAL_SELECT_RUN, TUTORIAL_SELECT_DISCARD, TUTORIAL_SELECT_EXTEND, TUTORIAL_SELECT_FINAL_DISCARD:
-			pass
-		_:
-			return
-	selected_card_ids.clear()
-	selected_meld_id = -1
-	_sync_all()
-	if rewind_step != tutorial_step:
-		_set_tutorial_step(rewind_step)
-	else:
-		_refresh_tutorial_spotlight()
+	card_table.layout_hand(false)
 
 
 func _unhandled_key_input(event: InputEvent) -> void:
 	if zodiac_table != null and zodiac_table.shade.visible:
 		if event.is_action_pressed(&"ui_cancel"):
-			zodiac_table._close_conversation()
+			zodiac_table.close_conversation()
 		get_viewport().set_input_as_handled()
 		return
 	if get_tree().root.has_node("GameGlossary"):
 		return
-	if is_instance_valid(resolve_receipt) and resolve_receipt.visible:
+	if is_instance_valid(resolve_receipt) and resolve_receipt.visible and not menu_layer.visible:
 		return
 	if not event is InputEventKey or not event.pressed or event.echo:
 		return
 	if menu_layer.visible:
 		if front_end != null and front_end.page != "home":
 			return
-		if event.is_action_pressed(&"ui_cancel") and menu_page != &"home":
-			_show_menu_page(&"home")
+		if event.is_action_pressed(&"ui_cancel") and front_end.page != "home":
+			front_end.show_home()
 		elif game_started and event.is_action_pressed(&"ui_cancel"):
 			_close_menu_to_game()
 		return
@@ -4461,20 +2414,13 @@ func _unhandled_key_input(event: InputEvent) -> void:
 		if event.is_action_pressed(&"ui_cancel"):
 			event_table.unfocus_npc()
 		return
-	if discard_archive_overlay.visible:
+	if pile_archive.overlay.visible:
 		if event.is_action_pressed(&"ui_cancel"):
-			_hide_discard_archive()
+			pile_archive.close()
 		return
 	if modal_overlay.visible:
-		if modal_mode == "phase_choice" and event.is_action_pressed(&"game_keep"):
-			_begin_phase_two(true)
-		elif modal_mode == "phase_choice" and event.is_action_pressed(&"game_redraw"):
-			_begin_phase_two(false)
-		elif modal_mode == "deal_over" and event.is_action_pressed(&"game_new_deal"):
+		if modal_mode == "deal_over" and event.is_action_pressed(&"game_new_deal"):
 			_start_new_deal()
-		return
-	if tutorial_active and event.is_action_pressed(&"ui_cancel"):
-		_rewind_tutorial_selection()
 		return
 	if event.is_action_pressed(&"game_meld"):
 		if not ha_button.disabled:
@@ -4495,16 +2441,16 @@ func _unhandled_key_input(event: InputEvent) -> void:
 		if not hint_button.disabled:
 			_on_hint_pressed()
 	elif event.is_action_pressed(&"ui_cancel"):
-		if drink_targeting_active:
+		if interactions.drink_targeting:
 			_cancel_drink_targeting()
 		else:
-			selected_card_ids.clear()
-			selected_meld_id = -1
+			interactions.selected_ids.clear()
+			interactions.selected_meld_id = -1
 			_sync_all()
 
 
 func _on_demo_progress_action(result: Dictionary) -> void:
-	if tutorial_active or campaign == null or drink_manager.progress == null:
+	if campaign == null or drink_manager.progress == null:
 		return
 	if not CampaignManager.DEAL_PHASE_TO_PERIOD.has(campaign.current_phase):
 		return
@@ -4512,7 +2458,7 @@ func _on_demo_progress_action(result: Dictionary) -> void:
 
 
 func _on_demo_deal_finished(result: Dictionary) -> void:
-	if not tutorial_active and drink_manager.progress != null and result.get("period") == "morning":
+	if drink_manager.progress != null and result.get("period") == "morning":
 		drink_manager.progress.add_progress("morning_deals")
 
 
@@ -4545,74 +2491,32 @@ func _reveal_scoring_card(card_control: Control) -> void:
 	tween.tween_property(meld_scroll, "scroll_horizontal", maxi(0, meld_scroll.scroll_horizontal + roundi(offset)), 0.18).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN_OUT)
 	await tween.finished
 
-func _control_hit(control: Control, point: Vector2) -> bool:
-	if not is_instance_valid(control) or not control.is_visible_in_tree():
-		return false
-	if not Rect2(Vector2.ZERO, control.size).has_point(control.get_global_transform_with_canvas().affine_inverse() * point):
-		return false
-	var ancestor := control.get_parent()
-	while ancestor != null:
-		if ancestor is Control and ancestor.clip_contents:
-			if not Rect2(Vector2.ZERO, ancestor.size).has_point(ancestor.get_global_transform_with_canvas().affine_inverse() * point):
-				return false
-		ancestor = ancestor.get_parent()
-	return true
+func drink_record_at(point: Vector2) -> DiscardRecord:
+	return pile_archive.record_at(point) if pile_archive.overlay.visible else card_table.drink_record_at(point)
 
-func _drink_record_at(point: Vector2) -> DiscardRecord:
-	if tutorial_active or not deal.current_drink_has_charge():
-		return null
-	for record in deal.drink_mandatory_discard_targets():
-		var holder := discard_history_target_holders.get(_discard_history_target_key(record)) as Control
-		if not discard_archive_overlay.visible and _control_hit(holder, point):
-			return record
-	if discard_archive_overlay.visible and pile_archive_mode == "discard":
-		for grid: GridContainer in discard_archive_suit_grids.values():
-			for holder: Control in grid.get_children():
-				if holder.has_meta("drink_record") and _control_hit(holder, point):
-					return holder.get_meta("drink_record") as DiscardRecord
-	return null
 
-func _drink_drop_is_valid(cards: Array[CardData], target: Dictionary) -> bool:
-	if tutorial_active or interaction_locked or cards.is_empty() or not deal.current_drink_has_charge():
+func commit_selected_drink(cards: Array[CardData]) -> bool:
+	if not interactions.drink_drop_is_valid(cards, {"kind": &"drink"}):
 		return false
-	var kind: StringName = target.get("kind", &"")
-	if kind == &"drink_discard" and cards.size() == 1:
-		var record := target.get("record") as DiscardRecord
-		return deal.can_use_nhan_tran(cards[0], record) or deal.can_use_den_da(cards[0], record)
-	if kind != &"drink" and not (drink_targeting_active and kind == DROP_TARGET_TABLE):
-		return false
-	if deal.current_drink_id in [DrinkCatalog.NHAN_TRAN, DrinkCatalog.DEN_DA]:
-		return cards.size() == 1 and deal.hand.has(cards[0]) and not deal.drink_mandatory_discard_targets().is_empty()
-	if deal.has_phase_transition_choice():
-		if cards.size() > deal.preservation_limit():
-			return false
-		for card in cards:
-			if not deal.hand.has(card): return false
-		return true
-	return deal.can_create_meld(cards, true)
-
-func _commit_selected_drink(cards: Array[CardData]) -> bool:
-	if not _drink_drop_is_valid(cards, {"kind": &"drink"}):
-		return false
-	if deal.has_phase_transition_choice():
-		_finish_drink_use(deal.select_sam_dua_preserves(cards))
+	if deal.has_preservation_drink():
+		present_drink_result(interactions.execute_drink("preserve", cards))
 	elif deal.current_drink_id in [DrinkCatalog.NHAN_TRAN, DrinkCatalog.DEN_DA]:
-		drink_targeting_active = true
-		pending_drink_card_ids.clear()
-		pending_drink_card_ids[cards[0].unique_id] = true
-		_on_drink_hand_card_targeted(cards[0])
+		interactions.drink_targeting = true
+		interactions.drink_ids.clear()
+		interactions.drink_ids[cards[0].unique_id] = true
+		target_drink_card(cards[0])
 	else:
-		_finish_drink_use(deal.create_meld(cards, true))
+		present_drink_result(interactions.execute_drink("create", cards))
 	return true
 
-func _try_drink_card_drop(cards: Array[CardData], target: Dictionary) -> bool:
-	if not _drink_drop_is_valid(cards, target):
+func try_drink_card_drop(cards: Array[CardData], target: Dictionary) -> bool:
+	if not interactions.drink_drop_is_valid(cards, target):
 		return false
 	if target.get("kind") == &"drink_discard":
-		_hide_discard_archive()
-		_resolve_hand_drink_target(cards[0], target["record"] as DiscardRecord)
+		pile_archive.close()
+		swap_drink_card(cards[0], target["record"] as DiscardRecord)
 	else:
-		_commit_selected_drink(cards)
+		commit_selected_drink(cards)
 	return true
 
 func _sync_passive_drink_sound(result: Dictionary) -> void:
@@ -4626,126 +2530,108 @@ func _sync_passive_drink_sound(result: Dictionary) -> void:
 			ui_feedback.play_drink(deal.current_drink_id)
 
 func _setup_run_saving() -> void:
-	campaign.zodiac.changed.connect(_queue_run_save)
-	deal.state_changed.connect(func(_result: Dictionary): _queue_run_save())
-	deal.wallet.balance_changed.connect(func(_a: int, _b: int, _c: int, _reason: String): _queue_run_save())
-	deal.relics.inventory_changed.connect(_queue_run_save)
-	campaign.campaign_phase_changed.connect(func(_phase: int): _queue_run_save())
-	campaign.event_manager.interaction_completed.connect(func(_event, _interaction): _queue_run_save())
-	campaign.gieo_que.state_changed.connect(func(_state, _payload): _queue_run_save())
-	campaign.relic_shop.changed.connect(_queue_run_save)
-	music_controller.music_director.state_changed.connect(func(_state): _queue_run_save())
-	music_controller.music_director.cue_held.connect(func(_track, _cue): _queue_run_save())
-	music_controller.anti_fatigue.state_changed.connect(func(_state): _queue_run_save())
+	add_child(session)
+	session.configure(campaign, deal, session.save_files, func(): return game_started, music.snapshot,
+		_reset_session_view, _present_restored_run, _present_inactive_session,
+		func(message): front_end.show_error(message), _show_banner)
+	session.progress_rebound.connect(func(): _connect_signal_once(drink_manager.progress.drink_unlocked, _on_drink_unlocked))
+	session.debug_options_changed.connect(func(options): front_end.boss_options = options)
+	music.checkpoint_changed.connect(session.queue_save)
 	get_tree().auto_accept_quit = false
 
-
 func _notification(what: int) -> void:
-	if what == NOTIFICATION_WM_CLOSE_REQUEST:
-		_flush_run_save()
+	if what == NOTIFICATION_WM_WINDOW_FOCUS_OUT and is_node_ready():
+		if interactions.drag_payload != null: cancel_card_drag()
+		for view: PlayingCardView in card_table.hand_views.values(): view.clear_transient_interaction()
+	elif what == NOTIFICATION_WM_CLOSE_REQUEST:
+		session.flush()
 		get_tree().quit()
 
 
-func _queue_run_save() -> void:
-	if _run_save_pending or _restoring_run or tutorial_active or not game_started or campaign.run_seed.is_empty():
-		return
-	_run_save_pending = true
-	_flush_run_save.call_deferred()
-
-
-func _flush_run_save() -> void:
-	_run_save_pending = false
-	if _restoring_run or tutorial_active or not game_started or campaign.run_seed.is_empty():
-		return
-	if save_files != null and not boss_debug_active and not save_files.save():
-		_show_banner(_run_words("Could not save permanent progress: ", "Không thể lưu tiến trình: ") + save_files.error)
-	if not run_save.save_run(campaign, deal, _music_checkpoint()):
-		_show_banner(_run_words("Could not save: ", "Không thể lưu: ") + run_save.error)
-
-
-func _run_words(en: String, vi: String) -> String:
-	return vi if TranslationServer.get_locale().begins_with("vi") else en
-
-
-func _show_run_menu() -> void:
-	front_end.show_setup()
-
-
 func _on_front_start_requested(draft: RunSetupDraft) -> void:
-	if not save_files.usable():
-		front_end.start_failed(save_files.error)
+	if not session.save_files.usable():
+		front_end.start_failed(session.save_files.error)
 		return
-	if boss_debug_active:
-		front_end.start_failed(_run_words("Exit Boss Lab before starting a normal run.", "Thoát thử Con Giáp trước khi bắt đầu ván thường."))
+	if session.debug_active:
+		front_end.start_failed(GameGlossary.words("Exit Boss Lab before starting a normal run.", "Thoát thử Con Giáp trước khi bắt đầu ván thường."))
 		return
 	if not campaign.select_difficulty(draft.difficulty):
-		front_end.start_failed(_run_words("Difficulty is locked.", "Độ khó chưa được mở."))
+		front_end.start_failed(GameGlossary.words("Difficulty is locked.", "Độ khó chưa được mở."))
 		return
 	if not draft.emblem_id.is_empty() and not campaign.zodiac.progress.owns(draft.emblem_id):
-		front_end.start_failed(_run_words("Emblem is locked.", "Huy hiệu chưa được mở."))
+		front_end.start_failed(GameGlossary.words("Emblem is locked.", "Huy hiệu chưa được mở."))
 		return
 	if draft.music_system not in settings.SUPPORTED_MUSIC_SYSTEMS:
-		front_end.start_failed(_run_words("Music choice is unavailable.", "Chế độ nhạc không khả dụng."))
+		front_end.start_failed(GameGlossary.words("Music choice is unavailable.", "Chế độ nhạc không khả dụng."))
 		return
 	campaign.zodiac.prefer_emblem(draft.emblem_id)
 	if settings.music_system != draft.music_system:
-		_on_music_system_selected(settings.SUPPORTED_MUSIC_SYSTEMS.find(draft.music_system))
+		music.select_system(settings.SUPPORTED_MUSIC_SYSTEMS.find(draft.music_system))
 	run_seed_input = draft.seed
 	_on_play_pressed()
 
 
 func _on_front_resume_requested() -> void:
-	var saved := run_save.load_run()
+	var saved := session.run_save.load_run()
 	if saved.is_empty():
-		front_end.show_error(run_save.error if not run_save.error.is_empty() else _run_words("Saved run is unavailable.", "Không tìm thấy ván đã lưu."))
+		front_end.show_error(session.run_save.error if not session.run_save.error.is_empty() else GameGlossary.words("Saved run is unavailable.", "Không tìm thấy ván đã lưu."))
 		return
-	if not _resume_saved_run(saved):
-		front_end.show_error(_run_words("Could not resume this saved run.", "Không thể tiếp tục ván đã lưu."))
+	if not session.resume(saved):
+		front_end.show_error(GameGlossary.words("Could not resume this saved run.", "Không thể tiếp tục ván đã lưu."))
 
 func _exit_completed_run() -> void:
-	_flush_run_save()
+	session.flush()
 	game_started = false
 	_park_game_layer()
-	interaction_locked = true
+	interactions.locked = true
 	current_campaign_event = null
 	event_table.hide()
 	menu_layer.position = Vector2.ZERO
 	menu_layer.modulate = Color.WHITE
 	menu_layer.show()
 	menu_layer.mouse_filter = Control.MOUSE_FILTER_STOP
-	return_to_game_button.hide()
-	play_button.disabled = false
-	_show_menu_page(&"home")
+	front_end.show_home()
 
 
-func _resume_saved_run(saved: Dictionary) -> bool:
-	if bool(saved.get("campaign", {}).get("debug_context", {}).get("active", false)) != boss_debug_active:
-		return false
-	if saved.is_empty():
-		return false
-	_restoring_run = true
-	if tutorial_active:
-		_deactivate_tutorial(true)
-	_reset_tutorial_ui_state()
+func _reset_session_view() -> void:
+	_boss_lab_hidden_modal = false
+	_boss_lab_hidden_receipt = false
+	_close_session_browsers()
+	if is_instance_valid(resolve_receipt):
+		resolve_receipt.resume_presentation()
+		resolve_receipt.hide()
+	reset_transient_presentation()
 	money_presentation.hide_ceremony()
-	if not run_save.restore(saved, campaign, deal):
-		_restoring_run = false
-		return false
+
+func _close_session_browsers() -> void:
+	deck_screen.close()
+	zodiac_table.close_conversation()
+	get_node("ActionLegend/Shade").hide()
+	for id in ["GameGlossary", "LotteryReceipt"]:
+		var browser := get_tree().root.get_node_or_null(id)
+		if browser != null:
+			get_tree().root.remove_child(browser)
+			browser.queue_free()
+	if is_instance_valid(wallet_spiral):
+		remove_child(wallet_spiral)
+		wallet_spiral.queue_free()
+		wallet_spiral = null
+
+func _present_restored_run(saved: Dictionary) -> void:
 	game_started = true
 	menu_transitioning = false
 	menu_layer.hide()
 	menu_layer.position = Vector2.ZERO
 	menu_layer.modulate = Color.WHITE
 	game_layer.position = Vector2.ZERO
-	play_button.disabled = false
 	if is_instance_valid(resolve_receipt):
 		resolve_receipt.hide()
 	resolve_mode = ""
 	current_campaign_event = campaign.event_manager.current_event
-	displayed_wallet_vnd = deal.wallet.balance_vnd
-	money_queue_wallet_vnd = displayed_wallet_vnd
+	money_playback.displayed_balance = deal.wallet.balance_vnd
+	money_playback.queued_balance = money_playback.displayed_balance
 	_on_campaign_started()
-	_restore_run_music(saved.get("music", {}))
+	music.restore(saved.get("music", {}))
 	_sync_all()
 	_refresh_relics()
 	event_table.table_state = EventTableController.TABLE_STATE_DEAL
@@ -4761,42 +2647,13 @@ func _resume_saved_run(saved: Dictionary) -> bool:
 	elif campaign.campaign_complete or campaign.run_failed:
 		_show_campaign_outcome(not campaign.run_failed)
 	else:
-		interaction_locked = true
+		interactions.locked = true
 		pending_deal_presentation_unlock = true
 		event_table.enter_deal()
 		if deal.state == DealState.STATE_DEAL_OVER:
 			_show_deal_over(deal.last_phase_resolution)
 		elif deal.state == DealState.STATE_PHASE_CHOICE:
 			_show_phase_choice(deal.last_phase_resolution)
-	_restoring_run = false
-	_queue_run_save()
-	return true
-
-
-func _music_checkpoint() -> Dictionary:
-	return {"system": settings.music_system, "set": settings.authored_music_set, "controller": music_controller.snapshot_state(),
-		"conductor": gameplay_music.snapshot_state() if gameplay_music != null else {"active": false}}
-
-
-func _restore_run_music(data: Variant) -> void:
-	# Missing legacy transport cannot be reconstructed from a round's phase.
-	# Explicit jukebox switches can start a new DJ route after a legacy resume.
-	if data is Dictionary and data.get("controller") is Dictionary and data.get("conductor") is Dictionary:
-		var system := String(data.get("system", ""))
-		if system in settings.SUPPORTED_MUSIC_SYSTEMS \
-				and music_controller.restore_snapshot(data.controller) \
-				and gameplay_music.restore_snapshot(data.conductor):
-			settings.set_music_system(settings.MUSIC_SYSTEM_AUTHORED_DJ if music_controller.dj_mode else settings.MUSIC_SYSTEM_PLAYING_TRACKS)
-			settings.set_authored_music_set(String(data.conductor.get("set", "")) if gameplay_music.active else String(data.get("set", settings.authored_music_set)))
-			_sync_music_player()
-			return
-	gameplay_music.stop_campaign()
-	settings.set_music_system(settings.MUSIC_SYSTEM_PLAYING_TRACKS)
-	music_controller.play_track(music_controller.current_track_index, false)
-	_sync_music_player()
-	_show_banner(_run_words("This save has no usable music checkpoint. Playlist continues; choose a DJ set to start one.",
-		"Bản lưu không có trạng thái nhạc hợp lệ. Tiếp tục danh sách; chọn DJ set để bắt đầu."))
-
 
 func _on_endless_requested() -> void:
 	if not campaign.campaign_complete or campaign.run_failed:
@@ -4804,65 +2661,21 @@ func _on_endless_requested() -> void:
 	resolve_mode = ""
 	resolve_receipt.hide()
 	campaign.continue_endless()
-	_queue_run_save()
-
-
-func _campaign_day_name() -> String:
-	if campaign == null:
-		return ""
-	if campaign.endless:
-		return _run_words("ENDLESS · DAY %d", "VÔ TẬN · NGÀY %d") % (campaign.current_day_index + 1)
-	return tr(String(campaign.current_day().get("name_key", "")))
-
-
-func _build_debt_ledger() -> void:
-	event_table.continue_button.visible = false
-	event_table.content_panel.position = Vector2(145, 285)
-	event_table.content_panel.size = Vector2(700, 370)
-	var heading := Label.new()
-	heading.text = tr("DEBT_INTRO_REQUIRED")
-	PresentationTheme.style_text(heading, &"body", 18)
-	campaign_participants.add_child(heading)
-	var amount := Label.new()
-	amount.name = "DebtAmountDue"
-	amount.text = VndWallet.format_vnd(campaign.daily_requirement())
-	PresentationTheme.style_text(amount, &"debt", 38)
-	campaign_participants.add_child(amount)
-	var line := RichTextLabel.new()
-	line.bbcode_enabled = true
-	line.fit_content = true
-	line.scroll_active = false
-	line.custom_minimum_size = Vector2(640, 90)
-	line.text = tr("DEBT_INTRO_EXPLANATION") % PresentationTheme.emphasis(tr("PERIOD_EVENING"), &"warning")
-	PresentationTheme.style_text(line, &"body", 18)
-	campaign_participants.add_child(line)
-	var remaining := Label.new()
-	remaining.text = tr("DEBT_INTRO_SHORTFALL") % VndWallet.format_vnd(maxi(campaign.daily_requirement() - deal.wallet.balance_vnd, 0))
-	PresentationTheme.style_text(remaining, &"debt", 20)
-	campaign_participants.add_child(remaining)
-	var guide := Button.new()
-	guide.text = _run_words("ABOUT DEBT", "VỀ KHOẢN NỢ")
-	guide.pressed.connect(func(): GameGlossary.open(self, "campaign"))
-	campaign_participants.add_child(guide)
-	PresentationTheme.configure_button(guide)
-	event_table.back_button.text = tr("DEBT_INTRO_ACKNOWLEDGE")
-	event_manager.complete_interaction("debt_intro")
-	campaign.onboarding.mark("debt_intro")
-	_queue_run_save()
+	session.queue_save()
 
 
 func _show_zodiac_endgame_choice() -> void:
 	current_campaign_event = null
 	event_table.hide()
-	interaction_locked = true
-	_set_hand_interaction_enabled(false)
+	interactions.locked = true
+	card_table.set_hand_interaction_enabled(false)
 	modal_mode = "zodiac_endgame"
-	modal_kicker.text = _run_words("AFTER SNAKE", "SAU TỴ")
-	modal_title.text = _run_words("PROVE IT.", "CHỨNG MINH ĐI.")
-	modal_body.text = _run_words("Face Dragon using your most successful tactic, or keep playing the week.", "Đối mặt Thìn bằng chiến thuật thành công nhất, hoặc tiếp tục tuần chơi.")
-	modal_detail.text = _run_words("The day's debt and Sunday's progression continue after either choice. Endless remains available after the week.", "Khoản nợ hôm nay và tiến trình Chủ nhật tiếp tục sau cả hai lựa chọn. Vô tận vẫn mở sau tuần chơi.")
-	modal_primary.text = _run_words("FACE DRAGON", "ĐỐI MẶT THÌN")
-	modal_secondary.text = _run_words("CONTINUE THE WEEK", "TIẾP TỤC TUẦN CHƠI")
+	modal_kicker.text = GameGlossary.words("AFTER SNAKE", "SAU TỴ")
+	modal_title.text = GameGlossary.words("PROVE IT.", "CHỨNG MINH ĐI.")
+	modal_body.text = GameGlossary.words("Face Dragon using your most successful tactic, or keep playing the week.", "Đối mặt Thìn bằng chiến thuật thành công nhất, hoặc tiếp tục tuần chơi.")
+	modal_detail.text = GameGlossary.words("The day's debt and Sunday's progression continue after either choice. Endless remains available after the week.", "Khoản nợ hôm nay và tiến trình Chủ nhật tiếp tục sau cả hai lựa chọn. Vô tận vẫn mở sau tuần chơi.")
+	modal_primary.text = GameGlossary.words("FACE DRAGON", "ĐỐI MẶT THÌN")
+	modal_secondary.text = GameGlossary.words("CONTINUE THE WEEK", "TIẾP TỤC TUẦN CHƠI")
 	modal_primary.disabled = false
 	modal_secondary.disabled = false
 	modal_secondary.show()
@@ -4874,145 +2687,98 @@ func _choose_zodiac_endgame(face_dragon: bool) -> void:
 	modal_overlay.hide()
 	modal_mode = ""
 	campaign.choose_zodiac_endgame(face_dragon)
-	_queue_run_save()
+	session.queue_save()
 
-func _queue_zodiac_wallet_entries(entries: Array) -> int:
-	var last_job := -1
-	for entry: Dictionary in entries:
-		var amount := int(entry.amount_vnd)
-		var start := money_queue_wallet_vnd
-		money_queue_wallet_vnd += amount
-		last_job = _enqueue_money_job("transaction", {"reason": "zodiac", "title": ZodiacCatalog.display_name(deal.zodiac_boss.id),
-			"amount_vnd": amount, "start_wallet_vnd": start, "target_wallet_vnd": money_queue_wallet_vnd,
-			"steps": [ZodiacCatalog.skill_name(deal.zodiac_boss.id, deal.zodiac_boss.difficulty)], "payout": VndWallet.format_vnd(amount, true)})
-	return last_job
+func select_save_file(slot: int) -> bool:
+	return session.select_profile(slot)
 
-
-func _select_save_file(slot: int) -> bool:
-	if boss_debug_active: return false
-	if game_started:
-		if not run_save.save_run(campaign, deal, _music_checkpoint()): return false
-	if not save_files.select(slot, campaign): return false
-	_restoring_run = true
-	_reset_tutorial_ui_state()
-	money_presentation.hide_ceremony()
+func _present_inactive_session(show_home: bool) -> void:
 	game_started = false
-	campaign.run_seed = ""
-	campaign.current_day_index = -1
-	campaign.debug_context.clear()
-	campaign.zodiac.daily.clear()
-	campaign.zodiac.endgame.clear()
 	current_campaign_event = null
-	run_save = RunSave.new(save_files.run_path())
-	_connect_signal_once(drink_manager.progress.drink_unlocked, _on_drink_unlocked)
-	_park_game_layer()
 	event_table.hide()
-	interaction_locked = true
-	_restoring_run = false
-	return true
+	_park_game_layer()
+	interactions.locked = true
+	if show_home:
+		menu_layer.position = Vector2.ZERO
+		menu_layer.modulate = Color.WHITE
+		menu_layer.mouse_filter = Control.MOUSE_FILTER_STOP
+		menu_layer.show()
+		menu_transitioning = false
+		front_end.show_home()
 
-func _open_boss_lab() -> void:
+func open_boss_lab() -> void:
 	if not BossDebugSession.available() or front_end == null: return
-	if menu_transitioning: return
+	if menu_transitioning or _collection_departing: return
+	_close_session_browsers()
+	cancel_card_drag()
+	quick_drink_input.cancel()
+	event_table.collector_arrival.stop()
 	if not menu_layer.visible:
-		_flush_run_save()
-		_menu_interaction_was_locked = interaction_locked
+		session.flush()
+		_menu_interaction_was_locked = interactions.locked
 		_boss_lab_hidden_modal = modal_overlay.visible
 		modal_overlay.hide()
-		interaction_locked = true
-		_set_hand_interaction_enabled(false)
+		_boss_lab_hidden_receipt = is_instance_valid(resolve_receipt) and resolve_receipt.visible
+		if _boss_lab_hidden_receipt:
+			resolve_receipt.suspend_presentation()
+		interactions.locked = true
+		card_table.set_hand_interaction_enabled(false)
 		menu_layer.position = Vector2.ZERO
 		menu_layer.modulate = Color.WHITE
 		menu_layer.mouse_filter = Control.MOUSE_FILTER_STOP
 		menu_layer.show()
 	front_end.show_boss_lab()
 
-func _enter_boss_debug() -> bool:
-	if boss_debug_active: return true
-	if not BossDebugSession.available() or tutorial_active: return false
-	if game_started and not run_save.save_run(campaign, deal, _music_checkpoint()):
-		front_end.show_error(_run_words("Could not preserve your run: ", "Không thể giữ ván hiện tại: ") + run_save.error)
-		return false
-	if not save_files.save():
-		front_end.show_error(save_files.error)
-		return false
-	_regular_run_save = run_save
-	_regular_progress = {"drinks": drink_manager.progress, "difficulty": campaign.difficulty_progress, "zodiac": campaign.zodiac.progress, "test_drinks": drink_manager.test_all_drinks_available}
-	_debug_history.clear()
-	# The selected file's checkpoint is authoritative even before Continue.
-	# In-memory reports may still belong to a previously selected file.
-	var normal := run_save.load_run()
-	for report: Dictionary in normal.get("campaign", {}).get("deal_reports", []): _debug_history.append_array(report.get("details", {}).get("actions", []))
-	save_files.suspended = true
-	boss_debug_active = true
-	drink_manager.progress = DrinkProgress.new("")
-	for goal: Array in DrinkProgress.GOALS.values():
-		if not String(goal[0]).is_empty(): drink_manager.progress.counters[goal[0]] = int(goal[1])
-	drink_manager.test_all_drinks_available = true
-	campaign.difficulty_progress = preload("res://scripts/campaign/difficulty_progress.gd").new("")
-	campaign.difficulty_progress.unlocked = 28
-	campaign.zodiac.progress = ZodiacProgress.new("")
-	run_save = RunSave.new(BossDebugSession.SAVE_PATH)
+func start_boss_debug(options: Dictionary) -> bool:
+	return session.start_debug(options)
+
+func resume_boss_debug() -> bool:
+	return session.resume_debug()
+
+func replay_boss_debug() -> void:
+	session.replay_debug()
+
+func leave_boss_debug() -> void:
+	_boss_lab_hidden_modal = false
+	session.leave_debug()
+
+func set_card_selection(cards: Array[CardData], meld_id: int = -1) -> bool:
+	if not interactions.select(cards, meld_id): return false
+	card_table.layout_hand(false)
+	card_table.sync_melds()
+	_refresh_actions()
 	return true
 
-func _start_boss_debug(options: Dictionary) -> bool:
-	_boss_lab_hidden_modal = false
-	if BossDebugSession.normalize(options).is_empty() or not _enter_boss_debug(): return false
-	_restoring_run = true
-	_reset_tutorial_ui_state()
-	money_presentation.hide_ceremony()
-	if not BossDebugSession.prepare(campaign, deal, options, _debug_history):
-		_restoring_run = false
-		return false
-	front_end.boss_options = campaign.debug_context.options.duplicate(true)
-	var snapshot := run_save.capture(campaign, deal, true, _music_checkpoint())
-	_restoring_run = false
-	return _resume_saved_run(snapshot)
+func interaction_snapshot() -> Dictionary:
+	var gesture_blocked: bool = menu_layer.visible or modal_overlay.visible or deck_screen.visible or zodiac_table.shade.visible or get_node("ActionLegend/Shade").visible or get_tree().root.has_node("GameGlossary") or get_tree().root.has_node("LotteryReceipt") or is_instance_valid(wallet_spiral) or (is_instance_valid(resolve_receipt) and resolve_receipt.visible)
+	var blocked: bool = gesture_blocked or pile_archive.overlay.visible
+	return {"blocked": blocked, "gesture_blocked": gesture_blocked, "locked": interactions.locked, "restoring": session.restoring,
+		"started": game_started, "event": current_campaign_event != null,
+		"dragging": interactions.drag_payload != null, "drink_targeting": interactions.drink_targeting,
+		"selection": interactions.selected_ids.keys(), "meld_id": interactions.selected_meld_id,
+		"can_play": game_started and not blocked and not interactions.locked and current_campaign_event == null and not interactions.drink_targeting and interactions.drag_payload == null and not (score_overlay.visible and not money_presentation.presentation_active)}
 
-func _resume_boss_debug() -> bool:
-	if not BossDebugSession.available(): return false
-	var checkpoint := RunSave.new(BossDebugSession.SAVE_PATH)
-	var saved := checkpoint.load_run()
-	if saved.is_empty() or not bool(saved.campaign.get("debug_context", {}).get("active", false)): return false
-	if not _enter_boss_debug(): return false
-	run_save = checkpoint
-	front_end.boss_options = saved.campaign.debug_context.options.duplicate(true)
-	return _resume_saved_run(saved)
+func request_card_action(kind: String) -> void:
+	if not interaction_snapshot().can_play: return
+	_refresh_actions()
+	match kind:
+		"meld": _on_ha_pressed()
+		"extend": _on_extend_pressed()
+		"discard": _on_discard_pressed()
+		"settle": _on_settle_pressed()
 
-func _replay_boss_debug() -> void:
-	if boss_debug_active: _start_boss_debug(campaign.debug_context.get("options", {}).duplicate(true))
+func request_drink_recovery(meld_id: int, card: CardData = null) -> void:
+	var state := interaction_snapshot()
+	if not state.started or state.locked or state.gesture_blocked: return
+	present_drink_result(interactions.execute_drink("recover_card", [card] as Array[CardData], meld_id) if card != null else interactions.execute_drink("recover", [], meld_id))
 
-func _leave_boss_debug() -> void:
-	_boss_lab_hidden_modal = false
-	if not boss_debug_active: return
-	_flush_run_save()
-	_restoring_run = true
-	_reset_tutorial_ui_state()
-	money_presentation.hide_ceremony()
-	drink_manager.progress = _regular_progress.drinks
-	drink_manager.test_all_drinks_available = _regular_progress.test_drinks
-	campaign.difficulty_progress = _regular_progress.difficulty
-	campaign.zodiac.progress = _regular_progress.zodiac
-	run_save = _regular_run_save
-	_regular_run_save = null
-	_regular_progress.clear()
-	boss_debug_active = false
-	campaign.debug_context.clear()
-	campaign.run_seed = ""
-	campaign.current_day_index = -1
-	campaign.zodiac.daily.clear()
-	campaign.zodiac.endgame.clear()
-	game_started = false
-	current_campaign_event = null
-	event_table.hide()
-	_park_game_layer()
-	menu_layer.position = Vector2.ZERO
-	menu_layer.modulate = Color.WHITE
-	menu_layer.mouse_filter = Control.MOUSE_FILTER_STOP
-	menu_layer.show()
-	interaction_locked = true
-	menu_transitioning = false
-	play_button.disabled = false
-	save_files.suspended = false
-	_restoring_run = false
-	front_end.show_home()
+func refresh_interaction_view() -> void:
+	_sync_all()
+
+func begin_drink_target(cards: Array[CardData]) -> void:
+	interactions.begin_drink(cards)
+
+func _on_debt_briefing_seen() -> void:
+	event_manager.complete_interaction("debt_intro")
+	campaign.onboarding.mark("debt_intro")
+	session.queue_save()

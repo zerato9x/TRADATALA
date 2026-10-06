@@ -17,7 +17,7 @@ func _run() -> void:
 	scene.game_layer.position = Vector2.ZERO
 	scene.menu_layer.hide()
 	scene.deal.start_tutorial_deal()
-	scene.interaction_locked = false
+	scene.interactions.locked = false
 	var cards: Array[CardData] = []
 	for suit in ["Clubs", "Hearts", "Spades"]:
 		cards.append(CardData.new("polish_" + suit, "K", 13, suit, 13))
@@ -80,7 +80,7 @@ func _run() -> void:
 		scene.settings.set_locale(locale)
 		for key in ["SCORE_MELD_REPLAY", "SCORE_FLOW_REPLAY", "SCORE_ECHO_REPLAY", "SCORE_FLOW", "SCORE_ECHO", "SCORE_PASS", "DRINK_LOCKED", "DRINK_UNLOCK_NOTICE", "DRINK_UNLOCK_HINT"]:
 			_check(TranslationServer.translate(key) != key, locale + " has readable " + key)
-		receipt.present_scoring({"title": TranslationServer.translate("MELD_ACTION"), "start_wallet_vnd": wallet_before, "target_wallet_vnd": wallet_before, "source_control": scene.meld_views[812], "hits": [{"kind": "card", "pass": 1, "amount_vnd": 39000}, {"kind": "meld_retrigger", "pass": 2, "amount_vnd": 0}]})
+		receipt.present_scoring({"title": TranslationServer.translate("MELD_ACTION"), "start_wallet_vnd": wallet_before, "target_wallet_vnd": wallet_before, "source_control": scene.card_table.meld_views[812], "hits": [{"kind": "card", "pass": 1, "amount_vnd": 39000}, {"kind": "meld_retrigger", "pass": 2, "amount_vnd": 0}]})
 		var deadline := Time.get_ticks_msec() + 3000
 		while receipt.line_a_label.text != TranslationServer.translate("SCORE_MELD_REPLAY") and Time.get_ticks_msec() < deadline:
 			await process_frame

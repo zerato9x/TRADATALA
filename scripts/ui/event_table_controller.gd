@@ -10,9 +10,13 @@ signal menu_requested()
 
 const TABLE_STATE_DEAL := &"deal"
 const TABLE_STATE_EVENT := &"event"
+const TABLE_STATE_RESOLUTION := &"resolution"
 const TRANSITION_SECONDS := 0.34
-const EVENT_DECK_REST_POSITION := Vector2(292, 446)
+const EVENT_DECK_REST_POSITION := Vector2(292, 398)
 const EVENT_DECK_FOCUS_POSITION := Vector2(72, 272)
+const SERVICE_BUTTON_SIZE := Vector2(210, 48)
+const SERVICE_BUTTON_GAP := 12.0
+const SERVICE_ROW_Y := 578.0
 
 const NPC_DANH_GIAY := "danh_giay"
 const NPC_TRA_DA := "tra_da_auntie"
@@ -139,6 +143,7 @@ func set_zodiac_visitor(id: String, present: bool) -> void:
 	(layer.button as Control).mouse_filter = Control.MOUSE_FILTER_STOP if _zodiac_present else Control.MOUSE_FILTER_IGNORE
 	(layer.name_tag as Control).visible = _zodiac_present
 	(layer.character_target as Control).visible = _zodiac_present
+	_layout_roster_buttons()
 
 func roster_interactive() -> bool:
 	return is_visible_in_tree() and table_state == TABLE_STATE_EVENT and focused_npc_id.is_empty() and not deck_focused and not overview.expanded and (not input_obstructed.is_valid() or not input_obstructed.call())
@@ -399,7 +404,7 @@ func focus_npc(npc_id: String) -> void:
 			sprite.visible = true
 			sprite.modulate.a = 0.0
 			sprite.position = _sprite_out_position(StringName(layer["slot"]), sprite.size)
-			var focus_position := Vector2(0, 95) if npc_id == NPC_THAY_BOI else Vector2(855, 140) if npc_id == NPC_DOI_NO else _sprite_focus_position(StringName(layer["slot"]), sprite.size)
+			var focus_position := Vector2(0, 95) if npc_id == NPC_THAY_BOI else Vector2(855, 140) if npc_id == NPC_DOI_NO else Vector2(1280 - sprite.size.x * 0.90, 160) if npc_id == NPC_HANG_RONG else _sprite_focus_position(StringName(layer["slot"]), sprite.size)
 			if npc_id == NPC_DOI_NO:
 				sprite.position = focus_position
 			else:
@@ -495,29 +500,25 @@ func event_money_feedback(value_text: String) -> void:
 	pulse.tween_property(money_label, "scale", Vector2.ONE, 0.18)
 
 
-func show_outcome(kicker: String, title: String, wallet_text: String) -> void:
-	table_state = TABLE_STATE_EVENT
-	current_event_slot = -1
-	focused_npc_id = ""
-	deck_focused = false
-	visible = true
-	event_deck.visible = false
-	modulate = Color.WHITE
+## Receipt/outcome presentation owns the stage until the next event or deal.
+func enter_resolution(animate_cards: bool = false) -> void:
+	table_state = TABLE_STATE_RESOLUTION
+	if _transition != null and _transition.is_valid():
+		_transition.kill()
 	_hide_all_npcs()
 	_clear_content()
-	period_label.text = kicker
-	day_label.text = title
-	money_label.text = wallet_text
-	_set_header_focused(false, false)
-	content_panel.visible = true
-	back_button.visible = false
-	_animate_deal_out()
 	_stop_money_pulse()
-	overview.hide()
+	focused_npc_id = ""
+	deck_focused = false
+	hide()
+	if animate_cards:
+		_animate_deal_out()
 
 
-func clear_content() -> void:
-	_clear_content()
+func clear_service_views() -> void:
+	for child in participants_container.get_children():
+		participants_container.remove_child(child)
+		child.queue_free()
 
 
 func npc_display_name(npc_id: String) -> String:
@@ -645,16 +646,16 @@ func _build_continue() -> void:
 	continue_button = Button.new()
 	continue_button.name = "EventContinue"
 	continue_button.text = tr("EVENT_CONTINUE")
-	continue_button.position = Vector2(520, 642)
-	continue_button.size = Vector2(240, 54)
+	continue_button.position = Vector2(520, 656)
+	continue_button.size = Vector2(240, 48)
 	continue_button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	continue_button.set_meta("match_binding", "campaign_continue_button")
 	PresentationTheme.configure_button(continue_button, "gold")
 	add_child(continue_button)
 	continue_hint = Label.new()
 	continue_hint.name = "ContinueRequirement"
-	continue_hint.position = Vector2(370, 606)
-	continue_hint.size = Vector2(540, 30)
+	continue_hint.position = Vector2(370, 628)
+	continue_hint.size = Vector2(540, 24)
 	continue_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	continue_hint.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	continue_hint.add_theme_font_size_override("font_size", 16)
@@ -728,6 +729,9 @@ func _build_npc_layers() -> void:
 		var target_height := 650.0 if slot != &"top_right" else 590.0
 		if npc_id == NPC_THAY_BOI:
 			target_height = 600.0
+		elif npc_id == NPC_HANG_RONG:
+			# Keep her baskets clear of the removal slip and its confirmation.
+			target_height = 520.0
 		var ratio := target_height / sprite_texture.get_height()
 		sprite.size = sprite_texture.get_size() * ratio
 		sprite.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
@@ -760,8 +764,7 @@ func _build_npc_layers() -> void:
 		button.focus_mode = Control.FOCUS_ALL
 		button.can_activate = roster_interactive
 		button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-		button.position = _slot_name_position(slot)
-		button.size = Vector2(210, 48)
+		button.size = SERVICE_BUTTON_SIZE
 		button.z_index = 20 # Names stay above every character's silhouette target.
 		PresentationTheme.configure_button(button, "tea")
 		button.tooltip_text = npc_display_name(npc_id)
@@ -773,7 +776,7 @@ func _build_npc_layers() -> void:
 		name_tag.text = npc_display_name(npc_id)
 		name_tag.position = button.position
 		name_tag.z_index = 21
-		name_tag.size = Vector2(210, 48)
+		name_tag.size = SERVICE_BUTTON_SIZE
 		name_tag.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		name_tag.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		name_tag.add_theme_font_size_override("font_size", 14)
@@ -812,6 +815,25 @@ func _show_roster(event_slot: int) -> void:
 		(layer["character_target"] as Control).hide()
 		button.disabled = true
 		button.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+	_layout_roster_buttons()
+
+
+func _layout_roster_buttons() -> void:
+	# Follow the artwork from left to right, keeping every visitor in one row.
+	var visitors: Array[String] = []
+	for slot in [&"left", &"top_right", &"right"]:
+		for npc_id in _npc_layers:
+			var layer: Dictionary = _npc_layers[npc_id]
+			if layer.slot == slot and (layer.overlay as Control).visible:
+				visitors.append(String(npc_id))
+	var width := visitors.size() * SERVICE_BUTTON_SIZE.x + maxi(0, visitors.size() - 1) * SERVICE_BUTTON_GAP
+	var left := (1280.0 - width) * 0.5
+	for index in visitors.size():
+		var layer: Dictionary = _npc_layers[visitors[index]]
+		var point := Vector2(left + index * (SERVICE_BUTTON_SIZE.x + SERVICE_BUTTON_GAP), SERVICE_ROW_Y)
+		(layer.button as Control).position = point
+		(layer.name_tag as Control).position = point
 
 
 func _hide_all_npcs() -> void:
@@ -867,7 +889,7 @@ func _animate_deal_out() -> void:
 
 
 func _finish_deal_exit() -> void:
-	if table_state != TABLE_STATE_EVENT:
+	if table_state not in [TABLE_STATE_EVENT, TABLE_STATE_RESOLUTION]:
 		return
 	for node in _deal_nodes:
 		if node != null:
@@ -924,24 +946,23 @@ func _clear_content() -> void:
 		conversation.visible = false
 	content_panel.visible = false
 	back_button.visible = false
-	for child in participants_container.get_children():
-		participants_container.remove_child(child)
-		child.queue_free()
+	clear_service_views()
 
 
 func say(line: String) -> void:
 	if focused_npc_id.is_empty():
 		return
 	var misc_service := MISC_SERVICE_RECTS.has(focused_npc_id)
-	conversation.speech.custom_minimum_size.y = 40 if misc_service or focused_npc_id == NPC_DOI_NO else 60 if focused_npc_id == NPC_HANG_RONG else 80
+	conversation.speech.custom_minimum_size.y = 36
 	if misc_service:
 		var service_rect: Rect2 = MISC_SERVICE_RECTS[focused_npc_id]
 		conversation.position = Vector2(service_rect.position.x, 140)
 	else:
 		conversation.position = Vector2(165, 510) if focused_npc_id == NPC_THAY_BOI else Vector2(165, 140)
-	conversation.say(npc_display_name(focused_npc_id), line)
-	conversation.show_responses(focused_npc_id not in [NPC_TRA_DA, NPC_DOI_NO], not back_button.disabled)
-	var speech_size := Vector2(340, 176) if focused_npc_id == NPC_THAY_BOI else Vector2(710, 124 if focused_npc_id in [NPC_TRA_DA, NPC_DOI_NO] else 140 if focused_npc_id == NPC_HANG_RONG else 160)
+	conversation.say(npc_display_name(focused_npc_id), line, focused_npc_id == NPC_HANG_RONG)
+	conversation.handbook.visible = focused_npc_id not in [NPC_TRA_DA, NPC_THAY_BOI, NPC_HANG_RONG]
+	conversation.show_responses(focused_npc_id not in [NPC_TRA_DA, NPC_DOI_NO, NPC_HANG_RONG], not back_button.disabled)
+	var speech_size := Vector2(340, 176) if focused_npc_id == NPC_THAY_BOI else Vector2(710, 124 if focused_npc_id in [NPC_TRA_DA, NPC_DOI_NO] else 110 if focused_npc_id == NPC_HANG_RONG else 160)
 	if misc_service:
 		speech_size = Vector2(700, 124)
 	conversation.set_deferred("size", speech_size)
@@ -968,18 +989,6 @@ func _stop_money_pulse() -> void:
 	if _money_pulse != null and _money_pulse.is_valid():
 		_money_pulse.kill()
 	money_label.scale = Vector2.ONE
-
-
-func _slot_name_position(slot: StringName) -> Vector2:
-	match slot:
-		&"left":
-			return Vector2(22, 508)
-		&"right":
-			return Vector2(1048, 612)
-		&"top_right":
-			return Vector2(1038, 220)
-		_:
-			return Vector2(535, 18)
 
 
 func _overlay_out_offset(slot: StringName) -> Vector2:
@@ -1028,3 +1037,20 @@ func _deal_exit_offset(node_name: String) -> Vector2:
 		"ActionDock":
 			return Vector2(0, 110)
 	return Vector2(0, 90)
+
+func npc_anchor(npc_id: String, fallback: Vector2) -> Vector2:
+	var layer: Dictionary = _npc_layers.get(npc_id, {})
+	var sprite := layer.get("sprite") as Control
+	return sprite.get_global_rect().get_center() if sprite != null and sprite.is_visible_in_tree() else fallback
+
+func zodiac_views() -> Dictionary:
+	var layer: Dictionary = _npc_layers[NPC_ZODIAC]
+	return {"button": layer.button, "portrait": layer.overlay, "character": layer.sprite, "nameplate": layer.name_tag}
+
+func guidance_targets() -> Array[Dictionary]:
+	var targets: Array[Dictionary] = []
+	if _npc_layers.has(_required_npc_id):
+		targets.append({"id": _required_npc_id, "button": _npc_layers[_required_npc_id].button})
+	for id in _npc_layers:
+		if id != _required_npc_id: targets.append({"id": id, "button": _npc_layers[id].button})
+	return targets

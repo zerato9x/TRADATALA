@@ -1,7 +1,7 @@
 class_name RunSave
 extends RefCounted
 ## Versioned, atomic, object-free on disk. Only whitelisted value classes are reconstructed.
-const VERSION := 2
+const VERSION := 3
 const MAX_FILE_BYTES := 64 * 1024 * 1024
 const MAX_OBJECTS := 100_000
 # These archives contain only committed value snapshots, never live Objects.
@@ -16,12 +16,6 @@ const TYPES := {
 	"PhaseSettlement": preload("res://scripts/gameplay/phase_settlement.gd"),
 	"ScoringContext": preload("res://scripts/scoring/scoring_context.gd"),
 }
-const CAMPAIGN_FIELDS := ["debug_context", "difficulty", "run_seed", "endless", "_base_day_count", "current_day_index", "current_phase", "campaign_complete", "run_failed", "campaign_days", "active_deal_wallet_before_vnd", "deal_cursor", "day_cursor", "deal_reports", "day_reports", "collection_report", "activities", "day_activity_cursor"]
-const DRINK_FIELDS := ["day_index", "day_target_vnd", "empty_glasses", "current_event_slot", "event_ordered", "morning_drink_id", "afternoon_drink_id", "active_drink_id"]
-const GIEO_FIELDS := ["persistent_deck", "state", "current_day_index", "free_cast_used_today", "paid_cast_count_today", "current_result", "resolved_destination", "resolved_targets", "last_transformations"]
-const LOTTERY_FIELDS := ["day_index", "event_slot", "_draw", "_offers", "_tickets", "_settled", "last_receipt"]
-const SHOE_FIELDS := ["polish_count_today", "tip_count_today", "last_polished_ids", "_deck", "_tips_vnd", "_day_index", "_event_slot", "_favors_given"]
-const SHOP_FIELDS := ["offers", "visit_id", "purchased", "rerolls", "target_vnd"]
 var path: String
 var error := ""
 var recovered_backup := false
@@ -35,76 +29,49 @@ var _objects: Array = []
 func _init(save_path: String = "") -> void:
 	path = save_path if not save_path.is_empty() else ("user://demo_run_v1.save" if DemoBuild.enabled() else PATH)
 
-static func fields(object: Object, names: Array) -> Dictionary:
-	var data := {}
-	for field: String in names:
-		data[field] = object.get(field)
-	return data
-
-static func apply_fields(object: Object, data: Dictionary, names: Array) -> void:
-	for field: String in names:
-		if not data.has(field):
-			continue
-		var existing: Variant = object.get(field)
-		if existing is Array:
-			existing.assign(data[field])
-		else:
-			object.set(field, data[field])
-
 func capture(campaign: CampaignManager, deal: DealState, copy_history: bool = true, music: Dictionary = {}) -> Dictionary:
 	var event := campaign.event_manager.current_event
 	return {
 		"music": music,
 		"zodiac": campaign.zodiac.snapshot(),
-		"onboarding": {"learned": campaign.onboarding.learned.duplicate(), "dismissed": campaign.onboarding.dismissed.duplicate(), "first_seed_enabled": campaign.onboarding.first_seed_enabled},
-		"campaign": fields(campaign, CAMPAIGN_FIELDS), "deal": deal.snapshot_state(copy_history),
-		"drinks": fields(campaign.drink_manager, DRINK_FIELDS),
-		"progress": {"counters": campaign.drink_manager.progress.counters.duplicate(), "seen": campaign.drink_manager.progress._seen_melds.duplicate()} if campaign.drink_manager.progress != null else {},
-		"gieo": fields(campaign.gieo_que, GIEO_FIELDS), "gieo_rng": campaign.gieo_que._rng.state,
-		"lottery": fields(campaign.lottery, LOTTERY_FIELDS), "lottery_rng": campaign.lottery._rng.state,
-		"shoe": fields(campaign.shoe_shine, SHOE_FIELDS), "shoe_rng": campaign.shoe_shine._rng.state,
-		"shop": fields(campaign.relic_shop, SHOP_FIELDS), "shop_rng": campaign.relic_shop._rng.state,
+		"onboarding": campaign.onboarding.run_snapshot(),
+		"campaign": campaign.run_snapshot(), "deal": deal.snapshot_state(copy_history),
+		"drinks": campaign.drink_manager.run_snapshot(),
+		"progress": campaign.drink_manager.progress.run_snapshot() if campaign.drink_manager.progress != null else {},
+		"gieo": campaign.gieo_que.run_snapshot(), "gieo_rng": campaign.gieo_que.run_rng_state(),
+		"lottery": campaign.lottery.run_snapshot(), "lottery_rng": campaign.lottery.run_rng_state(),
+		"shoe": campaign.shoe_shine.run_snapshot(), "shoe_rng": campaign.shoe_shine.run_rng_state(),
+		"shop": campaign.relic_shop.run_snapshot(), "shop_rng": campaign.relic_shop.run_rng_state(),
 		"event": {"slot": event.slot, "context": event.context, "completed": event.completed_interactions} if event != null else {},
 	}
 
 func restore(data: Dictionary, campaign: CampaignManager, deal: DealState) -> bool:
 	if not valid_snapshot(data):
 		return false
-	campaign.zodiac._restoring = true
+	campaign.zodiac.begin_run_restore()
 	campaign.debug_context = data.campaign.get("debug_context", {}).duplicate(true)
 	campaign.difficulty = int(data.campaign.get("difficulty", 1))
-	apply_fields(campaign, data.campaign, CAMPAIGN_FIELDS)
+	campaign.restore_run_snapshot(data.campaign)
 	campaign.zodiac.restore(data.get("zodiac", {}))
-	campaign.onboarding.reset()
-	campaign.onboarding.first_seed_enabled = bool(data.get("onboarding", {}).get("first_seed_enabled", true))
-	campaign.onboarding.learned = data.get("onboarding", {}).get("learned", {}).duplicate()
-	campaign.onboarding.dismissed = data.get("onboarding", {}).get("dismissed", {}).duplicate()
+	campaign.onboarding.restore_run_snapshot(data.get("onboarding", {}))
 	deal.restore_snapshot(data.deal)
 	deal.wallet.economy_scaling = true
 	deal.wallet.day_target_vnd = campaign.daily_requirement()
-	apply_fields(campaign.drink_manager, data.drinks, DRINK_FIELDS)
-	apply_fields(campaign.gieo_que, data.gieo, GIEO_FIELDS)
-	apply_fields(campaign.lottery, data.lottery, LOTTERY_FIELDS)
-	apply_fields(campaign.shoe_shine, data.shoe, SHOE_FIELDS)
-	# Older saves lack repeat counts. Recover today's purchases from the journal.
-	var today := deal.wallet.journal.slice(campaign.day_cursor)
-	if not data.shoe.has("polish_count_today"):
-		campaign.shoe_shine.polish_count_today = today.filter(func(entry): return entry.reason == "shoe_polish").size()
-	if not data.shoe.has("tip_count_today"):
-		campaign.shoe_shine.tip_count_today = today.filter(func(entry): return entry.reason == "shoe_tip").size()
-	apply_fields(campaign.relic_shop, data.shop, SHOP_FIELDS)
-	campaign.gieo_que._rng.state = data.gieo_rng
-	campaign.lottery._rng.state = data.lottery_rng
-	campaign.shoe_shine._rng.state = data.shoe_rng
-	campaign.relic_shop._rng.state = data.shop_rng
+	campaign.drink_manager.restore_run_snapshot(data.drinks)
+	campaign.gieo_que.restore_run_snapshot(data.gieo)
+	campaign.lottery.restore_run_snapshot(data.lottery)
+	campaign.shoe_shine.restore_run_snapshot(data.shoe)
+	campaign.relic_shop.restore_run_snapshot(data.shop)
+	campaign.gieo_que.restore_run_rng(data.gieo_rng)
+	campaign.lottery.restore_run_rng(data.lottery_rng)
+	campaign.shoe_shine.restore_run_rng(data.shoe_rng)
+	campaign.relic_shop.restore_run_rng(data.shop_rng)
 	campaign.relic_shop.runtime = deal.relics
 	deal.relics.shop_wallet = deal.wallet
+	campaign.bind_deal(deal)
+	campaign.synchronize_run_deck(false)
 	if campaign.drink_manager.progress != null:
-		var progress := campaign.drink_manager.progress
-		for metric: String in data.get("progress", {}).get("counters", {}):
-			progress.counters[metric] = maxi(int(progress.counters.get(metric, 0)), int(data.progress.counters[metric]))
-		progress._seen_melds = data.get("progress", {}).get("seen", {}).duplicate()
-		progress._save()
+		campaign.drink_manager.progress.restore_run_snapshot(data.get("progress", {}))
 	campaign.event_manager.current_event = null
 	if not data.event.is_empty():
 		# Rebuild locally without emitting campaign transitions or spending RNG.
@@ -117,8 +84,7 @@ func restore(data: Dictionary, campaign: CampaignManager, deal: DealState) -> bo
 			event.complete_interaction(id)
 		event.update_can_exit()
 		campaign.event_manager.current_event = event
-	campaign.zodiac.rebind_observers()
-	campaign.zodiac._restoring = false
+	campaign.zodiac.finish_run_restore()
 	return true
 
 func valid_snapshot(data: Dictionary) -> bool:
@@ -135,7 +101,13 @@ func valid_snapshot(data: Dictionary) -> bool:
 		return false
 	if int(c.get("current_phase", -1)) not in range(CampaignManager.CampaignPhase.DRAGON_DEAL + 1):
 		return false
-	return data.deal.get("hand") is Array and data.deal.get("deck") is Dictionary and data.gieo.get("persistent_deck", []).size() == 52
+	var cards: Variant = data.gieo.get("persistent_deck", [])
+	if not cards is Array or cards.size() < DealState.MIN_CAMPAIGN_CARDS: return false
+	var ids := {}
+	for card in cards:
+		if not card is CardData or card.unique_id.is_empty() or ids.has(card.unique_id): return false
+		ids[card.unique_id] = true
+	return data.deal.get("hand") is Array and data.deal.get("deck") is Dictionary
 
 func save_run(campaign: CampaignManager, deal: DealState, music: Dictionary = {}) -> bool:
 	# Synchronous serialization finishes before gameplay can mutate the arrays.
@@ -153,7 +125,7 @@ func write_snapshot(data: Dictionary) -> bool:
 		return false
 	var payload := {"root": root, "objects": _records}
 	var bytes := var_to_bytes(payload)
-	var envelope := {"version": VERSION, "payload": bytes, "sha256": _digest(bytes)}
+	var envelope := {"version": VERSION, "payload": bytes, "sha256": payload_digest(bytes)}
 	var file := FileAccess.open(path + ".tmp", FileAccess.WRITE)
 	if file == null:
 		error = error_string(FileAccess.get_open_error())
@@ -201,10 +173,10 @@ func _read(source: String) -> Dictionary:
 		return {}
 	var envelope: Variant = file.get_var(false)
 	file.close()
-	if not envelope is Dictionary or int(envelope.get("version", -1)) not in [1, VERSION] or not envelope.get("payload") is PackedByteArray:
+	if not envelope is Dictionary or int(envelope.get("version", -1)) not in [1, 2, VERSION] or not envelope.get("payload") is PackedByteArray:
 		error = "Unsupported or damaged save"
 		return {}
-	if _digest(envelope.payload) != envelope.get("sha256", ""):
+	if payload_digest(envelope.payload) != envelope.get("sha256", ""):
 		error = "Save checksum mismatch"
 		return {}
 	var payload: Variant = bytes_to_var(envelope.payload)
@@ -219,29 +191,21 @@ func _read(source: String) -> Dictionary:
 		_objects.append(TYPES[record.type].new())
 	for index in payload.objects.size():
 		var value: Object = _objects[index]
-		var names := _field_names(value)
 		var decoded: Variant = _decode(payload.objects[index].fields)
 		if not decoded is Dictionary or not error.is_empty():
 			return {}
-		apply_fields(value, decoded, names)
+		value.restore_run_value(decoded)
 	var result: Variant = _decode(payload.get("root"))
 	if not result is Dictionary or not error.is_empty() or not valid_snapshot(result):
 		error = "Incomplete save"
 		return {}
 	return result
 
-static func _digest(bytes: PackedByteArray) -> String:
+static func payload_digest(bytes: PackedByteArray) -> String:
 	var hashing := HashingContext.new()
 	hashing.start(HashingContext.HASH_SHA256)
 	hashing.update(bytes)
 	return hashing.finish().hex_encode()
-
-static func _field_names(value: Object) -> Array:
-	var names := []
-	for property: Dictionary in value.get_property_list():
-		if int(property.usage) & PROPERTY_USAGE_SCRIPT_VARIABLE:
-			names.append(String(property.name))
-	return names
 
 func _encode(value: Variant, field_path: String = "") -> Variant:
 	if field_path in VALUE_ARCHIVES:
@@ -260,7 +224,7 @@ func _encode(value: Variant, field_path: String = "") -> Variant:
 		if not _ids.has(instance):
 			_ids[instance] = _records.size()
 			_records.append({"type": type_name, "fields": {}})
-			_records[_ids[instance]].fields = _encode(fields(value, _field_names(value)))
+			_records[_ids[instance]].fields = _encode(value.run_value_snapshot())
 		return {"ref": _ids[instance]}
 	if value is Array:
 		var items := []

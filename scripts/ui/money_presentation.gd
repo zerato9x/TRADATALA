@@ -171,19 +171,19 @@ func present_scoring(event: Dictionary) -> void:
 		if replay:
 			interval = maxf(0.14, 0.30 - float(hit.get("echo", 0)) * 0.025)
 		interval = scoring_resolve_interval(interval, fast_forward_enabled)
-		var flow := property_id == GieoQueService.PROPERTY_MELD_RETRIGGER
+		var flow := property_id == CardData.JACKPOT_LIQUID
 		var accent := Color("#79d9cf") if flow else Color("#f5bf42")
 		if is_instance_valid(card_control):
-			_shake_scoring_card(card_control, accent, interval)
+			pulse_scoring_card(card_control, accent, interval)
 		var texture_path := String(hit.get("texture_path", ""))
 		if not texture_path.is_empty():
 			face.texture = load(texture_path) as Texture2D
-			GieoCardFX.apply_properties(face, hit.get("properties", []), bool(hit.get("shiny", false)))
+			GieoCardFX.apply_snapshot(face, hit)
 		if not is_instance_valid(card_control) and (card_trigger or (replay and not card_id.is_empty())):
 			if face.get_parent() == null:
 				score_panel.add_child(face)
 			face.show()
-			_shake_scoring_card(face, accent, interval)
+			pulse_scoring_card(face, accent, interval)
 		var pass_number := int(hit.get("pass", 1))
 		var heading := String(event.get("title", ""))
 		if pass_number > 1:
@@ -195,7 +195,7 @@ func present_scoring(event: Dictionary) -> void:
 		if replay:
 			cue = tr("SCORE_MELD_REPLAY") if not flow else tr("SCORE_LIQUID_ECHO") % int(hit.get("echo", 1))
 		elif not property_id.is_empty():
-			cue = tr(CardData.gieo_property_label_key(property_id)) + " · " + tr("SCORE_GOLD_AGAIN")
+			cue = tr(CardData.property_label_key(property_id)) + " · " + tr("SCORE_GOLD_AGAIN")
 		elif String(hit.get("kind", "")) == "meld_delta":
 			cue = tr("SCORE_MELD_DELTA")
 		elif String(hit.get("kind", "")) == "modifier":
@@ -281,7 +281,7 @@ func _restore_scoring_layout() -> void:
 	_scoring_layout.clear()
 
 
-func _shake_scoring_card(face: Control, accent: Color, interval: float) -> void:
+func pulse_scoring_card(face: Control, accent: Color, interval: float) -> void:
 	var card_id := face.get_instance_id()
 	_finish_scoring_shake(card_id)
 	var baseline_rotation := face.rotation
@@ -328,7 +328,7 @@ func _launch_scoring_bill(amount: int) -> void:
 	var breakdown := denomination_breakdown(absi(_stacked_gain))
 	for index in mini(breakdown.size(), MAX_TRANSACTION_OBJECTS):
 		var entry: Dictionary = breakdown[index]
-		var bill := _new_bill_stack(int(entry["denomination"]), int(entry["count"]), Vector2(48, 21))
+		var bill := create_bill_stack(int(entry["denomination"]), int(entry["count"]), Vector2(48, 21))
 		bill_layer.add_child(bill)
 		bill.position = score_panel.position + Vector2(185 + index * 8, 132 - index * 2)
 	peak_transaction_object_count = maxi(peak_transaction_object_count, bill_layer.get_child_count())
@@ -406,6 +406,23 @@ func present_phase(event: Dictionary) -> void:
 	var source := event.get("source_control") as Control
 	var phase := int(event.get("phase", 1))
 	var title := String(event.get("title", "MÓM!" if is_mom else "P%d" % phase))
+	var ink_vnd := int(event.get("black_ink_profit_vnd", 0))
+	if ink_vnd > 0:
+		var penalty_vnd := int(event.get("deadwood_penalty_vnd", 0))
+		var running_wallet := start_wallet_vnd
+		_set_label_text(title_label, title, PresentationTheme.GOLD)
+		if penalty_vnd > 0:
+			_set_label_text(line_a_label, VndWallet.format_vnd(-penalty_vnd, true), PresentationTheme.RED)
+			await _move_money(penalty_vnd, false, source, source, running_wallet, running_wallet - penalty_vnd, 1.0)
+			running_wallet -= penalty_vnd
+		_set_label_text(line_b_label, tr("BLACK_INK_PROFIT"), Color("b6cad9"))
+		_set_label_text(payout_label, VndWallet.format_vnd(ink_vnd, true), PresentationTheme.TEA)
+		await _pop_label(payout_label, 0.15, 1.15)
+		await _move_money(ink_vnd, true, source, wallet_pile_anchor, running_wallet, target_wallet_vnd, 1.2)
+		await _fade_ceremony(MONEY_CEREMONY_FADE_DURATION)
+		sync_wallet(target_wallet_vnd)
+		presentation_active = false
+		return
 
 	_set_label_text(title_label, title, PresentationTheme.RED if is_mom else Color("#f5bf42"))
 	await _pop_label(title_label, 0.10, 1.1 if is_mom else 1.04)
@@ -449,18 +466,6 @@ func present_phase(event: Dictionary) -> void:
 	await _fade_ceremony(MONEY_CEREMONY_FADE_DURATION)
 	sync_wallet(target_wallet_vnd)
 	presentation_active = false
-
-
-func show_static(title: String, line_a: String, line_b: String, payout: String, negative := false) -> void:
-	ceremony.visible = true
-	_reset_ceremony()
-	_set_label_text(title_label, title, PresentationTheme.RED if negative else Color("#f5bf42"))
-	_set_label_text(line_a_label, line_a, Color("#f8edd0"))
-	_set_label_text(line_b_label, line_b, Color("#f5bf42"))
-	_set_label_text(payout_label, payout, PresentationTheme.RED if negative else PresentationTheme.TEA)
-	for label in [title_label, line_a_label, line_b_label, payout_label]:
-		label.modulate = Color.WHITE
-		label.scale = Vector2.ONE
 
 
 func hide_ceremony() -> void:
@@ -624,7 +629,7 @@ func _move_money(amount_vnd: int, positive: bool, source: Control, destination: 
 	var bill_nodes: Array[Control] = []
 	for index in object_count:
 		var entry: Dictionary = breakdown[index]
-		var bill := _new_bill_stack(int(entry["denomination"]), int(entry["count"]), Vector2(118, 52))
+		var bill := create_bill_stack(int(entry["denomination"]), int(entry["count"]), Vector2(118, 52))
 		bill.position = from - bill.size * 0.5 + Vector2(_rng.randf_range(-42.0, 42.0), _rng.randf_range(-22.0, 22.0))
 		bill.rotation = deg_to_rad(_rng.randf_range(-9.0, 9.0))
 		bill.scale = Vector2(0.38, 0.38)
@@ -713,13 +718,13 @@ func _rebuild_wallet_pile(balance_vnd: int) -> void:
 	var count := mini(breakdown.size(), MAX_WALLET_OBJECTS)
 	for index in count:
 		var entry: Dictionary = breakdown[index]
-		var bill := _new_bill_stack(int(entry["denomination"]), int(entry["count"]), Vector2(68, 29))
+		var bill := create_bill_stack(int(entry["denomination"]), int(entry["count"]), Vector2(68, 29))
 		bill.position = Vector2(4.0 + float(index % 4) * 9.0, 7.0 + float(index / 4) * 9.0)
 		bill.rotation = deg_to_rad(-7.0 + float((index * 5) % 15))
 		wallet_pile_anchor.add_child(bill)
 
 
-func _new_bill_stack(denomination: int, logical_count: int, bill_size: Vector2) -> Control:
+func create_bill_stack(denomination: int, logical_count: int, bill_size: Vector2) -> Control:
 	var stack := Control.new()
 	stack.custom_minimum_size = bill_size
 	stack.size = bill_size
@@ -731,7 +736,7 @@ func _new_bill_stack(denomination: int, logical_count: int, bill_size: Vector2) 
 		var note := TextureRect.new()
 		note.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		note.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		note.texture = _texture_for(denomination)
+		note.texture = denomination_texture(denomination)
 		note.position = Vector2(float(layer_index) * 2.0, -float(layer_index) * 2.0)
 		note.size = bill_size
 		note.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
@@ -752,7 +757,7 @@ func _new_bill_stack(denomination: int, logical_count: int, bill_size: Vector2) 
 	return stack
 
 
-func _texture_for(denomination: int) -> Texture2D:
+func denomination_texture(denomination: int) -> Texture2D:
 	return DENOMINATION_TEXTURES.get(denomination) as Texture2D
 
 
@@ -814,7 +819,7 @@ func present_major_event(event: Dictionary) -> void:
 	var notes := denomination_breakdown(amount)
 	if not notes.is_empty():
 		for index in 36:
-			var note := _new_bill_stack(int(notes[index % notes.size()]["denomination"]), 1, Vector2(180, 80))
+			var note := create_bill_stack(int(notes[index % notes.size()]["denomination"]), 1, Vector2(180, 80))
 			note.name = "BurstBill"
 			note.position = center - note.size * 0.5
 			note.scale = Vector2.ONE * 0.15

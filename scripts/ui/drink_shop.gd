@@ -30,6 +30,7 @@ func configure(manager: DrinkManager, completed: bool) -> void:
 	hint.add_theme_color_override("font_color", PresentationTheme.MUTED)
 	add_child(hint)
 	move_child(hint, 0)
+	hint.hide()
 	price.text = tr("DRINK_TEST_PRICE") if manager.test_all_drinks_available else ""
 	confirm.pressed.connect(_order)
 	var group := ButtonGroup.new()
@@ -41,7 +42,7 @@ func configure(manager: DrinkManager, completed: bool) -> void:
 		var heading := Label.new()
 		heading.text = tr("DRINK_CLASS_" + category.to_upper())
 		heading.add_theme_font_size_override("font_size", 16)
-		heading.add_theme_color_override("font_color", COLORS[category])
+		PresentationTheme.style_text(heading, &"mechanic", 16)
 		heading.add_theme_color_override("font_shadow_color", Color.BLACK)
 		heading.add_theme_constant_override("shadow_offset_y", 2)
 		section.add_child(heading)
@@ -124,7 +125,16 @@ func configure(manager: DrinkManager, completed: bool) -> void:
 		_goal_label.text = tr("DRINK_UNLOCK_HINT")
 		add_child(_goal_label)
 		move_child(_goal_label, shelf.get_index() + 1)
+		_goal_label.hide()
 		confirm.custom_minimum_size.y = 32
+	var guide := Button.new()
+	guide.name = "DrinkHandbook"
+	guide.text = GameGlossary.words("Handbook", "Sổ tay")
+	PresentationTheme.configure_button(guide)
+	guide.pressed.connect(func():
+		if selected_id.is_empty(): GameGlossary.open(self, "drinks")
+		else: GameGlossary.open_entry(self, DrinkCatalog.display_name(selected_id), DrinkCatalog.effect_text(selected_id) + ("\n\n" + _manager.progress.goal_text(selected_id) if _manager.progress != null else ""), "drinks"))
+	confirm.get_parent().add_child(guide)
 	if completed:
 		selected_id = manager.active_drink_id
 		if _buttons.has(selected_id):

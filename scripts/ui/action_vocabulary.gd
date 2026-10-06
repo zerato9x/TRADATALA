@@ -44,5 +44,6 @@ static func colorize(text: String) -> String:
 static func legend() -> String:
 	var lines: Array[String] = []
 	for entry in ENTRIES:
+		if entry["id"] == "dump": continue
 		lines.append("[color=#%s][b]%s[/b][/color]  —  %s" % [entry["color"], TranslationServer.translate("VERB_" + String(entry["id"]).to_upper()), TranslationServer.translate("VERB_HELP_" + String(entry["id"]).to_upper())])
 	return "\n\n".join(lines)

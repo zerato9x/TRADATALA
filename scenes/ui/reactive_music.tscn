@@ -4,4 +4,3 @@
 
 [node name="ReactiveMusic" type="Node" unique_id=1528161153]
 script = ExtResource("1_efixu")
-metadata/match_binding = "music_controller"

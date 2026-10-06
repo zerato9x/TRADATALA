@@ -145,19 +145,84 @@ func test_preservation_zero_one_three_five_and_all_settle_before_refill() -> voi
 	assert_false(sam.select_sam_dua_preserves(sam.hand)["ok"])
 	assert_true(sam.select_sam_dua_preserves([sam.hand[0], sam.hand[1], sam.hand[2]])["ok"])
 
-func test_normal_transition_requires_dump_and_only_preservation_drinks_may_keep() -> void:
+func test_transition_never_offers_keep_all() -> void:
 	for id in DrinkCatalog.all_ids():
 		var deal := _deal(id)
 		deal.hand = [_card(4), _card(5)]
 		deal.settle_phase()
-		if deal.has_phase_transition_choice():
-			assert_true(deal.choose_phase_two(true)["ok"])
-		else:
-			var old_hand: Array[CardData] = deal.hand.duplicate()
-			assert_false(deal.choose_phase_two(true)["ok"])
-			var result := deal.choose_phase_two(false)
-			assert_true(result["ok"])
-			assert_eq(result["dumped"].size(), old_hand.size())
+		var old_hand: Array[CardData] = deal.hand.duplicate()
+		assert_false(deal.choose_phase_two(true)["ok"])
+		var result := deal.choose_phase_two()
+		assert_true(result["ok"])
+		assert_eq(result["dumped"].size(), old_hand.size())
+
+
+func test_swap_cues_require_a_legal_play_after_losing_the_outgoing_card() -> void:
+	for id in [DrinkCatalog.NHAN_TRAN, DrinkCatalog.DEN_DA]:
+		var deal := _deal(id)
+		deal.state = DealState.STATE_ACTIVE
+		var first := _card(5)
+		var second := _card(6)
+		var spare := _card(12, "Hearts")
+		deal.hand = [first, second, spare]
+		var incoming := _card(7)
+		var record := DiscardRecord.new(incoming, 1, 1)
+		deal.deck.discard_pile.append(incoming)
+		deal.discard_history.append(record)
+		# Losing a witness prevents the Meld; using every card also leaves no discard.
+		assert_true(deal.queries.drink_swap_opportunities().is_empty())
+		deal.hand.append(_card(11, "Clubs"))
+		var before := var_to_str(deal.snapshot_state())
+		var rng_before := deal.deck._rng.state
+		assert_false(deal.queries.drink_swap_opportunities(spare).is_empty())
+		assert_true(deal.queries.drink_swap_opportunities(first).is_empty())
+		assert_eq(var_to_str(deal.snapshot_state()), before)
+		assert_eq(deal.deck._rng.state, rng_before)
+		deal.zodiac_boss.locked_ids.append(first.unique_id)
+		assert_true(deal.queries.drink_swap_opportunities().is_empty())
+		deal.zodiac_boss.locked_ids.clear()
+		assert_true(deal.use_den_da(spare, record).ok if id == DrinkCatalog.DEN_DA else deal.use_nhan_tran(spare, record).ok)
+		assert_true(deal.queries.drink_swap_opportunities().is_empty())
+
+
+func test_swap_cues_include_extensions_and_live_discard_scope() -> void:
+	for id in [DrinkCatalog.NHAN_TRAN, DrinkCatalog.DEN_DA]:
+		var deal := _deal(id)
+		deal.state = DealState.STATE_ACTIVE
+		var outgoing := _card(12, "Hearts")
+		deal.hand = [outgoing, _card(9, "Clubs")]
+		var table: Array[CardData] = [_card(3), _card(4), _card(5)]
+		deal.melds.append(MeldState.new(71, MeldRules.TYPE_RUN, table))
+		var incoming := _card(6)
+		var record := DiscardRecord.new(incoming, 1, 1)
+		deal.discard_history.append(record)
+		deal.deck.discard_pile.append(incoming)
+		var opportunities := deal.queries.drink_swap_opportunities(outgoing)
+		assert_eq(opportunities.size(), 1)
+		assert_eq(opportunities[0].play.action, HandAdvisor.ACTION_EXTENSION)
+		assert_eq(opportunities[0].play.meld_id, 71)
+		deal.deck.discard_pile.erase(incoming)
+		assert_true(deal.queries.drink_swap_opportunities().is_empty())
+
+
+func test_preservation_marks_edit_during_play_and_follow_live_hand_cards() -> void:
+	for id in [DrinkCatalog.SAM_DUA, DrinkCatalog.BAC_XIU]:
+		var deal := DealState.new()
+		deal.set_current_drink(id)
+		deal.start_deal(923)
+		var first := deal.hand[0]
+		var second := deal.hand[1]
+		assert_true(deal.select_sam_dua_preserves([first]).ok)
+		assert_true(deal.current_drink_has_charge())
+		assert_true(deal.select_sam_dua_preserves([second]).ok)
+		var restored := DealState.new()
+		restored.restore_snapshot(deal.snapshot_state())
+		assert_eq(restored.sam_dua_preserved_cards, [second])
+		assert_true(restored.current_drink_has_charge())
+		assert_true(deal.discard_card(second).ok)
+		assert_true(deal.sam_dua_preserved_cards.is_empty())
+		assert_true(deal.physical_card_accounting_is_valid())
+
 
 func test_sting_pair_is_explicit_new_phom_with_normal_extension() -> void:
 	var deal := _deal(DrinkCatalog.STING)
@@ -271,8 +336,8 @@ func test_all_drinks_keep_ordinary_scoring_without_drink_multiplier() -> void:
 func test_pair_uses_existing_gieo_making_phom_and_set_hooks() -> void:
 	var deal := _deal(DrinkCatalog.STING)
 	var cards: Array[CardData] = [_card(9), _card(9, "Hearts")]
-	cards[0].add_gieo_property(GieoQueService.PROPERTY_GOLD_MAKING_PHOM)
-	cards[1].add_gieo_property(GieoQueService.PROPERTY_MELD_RETRIGGER)
+	cards[0].adjust_fortune(2)
+	cards[1].add_jackpot(CardData.JACKPOT_LIQUID)
 	deal.hand = cards.duplicate()
 	var expected := ScoringPipeline.new().preview_new_meld(cards, MeldRules.TYPE_SET, 1, 0)
 	var result := deal.create_meld(cards, true)
@@ -294,9 +359,9 @@ func test_nau_da_large_hand_has_no_refill_or_exponential_target_search() -> void
 	deal.discard_card(deal.hand[0])
 	assert_eq(deal.deck.draw_pile.size(), stock)
 	assert_eq(deal.hand.size(), 21)
-	assert_true(deal._hand_card_combinations().size() < 2000)
-	assert_false(deal.legal_action_card_ids()["meld"].is_empty())
-	assert_eq(deal.recommend_action()["action"], HandAdvisor.ACTION_NEW_MELD)
+	assert_true(deal.queries.hand_combinations().size() < 2000)
+	assert_false(deal.queries.legal_action_card_ids()["meld"].is_empty())
+	assert_eq(deal.queries.recommend_action()["action"], HandAdvisor.ACTION_NEW_MELD)
 
 func test_c2_large_hand_targets_complete_selected_endpoints() -> void:
 	var deal := _deal(DrinkCatalog.C2_ICED_TEA)

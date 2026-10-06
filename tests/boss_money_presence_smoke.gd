@@ -27,9 +27,8 @@ func _run() -> void:
 	root.add_child(scene)
 	current_scene = scene
 	await frames()
-	scene.get_node("TitleScreen").queue_free()
-	scene._restoring_run = true
-	scene.run_save = RunSave.new("user://boss-money-fixture.save")
+	scene.session.restoring = true
+	scene.session.run_save = RunSave.new("user://boss-money-fixture.save")
 	scene.drink_manager.progress.save_path = ""
 	scene.campaign.zodiac.progress = ZodiacProgress.new("")
 	scene.game_started = true
@@ -58,7 +57,7 @@ func _run() -> void:
 			"source_control": scene.hand_layer,
 			"hits": [{"kind": "card", "label": "CARD", "card_id": scene.deal.hand[0].unique_id,
 				"texture_path": scene.deal.hand[0].texture_path(), "amount_vnd": 1000}]}
-		scene._enqueue_money_job(kind, event)
+		scene.money_playback.enqueue(kind, event)
 		var deadline := Time.get_ticks_msec() + 3000
 		while not scene.money_presentation.presentation_active and Time.get_ticks_msec() < deadline:
 			await process_frame
@@ -72,13 +71,13 @@ func _run() -> void:
 		check(not hud.feedback_panel.visible and not hud.details_panel.visible, kind + " speech and rule drawer stay clear of receipts")
 		await capture(kind)
 		scene.money_presentation.request_fast_forward()
-		while scene.money_queue_running and Time.get_ticks_msec() < deadline:
+		while scene.money_playback.running and Time.get_ticks_msec() < deadline:
 			await process_frame
-		check(not scene.money_queue_running, kind + " queue completes")
-		check(scene.displayed_wallet_vnd == opening + 1000, kind + " lands on the displayed wallet target")
+		check(not scene.money_playback.running, kind + " queue completes")
+		check(scene.money_playback.displayed_balance == opening + 1000, kind + " lands on the displayed wallet target")
 		check(hud.evening_overlay.is_visible_in_tree(), kind + " boss remains after money finishes")
 	check(scene.deal.wallet.balance_vnd == opening and boss_before == scene.deal.zodiac_boss.snapshot(), "presentation never mutates wallet or boss rules")
-	for blocker in [scene.modal_overlay, scene.discard_archive_overlay, scene.deck_screen]:
+	for blocker in [scene.modal_overlay, scene.pile_archive.overlay, scene.deck_screen]:
 		blocker.show()
 		await frames()
 		hud.refresh()

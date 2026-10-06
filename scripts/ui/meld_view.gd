@@ -198,9 +198,10 @@ func _sync_cards(
 			drink_outline.set_cues(false, false, eligible or card.unique_id == selected_drink_card_id, drink_selection_enabled or card.unique_id == selected_drink_card_id)
 		if drink_selection_enabled:
 			texture.tooltip_text = tr("DRINK_NUOC_VOI_CARD_VALID") if drink_removable_card_ids.has(card.unique_id) else tr("DRINK_NUOC_VOI_CARD_INVALID")
+			texture.tooltip_text += "\n" + card.inspection_text()
 		else:
-			texture.tooltip_text = tr("CARD_POINTS") % [card.short_label(), card.score_value()]
-			var gieo_descriptions := card.gieo_property_descriptions()
+			texture.tooltip_text = card.inspection_text()
+			var gieo_descriptions := card.fortune_descriptions()
 			if not gieo_descriptions.is_empty():
 				texture.tooltip_text += "\n\nGIEO QUẺ\n" + "\n".join(gieo_descriptions)
 

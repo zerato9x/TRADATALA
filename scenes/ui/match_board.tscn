@@ -1906,95 +1906,42 @@ mouse_filter = 2
 layout_mode = 0
 anchor_left = 1.0
 anchor_right = 1.0
-offset_left = -150.0
+anchor_bottom = 1.0
+offset_left = -88.0
 offset_top = 84.0
-offset_right = -16.0
-offset_bottom = 316.0
+offset_right = -12.0
+offset_bottom = -78.0
 mouse_filter = 1
-theme_override_styles/panel = ExtResource("8_frame")
 
 [node name="RelicTitleLabel" type="Label" parent="UtilityRail/RelicsArea" unique_id=474758493]
 layout_mode = 0
-offset_left = 9.0
-offset_top = 7.0
-offset_right = 125.0
-offset_bottom = 30.0
+offset_left = 2.0
+offset_top = 2.0
+offset_right = 70.0
+offset_bottom = 25.0
 theme_override_colors/font_color = Color(0.9607843, 0.7490196, 0.25882354, 1)
 theme_override_font_sizes/font_size = 12
-text = "BẢO VẬT"
+text = "RELICS"
 horizontal_alignment = 1
 metadata/match_binding = "relic_title_label"
 
 [node name="RelicScroll" type="ScrollContainer" parent="UtilityRail/RelicsArea" unique_id=1739411760]
 layout_mode = 0
-offset_left = 9.0
-offset_top = 30.0
-offset_right = 125.0
-offset_bottom = 222.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 2.0
+offset_top = 27.0
+offset_right = -2.0
+offset_bottom = -2.0
 horizontal_scroll_mode = 0
 
 [node name="RelicGrid" type="GridContainer" parent="UtilityRail/RelicsArea/RelicScroll" unique_id=869749838]
 layout_mode = 2
-theme_override_constants/h_separation = 6
-theme_override_constants/v_separation = 6
-columns = 2
+size_flags_horizontal = 3
+theme_override_constants/h_separation = 0
+theme_override_constants/v_separation = 4
+columns = 1
 metadata/match_binding = "relic_grid"
-
-[node name="RelicSlot01" type="PanelContainer" parent="UtilityRail/RelicsArea/RelicScroll/RelicGrid" unique_id=141827027]
-custom_minimum_size = Vector2(52, 78)
-layout_mode = 2
-mouse_filter = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_gnr8f")
-
-[node name="Label" type="Label" parent="UtilityRail/RelicsArea/RelicScroll/RelicGrid/RelicSlot01" unique_id=85691982]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.41960785, 0.31764707, 0.21960784, 1)
-theme_override_font_sizes/font_size = 12
-text = "1"
-horizontal_alignment = 1
-vertical_alignment = 1
-
-[node name="RelicSlot02" type="PanelContainer" parent="UtilityRail/RelicsArea/RelicScroll/RelicGrid" unique_id=1942205349]
-custom_minimum_size = Vector2(52, 78)
-layout_mode = 2
-mouse_filter = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_cxubs")
-
-[node name="Label" type="Label" parent="UtilityRail/RelicsArea/RelicScroll/RelicGrid/RelicSlot02" unique_id=908911072]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.41960785, 0.31764707, 0.21960784, 1)
-theme_override_font_sizes/font_size = 12
-text = "2"
-horizontal_alignment = 1
-vertical_alignment = 1
-
-[node name="RelicSlot03" type="PanelContainer" parent="UtilityRail/RelicsArea/RelicScroll/RelicGrid" unique_id=90327889]
-custom_minimum_size = Vector2(52, 78)
-layout_mode = 2
-mouse_filter = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_fohwg")
-
-[node name="Label" type="Label" parent="UtilityRail/RelicsArea/RelicScroll/RelicGrid/RelicSlot03" unique_id=885591572]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.41960785, 0.31764707, 0.21960784, 1)
-theme_override_font_sizes/font_size = 12
-text = "3"
-horizontal_alignment = 1
-vertical_alignment = 1
-
-[node name="RelicSlot04" type="PanelContainer" parent="UtilityRail/RelicsArea/RelicScroll/RelicGrid" unique_id=1427024680]
-custom_minimum_size = Vector2(52, 78)
-layout_mode = 2
-mouse_filter = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_vn4ap")
-
-[node name="Label" type="Label" parent="UtilityRail/RelicsArea/RelicScroll/RelicGrid/RelicSlot04" unique_id=815277523]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.41960785, 0.31764707, 0.21960784, 1)
-theme_override_font_sizes/font_size = 12
-text = "4"
-horizontal_alignment = 1
-vertical_alignment = 1
 
 [node name="ActionDock" type="Panel" parent="." unique_id=522580860]
 layout_mode = 0
@@ -2167,7 +2114,6 @@ z_index = 160
 anchors_preset = 0
 anchor_right = 1.0
 anchor_bottom = 1.0
-metadata/match_binding = "discard_archive_overlay"
 
 [node name="ArchiveDim" type="ColorRect" parent="DiscardArchiveOverlay" unique_id=1400121099]
 layout_mode = 0
@@ -2214,13 +2160,11 @@ layout_mode = 2
 theme_override_colors/font_color = Color(0.9607843, 0.7490196, 0.25882354, 1)
 theme_override_font_sizes/font_size = 24
 text = "CHỒNG BÀI BỎ"
-metadata/match_binding = "pile_archive_title"
 
 [node name="ArchiveCount" type="Label" parent="DiscardArchiveOverlay/ArchivePanel/MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer" unique_id=1409453043]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.7764706, 0.72156864, 0.5882353, 1)
 theme_override_font_sizes/font_size = 11
-metadata/match_binding = "discard_archive_count"
 
 [node name="CloseArchive" type="Button" parent="DiscardArchiveOverlay/ArchivePanel/MarginContainer/VBoxContainer/HBoxContainer" unique_id=2140504977]
 custom_minimum_size = Vector2(122, 40)
@@ -2237,7 +2181,6 @@ theme_override_styles/hover = SubResource("StyleBoxFlat_0fbav")
 theme_override_styles/disabled = SubResource("StyleBoxFlat_soa66")
 theme_override_styles/focus = SubResource("StyleBoxFlat_r4j0k")
 text = "ĐÓNG  [ESC]"
-metadata/match_binding = "discard_archive_close"
 
 [node name="SuitColumns" type="HBoxContainer" parent="DiscardArchiveOverlay/ArchivePanel/MarginContainer/VBoxContainer" unique_id=1658920529]
 layout_mode = 2
@@ -2266,8 +2209,6 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 5
 alignment = 1
-metadata/match_dictionary_binding = "discard_archive_suit_titles"
-metadata/match_dictionary_key = "Spades"
 
 [node name="Title" type="Label" parent="DiscardArchiveOverlay/ArchivePanel/MarginContainer/VBoxContainer/SuitColumns/SpadesColumn/MarginContainer/VBoxContainer/SpadesDiscardArchiveSuitTitles"]
 layout_mode = 2
@@ -2295,8 +2236,6 @@ size_flags_horizontal = 3
 theme_override_constants/h_separation = 4
 theme_override_constants/v_separation = 5
 columns = 3
-metadata/match_dictionary_binding = "discard_archive_suit_grids"
-metadata/match_dictionary_key = "Spades"
 
 [node name="HeartsColumn" type="PanelContainer" parent="DiscardArchiveOverlay/ArchivePanel/MarginContainer/VBoxContainer/SuitColumns" unique_id=120042573]
 custom_minimum_size = Vector2(210, 0)
@@ -2320,8 +2259,6 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 5
 alignment = 1
-metadata/match_dictionary_binding = "discard_archive_suit_titles"
-metadata/match_dictionary_key = "Hearts"
 
 [node name="Title" type="Label" parent="DiscardArchiveOverlay/ArchivePanel/MarginContainer/VBoxContainer/SuitColumns/HeartsColumn/MarginContainer/VBoxContainer/HeartsDiscardArchiveSuitTitles"]
 layout_mode = 2
@@ -2349,8 +2286,6 @@ size_flags_horizontal = 3
 theme_override_constants/h_separation = 4
 theme_override_constants/v_separation = 5
 columns = 3
-metadata/match_dictionary_binding = "discard_archive_suit_grids"
-metadata/match_dictionary_key = "Hearts"
 
 [node name="DiamondsColumn" type="PanelContainer" parent="DiscardArchiveOverlay/ArchivePanel/MarginContainer/VBoxContainer/SuitColumns" unique_id=982543584]
 custom_minimum_size = Vector2(210, 0)
@@ -2374,8 +2309,6 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 5
 alignment = 1
-metadata/match_dictionary_binding = "discard_archive_suit_titles"
-metadata/match_dictionary_key = "Diamonds"
 
 [node name="Title" type="Label" parent="DiscardArchiveOverlay/ArchivePanel/MarginContainer/VBoxContainer/SuitColumns/DiamondsColumn/MarginContainer/VBoxContainer/DiamondsDiscardArchiveSuitTitles"]
 layout_mode = 2
@@ -2403,8 +2336,6 @@ size_flags_horizontal = 3
 theme_override_constants/h_separation = 4
 theme_override_constants/v_separation = 5
 columns = 3
-metadata/match_dictionary_binding = "discard_archive_suit_grids"
-metadata/match_dictionary_key = "Diamonds"
 
 [node name="ClubsColumn" type="PanelContainer" parent="DiscardArchiveOverlay/ArchivePanel/MarginContainer/VBoxContainer/SuitColumns" unique_id=147657691]
 custom_minimum_size = Vector2(210, 0)
@@ -2428,8 +2359,6 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 5
 alignment = 1
-metadata/match_dictionary_binding = "discard_archive_suit_titles"
-metadata/match_dictionary_key = "Clubs"
 
 [node name="Title" type="Label" parent="DiscardArchiveOverlay/ArchivePanel/MarginContainer/VBoxContainer/SuitColumns/ClubsColumn/MarginContainer/VBoxContainer/ClubsDiscardArchiveSuitTitles"]
 layout_mode = 2
@@ -2457,8 +2386,6 @@ size_flags_horizontal = 3
 theme_override_constants/h_separation = 4
 theme_override_constants/v_separation = 5
 columns = 3
-metadata/match_dictionary_binding = "discard_archive_suit_grids"
-metadata/match_dictionary_key = "Clubs"
 
 [node name="MoneyPresentation" type="Control" parent="."]
 z_index = 120

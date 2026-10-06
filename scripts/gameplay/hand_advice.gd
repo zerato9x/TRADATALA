@@ -2,40 +2,30 @@ class_name HandAdvice
 extends RefCounted
 ## Pure counterfactual analysis. Neither pile order nor RNG is consulted.
 
-static func describe(row: Dictionary, last_call: bool = false) -> String:
-	var text := GameGlossary.words("Keep %d/100 · relative to this hand. Lower is a better discard.", "Giữ %d/100 · so trong tay này. Thấp hơn là nên bỏ hơn.") % row.get("keep_score", 100)
-	if row.get("locked", false): text += "\n" + GameGlossary.words("Locked this turn; Strawy cannot discard it.", "Đang bị khóa; Strawy không thể bỏ lá này.")
-	elif row.get("protected", false): text += "\n" + GameGlossary.words("Preserved for a legal Meld/Extend.", "Giữ cho nước Hạ/Ghép hợp lệ.")
-	if last_call or row.get("draw_count", 0) == 0:
-		text += "\n" + GameGlossary.words("No refill before settlement. Consider your available plays and deadwood.", "Không bù bài trước khi chốt. Xem nước hợp lệ và bài rời.")
-	var target: Dictionary = row.get("target", {})
-	if not target.is_empty():
-		text += "\n" + GameGlossary.words("After this discard: %s · %.3f%% in %d refill cards.", "Sau khi bỏ: %s · %.3f%% trong %d lá bù.") % [MeldProbabilityAdvisor.localized_label(target), row["probability"] * 100.0, row["draw_count"]]
-	if not row.get("second_id", "").is_empty():
-		text += "\n" + GameGlossary.words("Assumes Trà Đá's extra discard; no refill between the two discards.", "Tính cả lần bỏ thêm của Trà Đá; không bù bài giữa hai lần bỏ.")
-	return text
-
 static func signature(deal: DealState) -> int:
 	var cards: Array = []
 	for pile in [deal.hand, deal.deck.draw_pile, deal.deck.discard_pile, deal.recyclable_spent_cards]:
 		var row: Array = []
 		for card: CardData in pile:
-			row.append([card.unique_id, card.rank_index, card.suit, card.score_value(), card.gieo_properties, card.enhancements, card.shiny])
+			row.append([card.unique_id, card.get_instance_id(), card.rank_index, card.suit, card.score_value(), card.permanent_snapshot(), card.enhancements, card.shiny])
 		row.sort_custom(func(a, b): return a[0] < b[0])
 		cards.append(row)
 	var table: Array = []
 	for meld: MeldState in deal.melds:
-		table.append([meld.meld_id, meld.meld_type, meld.run_compatibility, meld.scored_points, meld.cards.map(func(c): return [c.unique_id, c.rank_index, c.suit, c.score_value(), c.gieo_properties, c.enhancements])])
+		table.append([meld.meld_id, meld.meld_type, meld.run_compatibility, meld.scored_points, meld.cards.map(func(c): return [c.unique_id, c.rank_index, c.suit, c.score_value(), c.permanent_snapshot(), c.enhancements])])
 	var locked: Array = deal.zodiac_boss.locked_ids.duplicate()
 	locked.sort()
 	return hash([cards, table, locked, deal.state, deal.current_phase, deal.discard_count, deal.current_drink_id,
 		deal.tra_da_extra_discard_pending, deal.tra_da_used_this_turn, deal.phase_new_meld_count,
+		deal.nhan_tran_used_this_phase, deal.den_da_used_this_turn, deal.nau_da_used_phases,
+		deal.nuoc_voi_used_phases, deal.pair_used_phases, deal.pair_used_this_turn, deal.c2_used,
+		deal.sam_dua_preserved_cards.map(func(c): return c.unique_id),
 		deal.discard_history.map(func(r): return [r.card.unique_id, r.kind]),
-		deal.zodiac_boss.snapshot(), deal.boss_melds.map(func(m): return [m.meld_id, m.cards.map(func(c): return c.unique_id)]), deal.relics.snapshot(), TranslationServer.get_locale()])
+		deal.zodiac_boss.snapshot(), deal.boss_melds.map(func(m): return [m.meld_id, m.cards.map(func(c): return c.unique_id)]), deal.relics.snapshot()])
 
 static func analyze(deal: DealState) -> Dictionary:
-	var result := {"play": deal.recommend_action(), "discard_id": "", "extra_action": "none", "by_card": {}, "reasoning": "", "target_odds": 0.0}
-	var legal := deal.legal_action_card_ids()
+	var result := {"play": deal.queries.recommend_action(), "discard_id": "", "extra_action": "none", "by_card": {}, "reasoning": {}, "target_odds": 0.0}
+	var legal := deal.queries.legal_action_card_ids()
 	var protected_ids: Dictionary = legal["meld"].duplicate()
 	protected_ids.merge(legal["extend"])
 	var choices: Array[Dictionary] = []
@@ -80,11 +70,45 @@ static func analyze(deal: DealState) -> Dictionary:
 			result["extra_action"] = "discard" if _better(choices[0], skip) else "skip"
 			result["skip_outcome"] = skip
 		result["target_odds"] = choices[0]["probability"]
-		result["reasoning"] = describe(choices[0], deal.state == DealState.STATE_FINAL_COMMIT_WINDOW)
+		result["reasoning"] = choices[0].duplicate(true)
 		if deal.tra_da_extra_discard_pending and result["extra_action"] == "skip":
 			result["target_odds"] = result["skip_outcome"]["probability"]
-			result["reasoning"] = GameGlossary.words("Skip the extra discard: retain this hand and refill %d cards. Best target completion: %.3f%%.", "Bỏ qua lần bỏ thêm: giữ tay này và bù %d lá. Tỷ lệ hoàn tất mục tiêu tốt nhất: %.3f%%.") % [result["skip_outcome"]["draw_count"], result["target_odds"] * 100.0]
+			result["reasoning"] = {"skip": true, "draw_count": result["skip_outcome"]["draw_count"], "probability": result["target_odds"]}
 	return result
+
+
+static func next_action(deal: DealState, advice: Dictionary) -> Dictionary:
+	var play: Dictionary = advice["play"]
+	if play.action != HandAdvisor.ACTION_NONE: return {"kind": "play", "play": play, "cards": play.cards, "meld_id": play.get("meld_id", -1)}
+	var swaps := deal.queries.drink_swap_opportunities()
+	if not swaps.is_empty():
+		swaps.sort_custom(func(a, b): return a.card.score_value() > b.card.score_value() if a.card.score_value() != b.card.score_value() else a.card.unique_id < b.card.unique_id)
+		return {"kind": "swap", "cards": [swaps[0].card] as Array[CardData], "record": swaps[0].record, "play": swaps[0].play}
+	# Recover only when these physical cards can legally be scored again.
+	for meld in deal.melds:
+		if deal.can_use_nau_da(meld.meld_id):
+			var probe := DealState.new()
+			probe.restore_snapshot(deal.snapshot_state())
+			probe.hand.append_array(meld.cards)
+			if probe.can_create_meld(meld.cards): return {"kind": "recover", "cards": [] as Array[CardData], "meld_id": meld.meld_id}
+	for target in deal.nuoc_voi_targets():
+		var meld := deal.get_meld(target.meld_id)
+		var probe := DealState.new()
+		probe.restore_snapshot(deal.snapshot_state())
+		probe.hand.append(target.card)
+		var replacement := MeldState.new(meld.meld_id, meld.meld_type, meld.cards.duplicate())
+		replacement.run_compatibility = meld.run_compatibility
+		replacement.cards.erase(target.card)
+		probe.melds.erase(meld)
+		probe.melds.append(replacement)
+		if probe.can_extend_meld(meld.meld_id, [target.card] as Array[CardData]): return {"kind": "recover_card", "cards": [] as Array[CardData], "meld_id": meld.meld_id, "card": target.card}
+	if deal.state == DealState.STATE_FINAL_COMMIT_WINDOW: return {"kind": "settle", "cards": [] as Array[CardData]}
+	if deal.state != DealState.STATE_ACTIVE: return {}
+	if deal.tra_da_extra_discard_pending and advice.extra_action == "skip": return {"kind": "skip", "cards": [] as Array[CardData]}
+	if deal.hand.is_empty(): return {"kind": "empty", "cards": [] as Array[CardData]}
+	for card in deal.hand:
+		if card.unique_id == advice.discard_id: return {"kind": "discard", "cards": [card] as Array[CardData]}
+	return {}
 
 static func _better(a: Dictionary, b: Dictionary) -> bool:
 	if not _same(a["probability"], b["probability"]): return a["probability"] > b["probability"]
@@ -129,6 +153,8 @@ static func _outcome(deal: DealState, remaining: Array[CardData], first: CardDat
 	var best := {"probability": 0.0, "points": 0.0, "deadwood": ScoringPipeline.deadwood_points(remaining),
 		"target": {}, "draw_count": guaranteed.size() + mini(draws, pool.size()), "crosses_exhaustion": crosses}
 	best["register_closed"] = deal.zodiac_boss.suppresses(deal.current_phase) or (deal.zodiac_boss.id == "rooster" and deal.current_phase == 1 and count >= int(ZodiacCatalog.DEFINITIONS.rooster.deadlines[deal.zodiac_boss.disposition]))
+	if held.any(func(c): return c.negative) or pool.any(func(c): return c.negative) or table.any(func(m): return m.cards.any(func(c): return c.negative)):
+		return _flexible_outcome(deal, best, held, pool, draws, table)
 	for rank in range(1, 14):
 		var owned: Array[CardData] = []
 		for c in held:
@@ -149,7 +175,7 @@ static func _outcome(deal: DealState, remaining: Array[CardData], first: CardDat
 					if _matches(c, {"rank": rank, "suit": suit}): match_card = c; break
 				if match_card != null: owned.append(match_card)
 				else: groups.append({"rank": rank, "suit": suit, "needed": 1})
-			_consider(deal, best, owned, groups, pool, draws, MeldRules.TYPE_RUN, null, "PROBABILITY_RUN", [DeckManager.RANKS[low-1], DeckManager.RANKS[low+1], MeldProbabilityAdvisor._suit_symbol(suit)])
+			_consider(deal, best, owned, groups, pool, draws, MeldRules.TYPE_RUN, null, "PROBABILITY_RUN", [DeckManager.RANKS[low-1], DeckManager.RANKS[low+1], MeldProbabilityAdvisor.suit_label(suit)])
 	for meld: MeldState in table:
 		var edges: Array[int] = []
 		var suit := ""
@@ -165,8 +191,58 @@ static func _outcome(deal: DealState, remaining: Array[CardData], first: CardDat
 			var owned: Array[CardData] = []
 			for c in held:
 				if _matches(c, {"rank": rank, "suit": suit}): owned.append(c); break
-			_consider(deal, best, owned, [{"rank": rank, "suit": suit, "needed": 1 if owned.is_empty() else 0}], pool, draws, meld.meld_type, meld, "PROBABILITY_EXTEND_CARD", [meld.meld_id, "%s%s" % [DeckManager.RANKS[rank-1], MeldProbabilityAdvisor._suit_symbol(suit)]])
+			_consider(deal, best, owned, [{"rank": rank, "suit": suit, "needed": 1 if owned.is_empty() else 0}], pool, draws, meld.meld_type, meld, "PROBABILITY_EXTEND_CARD", [meld.meld_id, "%s%s" % [DeckManager.RANKS[rank-1], MeldProbabilityAdvisor.suit_label(suit)]])
 	return best
+
+
+static func _flexible_outcome(deal: DealState, best: Dictionary, held: Array[CardData], pool: Array[CardData], draws: int, table: Array[MeldState]) -> Dictionary:
+	for rank in range(1, 14):
+		_consider_flexible(deal,best,held,pool,draws,[rank,rank,rank],"",MeldRules.TYPE_SET,"PROBABILITY_SET",[DeckManager.RANKS[rank-1]])
+	var families: Array[String] = []
+	families.assign(DeckManager.SUITS)
+	if deal.current_drink_id == DrinkCatalog.MIA_TAC: families.append("red")
+	if deal.current_drink_id == DrinkCatalog.MIA_SAU_RIENG: families.append("black")
+	for suit in families:
+		for low in range(1,12):
+			_consider_flexible(deal,best,held,pool,draws,[low,low+1,low+2],suit,MeldRules.TYPE_RUN,"PROBABILITY_RUN",[DeckManager.RANKS[low-1],DeckManager.RANKS[low+1],MeldProbabilityAdvisor.suit_label(suit)])
+	for meld in table:
+		var complete: Array[CardData] = held.filter(func(c): return deal.can_extend_meld(meld.meld_id,[c] as Array[CardData]))
+		var missing := int(complete.is_empty())
+		var probability := 1.0
+		if complete.is_empty():
+			complete = pool.filter(func(c): return meld.can_extend([c] as Array[CardData]))
+			probability = MeldProbabilityAdvisor.probability_at_least(pool.size(),complete.size(),draws,1)
+		if complete.is_empty() or probability <= 0: continue
+		complete.sort_custom(func(a,b): return a.score_value() > b.score_value() if a.score_value() != b.score_value() else a.unique_id < b.unique_id)
+		var addition: Array[CardData] = [complete[0]]
+		var combined: Array[CardData] = meld.cards.duplicate()
+		combined.append_array(addition)
+		if not deal.zodiac_boss.legality("extension",deal.current_phase,meld.meld_id,addition).is_empty(): continue
+		var points: int = deal.preview_extension_payout(meld, addition, draws == 0).points
+		_record_flexible(best,probability,points,missing,"PROBABILITY_EXTEND_CARD",[meld.meld_id,complete[0].short_label()])
+	return best
+
+static func _consider_flexible(deal: DealState, best: Dictionary, held: Array[CardData], pool: Array[CardData], draws: int, slots: Array[int], suit: String, kind: String, key: String, args: Array) -> void:
+	var owned := MeldProbabilityAdvisor.identity_assignment(held,slots,suit)
+	var missing := slots.size()-owned.size()
+	if missing > draws: return
+	var probability := MeldProbabilityAdvisor.completion_probability(held,pool,draws,slots,suit)
+	if probability <= 0.0: return
+	var choices: Array[CardData] = held.duplicate()
+	choices.append_array(pool)
+	var complete := MeldProbabilityAdvisor.identity_assignment(choices,slots,suit)
+	if complete.size() != slots.size() or deal.meld_creation_rule(complete).get("type",MeldRules.TYPE_INVALID) != kind: return
+	if not deal.zodiac_boss.legality("new_meld",deal.current_phase,-1,complete).is_empty(): return
+	var points: int = deal.preview_new_meld_payout(complete, kind, draws == 0).points
+	_record_flexible(best,probability,points,missing,key,args)
+
+static func _record_flexible(best: Dictionary, probability: float, points: int, missing: int, key: String, args: Array) -> void:
+	if best["register_closed"]: points = 0
+	var projected := {"probability":probability,"points":probability*points,"deadwood":best["deadwood"]}
+	if best["target"].is_empty() or _better(projected,best):
+		best["probability"] = probability
+		best["points"] = projected["points"]
+		best["target"] = {"label_key":key,"label_args":args,"probability":probability,"missing_count":missing}
 
 static func _matches(card: CardData, group: Dictionary) -> bool:
 	var suit: String = group["suit"]
@@ -190,21 +266,21 @@ static func _consider(deal: DealState, best: Dictionary, owned: Array[CardData],
 		for i in range(needed): complete.append(available[i])
 	if missing > draws: return
 	if missing > 0:
-		probability = MeldProbabilityAdvisor._probability_at_least(pool.size(), counts[0], draws, missing) if groups.size() == 1 else MeldProbabilityAdvisor._probability_all_groups(pool.size(), counts, draws)
+		probability = MeldProbabilityAdvisor.probability_at_least(pool.size(), counts[0], draws, missing) if groups.size() == 1 else MeldProbabilityAdvisor.probability_all_groups(pool.size(), counts, draws)
 	if probability <= 0.0: return
 	# Future ordinary targets do not implicitly spend an active Drink charge.
 	var points := 0
 	if meld == null:
 		if deal.meld_creation_rule(complete).get("type", MeldRules.TYPE_INVALID) != kind: return
 		if not deal.zodiac_boss.legality("new_meld", deal.current_phase, -1, complete).is_empty(): return
-		points = deal.preview_boss_payout(deal.scoring.preview_new_meld(complete, kind, deal.current_phase, deal.phase_new_meld_count, draws == 0), deal._next_meld_id).points
+		points = deal.preview_new_meld_payout(complete, kind, draws == 0).points
 	else:
 		var combined: Array[CardData] = meld.cards.duplicate()
 		combined.append_array(complete)
 		var compatibility := "red" if deal.current_drink_id == DrinkCatalog.MIA_TAC else "black" if deal.current_drink_id == DrinkCatalog.MIA_SAU_RIENG else meld.run_compatibility
 		if not meld.can_extend(complete) and not (kind == MeldRules.TYPE_RUN and MeldRules.is_compatible_run(combined, compatibility)): return
 		if not deal.zodiac_boss.legality("extension", deal.current_phase, meld.meld_id, complete).is_empty(): return
-		points = deal.preview_boss_payout(deal.scoring.preview_extension(combined, kind, ScoringPipeline.meld_value(meld.cards), deal.current_phase, complete, draws == 0), meld.meld_id).points
+		points = deal.preview_extension_payout(meld, complete, draws == 0).points
 	if best["register_closed"]: points = 0
 	var projected := {"probability": probability, "points": probability * points, "deadwood": best["deadwood"]}
 	if best["target"].is_empty() or _better(projected, best):

@@ -16,23 +16,23 @@ func _run() -> void:
 	scene.game_layer.position = Vector2.ZERO
 	scene.menu_layer.hide()
 	scene.deal.start_tutorial_deal()
-	scene.interaction_locked = false
+	scene.interactions.locked = false
 	var cards: Array[CardData] = []
 	for suit in ["Clubs", "Hearts", "Spades"]:
 		cards.append(CardData.new("receipt_" + suit, "K", 13, suit, 13))
-	cards[0].add_gieo_property(GieoQueService.PROPERTY_GOLD_MAKING_PHOM)
-	cards[0].add_gieo_property(GieoQueService.PROPERTY_MELD_RETRIGGER)
+	cards[0].adjust_fortune(2)
+	cards[0].add_jackpot(CardData.JACKPOT_LIQUID)
 	scene.deal.melds.append(MeldState.new(81, MeldRules.TYPE_SET, cards))
 	scene._sync_all()
 	await process_frame
 	var context := scene.deal.scoring.preview_new_meld(cards, MeldRules.TYPE_SET, 1)
 	var wallet_before := scene.deal.wallet.balance_vnd
 	var started := Time.get_ticks_msec()
-	scene._queue_scoring(context, scene.meld_views[81])
+	scene.money_feedback.queue_scoring(context, scene.card_table.meld_views[81])
 	await process_frame
-	_check(not scene.interaction_locked, "receipt does not lock input")
+	_check(not scene.interactions.locked, "receipt does not lock input")
 	_check(scene.money_presentation.presentation_active, "receipt starts")
-	var triggered_face: Control = scene.meld_views[81].get_scoring_card_control(cards[0].unique_id)
+	var triggered_face: Control = scene.card_table.meld_views[81].get_scoring_card_control(cards[0].unique_id)
 	await create_timer(0.03).timeout
 	_check(absf(triggered_face.rotation) > 0.01, "physical scoring card visibly shakes")
 	var duplicate_card_visible := false
@@ -49,7 +49,7 @@ func _run() -> void:
 			viewport_texture.get_image().save_png("res://.godot/money_stack_receipt.png")
 		else:
 			print("TRADATALA_MONEY_STACK_CAPTURE skipped: renderer has no viewport texture")
-	var next_face: Control = scene.meld_views[81].get_scoring_card_control(cards[1].unique_id)
+	var next_face: Control = scene.card_table.meld_views[81].get_scoring_card_control(cards[1].unique_id)
 	_check(is_zero_approx(next_face.rotation), "other cards stay still until their trigger")
 	_check(scene.money_presentation.line_b_label.scale == Vector2.ONE * 0.78, "score text stays steady during the card shake")
 	for label: Label in [scene.money_presentation.title_label, scene.money_presentation.line_a_label, scene.money_presentation.line_b_label, scene.money_presentation.payout_label]:
@@ -59,28 +59,28 @@ func _run() -> void:
 	_check(absf(triggered_face.rotation) < 0.001, "card shake restores original rotation")
 	_check(scene.money_presentation._scoring_shakes.is_empty(), "completed shakes leave no stale state")
 	_check(scene.deal.wallet.balance_vnd == wallet_before, "presentation never pays the wallet")
-	_check(scene.displayed_wallet_vnd == scene.money_queue_wallet_vnd, "display converges to receipt total")
+	_check(scene.money_playback.displayed_balance == scene.money_playback.queued_balance, "display converges to receipt total")
 	# Exiting a tutorial during a receipt must not resurrect its wallet number.
-	scene._queue_scoring(context, scene.meld_views[81])
+	scene.money_feedback.queue_scoring(context, scene.card_table.meld_views[81])
 	await process_frame
 	scene.money_presentation.hide_ceremony()
-	scene._reset_tutorial_ui_state()
-	scene.displayed_wallet_vnd = 123000
-	scene.money_queue_wallet_vnd = 123000
+	scene.reset_transient_presentation()
+	scene.money_playback.displayed_balance = 123000
+	scene.money_playback.queued_balance = 123000
 	scene.money_presentation.sync_wallet(123000)
 	await create_timer(0.6).timeout
-	_check(scene.displayed_wallet_vnd == 123000, "cancelled queue cannot overwrite new balance")
+	_check(scene.money_playback.displayed_balance == 123000, "cancelled queue cannot overwrite new balance")
 	_check(not scene.money_presentation.presentation_active, "cancelled receipt stays stopped")
 	# Run a fresh receipt immediately after cancellation, with the proper layout.
-	scene._queue_scoring(context, scene.meld_views[81])
+	scene.money_feedback.queue_scoring(context, scene.card_table.meld_views[81])
 	await _drain(scene)
 	_check(scene.money_presentation.line_a_label.position == Vector2(10, 31), "receipt restores shared layout")
-	var visual := scene._capture_exhaustion_visual(scene.deal.melds[-1], scene.meld_views[81])
+	var visual := scene._capture_exhaustion_visual(scene.deal.melds[-1], scene.card_table.meld_views[81])
 	var exhaustion := scene.deal.scoring.score_meld_trigger(cards, MeldRules.TYPE_SET, 1)
 	scene.deal.melds.clear()
-	scene._sync_melds()
+	scene.card_table.sync_melds()
 	await process_frame
-	scene._queue_scoring(exhaustion, visual["anchor"], visual)
+	scene.money_feedback.queue_scoring(exhaustion, visual["anchor"], visual)
 	await _drain(scene)
 	_check(not is_instance_valid(visual["anchor"]), "exhaustion releases its snapshot anchor")
 	for card in visual["cards"]:
@@ -96,37 +96,37 @@ func _run() -> void:
 	scene._sync_all()
 	await process_frame
 	var completed_extension := scene.deal.scoring.preview_extension(full_run, MeldRules.TYPE_RUN, 936, 1, [full_run[-1]])
-	scene._queue_scoring(completed_extension, scene.meld_views[99])
+	scene.money_feedback.queue_scoring(completed_extension, scene.card_table.meld_views[99])
 	var replay_seen := false
 	var deadline := Time.get_ticks_msec() + 10000
-	while scene.money_queue_running and Time.get_ticks_msec() < deadline:
+	while scene.money_playback.running and Time.get_ticks_msec() < deadline:
 		if scene.money_presentation.title_label.text.ends_with("2"):
 			replay_seen = true
 		await process_frame
 	_check(replay_seen, "completed mixed-suit RUN visibly plays its second scoring pass")
-	_check(not scene.money_queue_running, "perfected RUN replay completes")
+	_check(not scene.money_playback.running, "perfected RUN replay completes")
 	_check(scene.deal.wallet.balance_vnd == wallet_before, "perfected RUN presentation does not pay twice")
 	# Every Liquid card must visibly announce its own numbered full replay.
 	for card in cards:
-		card.add_gieo_property(GieoQueService.PROPERTY_MELD_RETRIGGER)
+		card.add_jackpot(CardData.JACKPOT_LIQUID)
 	scene.deal.melds.append(MeldState.new(82, MeldRules.TYPE_SET, cards))
 	scene._sync_all()
 	await process_frame
 	var liquid_context := scene.deal.scoring.preview_new_meld(cards, MeldRules.TYPE_SET, 1)
-	scene._queue_scoring(liquid_context, scene.meld_views[82])
+	scene.money_feedback.queue_scoring(liquid_context, scene.card_table.meld_views[82])
 	var echoes_seen: Array[String] = []
 	deadline = Time.get_ticks_msec() + 7000
-	while scene.money_queue_running and Time.get_ticks_msec() < deadline:
+	while scene.money_playback.running and Time.get_ticks_msec() < deadline:
 		var cue := scene.money_presentation.line_a_label.text
 		for echo in range(1, 4):
 			if cue == tr("SCORE_LIQUID_ECHO") % echo and not echoes_seen.has(cue):
 				echoes_seen.append(cue)
 		await process_frame
 	_check(echoes_seen.size() == 3, "three Liquid cards visibly announce three distinct numbered ECHOs")
-	_check(not scene.money_queue_running, "three Liquid ECHOs finish within seven seconds")
+	_check(not scene.money_playback.running, "three Liquid ECHOs finish within seven seconds")
 	_check(scene.deal.wallet.balance_vnd == wallet_before, "multiple Liquid presentation never repays authority wallet")
-	scene.music_controller._stop_all_mix_players()
-	scene.music_controller.music_director.stop()
+	scene.music.controller._stop_all_mix_players()
+	scene.music.controller.music_director.stop()
 	await create_timer(0.2).timeout
 	scene.queue_free()
 	await process_frame
@@ -138,9 +138,9 @@ func _run() -> void:
 
 func _drain(scene: MatchUI) -> void:
 	var deadline := Time.get_ticks_msec() + 7000
-	while scene.money_queue_running and Time.get_ticks_msec() < deadline:
+	while scene.money_playback.running and Time.get_ticks_msec() < deadline:
 		await process_frame
-	_check(not scene.money_queue_running, "receipt queue drains within deadline")
+	_check(not scene.money_playback.running, "receipt queue drains within deadline")
 
 
 func _check(condition: bool, message: String) -> void:

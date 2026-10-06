@@ -60,19 +60,19 @@ static func transformed_suit(card: CardData) -> bool:
 static func pool(source: Array[CardData], rule: String, quantity: int = 1) -> Array[CardData]:
 	var cards: Array[CardData] = []
 	var highest := 0
-	for card in source: highest = maxi(highest, card.gieo_properties.size())
+	for card in source: highest = maxi(highest, card.permanent_property_count())
 	var starts: Array[int] = []
 	if rule.begins_with("CONSECUTIVE_"): starts = consecutive_starts(source, quantity)
 	for card in source:
 		var include := true
 		match rule:
-			"HAS_GIEO_PROPERTY": include = not card.gieo_properties.is_empty()
-			"HAS_GOLD_PROPERTY": include = card.gieo_properties.any(func(property: String): return property.begins_with("GOLD_"))
+			"HAS_GIEO_PROPERTY": include = card.has_fortune_properties()
+			"HAS_GOLD_PROPERTY": include = card.fortune > 0
 			"TRANSFORMED_ANY": include = transformed_rank(card) or transformed_suit(card)
 			"PERMANENTLY_CHANGED": include = card.has_permanent_changes()
 			"TRANSFORMED_RANK": include = transformed_rank(card)
 			"TRANSFORMED_SUIT": include = transformed_suit(card)
-			"HIGHEST_PROPERTY_COUNT": include = card.gieo_properties.size() == highest
+			"HIGHEST_PROPERTY_COUNT": include = card.permanent_property_count() == highest
 			"SAME_SUIT_2", "SAME_SUIT_3": include = with_suit(source, card.suit).size() >= quantity
 			"CONSECUTIVE_2", "CONSECUTIVE_3": include = starts.any(func(start: int): return card.rank_index >= start and card.rank_index < start + quantity)
 			"ANY", "CHOOSE_ONE", "OFFER_THREE", "RANDOM": pass

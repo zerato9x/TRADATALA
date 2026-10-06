@@ -26,7 +26,7 @@ func _run() -> void:
 	await process_frame
 	await process_frame
 	await process_frame
-	_check(startup_probe.play_button != null and startup_probe.play_button.text == "NEW GAME", "persisted English locale is applied during MatchUI startup")
+	_check((startup_probe.front_end.home_body.find_child("NewRun", true, false) as Button).text == "NEW RUN", "persisted English locale is applied during MatchUI startup")
 	_check(startup_probe.event_table != null and startup_probe.event_table.continue_button.text == "CONTINUE" and startup_probe.event_table.back_button.text == "← BACK", "persisted English locale reaches event-table controls during startup")
 	startup_probe.queue_free()
 	await process_frame
@@ -34,7 +34,7 @@ func _run() -> void:
 		root_settings.set_locale("vi")
 	var scene := packed.instantiate() as MatchUI
 	root.add_child(scene)
-	scene.run_save = RunSave.new("user://runtime-front-%d.save" % Time.get_ticks_usec())
+	scene.session.run_save = RunSave.new("user://runtime-front-%d.save" % Time.get_ticks_usec())
 	scene.front_end.show_home()
 	current_scene = scene
 	await process_frame
@@ -46,162 +46,126 @@ func _run() -> void:
 	var background_position_before := background.global_position if background != null else Vector2.INF
 	_check(menu != null and menu.visible, "main menu is visible before play")
 	var settings = scene.settings
-	var logo := scene.get_node_or_null("MainMenu/MenuCenter/MenuContent/Logo") as HBoxContainer
-	_check(logo != null and logo.get_child_count() == 4, "TRADATALA logo is split into four reactive word units")
+	var front := scene.front_end
+	_check(front.page == "home" and front.pages.home.is_visible_in_tree(), "visible front end opens on Home")
+	_check(scene.get_node_or_null("MainMenu/MenuCenter") == null, "retired menu is removed from the live scene")
+	_check(front.logo_words.size() == 4, "TRADATALA logo has four reactive word units")
 	var logo_text := ""
-	if logo != null:
-		for child in logo.get_children():
-			if child is Label:
-				logo_text += child.text
-	_check(logo_text == "TRADATALA", "reactive logo units preserve the exact TRADATALA title")
-	var menu_home := scene.get_node_or_null("MainMenu/MenuCenter/MenuContent/HomePanel") as VBoxContainer
-	var how_panel := scene.get_node_or_null("MainMenu/MenuCenter/MenuContent/HowToPlayPanel") as PanelContainer
-	var options_panel := scene.get_node_or_null("MainMenu/MenuCenter/MenuContent/OptionsPanel") as PanelContainer
-	_check(menu_home != null and menu_home.visible, "main menu opens on its compact action list")
-	_check(scene.music_player_panel != null and scene.music_player_panel.visible, "the menu includes the compact album-cover music player")
-	_check(scene.music_cover != null and scene.music_cover.texture != null and scene.music_cover.texture.resource_path == "res://assets/audio/covers/main.png", "the opening player uses the supplied Main album cover")
-	_check(scene.music_track_title != null and scene.music_track_title.text == ReactiveMusicController.display_title_for_theme(&"main"), "the player reports the authoritative current track title")
-	_check(scene.music_progress != null and scene.music_time_label != null, "the player exposes playback progress and elapsed time")
-	_check(scene.music_system_selector != null and scene.music_system_selector.item_count == 2, "music player offers Playing Tracks and Authored DJ systems")
-	_check(scene.music_track_list != null and scene.music_track_list.item_count == 26, "Playlist mode exposes all tracks through one chooser")
-	_check(scene.play_button != null and scene.play_button.text == "VÁN MỚI", "Vietnamese New Game action exists on the main menu")
-	_check(scene.how_to_play_button != null and scene.how_to_play_button.text == "SỔ TAY", "main menu exposes the localized How to Play section")
-	_check(scene.tutorial_button != null and scene.tutorial_button.text == "SỔ TAY HÀNH TRÌNH", "main menu exposes the campaign Handbook")
-	_check(not scene.tutorial_button.visible, "The duplicate campaign handbook entry is retired")
-	_check(scene.options_button != null and scene.options_button.text == "TÙY CHỌN", "main menu exposes the localized Options section")
-	_check(how_panel != null and not how_panel.visible and options_panel != null and not options_panel.visible, "secondary menu sections begin hidden")
-	scene.how_to_play_button.pressed.emit()
+	for label: Label in front.logo_words: logo_text += label.text
+	_check(logo_text == "TRADATALA", "reactive logo preserves the exact title")
+	_check((front.home_body.find_child("NewRun", true, false) as Button).text == "VÁN MỚI", "Vietnamese New Run action is visible")
+	var handbook_button := front.home_body.find_child("Handbook", true, false) as Button
+	_check(handbook_button.text == "SỔ TAY" and handbook_button.is_visible_in_tree(), "localized Handbook navigation is visible")
+	handbook_button.pressed.emit()
 	var handbook := root.get_node_or_null("GameGlossary")
-	_check(handbook != null and not how_panel.visible, "How to Play opens the shared Handbook")
-	if handbook: handbook.queue_free()
+	_check(handbook != null, "visible navigation opens the shared Handbook")
+	var play_section := _button_with_text(handbook, "CHƠI")
+	var scoring_section := _button_with_text(handbook, "ĐIỂM")
+	_check(play_section != null and scoring_section != null, "Handbook exposes play and scoring references")
+	play_section.pressed.emit()
+	_check(_button_with_text(handbook, "SET / BỘ") != null, "play reference includes physical Set rules")
+	scoring_section.pressed.emit()
+	var meld_reference := _button_with_text(handbook, scene.tr("HOW_SCORE_MELD_TITLE"))
+	_check(meld_reference != null, "scoring reference includes Meld scoring")
+	meld_reference.pressed.emit()
+	var reference_body := handbook.find_children("*", "RichTextLabel", true, false)[0] as RichTextLabel
+	_check(reference_body.get_parsed_text().contains("45"), "shared reference preserves the Meld formula example")
+	(handbook.find_child("CloseHandbook", true, false) as Button).pressed.emit()
 	await process_frame
-	var cards_tab := scene.how_tab_pages.get(&"cards") as Control
-	var phases_tab := scene.how_tab_pages.get(&"phases") as Control
-	var scoring_tab := scene.how_tab_pages.get(&"scoring") as Control
-	_check(scene.how_tab_buttons.size() == 3 and cards_tab.visible and not phases_tab.visible and not scoring_tab.visible, "How to Play opens on Cards and Melds with three available tabs")
-	var tutorial_cards := cards_tab.find_children("*", "TextureRect", true, false)
-	_check(tutorial_cards.size() == 12, "How to Play demonstrates Run, Set, Extend, and Discard with twelve real card images")
-	var how_intro := cards_tab.find_child("Intro", true, false) as Label
-	_check(how_intro != null and how_intro.text == "Chọn bài. Hạ Phỏm hoặc Ghép. Rồi bỏ 1 lá.", "How to Play uses a short Vietnamese core-loop instruction")
-	(scene.how_tab_buttons[&"phases"] as Button).pressed.emit()
-	_check(phases_tab.visible and not cards_tab.visible and scene.how_to_play_tab == &"phases", "Phases and Turns tab replaces the card reference in place")
-	var phases_intro := phases_tab.find_child("PhasesIntro", true, false) as Label
-	_check(phases_intro != null and phases_intro.text.contains("2 Giai đoạn") and phases_intro.text.contains("4 lần bỏ bài"), "Phases tab explains the two-Phase and four-turn structure")
-	(scene.how_tab_buttons[&"scoring"] as Button).pressed.emit()
-	_check(scoring_tab.visible and not phases_tab.visible and scene.how_to_play_tab == &"scoring", "Scoring tab replaces the Phase reference in place")
-	var scoring_labels := scoring_tab.find_children("*", "Label", true, false)
-	var has_meld_formula := false
-	var has_extend_delta := false
-	var has_phase_net := false
-	for scoring_label in scoring_labels:
-		has_meld_formula = has_meld_formula or scoring_label.text.contains("(4+5+6) × 3 = 45")
-		has_extend_delta = has_extend_delta or scoring_label.text.contains("+43 điểm")
-		has_phase_net = has_phase_net or scoring_label.text.contains("Gross − bài rời = Net")
-	_check(has_meld_formula and has_extend_delta and has_phase_net, "Scoring tab exposes Meld, Extend delta, and Phase net formulas")
-	_check(scene.how_scoring_topic_buttons.size() == 2 and scene.how_scoring_topic == &"basic", "Scoring opens on Basic with a separate Special Outcomes view")
-	(scene.how_scoring_topic_buttons[&"special"] as Button).pressed.emit()
-	var special_page := scene.how_scoring_topic_pages[&"special"] as Control
-	var special_labels := special_page.find_children("*", "Label", true, false)
-	var has_mom_rule := false
-	var has_u_rule := false
-	var has_u_khan_rule := false
-	for special_label in special_labels:
-		has_mom_rule = has_mom_rule or (special_label.text.contains("0 Phỏm MỚI") and special_label.text.contains("Tổng × Số lá") and special_label.text.contains("mỗi lượt") and special_label.text.contains("mỗi Giai đoạn"))
-		has_u_rule = has_u_rule or (special_label.text.contains("bất kỳ lượt nào") and special_label.text.contains("dùng đúng 9") and special_label.text.contains("ván này ×2 ngay"))
-		has_u_khan_rule = has_u_khan_rule or (special_label.text.contains("cách nhau 1–2 số") and special_label.text.contains("×10"))
-	_check(special_page.visible and has_mom_rule and has_u_rule and has_u_khan_rule, "Special Outcomes explains multiplied Móm deadwood, Ù, and the ×10 Ù Khan authority")
-	scene.how_to_play_back_button.pressed.emit()
-	_check(menu_home.visible and not how_panel.visible, "How to Play Back returns to the main actions")
-	scene.options_button.pressed.emit()
-	_check(scene.front_end.page == "settings", "Settings page opens in the front end")
-	_check(scene.music_slider != null and is_equal_approx(scene.music_slider.value, settings.music_volume_percent), "Music slider reflects the persisted Music volume")
-	_check(scene.sound_slider != null and is_equal_approx(scene.sound_slider.value, settings.sound_volume_percent), "Sound slider reflects the persisted Sound volume")
-	_check(scene.language_selector != null and scene.language_selector.item_count == 2 and scene.language_selector.selected == 0, "language selector offers Vietnamese and English with Vietnamese as default")
-	_check(AudioServer.get_bus_index(&"Sound") >= 0, "dedicated Sound bus exists for current and future effects")
-	scene.music_slider.value = 35.0
+	_check(root.get_node_or_null("GameGlossary") == null and front.page == "home", "Handbook Back preserves Home")
+	(front.home_body.find_child("Settings", true, false) as Button).pressed.emit()
+	_check(front.page == "settings" and front.pages.settings.is_visible_in_tree(), "Settings opens through visible navigation")
+	var music_slider := front.settings_page.find_child("MusicVolume", true, false) as HSlider
+	var sound_slider := front.settings_page.find_child("SoundVolume", true, false) as HSlider
+	var language_selector := front.settings_page.find_child("Language", true, false) as OptionButton
+	_check(is_equal_approx(music_slider.value, settings.music_volume_percent), "visible Music slider reflects persisted volume")
+	_check(is_equal_approx(sound_slider.value, settings.sound_volume_percent), "visible Sound slider reflects persisted volume")
+	_check(language_selector.item_count == 2 and language_selector.selected == 0, "visible language selector offers Vietnamese and English")
+	_check(AudioServer.get_bus_index(&"Sound") >= 0, "dedicated Sound bus exists")
+	music_slider.value = 35.0
 	var music_volume_index := AudioServer.get_bus_index(&"Music")
-	_check(is_equal_approx(settings.music_volume_percent, 35.0) and is_equal_approx(AudioServer.get_bus_volume_db(music_volume_index), linear_to_db(0.35)), "Music slider changes the Music bus volume")
-	scene.sound_slider.value = 0.0
+	_check(is_equal_approx(settings.music_volume_percent, 35.0) and is_equal_approx(AudioServer.get_bus_volume_db(music_volume_index), linear_to_db(0.35)), "visible Music slider updates the Music bus")
+	sound_slider.value = 0.0
 	var sound_bus_index := AudioServer.get_bus_index(&"Sound")
-	_check(is_equal_approx(settings.sound_volume_percent, 0.0) and AudioServer.is_bus_mute(sound_bus_index), "Sound slider mutes the Sound bus at zero")
-	scene.music_slider.value = 100.0
-	scene.sound_slider.value = 100.0
-	scene.language_selector.item_selected.emit(1)
+	_check(is_equal_approx(settings.sound_volume_percent, 0.0) and AudioServer.is_bus_mute(sound_bus_index), "visible Sound slider mutes at zero")
+	music_slider.value = 100.0
+	sound_slider.value = 100.0
+	language_selector.item_selected.emit(1)
 	await process_frame
-	_check(TranslationServer.get_locale() == "en" and scene.play_button.text == "NEW GAME", "English selection localizes the menu immediately")
-	_check(scene.how_to_play_button.text == "HANDBOOK" and scene.tutorial_button.text == "CAMPAIGN HANDBOOK" and scene.options_button.text == "OPTIONS", "English selection refreshes main-menu navigation")
+	await process_frame
+	_check(TranslationServer.get_locale() == "en" and front.title_label.text == "SETTINGS", "English selection refreshes the visible Settings page")
+	(front.footer.find_child("FrontBack", true, false) as Button).pressed.emit()
+	_check((front.home_body.find_child("NewRun", true, false) as Button).text == "NEW RUN", "returning Home shows localized New Run navigation")
+	_check((front.home_body.find_child("Handbook", true, false) as Button).text == "HANDBOOK", "returning Home shows localized Handbook navigation")
+	(front.home_body.find_child("Settings", true, false) as Button).pressed.emit()
 	_check(scene.event_table.continue_button.text == "CONTINUE" and scene.event_table.back_button.text == "← BACK", "English selection refreshes event-table navigation")
-	_check((scene.event_table.get_node("TraDaAuntieName") as Label).text == "ICED TEA AUNTIE", "English selection refreshes event-table NPC labels")
-	_check((scene.how_tab_buttons[&"cards"] as Button).text == "CARDS & MELDS" and (scene.how_tab_buttons[&"phases"] as Button).text == "PHASES & TURNS" and (scene.how_tab_buttons[&"scoring"] as Button).text == "SCORING", "English selection refreshes all How to Play tabs")
-	_check((scene.how_scoring_topic_buttons[&"basic"] as Button).text == "BASIC SCORING" and (scene.how_scoring_topic_buttons[&"special"] as Button).text == "SPECIAL OUTCOMES", "English selection refreshes both Scoring topics")
-	_check(scene.music_settings_label.text == "MUSIC" and scene.sound_settings_label.text == "SOUND" and scene.hint_button.text == "HINT  [G]" and (scene.header_caption_labels["VndPerPointStat"] as Label).text == "VNĐ / POINT", "English selection refreshes Options, gameplay controls, and the VNĐ-per-point caption")
-	_check(how_intro != null and how_intro.text == "Pick cards. Meld or Extend. Then discard 1.", "English selection refreshes the visual tutorial copy while it is hidden")
-	scene.language_selector.item_selected.emit(0)
+	_check((scene.event_table.get_node("TraDaAuntieName") as Label).text == "ICED TEA AUNTIE", "English selection refreshes NPC labels")
+	_check(scene.hint_button.text == "HINT  [G]" and (scene.header_caption_labels["VndPerPointStat"] as Label).text == "VNĐ / POINT", "English selection refreshes gameplay controls and the point caption")
+	(front.settings_page.find_child("Language", true, false) as OptionButton).item_selected.emit(0)
 	await process_frame
-	_check(TranslationServer.get_locale() == "vi" and scene.play_button.text == "VÁN MỚI", "Vietnamese selection restores the interface immediately")
+	await process_frame
+	_check(TranslationServer.get_locale() == "vi" and front.title_label.text == "TÙY CHỌN", "Vietnamese selection restores the visible Settings page")
 	var saved_settings := ConfigFile.new()
-	_check(saved_settings.load(settings.SETTINGS_PATH) == OK and String(saved_settings.get_value("localization", "locale", "")) == "vi", "audio and language preferences persist to the player settings file")
-	scene.options_back_button.pressed.emit()
-	_check(scene.front_end.page == "home", "Settings Back returns to Home")
-	_check(scene.music_controller != null, "reactive music controller exists")
-	_check(scene.music_controller.full_mix_player != null and scene.music_controller.full_mix_player.stream != null, "current full mix is loaded")
-	_check(scene.music_controller.mix_players.size() == 2, "music queue owns two playback decks for preloaded boundary transitions")
-	_check(scene.music_controller.current_mix_path == "res://assets/audio/ost/main_1.wav", "the game opens on Main 1")
-	var current_mix := scene.music_controller.full_mix_player.stream as AudioStreamWAV
+	_check(saved_settings.load(settings.SETTINGS_PATH) == OK and String(saved_settings.get_value("localization", "locale", "")) == "vi", "preferences persist to the player settings file")
+	(front.footer.find_child("FrontBack", true, false) as Button).pressed.emit()
+	_check(front.page == "home" and (front.home_body.find_child("NewRun", true, false) as Button).text == "VÁN MỚI", "Settings Back returns to localized Home")
+	(front.home_body.find_child("Music", true, false) as Button).pressed.emit()
+	await process_frame
+	_check(front.music_player.is_visible_in_tree(), "visible navigation opens the music player")
+	_check(front.music_player.cover.texture.resource_path == "res://assets/audio/covers/main.png", "opening player uses the supplied Main cover")
+	_check(front.music_player.track_title.text == ReactiveMusicController.display_title_for_theme(&"main"), "player reports the authoritative title")
+	_check(front.music_player.system_selector.item_count == 2 and front.music_player.track_list.item_count == 26, "music player exposes both systems and all Playlist tracks")
+	_check(scene.music.controller != null, "reactive music controller exists")
+	_check(scene.music.controller.full_mix_player != null and scene.music.controller.full_mix_player.stream != null, "current full mix is loaded")
+	_check(scene.music.controller.mix_players.size() == 2, "music queue owns two playback decks for preloaded boundary transitions")
+	_check(scene.music.controller.current_mix_path == "res://assets/audio/ost/main_1.wav", "the game opens on Main 1")
+	var current_mix := scene.music.controller.full_mix_player.stream as AudioStreamWAV
 	_check(current_mix != null and current_mix.loop_mode == AudioStreamWAV.LOOP_DISABLED, "files do not self-loop because the two-deck queue owns every boundary")
-	_check(scene.music_controller.full_mix_player != null and scene.music_controller.full_mix_player.bus == &"Music", "current mix routes through the Music bus")
-	scene.music_play_pause_button.pressed.emit()
-	_check(scene.music_controller.music_paused and scene.music_play_pause_button.text == scene.tr("MUSIC_PLAYER_PLAY"), "the menu player pauses both music decks and offers Resume")
-	scene.music_play_pause_button.pressed.emit()
-	_check(not scene.music_controller.music_paused, "the menu player resumes playback")
-	_check(scene.music_track_list.item_count == 26, "the tracklist exposes all thirteen themes and both sides")
-	scene.music_system_selector.select(0)
-	scene.music_system_selector.item_selected.emit(0)
-	_check(settings.music_system == settings.MUSIC_SYSTEM_PLAYING_TRACKS and not scene.music_track_list.disabled, "Playing Tracks enables the original jukebox")
-	scene.music_shuffle_button.pressed.emit()
-	_check(scene.music_controller.shuffle_enabled and scene.music_shuffle_button.text == scene.tr("MUSIC_PLAYER_SHUFFLE_ON"), "Shuffle toggles independently from campaign state")
-	scene.music_repeat_button.pressed.emit()
-	_check(scene.music_controller.repeat_mode == ReactiveMusicController.REPEAT_ALL, "Repeat cycles from Off to All")
-	scene.music_repeat_button.pressed.emit()
-	_check(scene.music_controller.repeat_mode == ReactiveMusicController.REPEAT_ONE, "Repeat cycles from All to One")
-	scene.music_repeat_button.pressed.emit()
-	_check(scene.music_controller.repeat_mode == ReactiveMusicController.REPEAT_OFF, "Repeat cycles from One back to Off")
-	scene.music_track_list.item_selected.emit(3)
+	_check(scene.music.controller.full_mix_player != null and scene.music.controller.full_mix_player.bus == &"Music", "current mix routes through the Music bus")
+	scene.front_end.music_player.play_pause.pressed.emit()
+	_check(scene.music.controller.music_paused and scene.front_end.music_player.play_pause.text == scene.tr("MUSIC_PLAYER_PLAY"), "the menu player pauses both music decks and offers Resume")
+	scene.front_end.music_player.play_pause.pressed.emit()
+	_check(not scene.music.controller.music_paused, "the menu player resumes playback")
+	_check(scene.front_end.music_player.track_list.item_count == 26, "the tracklist exposes all thirteen themes and both sides")
+	scene.front_end.music_player.system_selector.select(0)
+	scene.front_end.music_player.system_selector.item_selected.emit(0)
+	_check(settings.music_system == settings.MUSIC_SYSTEM_PLAYING_TRACKS and not scene.front_end.music_player.track_list.disabled, "Playing Tracks enables the original jukebox")
+	scene.front_end.music_player.shuffle.pressed.emit()
+	_check(scene.music.controller.shuffle_enabled and scene.front_end.music_player.shuffle.text == scene.tr("MUSIC_PLAYER_SHUFFLE_ON"), "Shuffle toggles independently from campaign state")
+	scene.front_end.music_player.repeat.pressed.emit()
+	_check(scene.music.controller.repeat_mode == ReactiveMusicController.REPEAT_ALL, "Repeat cycles from Off to All")
+	scene.front_end.music_player.repeat.pressed.emit()
+	_check(scene.music.controller.repeat_mode == ReactiveMusicController.REPEAT_ONE, "Repeat cycles from All to One")
+	scene.front_end.music_player.repeat.pressed.emit()
+	_check(scene.music.controller.repeat_mode == ReactiveMusicController.REPEAT_OFF, "Repeat cycles from One back to Off")
+	scene.front_end.music_player.track_list.item_selected.emit(3)
 	var expected_selected_mix := "res://assets/audio/ost/mouse_2.wav"
 	var track_transition_wait_frames := 0
-	while (scene.music_controller.current_mix_path != expected_selected_mix or scene.music_controller.transition_in_progress) and track_transition_wait_frames < 120:
+	while (scene.music.controller.current_mix_path != expected_selected_mix or scene.music.controller.transition_in_progress) and track_transition_wait_frames < 120:
 		await process_frame
 		track_transition_wait_frames += 1
-	_check(scene.music_controller.current_mix_path == expected_selected_mix, "selecting the tracklist crossfades directly to the chosen file; actual=%s" % scene.music_controller.current_mix_path)
-	_check(scene.music_cover.texture.resource_path == "res://assets/audio/covers/mouse.png", "track selection updates the album cover")
-	scene.music_system_selector.select(1)
-	scene.music_system_selector.item_selected.emit(1)
-	scene.music_track_list.select(1)
-	scene.music_track_list.item_selected.emit(1)
-	_check(settings.music_system == settings.MUSIC_SYSTEM_AUTHORED_DJ and settings.authored_music_set == "cat" and scene.music_controller.dj_mode, "menu immediately plays the selected CAT authored set")
-	_check(scene.music_track_list.item_count == 2 and not scene.music_track_list.disabled, "Authored DJ reuses the chooser for DOG and CAT")
-	_check(not scene.music_shuffle_button.visible and not scene.music_repeat_button.visible, "DJ hides Playlist-only controls")
+	_check(scene.music.controller.current_mix_path == expected_selected_mix, "selecting the tracklist crossfades directly to the chosen file; actual=%s" % scene.music.controller.current_mix_path)
+	_check(scene.front_end.music_player.cover.texture.resource_path == "res://assets/audio/covers/mouse.png", "track selection updates the album cover")
+	scene.front_end.music_player.system_selector.select(1)
+	scene.front_end.music_player.system_selector.item_selected.emit(1)
+	scene.front_end.music_player.track_list.select(1)
+	scene.front_end.music_player.track_list.item_selected.emit(1)
+	_check(settings.music_system == settings.MUSIC_SYSTEM_AUTHORED_DJ and settings.authored_music_set == "cat" and scene.music.controller.dj_mode, "menu immediately plays the selected CAT authored set")
+	_check(scene.front_end.music_player.track_list.item_count == 2 and not scene.front_end.music_player.track_list.disabled, "Authored DJ reuses the chooser for DOG and CAT")
+	_check(not scene.front_end.music_player.shuffle.visible and not scene.front_end.music_player.repeat.visible, "DJ hides Playlist-only controls")
 	var saved_music_policy := ConfigFile.new()
 	_check(saved_music_policy.load(settings.SETTINGS_PATH) == OK and String(saved_music_policy.get_value("music", "system", "")) == settings.MUSIC_SYSTEM_AUTHORED_DJ and String(saved_music_policy.get_value("music", "authored_set", "")) == "cat", "selected music system and authored set persist for later playtests")
 	_check(AudioServer.get_bus_index(&"Music") >= 0, "Music bus exists")
 	_check(music_volume_index >= 0 and AudioServer.get_bus_effect_count(music_volume_index) > 0 and AudioServer.get_bus_effect(music_volume_index, 0) is AudioEffectSpectrumAnalyzer, "Music bus carries a spectrum analyzer")
-	scene.music_controller.beat_detector.set_process(false)
-	for active_tween in scene.logo_bounce_tweens.values():
-		if active_tween is Tween and active_tween.is_valid():
-			active_tween.kill()
-	scene.logo_bounce_tweens.clear()
-	for segment in scene.logo_segments:
-		segment.scale = Vector2.ONE
-		segment.rotation = 0.0
-	scene._on_music_band_pulse(2, 1.0)
-	var logo_pulse_wait_frames := 0
-	while scene.logo_segments[2].scale.y <= 1.01 and logo_pulse_wait_frames < 30:
-		await process_frame
-		logo_pulse_wait_frames += 1
-	_check(scene.logo_segments[2].scale.y > 1.01, "TA reacts to its assigned frequency band")
-	_check(scene.logo_segments[0].scale.is_equal_approx(Vector2.ONE) and scene.logo_segments[1].scale.is_equal_approx(Vector2.ONE) and scene.logo_segments[3].scale.is_equal_approx(Vector2.ONE), "a TA-band pulse does not animate TRA, DA, or LA")
+	scene.music.controller.beat_detector.set_process(false)
+	front.show_home()
+	front.pulse_values = [0.0, 0.0, 0.0, 0.0]
+	scene.music.controller.band_pulse.emit(2, 1.0)
+	await process_frame
+	_check(front.logo_words[2].scale.y > 1.01, "visible TA word reacts to its music band")
+	_check(front.logo_words[0].scale.is_equal_approx(Vector2.ONE) and front.logo_words[1].scale.is_equal_approx(Vector2.ONE) and front.logo_words[3].scale.is_equal_approx(Vector2.ONE), "TA pulse leaves other visible words at rest")
 	_check(game_layer != null and game_layer.position.x > 0.0, "game layer begins parked beyond the right screen edge")
-	scene.play_button.pressed.emit()
+	(front.home_body.find_child("NewRun", true, false) as Button).pressed.emit()
 	await process_frame
 	_check(scene.front_end.page == "setup", "New Game opens run setup")
 	if scene.front_end.page != "setup":
@@ -211,14 +175,14 @@ func _run() -> void:
 	scene.front_end._start_pressed()
 	await create_timer(0.82).timeout
 	_check(scene.game_started and not menu.visible, "play hides the menu after its exit transition")
-	_check(scene.music_controller.dj_mode and scene.music_controller.current_mix_path == "res://assets/audio/ost/cat_1.wav", "starting a CAT playtest hands playback to CAT_1")
-	_check(scene.music_controller.music_director.current_cue_id == "cat_1_bars_001_002" and scene.music_controller.music_director.state == MusicDirector.STATE_HOLDING_CUE, "Starter Event holds approved CAT_1 bars 1-2")
+	_check(scene.music.controller.dj_mode and scene.music.controller.current_mix_path == "res://assets/audio/ost/cat_1.wav", "starting a CAT playtest hands playback to CAT_1")
+	_check(scene.music.controller.music_director.current_cue_id == "cat_1_bars_001_002" and scene.music.controller.music_director.state == MusicDirector.STATE_HOLDING_CUE, "Starter Event holds approved CAT_1 bars 1-2")
 	_check(is_equal_approx(game_layer.position.x, 0.0), "game layer slides fully into place")
 	_check(background != null and background.global_position.is_equal_approx(background_position_before), "background remains fixed while UI layers transition")
 	_check(scene.campaign.current_phase == CampaignManager.CampaignPhase.STARTER_EVENT, "New Game starts the Monday Starter Event before any Deal")
-	_check(scene.campaign_overlay.visible and scene.current_campaign_event != null, "generic campaign Event UI opens above the existing Deal table")
+	_check(scene.event_table.visible and scene.current_campaign_event != null, "generic campaign Event UI opens above the existing Deal table")
 	_check(scene.current_campaign_event.participants.any(func(npc: NPCDefinition): return npc.id == CampaignNpcCatalog.TRA_DA_AUNTIE), "Cô Trà Đá is a guaranteed Starter Event participant alongside the optional services")
-	_check(not scene.current_campaign_event.can_exit and scene.campaign_continue_button.disabled, "mandatory Drink selection blocks Event exit")
+	_check(not scene.current_campaign_event.can_exit and scene.event_table.continue_button.disabled, "mandatory Drink selection blocks Event exit")
 	_check(scene.event_table.table_state == EventTableController.TABLE_STATE_EVENT, "event-table controller owns the active presentation state")
 	_check(scene.event_table.focused_npc_id == EventTableController.NPC_DOI_NO, "Starter opens the debt encounter")
 	scene.event_table.unfocus_npc()
@@ -228,7 +192,7 @@ func _run() -> void:
 	var lotto_selector := scene.event_table.get_node("LottoSelect") as Button
 	var right_focus := scene.event_table._sprite_focus_position(&"right", Vector2(300, 590))
 	var lotto_focus := scene.event_table._sprite_focus_position(&"top_right", Vector2(300, 590))
-	_check(lotto_selector.position.x >= 850.0 and lotto_selector.size.y >= 48.0, "lottery NPC has an explicit touch-sized name target")
+	_check(lotto_selector.size.x >= 210.0 and lotto_selector.size.y >= 48.0, "lottery NPC has an explicit touch-sized name target")
 	_check(lotto_focus.is_equal_approx(right_focus), "top-right NPC focused sprite uses the same right-side presentation position as a right NPC")
 	scene.event_table.focus_deck()
 	await create_timer(EventTableController.TRANSITION_SECONDS + 0.05).timeout
@@ -236,7 +200,7 @@ func _run() -> void:
 	var starter_right_overlay := scene.event_table.get_node("TraDaAuntieOverlay") as TextureRect
 	_check(scene.event_table.deck_focused and scene.event_table.day_label.get_parent().position.y < 20.0, "selecting the Event Deck uses the standard focus transition and moves the money header to the top")
 	_check(starter_left_overlay.modulate.a < 0.5 and starter_right_overlay.modulate.a < 0.5, "selecting the Event Deck dims the other Event participants")
-	_check(scene.deck_screen.visible and scene.deck_screen._cards.size() == 52 and not scene.discard_archive_overlay.visible, "Event Deck opens the shared full-screen browser with all physical cards")
+	_check(scene.deck_screen.visible and scene.deck_screen._cards.size() == 52 and not scene.pile_archive.overlay.visible, "Event Deck opens the shared full-screen browser with all physical cards")
 	scene.deck_screen.close()
 	await create_timer(EventTableController.TRANSITION_SECONDS + 0.05).timeout
 	_check(starter_left_overlay.visible and starter_right_overlay.visible, "Starter Event composes Đánh Giày at left and Cô Trà Đá at right from frame-registered overlays")
@@ -246,44 +210,44 @@ func _run() -> void:
 	await create_timer(EventTableController.TRANSITION_SECONDS + 0.05).timeout
 	_check(scene.event_table.focused_npc_id == EventTableController.NPC_TRA_DA and (scene.event_table.get_node("TraDaAuntieFocused") as TextureRect).visible, "selecting Cô Trà Đá slides her standalone sprite onto the table")
 	_check(scene.event_table.content_panel.visible and scene.event_table.day_label.get_parent().position.y < 20.0, "NPC focus moves the wallet header upward and opens table content")
-	var starter_drink_button := scene.campaign_overlay.find_child("Drink_tra_da", true, false) as Button
+	var starter_drink_button := scene.event_table.find_child("Drink_tra_da", true, false) as Button
 	_check(starter_drink_button != null and not starter_drink_button.disabled, "free Trà đá is purchasable in the Starter Event")
 	starter_drink_button.pressed.emit()
 	await process_frame
 	_check(not scene.current_campaign_event.can_exit, "inspecting a Drink does not silently purchase it")
 	_check(scene.event_table.conversation.speech.text.contains("Trà đá"), "Cô Trà Đá explains the inspected Drink")
-	var order_button := scene.campaign_overlay.find_child("Confirm", true, false) as Button
+	var order_button := scene.event_table.find_child("Confirm", true, false) as Button
 	_check(order_button != null and not order_button.disabled, "inspected Drink exposes an explicit order response")
 	order_button.pressed.emit()
 	await process_frame
-	_check(not scene.campaign_continue_button.visible, "Continue stays hidden after ordering tea")
-	_check(scene.current_campaign_event.can_exit and not scene.campaign_continue_button.disabled, "selecting a Drink completes Cô Trà Đá's mandatory interaction")
+	_check(not scene.event_table.continue_button.visible, "Continue stays hidden after ordering tea")
+	_check(scene.current_campaign_event.can_exit and not scene.event_table.continue_button.disabled, "selecting a Drink completes Cô Trà Đá's mandatory interaction")
 	_check(scene.drink_manager.morning_drink_id == DrinkCatalog.TRA_DA and scene.deal.wallet.balance_vnd == CampaignConfig.STARTING_WALLET_VND, "Starter Drink is assigned to Morning/Noon without inventing a charge for free Trà đá")
 	scene.event_table.back_button.pressed.emit()
 	await create_timer(EventTableController.TRANSITION_SECONDS + 0.05).timeout
 	_check(scene.event_table.focused_npc_id.is_empty() and not scene.event_table.content_panel.visible, "Back clears focused NPC content and restores the event overview")
-	_check(scene.campaign_continue_button.visible, "Continue returns on the table overview")
+	_check(scene.event_table.continue_button.visible, "Continue returns on the table overview")
 	var starter_shoe_selector := scene.event_table.get_node("DanhGiaySelect") as Button
 	starter_shoe_selector.pressed.emit()
 	await create_timer(EventTableController.TRANSITION_SECONDS + 0.05).timeout
-	_check(scene.event_table.focused_npc_id == EventTableController.NPC_DANH_GIAY and scene.campaign_participants.get_child(0) is MiscNpcPanel, "shoe-shine focus opens the implemented service panel")
+	_check(scene.event_table.focused_npc_id == EventTableController.NPC_DANH_GIAY and scene.event_table.participants_container.get_child(0) is ShoeShinePanel, "shoe-shine focus opens the implemented service panel")
 	scene.event_table.back_button.pressed.emit()
 	await create_timer(EventTableController.TRANSITION_SECONDS + 0.05).timeout
 	for npc_id in scene.event_table._npc_layers:
 		scene.event_table.focus_npc(npc_id)
-		_check(not scene.campaign_continue_button.visible, "Continue hidden for " + npc_id)
+		_check(not scene.event_table.continue_button.visible, "Continue hidden for " + npc_id)
 		scene.event_table.back_button.disabled = false
 		scene.event_table.unfocus_npc()
 	scene.event_table.focus_deck()
-	_check(not scene.campaign_continue_button.visible, "Continue hidden in deck inspection")
+	_check(not scene.event_table.continue_button.visible, "Continue hidden in deck inspection")
 	scene.event_table.unfocus_npc()
-	scene.campaign_continue_button.pressed.emit()
+	scene.event_table.continue_button.pressed.emit()
 	await create_timer(EventTableController.TRANSITION_SECONDS * 2.0 + 0.08).timeout
-	_check(scene.campaign.current_phase == CampaignManager.CampaignPhase.MORNING_DEAL and not scene.campaign_overlay.visible, "continuing the Starter Event hands off to the existing Morning Deal")
-	_check(not scene.interaction_locked and scene.event_table.table_state == EventTableController.TABLE_STATE_DEAL, "Deal input unlocks only after the gameplay presentation returns")
-	_check(scene.music_controller.music_director.pending_cue_id == "cat_1_bars_009_012" and scene.music_controller.music_director.state == MusicDirector.STATE_TRAVELING_FORWARD, "Morning Deal releases CAT_1 through authored audio toward its Phase 1 cue")
+	_check(scene.campaign.current_phase == CampaignManager.CampaignPhase.MORNING_DEAL and not scene.event_table.visible, "continuing the Starter Event hands off to the existing Morning Deal")
+	_check(not scene.interactions.locked and scene.event_table.table_state == EventTableController.TABLE_STATE_DEAL, "Deal input unlocks only after the gameplay presentation returns")
+	_check(scene.music.controller.music_director.pending_cue_id == "cat_1_bars_009_012" and scene.music.controller.music_director.state == MusicDirector.STATE_TRAVELING_FORWARD, "Morning Deal releases CAT_1 through authored audio toward its Phase 1 cue")
 	_check(scene.deal.hand.size() == DealState.ACTIVE_HAND_TARGET, "opening hand refills to 10")
-	_check(scene.hand_views.size() == DealState.ACTIVE_HAND_TARGET, "ten interactive card views are rendered")
+	_check(scene.card_table.hand_views.size() == DealState.ACTIVE_HAND_TARGET, "ten interactive card views are rendered")
 	_check(scene.deal.deck.draw_pile.size() == 42, "draw pile count reflects opening draw")
 	_check(scene.card_sfx_players.size() == 4, "card manipulation owns independent choose, place, draw, and shuffle players")
 	for card_sfx_player in scene.card_sfx_players.values():
@@ -344,7 +308,7 @@ func _run() -> void:
 	_check(scene.wallet_value.text == VndWallet.format_amount(-75_000) and wallet_pile.get_child_count() == 1 and wallet_pile.get_child(0) is Label, "negative wallet keeps its exact value and renders debt instead of impossible negative bills")
 	scene.money_presentation.sync_wallet(987_654_000)
 	_check(wallet_pile.get_child_count() <= MoneyPresentation.MAX_WALLET_OBJECTS, "very large wallet pile stays capped")
-	scene.money_presentation.sync_wallet(scene.displayed_wallet_vnd)
+	scene.money_presentation.sync_wallet(scene.money_playback.displayed_balance)
 	_check(MoneyPresentation.denomination_breakdown(2_500_000).size() == 1 and int(MoneyPresentation.denomination_breakdown(2_500_000)[0]["count"]) == 5, "large repeated denominations compress into one logical bill bundle")
 	_check(scene.get_node_or_null("GameLayer/Header/HeaderRow/CampaignStat") != null and scene.table_hud_presentation.day.text.contains("THỨ HAI") and scene.campaign_value.text.contains(VndWallet.format_vnd(scene.campaign.daily_requirement())), "campaign day and requirement remain visible during the Deal")
 	var campaign_panel := scene.get_node_or_null("GameLayer/Header/HeaderRow/CampaignStat") as PanelContainer
@@ -373,8 +337,8 @@ func _run() -> void:
 	_check(scene.get_node_or_null("GameLayer/TableSurface/DrinkProps/ActiveDrink") == scene.drink_table_button, "active Drink has a clickable in-world table prop")
 	_check(scene.drink_table_texture != null and scene.drink_table_texture.texture != null and scene.drink_table_texture.texture.resource_path == "res://assets/drinks/tra_da_full.png", "unused starter Drink shows its full sprite")
 	_check(scene.drink_table_button.position == MatchUI.DRINK_TABLE_MORNING_POSITION, "morning Drink occupies the former HUD position to the right of the hand")
-	_check(scene.drink_table_button.size == MatchUI.DRINK_TABLE_PROP_SIZE and scene.drink_table_texture.size == MatchUI.DRINK_TABLE_SPRITE_SIZE, "the clickable Drink uses the sprite plus its separate nameplate footprint")
-	_check(scene.drink_charge_outline.get_parent() == scene.drink_table_button and scene.drink_charge_outline.size == MatchUI.DRINK_TABLE_SPRITE_SIZE, "the blue charge outline wraps the Drink sprite itself")
+	_check(scene.drink_table_button.size == Vector2(112, 178) and scene.drink_table_texture.size == Vector2(112, 144), "the clickable Drink uses the sprite plus its separate nameplate footprint")
+	_check(scene.drink_charge_outline.get_parent() == scene.drink_table_button and scene.drink_charge_outline.size == Vector2(112, 144), "the blue charge outline wraps the Drink sprite itself")
 	_check(scene.drink_name_label.get_parent() == scene.drink_table_button and scene.drink_name_label.position.y >= scene.drink_table_texture.position.y + scene.drink_table_texture.size.y, "the bordered Drink name sits below the sprite")
 	_check(loose_hand.get_global_rect().end.x <= scene.drink_table_button.get_global_rect().position.x, "the Drink sprite sits fully to the right of the hand interaction surface")
 	scene.campaign.current_phase = CampaignManager.CampaignPhase.NOON_DEAL
@@ -390,15 +354,15 @@ func _run() -> void:
 	_check(scene.drink_name_label != null and scene.drink_name_label.text == "TRÀ ĐÁ", "free Trà đá is the visible starter Drink")
 	_check(scene.drink_table_button.disabled, "Trà đá stays unavailable until the current Phase has a mandatory discard")
 	_check(not scene.drink_charge_outline.visible and not scene.drink_charge_outline.is_processing(), "Trà đá has no blue charge cue before a mandatory discard exists")
-	_check(scene.drink_table_button.tooltip_text.contains(DrinkCatalog.effect_text(DrinkCatalog.TRA_DA)), "Trà đá tooltip explains its optional extra discard")
+	_check(scene.drink_table_button.tooltip_text.contains(QuickInfo.drink(DrinkCatalog.TRA_DA)), "Trà đá tooltip shows its short optional-discard effect")
 	_check(scene.get_node_or_null("GameLayer/TableSurface/DiscardHistoryTray") == null, "persistent discard tray is replaced by the pile archive")
-	_check(scene.discard_archive_overlay != null and not scene.discard_archive_overlay.visible, "discard archive begins closed")
+	_check(scene.pile_archive.overlay != null and not scene.pile_archive.overlay.visible, "discard archive begins closed")
 	var draw_archive_button := scene.get_node_or_null("GameLayer/TableSurface/DrawPile/OpenDrawArchive") as Button
 	_check(draw_archive_button != null, "draw pile exposes a remaining-deck click target")
 	var archive_button := scene.get_node_or_null("GameLayer/TableSurface/DiscardPile/OpenDiscardArchive") as Button
 	_check(archive_button != null, "discard pile exposes an archive click target")
 	var relic_grid := scene.get_node_or_null("GameLayer/UtilityRail/RelicsArea/RelicScroll/RelicGrid") as GridContainer
-	_check(relic_grid != null and relic_grid.get_child_count() == MatchUI.INITIAL_RELIC_SLOT_COUNT, "four expandable Relic slots exist")
+	_check(relic_grid != null and relic_grid.columns == 1 and relic_grid.get_child_count() == scene.deal.relics.inventory.size(), "right-edge icon list reflects actual owned relics without empty slots")
 	_check(background != null, "official sidewalk-table background exists")
 	_check(background != null and background.texture != null and background.texture.resource_path == "res://assets/environment/sidewalk_table.png", "official background asset is active")
 	_check(scene.theme != null and scene.theme.default_font != null and scene.theme.default_font.resource_path == PresentationTheme.OFFICIAL_FONT_PATH, "DFVN Pexel Grotesk is the official UI font")
@@ -406,29 +370,29 @@ func _run() -> void:
 	for opening_card in scene.deal.hand:
 		opening_hand_ids.append(opening_card.unique_id)
 	scene.menu_button.pressed.emit()
-	_check(menu.visible and scene.interaction_locked, "Menu button opens the minimal menu and pauses table interaction")
+	_check(menu.visible and scene.interactions.locked, "Menu button opens the minimal menu and pauses table interaction")
 	await scene._close_menu_to_game()
-	_check(not menu.visible and not scene.interaction_locked, "Escape-style resume closes the menu and restores table interaction")
+	_check(not menu.visible and not scene.interactions.locked, "Escape-style resume closes the menu and restores table interaction")
 	var resumed_hand_ids: Array[String] = []
 	for resumed_card in scene.deal.hand:
 		resumed_hand_ids.append(resumed_card.unique_id)
 	_check(resumed_hand_ids == opening_hand_ids, "resuming from Menu preserves the current deal")
 	draw_archive_button.pressed.emit()
-	_check(scene.discard_archive_overlay.visible and scene.pile_archive_mode == "draw", "clicking the draw pile opens the remaining-deck viewer")
-	_check(scene.pile_archive_title.text == "BỘ BÀI CÒN LẠI" and scene.discard_archive_count.text.begins_with("42 LÁ"), "remaining-deck viewer reports all 42 drawable cards")
+	_check(scene.pile_archive.overlay.visible and scene.pile_archive.mode == "draw", "clicking the draw pile opens the remaining-deck viewer")
+	_check(scene.pile_archive.title_label.text == "BỘ BÀI CÒN LẠI" and scene.pile_archive.count_label.text.begins_with("42 LÁ"), "remaining-deck viewer reports all 42 drawable cards")
 	var visible_draw_cards := 0
 	for suit in DeckManager.SUITS:
-		visible_draw_cards += scene.discard_archive_suit_grids[suit].get_child_count()
+		visible_draw_cards += scene.pile_archive.grids[suit].get_child_count()
 	_check(visible_draw_cards == 42, "remaining-deck viewer renders every drawable card by suit")
-	var clubs_title := scene.discard_archive_suit_titles["Clubs"] as Control
+	var clubs_title := scene.pile_archive.suit_titles["Clubs"] as Control
 	var clubs_icon: TextureRect = null
 	if clubs_title != null:
 		clubs_icon = clubs_title.get_node_or_null("Icon") as TextureRect
 	_check(clubs_icon != null and clubs_icon.texture != null and clubs_icon.texture.resource_path == "res://cards/symbol_club.png", "archive suit headings use the supplied suit symbol assets")
-	scene.discard_archive_close.pressed.emit()
-	_check(not scene.discard_archive_overlay.visible, "remaining-deck viewer closes back to the table")
+	scene.pile_archive.close_button.pressed.emit()
+	_check(not scene.pile_archive.overlay.visible, "remaining-deck viewer closes back to the table")
 	var first_card: CardData = scene.deal.hand[0]
-	var first_view: PlayingCardView = scene.hand_views[first_card.unique_id]
+	var first_view: PlayingCardView = scene.card_table.hand_views[first_card.unique_id]
 	var chance_badge := first_view.get_node_or_null("MeldChance") as Control
 	_check(chance_badge != null and not chance_badge.visible, "meld probability stays hidden until its card is hovered")
 	var meld_symbol: TextureRect = null
@@ -437,8 +401,7 @@ func _run() -> void:
 	_check(meld_symbol != null and meld_symbol.texture != null and meld_symbol.texture.resource_path == "res://cards/symbol_meld.png", "meld probability badge uses the supplied straw-hat symbol asset")
 	settings.set_locale("en")
 	await process_frame
-	var english_probability_copy := first_view.tooltip_text.contains("Need:") or first_view.tooltip_text.contains("Ready to Meld:")
-	_check(english_probability_copy and not first_view.tooltip_text.contains("Cần:") and not first_view.tooltip_text.contains("Sẵn sàng"), "English locale translates the live meld-probability guidance (got: %s)" % first_view.tooltip_text.replace("\n", " / "))
+	_check(first_view.tooltip_text.contains("Fortune 0") and first_view.tooltip_text.contains(first_view.card.rank) and not first_view.tooltip_text.contains("Vận") and first_view.tooltip_text.length() < 100, "English card hover keeps physical identity and signed Fortune concise")
 	settings.set_locale("vi")
 	await process_frame
 	first_view._on_mouse_entered()
@@ -446,10 +409,10 @@ func _run() -> void:
 	await _capture("runtime-meld-badge")
 	var probability_discard_count := scene.deal.discard_count
 	scene.deal.discard_count = DealState.DISCARDS_PER_PHASE - 1
-	scene._sync_card_probability_badges()
+	scene.card_table.sync_probabilities()
 	_check(chance_badge != null and (chance_badge.get_node("Content/Value") as Label).text != "0%", "last mandatory discard keeps a future-draw probability instead of forcing 0%")
 	scene.deal.discard_count = probability_discard_count
-	scene._sync_card_probability_badges()
+	scene.card_table.sync_probabilities()
 	var choose_sfx_count := int(scene.card_sfx_play_counts[scene.CARD_SFX_CHOOSE])
 	scene._on_card_pressed(first_card)
 	_check(int(scene.card_sfx_play_counts[scene.CARD_SFX_CHOOSE]) == choose_sfx_count + 1 and (scene.card_sfx_players[scene.CARD_SFX_CHOOSE] as AudioStreamPlayer).stream.resource_path == "res://assets/audio/sfx/card_choose.wav", "selecting a card plays card_choose exactly once")
@@ -459,12 +422,12 @@ func _run() -> void:
 	first_view._on_mouse_exited()
 	_check(first_view.z_index == 100, "clicked card stays above the hand panel after hover exit")
 	_check(first_view.get_node_or_null("SelectionGlow") == null, "card selection does not add a competing outline overlay")
-	_check(not scene.status_label.text.begins_with("1 "), "selected-card guidance omits the selected-count number")
+	_check(scene.status_label.text == tr("STATUS_ONE_SELECTED"), "one-card guidance is the concise selected-card label")
 	_check(chance_badge != null and not chance_badge.visible, "meld probability hides again after hover exit")
 	_check(chance_badge != null and chance_badge.position.x >= 0 and chance_badge.position.x + chance_badge.size.x <= PlayingCardView.CARD_SIZE.x, "chance badge stays inside the card face")
 	for card in scene.deal.hand:
 		_check(ResourceLoader.exists(card.texture_path()), "face texture exists for %s" % card.unique_id)
-		var card_view: PlayingCardView = scene.hand_views[card.unique_id]
+		var card_view: PlayingCardView = scene.card_table.hand_views[card.unique_id]
 		var card_badge := card_view.get_node_or_null("MeldChance") as Control
 		_check(card_badge != null and not card_badge.visible, "non-hovered meld chance stays hidden for %s" % card.unique_id)
 	var action_outline := first_view.get_node_or_null("BeatVisual/ActionOutline")
@@ -523,18 +486,18 @@ func _run() -> void:
 	]
 	scene.deal.deck.discard_pile.append_array(archive_cards)
 	archive_button.pressed.emit()
-	_check(scene.discard_archive_overlay.visible, "clicking the discard pile opens the archive")
-	_check(scene.pile_archive_mode == "discard" and scene.pile_archive_title.text == "CHỒNG BÀI BỎ", "shared pile viewer switches to discard mode")
-	_check(scene.discard_archive_count.text.begins_with("5 LÁ"), "discard archive reports every card in the pile")
-	_check(scene.discard_archive_suit_grids["Spades"].get_child_count() == 2, "discard archive groups both Spades together")
-	_check(scene.discard_archive_suit_grids["Hearts"].get_child_count() == 1, "discard archive groups Hearts")
-	_check(scene.discard_archive_suit_grids["Diamonds"].get_child_count() == 1, "discard archive groups Diamonds")
-	_check(scene.discard_archive_suit_grids["Clubs"].get_child_count() == 1, "discard archive groups Clubs")
-	scene.discard_archive_close.pressed.emit()
-	_check(not scene.discard_archive_overlay.visible, "discard archive close action restores the table")
+	_check(scene.pile_archive.overlay.visible, "clicking the discard pile opens the archive")
+	_check(scene.pile_archive.mode == "discard" and scene.pile_archive.title_label.text == "CHỒNG BÀI BỎ", "shared pile viewer switches to discard mode")
+	_check(scene.pile_archive.count_label.text.begins_with("5 LÁ"), "discard archive reports every card in the pile")
+	_check(scene.pile_archive.grids["Spades"].get_child_count() == 2, "discard archive groups both Spades together")
+	_check(scene.pile_archive.grids["Hearts"].get_child_count() == 1, "discard archive groups Hearts")
+	_check(scene.pile_archive.grids["Diamonds"].get_child_count() == 1, "discard archive groups Diamonds")
+	_check(scene.pile_archive.grids["Clubs"].get_child_count() == 1, "discard archive groups Clubs")
+	scene.pile_archive.close_button.pressed.emit()
+	_check(not scene.pile_archive.overlay.visible, "discard archive close action restores the table")
 	scene.deal.deck.discard_pile.clear()
-	scene._sync_piles()
-	scene.selected_card_ids.clear()
+	scene.card_table.sync_piles()
+	scene.interactions.selected_ids.clear()
 	for _replace_index in range(3):
 		scene.deal.hand.pop_back()
 	var nhan_pair_low := CardData.new("cue_5_spades", "5", 5, "Spades", 5)
@@ -553,13 +516,13 @@ func _run() -> void:
 	var nhan_hand_size := scene.deal.hand.size()
 	scene.drink_table_button.pressed.emit()
 	await process_frame
-	_check(scene.drink_targeting_active, "Nhân trần arms its two-target swap mode")
-	var nhan_hand_outline := (scene.hand_views.get(nhan_loose.unique_id) as PlayingCardView).get_node_or_null("BeatVisual/ActionOutline") as Control
+	_check(scene.interactions.drink_targeting, "Nhân trần arms its two-target swap mode")
+	var nhan_hand_outline := (scene.card_table.hand_views.get(nhan_loose.unique_id) as PlayingCardView).get_node_or_null("BeatVisual/ActionOutline") as Control
 	_check(nhan_hand_outline != null and (nhan_hand_outline.cue_mode() & CardActionOutlineScript.CUE_DRINK) != 0, "Nhân trần marks loose hand cards blue")
 	scene._on_card_pressed(nhan_loose)
-	_check(scene.pending_drink_card_ids.has(nhan_loose.unique_id), "Nhân trần keeps the loose-card target pending")
-	_check(scene.selected_drink_discard_key.is_empty(), "Nhân trần waits for a mandatory-discard target")
-	scene._on_drink_discard_targeted(nhan_record)
+	_check(scene.interactions.drink_ids.has(nhan_loose.unique_id), "Nhân trần keeps the loose-card target pending")
+	_check(scene.interactions.drink_discard_key.is_empty(), "Nhân trần waits for a mandatory-discard target")
+	scene.target_drink_discard(nhan_record)
 	await create_timer(0.45).timeout
 	_check(scene.deal.hand.size() == nhan_hand_size, "Nhân trần swaps without changing hand size")
 	_check(scene.deal.deck.draw_pile.size() == nhan_draw_before, "Nhân trần never refills or draws")
@@ -587,54 +550,54 @@ func _run() -> void:
 	_check(not scene.deal.tra_da_extra_discard_pending and scene.deal.deck.draw_pile.size() == tra_draw_before - 2, "the extra discard ends the turn and refills both missing cards")
 	_check(scene.deal.discard_count == 2 and scene.deal.discard_history_for_phase(scene.deal.current_phase).size() == 2, "Trà đá's extra discard does not advance the Phase counter")
 	scene.deal.deck.discard_pile.clear()
-	scene._sync_piles()
+	scene.card_table.sync_piles()
 	scene.deal.discard_history.clear()
 	scene.deal.discard_count = 0
 	scene.deal.state = DealState.STATE_ACTIVE
-	scene.selected_card_ids.clear()
+	scene.interactions.selected_ids.clear()
 	var stable_meld := MeldState.new(77, MeldRules.TYPE_RUN, [
 		CardData.new("smoke_3_spades", "3", 3, "Spades", 3),
 		CardData.new("smoke_4_spades", "4", 4, "Spades", 4),
 		CardData.new("smoke_5_spades", "5", 5, "Spades", 5),
 	] as Array[CardData])
 	scene.deal.melds.append(stable_meld)
-	scene._sync_melds()
+	scene.card_table.sync_melds()
 	await create_timer(0.22).timeout
-	var stable_view := scene.meld_views.get(stable_meld.meld_id) as MeldView
+	var stable_view := scene.card_table.meld_views.get(stable_meld.meld_id) as MeldView
 	var stable_view_id := stable_view.get_instance_id() if stable_view != null else 0
 	var stable_face_id := stable_view._cards_row.get_child(0).get_instance_id() if stable_view != null else 0
 	scene._on_card_pressed(first_card)
-	_check(scene.meld_views[stable_meld.meld_id].get_instance_id() == stable_view_id, "card selection preserves the existing Meld panel instance")
+	_check(scene.card_table.meld_views[stable_meld.meld_id].get_instance_id() == stable_view_id, "card selection preserves the existing Meld panel instance")
 	_check(stable_view._cards_row.get_child(0).get_instance_id() == stable_face_id, "card selection preserves table Meld face instances")
 	_check(stable_view.modulate.is_equal_approx(Color.WHITE) and stable_view.scale.is_equal_approx(Vector2.ONE), "card selection does not replay the Meld intro animation")
-	scene._on_meld_pressed(stable_meld.meld_id)
-	_check(scene.meld_views[stable_meld.meld_id].get_instance_id() == stable_view_id, "Meld targeting preserves the existing panel instance")
+	scene.select_meld(stable_meld.meld_id)
+	_check(scene.card_table.meld_views[stable_meld.meld_id].get_instance_id() == stable_view_id, "Meld targeting preserves the existing panel instance")
 	stable_meld.extend([CardData.new("smoke_2_spades", "2", 2, "Spades", 2)] as Array[CardData])
-	scene._sync_melds()
-	_check(scene.meld_views[stable_meld.meld_id].get_instance_id() == stable_view_id, "extending a Meld updates its existing panel")
+	scene.card_table.sync_melds()
+	_check(scene.card_table.meld_views[stable_meld.meld_id].get_instance_id() == stable_view_id, "extending a Meld updates its existing panel")
 	_check(stable_view._card_views["smoke_3_spades"].get_instance_id() == stable_face_id, "extending a Meld preserves its existing card-face instances")
 	_check(stable_view._cards_row.get_child_count() == 4, "extending a Meld adds only the new card face")
 	scene.deal.set_current_drink(DrinkCatalog.NAU_DA)
 	scene._sync_all()
 	var idle_nau_outline := stable_view._card_drink_outlines.get(stable_meld.cards[0].unique_id) as Control
-	_check(idle_nau_outline != null and idle_nau_outline.visible and not scene.drink_targeting_active and not scene.drink_hover_active, "unused caffeine highlights table targets without hovering or arming the Drink")
+	_check(idle_nau_outline != null and idle_nau_outline.visible and not scene.interactions.drink_targeting and not scene.drink_hover_active, "unused caffeine highlights table targets without hovering or arming the Drink")
 	var nuoc_cue_count := scene.drink_cue_play_count
 	var previous_cue_stream_index := scene.drink_cue_stream_index
 	scene.deal.set_current_drink(DrinkCatalog.NUOC_VOI)
 	stable_meld.scored_points = ScoringPipeline.meld_value(stable_meld.cards)
 	scene._sync_all()
 	_check(scene.drink_cue_play_count == nuoc_cue_count + 1 and scene.drink_cue_stream_index != previous_cue_stream_index, "Nước vối's removable Meld card triggers the next non-repeating glass cue")
-	_check(scene.drink_table_button.tooltip_text.contains(DrinkCatalog.effect_text(DrinkCatalog.NUOC_VOI)), "switching Drinks refreshes the clickable sprite tooltip")
+	_check(scene.drink_table_button.tooltip_text.contains(QuickInfo.drink(DrinkCatalog.NUOC_VOI)), "switching Drinks refreshes the short clickable sprite tooltip")
 	var idle_nuoc_outline := stable_view._card_drink_outlines.get(stable_meld.cards[0].unique_id) as Control
 	_check(idle_nuoc_outline != null and idle_nuoc_outline.visible, "unused Nuoc voi highlights legal table targets without Drink hover or targeting")
 	var removable_endpoint: CardData = stable_meld.cards[0]
-	scene._on_meld_card_pressed(stable_meld.meld_id, removable_endpoint)
-	_check(scene.selected_drink_meld_card_id.is_empty(), "Nước vối ignores table-card targeting until the Drink is clicked first")
+	scene.select_meld_card(stable_meld.meld_id, removable_endpoint)
+	_check(scene.interactions.drink_meld_card_id.is_empty(), "Nước vối ignores table-card targeting until the Drink is clicked first")
 	scene.drink_table_button.pressed.emit()
 	await process_frame
-	_check(scene.drink_targeting_active, "clicking charged Nước vối arms its card-targeting mode without spending it")
-	scene._on_meld_card_pressed(stable_meld.meld_id, removable_endpoint)
-	_check(scene.selected_drink_meld_card_id == removable_endpoint.unique_id, "after arming Nước vối, clicking a legal table card selects it")
+	_check(scene.interactions.drink_targeting, "clicking charged Nước vối arms its card-targeting mode without spending it")
+	scene.select_meld_card(stable_meld.meld_id, removable_endpoint)
+	_check(scene.interactions.drink_meld_card_id == removable_endpoint.unique_id, "after arming Nước vối, clicking a legal table card selects it")
 	var table_drink_outline := stable_view._card_drink_outlines.get(removable_endpoint.unique_id) as Control
 	_check(table_drink_outline != null and table_drink_outline.visible and table_drink_outline.cue_mode() == CardActionOutlineScript.CUE_DRINK, "the armed Nước vối target receives the blue gradient before resolution")
 	await create_timer(0.2).timeout
@@ -644,9 +607,9 @@ func _run() -> void:
 	_check(scene.drink_table_texture.texture != null and scene.drink_table_texture.texture.resource_path == "res://assets/drinks/nuoc_voi_half.png", "spent Nuoc voi changes its table prop from full to half-full")
 	scene.deal.set_current_drink(DrinkCatalog.TRA_DA)
 	scene.deal.melds.clear()
-	scene.selected_card_ids.clear()
-	scene._sync_melds()
-	_check(scene.meld_views.is_empty(), "removed Meld panels leave the keyed view registry")
+	scene.interactions.selected_ids.clear()
+	scene.card_table.sync_melds()
+	_check(scene.card_table.meld_views.is_empty(), "removed Meld panels leave the keyed view registry")
 	for _turn in range(DealState.DISCARDS_PER_PHASE):
 		scene.deal.discard_card(scene.deal.hand[0])
 		scene.deal.discard_card(scene.deal.hand[0])
@@ -661,58 +624,58 @@ func _run() -> void:
 	_check(scene.drink_charge_outline.visible, "unused Sâm dứa charge shows the blue Drink-sprite outline")
 	var pre_arm_card: CardData = scene.deal.hand[0]
 	scene._on_card_pressed(pre_arm_card)
-	var pre_arm_outline := (scene.hand_views.get(pre_arm_card.unique_id) as PlayingCardView).get_node_or_null("BeatVisual/ActionOutline") as Control
-	_check((pre_arm_outline.cue_mode() & CardActionOutlineScript.CUE_DRINK) != 0 and scene.pending_drink_card_ids.is_empty(), "unused Sam dua keeps eligible cards blue while ordinary clicks leave Drink targeting unarmed")
-	scene.selected_card_ids.clear()
+	var pre_arm_outline := (scene.card_table.hand_views.get(pre_arm_card.unique_id) as PlayingCardView).get_node_or_null("BeatVisual/ActionOutline") as Control
+	_check((pre_arm_outline.cue_mode() & CardActionOutlineScript.CUE_DRINK) != 0 and scene.interactions.drink_ids.is_empty(), "unused Sam dua keeps eligible cards blue while ordinary clicks leave Drink targeting unarmed")
+	scene.interactions.selected_ids.clear()
 	scene._sync_all()
 	scene.drink_table_button.pressed.emit()
 	await process_frame
-	_check(scene.drink_targeting_active, "clicking Sâm dứa first arms its multi-card targeting mode")
+	_check(scene.interactions.drink_targeting, "clicking Sâm dứa first arms its multi-card targeting mode")
 	for eligible_card in scene.deal.hand:
-		var eligible_outline := (scene.hand_views.get(eligible_card.unique_id) as PlayingCardView).get_node_or_null("BeatVisual/ActionOutline") as Control
+		var eligible_outline := (scene.card_table.hand_views.get(eligible_card.unique_id) as PlayingCardView).get_node_or_null("BeatVisual/ActionOutline") as Control
 		_check((eligible_outline.cue_mode() & CardActionOutlineScript.CUE_DRINK) != 0, "arming a Drink exposes every currently eligible loose-card target")
 	scene._on_card_pressed(scene.deal.hand[0])
 	scene._on_card_pressed(scene.deal.hand[1])
 	scene._on_card_pressed(scene.deal.hand[2])
-	_check(scene.pending_drink_card_ids.size() == 3 and scene.deal.sam_dua_preserved_cards.is_empty(), "the first three post-arm card clicks remain a pending Sâm dứa selection")
-	for pending_card in scene._pending_drink_cards():
-		var pending_view := scene.hand_views.get(pending_card.unique_id) as PlayingCardView
+	_check(scene.interactions.drink_ids.size() == 3 and scene.deal.sam_dua_preserved_cards.is_empty(), "the first three post-arm card clicks remain a pending Sâm dứa selection")
+	for pending_card in scene.interactions.pending_drink_cards():
+		var pending_view := scene.card_table.hand_views.get(pending_card.unique_id) as PlayingCardView
 		var pending_outline := pending_view.get_node_or_null("BeatVisual/ActionOutline") as Control
 		_check(pending_outline.visible and (pending_outline.cue_mode() & CardActionOutlineScript.CUE_DRINK) != 0, "each pending Sâm dứa card immediately receives the blue gradient")
 	scene.drink_table_button.pressed.emit()
 	await process_frame
 	_check(scene.deal.sam_dua_preserved_cards.size() == 3, "clicking Sâm dứa during Phase 1 LAST CALL marks up to three selected loose cards for DUMP")
-	_check(scene.drink_table_button.tooltip_text.contains("Đã đánh dấu giữ 3 lá"), "Sâm dứa tooltip reports the marked preservation count")
-	_check(not scene.drink_charge_outline.visible, "Sâm dứa blue charge outline disappears after its preservation effect is spent")
+	_check(scene.drink_table_button.tooltip_text.contains(tr("DRINK_SAM_DUA_SELECTED") % 3), "Sâm dứa tooltip reports the marked preservation count")
+	_check(scene.drink_charge_outline.visible, "Sâm dứa stays available to edit marked cards before settlement")
 	for preserved_card in scene.deal.sam_dua_preserved_cards:
-		var preserved_view := scene.hand_views.get(preserved_card.unique_id) as PlayingCardView
+		var preserved_view := scene.card_table.hand_views.get(preserved_card.unique_id) as PlayingCardView
 		var preserved_outline: Control = preserved_view.get_node_or_null("BeatVisual/ActionOutline") if preserved_view != null else null
 		_check(preserved_outline != null and preserved_outline.visible and (preserved_outline.cue_mode() & CardActionOutlineScript.CUE_DRINK) != 0, "each Sâm dứa preservation card keeps the blue stay outline")
 	scene.deal.set_current_drink(DrinkCatalog.TRA_DA)
 	scene.deal.sam_dua_preserved_cards.clear()
-	scene.selected_card_ids.clear()
+	scene.interactions.selected_ids.clear()
 	scene._sync_all()
 	_check(scene.discard_history_row.get_child_count() == 10, "turn register retains both phase markers and eight slots after four discards")
 	_check((scene.discard_history_row.get_child(0) as Label).text == "P1", "center-table discard history labels the owning phase")
-	_check(scene.discard_history_target_outlines.size() == 4, "each mandatory discard remains an independently addressable action target")
+	_check(scene.card_table.discard_history_target_outlines.size() == 4, "each mandatory discard remains an independently addressable action target")
 	for discard_target in scene.discard_history_row.get_children().slice(1, 5):
 		_check(discard_target.has_meta("action_target_card_id") and discard_target.get_node_or_null("ActionOutline") != null and discard_target.mouse_filter == Control.MOUSE_FILTER_IGNORE, "mandatory discard target stays passive until its Drink is armed")
-	var latest_discard_target_key: String = scene._discard_history_target_key(scene.deal.latest_mandatory_discard())
+	var latest_discard_target_key: String = scene.deal.latest_mandatory_discard().target_key()
 	_check(scene.drink_table_button.disabled, "Tra Da stays disabled during LAST CALL")
-	var latest_discard_outline := scene.discard_history_target_outlines[latest_discard_target_key] as Control
+	var latest_discard_outline := scene.card_table.discard_history_target_outlines[latest_discard_target_key] as Control
 	_check(latest_discard_outline.cue_mode() == CardActionOutlineScript.CUE_NONE, "mandatory discard targets stay passive when Tra Da is unavailable")
-	for target_key in scene.discard_history_target_outlines:
+	for target_key in scene.card_table.discard_history_target_outlines:
 		if target_key == latest_discard_target_key:
 			continue
-		var non_target_outline := scene.discard_history_target_outlines[target_key] as Control
+		var non_target_outline := scene.card_table.discard_history_target_outlines[target_key] as Control
 		_check(non_target_outline.cue_mode() == CardActionOutlineScript.CUE_NONE, "older mandatory discards stay outside the unavailable Drink scope")
 	scene._cancel_drink_targeting()
 	scene.deal.discard_history.append(DiscardRecord.new(CardData.new("smoke_p2_discard", "A", 1, "Hearts", 1), 2, 1))
-	scene._sync_discard_history()
+	scene.card_table.sync_discard_history()
 	_check(scene.discard_history_row.get_child_count() == 10 and (scene.discard_history_row.get_child(5) as Label).text == "P2" and scene.discard_history_row.get_node("Phase2Turn1").get_meta("turn_filled"), "turn register fills Phase 2 in place and restarts its turn order")
 	archive_button.pressed.emit()
-	_check(scene.discard_archive_overlay.visible and scene.discard_archive_count.text.begins_with("8 LÁ"), "pile archive includes all four mandatory and four Trà đá extra discards")
-	scene.discard_archive_close.pressed.emit()
+	_check(scene.pile_archive.overlay.visible and scene.pile_archive.count_label.text.begins_with("8 LÁ"), "pile archive includes all four mandatory and four Trà đá extra discards")
+	scene.pile_archive.close_button.pressed.emit()
 
 	var beat_meld_cards: Array[CardData] = [
 		CardData.new("beat_3_spades", "3", 3, "Spades", 3),
@@ -723,16 +686,16 @@ func _run() -> void:
 	scene.deal.hand.clear()
 	scene.deal.hand.append_array(beat_meld_cards)
 	scene.deal.melds.clear()
-	scene.selected_card_ids.clear()
-	scene.selected_meld_id = -1
+	scene.interactions.selected_ids.clear()
+	scene.interactions.selected_meld_id = -1
 	scene._sync_all()
 	await create_timer(0.22).timeout
-	_check(scene.reactive_hand_cards_by_band[0].is_empty() and scene.reactive_hand_cards_by_band[1].is_empty() and scene.reactive_hand_cards_by_band[2].is_empty() and scene.reactive_hand_cards_by_band[3].is_empty(), "legal loose Meld cards stay still until the player selects one")
+	_check(scene.card_table.reactive_hand_cards_by_band[0].is_empty() and scene.card_table.reactive_hand_cards_by_band[1].is_empty() and scene.card_table.reactive_hand_cards_by_band[2].is_empty() and scene.card_table.reactive_hand_cards_by_band[3].is_empty(), "legal loose Meld cards stay still until the player selects one")
 	scene._on_card_pressed(beat_meld_cards[0])
-	_check(scene.reactive_hand_cards_by_band[0].size() == 1 and scene.reactive_hand_cards_by_band[1].size() == 1 and scene.reactive_hand_cards_by_band[2].size() == 1 and scene.reactive_hand_cards_by_band[3].is_empty(), "selecting one legal Meld card maps that Meld left-to-right across frequency bands")
+	_check(scene.card_table.reactive_hand_cards_by_band[0].size() == 1 and scene.card_table.reactive_hand_cards_by_band[1].size() == 1 and scene.card_table.reactive_hand_cards_by_band[2].size() == 1 and scene.card_table.reactive_hand_cards_by_band[3].is_empty(), "selecting one legal Meld card maps that Meld left-to-right across frequency bands")
 	var beat_hand_views: Array[PlayingCardView] = []
 	for beat_card: CardData in beat_meld_cards.slice(0, 3):
-		var beat_view := scene.hand_views[beat_card.unique_id] as PlayingCardView
+		var beat_view := scene.card_table.hand_views[beat_card.unique_id] as PlayingCardView
 		beat_view._beat_visual.scale = Vector2.ONE
 		beat_hand_views.append(beat_view)
 	scene._on_music_band_pulse(1, 1.0)
@@ -751,18 +714,18 @@ func _run() -> void:
 	scene.deal.hand.append_array([extension_card, extension_filler] as Array[CardData])
 	scene.deal.melds.clear()
 	scene.deal.melds.append(beat_table_meld)
-	scene.selected_card_ids.clear()
-	scene.selected_meld_id = -1
+	scene.interactions.selected_ids.clear()
+	scene.interactions.selected_meld_id = -1
 	scene._sync_all()
 	await create_timer(0.22).timeout
-	_check(scene.reactive_hand_cards_by_band[0].is_empty(), "an extendable hand card stays still before a table Meld is selected")
-	scene._on_meld_pressed(beat_table_meld.meld_id)
-	_check(scene.reactive_hand_cards_by_band[0].size() == 1 and scene.reactive_hand_cards_by_band[0][0] == scene.hand_views[extension_card.unique_id], "selecting a table Meld makes its extendable hand card reactive")
-	scene._on_meld_pressed(beat_table_meld.meld_id)
-	_check(scene.reactive_hand_cards_by_band[0].is_empty(), "deselecting the table Meld stops the extendable hand-card cue")
+	_check(scene.card_table.reactive_hand_cards_by_band[0].is_empty(), "an extendable hand card stays still before a table Meld is selected")
+	scene.select_meld(beat_table_meld.meld_id)
+	_check(scene.card_table.reactive_hand_cards_by_band[0].size() == 1 and scene.card_table.reactive_hand_cards_by_band[0][0] == scene.card_table.hand_views[extension_card.unique_id], "selecting a table Meld makes its extendable hand card reactive")
+	scene.select_meld(beat_table_meld.meld_id)
+	_check(scene.card_table.reactive_hand_cards_by_band[0].is_empty(), "deselecting the table Meld stops the extendable hand-card cue")
 	scene._on_card_pressed(extension_card)
-	_check(scene.reactive_meld_cards_by_band[0].size() == 1 and scene.reactive_meld_cards_by_band[1].size() == 1 and scene.reactive_meld_cards_by_band[2].size() == 1, "selected legal extension maps the target Meld cards left-to-right across frequency bands")
-	var beat_meld_view := scene.meld_views[beat_table_meld.meld_id] as MeldView
+	_check(scene.card_table.reactive_meld_cards_by_band[0].size() == 1 and scene.card_table.reactive_meld_cards_by_band[1].size() == 1 and scene.card_table.reactive_meld_cards_by_band[2].size() == 1, "selected legal extension maps the target Meld cards left-to-right across frequency bands")
+	var beat_meld_view := scene.card_table.meld_views[beat_table_meld.meld_id] as MeldView
 	var beat_table_textures: Array[TextureRect] = []
 	for table_card: CardData in beat_table_meld.cards:
 		var table_texture := beat_meld_view._card_views[table_card.unique_id] as TextureRect
@@ -787,51 +750,51 @@ func _run() -> void:
 	scene.deal.melds.clear()
 	scene.deal.state = DealState.STATE_ACTIVE
 	scene.deal.discard_count = 0
-	scene.selected_card_ids.clear()
+	scene.interactions.selected_ids.clear()
 	for drag_card in drag_run:
-		scene.selected_card_ids[drag_card.unique_id] = true
-	scene.selected_meld_id = -1
-	scene.interaction_locked = false
+		scene.interactions.selected_ids[drag_card.unique_id] = true
+	scene.interactions.selected_meld_id = -1
+	scene.interactions.locked = false
 	scene._sync_all()
 	await process_frame
 	var original_last_id := scene.deal.hand[-1].unique_id
 	var reordered := scene._reorder_hand_card(drag_discard, scene.hand_layer.get_global_rect().position.x)
 	_check(reordered and scene.deal.hand[0] == drag_discard and original_last_id == drag_discard.unique_id, "dropping within the hand reorders the dragged card without changing gameplay state")
-	var run_source := scene.hand_views[drag_run[0].unique_id] as PlayingCardView
+	var run_source := scene.card_table.hand_views[drag_run[0].unique_id] as PlayingCardView
 	scene._on_card_drag_started(drag_run[0], run_source.get_global_rect().get_center(), run_source)
-	_check(scene.active_drag_payload != null and scene.active_drag_payload.source_zone == CardDragPayloadScript.SOURCE_HAND and scene.active_drag_payload.cards.size() == 3, "dragging one selected Meld card carries the full selected group from the hand source")
-	_check(scene.drag_preview != null and not scene.drag_target_overlays.is_empty(), "an active drag shows a card preview and legal drop-target feedback")
+	_check(scene.interactions.drag_payload != null and scene.interactions.drag_payload.source_zone == CardDragPayloadScript.SOURCE_HAND and scene.interactions.drag_payload.cards.size() == 3, "dragging one selected Meld card carries the full selected group from the hand source")
+	_check(scene.card_table.drag_preview != null and not scene.card_table.drag_target_overlays.is_empty(), "an active drag shows a card preview and legal drop-target feedback")
 	var future_table_payload = CardDragPayloadScript.new(
 		CardDragPayloadScript.SOURCE_TABLE_MELD,
 		99,
 		drag_run[0].unique_id,
 		[drag_run[0]] as Array[CardData]
 	)
-	_check(scene._card_drag_action(future_table_payload, {"kind": scene.DROP_TARGET_HAND, "meld_id": -1}) == scene.DRAG_ACTION_NONE, "table-Meld drag sources are represented but remain disabled until the future verb is balanced")
+	_check(scene.interactions.card_drag_action(future_table_payload, {"kind": MatchInteraction.DROP_TARGET_HAND, "meld_id": -1}) == MatchInteraction.DRAG_ACTION_NONE, "table-Meld drag sources are represented but remain disabled until the future verb is balanced")
 	var place_sfx_count := int(scene.card_sfx_play_counts[scene.CARD_SFX_PLACE])
 	var table_drop_position := scene.table_surface.get_global_rect().get_center()
-	_check(scene._card_drop_target_at(table_drop_position)["kind"] == scene.DROP_TARGET_TABLE, "the open table resolves as the new-Meld drop target")
+	_check(scene.card_table.drop_target_at(table_drop_position)["kind"] == MatchInteraction.DROP_TARGET_TABLE, "the open table resolves as the new-Meld drop target")
 	scene._finish_card_drag(table_drop_position)
 	_check(await _wait_for_interaction_unlock(scene), "dragging selected cards to the table completes the Meld action")
 	await process_frame
-	_check(not scene.interaction_locked and scene.score_overlay.visible, "Meld money continues floating while the next player interaction is already enabled")
+	_check(not scene.interactions.locked and scene.score_overlay.visible, "Meld money continues floating while the next player interaction is already enabled")
 	_check(scene.deal.melds.size() == 1 and scene.deal.melds[0].cards.size() == 3, "the table drop commits the selected three-card Meld")
 	_check(int(scene.card_sfx_play_counts[scene.CARD_SFX_PLACE]) == place_sfx_count + 1 and (scene.card_sfx_players[scene.CARD_SFX_PLACE] as AudioStreamPlayer).stream.resource_path.begins_with("res://assets/audio/sfx/card_place"), "creating a Phỏm plays one supplied placement variant")
 	var first_place_index := scene.card_place_stream_index
 	var created_meld_id: int = scene.deal.melds[0].meld_id
-	var extension_source := scene.hand_views[drag_extension.unique_id] as PlayingCardView
-	var created_meld_view := scene.meld_views[created_meld_id] as MeldView
+	var extension_source := scene.card_table.hand_views[drag_extension.unique_id] as PlayingCardView
+	var created_meld_view := scene.card_table.meld_views[created_meld_id] as MeldView
 	scene._on_card_drag_started(drag_extension, extension_source.get_global_rect().get_center(), extension_source)
-	_check(scene._card_drop_target_at(created_meld_view.get_global_rect().get_center())["kind"] == scene.DROP_TARGET_MELD, "an existing Meld resolves as an extension drop target")
+	_check(scene.card_table.drop_target_at(created_meld_view.get_global_rect().get_center())["kind"] == MatchInteraction.DROP_TARGET_MELD, "an existing Meld resolves as an extension drop target")
 	scene._finish_card_drag(created_meld_view.get_global_rect().get_center())
 	_check(await _wait_for_scene_unlock(scene), "dragging a compatible loose card onto a Meld completes the extension action")
 	_check(scene.deal.melds[0].cards.size() == 4 and scene.deal.melds[0].cards.has(drag_extension), "the Meld drop commits the dragged extension card")
 	_check(int(scene.card_sfx_play_counts[scene.CARD_SFX_PLACE]) == place_sfx_count + 2 and scene.card_place_stream_index != first_place_index, "extending a Phỏm advances to a non-repeating placement variant")
 	var second_place_index := scene.card_place_stream_index
-	var discard_source := scene.hand_views[drag_discard.unique_id] as PlayingCardView
+	var discard_source := scene.card_table.hand_views[drag_discard.unique_id] as PlayingCardView
 	scene._on_card_drag_started(drag_discard, discard_source.get_global_rect().get_center(), discard_source)
 	var discard_drop_position := scene.discard_pile_visual.get_global_rect().get_center()
-	_check(scene._card_drop_target_at(discard_drop_position)["kind"] == scene.DROP_TARGET_DISCARD, "the discard pile resolves as the discard drop target")
+	_check(scene.card_table.drop_target_at(discard_drop_position)["kind"] == MatchInteraction.DROP_TARGET_DISCARD, "the discard pile resolves as the discard drop target")
 	var draw_sfx_count := int(scene.card_sfx_play_counts[scene.CARD_SFX_DRAW])
 	scene._finish_card_drag(discard_drop_position)
 	_check(await _wait_for_scene_unlock(scene), "dragging one card to the discard pile completes the discard action")
@@ -842,20 +805,17 @@ func _run() -> void:
 	_check(scene.resolve_receipt.visible and scene.resolve_receipt.title_label.text == scene.tr("CAMPAIGN_VICTORY") and not scene.resolve_receipt.primary.disabled, "campaign victory opens the accounting receipt and offers a new run")
 	scene._show_campaign_outcome(false)
 	_check(scene.resolve_receipt.visible and scene.resolve_receipt.title_label.text == scene.tr("CAMPAIGN_FAILURE") and int(scene.resolve_receipt._report.get("closing_vnd", 0)) == scene.deal.wallet.balance_vnd, "campaign failure reports the final wallet on the accounting receipt")
-	settings.set_music_system(settings.MUSIC_SYSTEM_PLAYING_TRACKS)
-	scene._on_campaign_started()
-	_check(not scene.gameplay_music.active and not scene.music_controller.dj_mode, "starting a Playing Tracks run leaves gameplay cues inactive and returns authority to the jukebox")
-	for active_tween in scene.logo_bounce_tweens.values():
-		if active_tween is Tween and active_tween.is_valid():
-			active_tween.kill()
-	for active_view in scene.hand_views.values():
+	scene.music.select_system(0)
+	scene.campaign.campaign_started.emit()
+	_check(not scene.music.conductor.active and not scene.music.controller.dj_mode, "starting a Playing Tracks run leaves gameplay cues inactive and returns authority to the jukebox")
+	for active_view in scene.card_table.hand_views.values():
 		if active_view is PlayingCardView:
 			active_view.set_action_cues(false, false)
-	for active_meld_view in scene.meld_views.values():
+	for active_meld_view in scene.card_table.meld_views.values():
 		if active_meld_view is MeldView:
 			active_meld_view.set_process(false)
-	scene.music_controller._stop_all_mix_players()
-	scene.music_controller.music_director.stop()
+	scene.music.controller._stop_all_mix_players()
+	scene.music.controller.music_director.stop()
 	await create_timer(0.2).timeout
 	scene.queue_free()
 	# Allow the audio mixer to release stopped playback before process teardown.
@@ -871,7 +831,7 @@ func _run() -> void:
 func _wait_for_scene_unlock(scene: MatchUI, timeout_msec: int = 6000) -> bool:
 	var deadline := Time.get_ticks_msec() + timeout_msec
 	while Time.get_ticks_msec() < deadline:
-		if not scene.interaction_locked and not scene.score_overlay.visible:
+		if not scene.interactions.locked and not scene.score_overlay.visible:
 			return true
 		await process_frame
 	return false
@@ -880,7 +840,7 @@ func _wait_for_scene_unlock(scene: MatchUI, timeout_msec: int = 6000) -> bool:
 func _wait_for_interaction_unlock(scene: MatchUI, timeout_msec: int = 2000) -> bool:
 	var deadline := Time.get_ticks_msec() + timeout_msec
 	while Time.get_ticks_msec() < deadline:
-		if not scene.interaction_locked:
+		if not scene.interactions.locked:
 			return true
 		await process_frame
 	return false
@@ -907,3 +867,8 @@ func _finish() -> void:
 			print("SCENE_SMOKE_FAIL: %s" % failure)
 		quit(1)
 
+
+func _button_with_text(scope: Node, text: String) -> Button:
+	for button: Button in scope.find_children("*", "Button", true, false):
+		if button.text == text: return button
+	return null

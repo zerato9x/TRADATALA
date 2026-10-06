@@ -1,12 +1,10 @@
 extends RefCounted
 ## Read-only projections. Formulae and transitions remain in the boss mechanics.
 const Ox := preload("res://scripts/zodiac/rules/ox.gd")
-const ACCENTS := {"rooster": Color("ff8576"), "cat": Color("c294ff"), "dog": Color("80f5a1"), "monkey": Color("ffe078"),
-	"pig": Color("ffb5ca"), "ox": Color("deb17a"), "horse": Color("81d6ff"), "goat": Color("9ce5d7"),
-	"rat": Color("c4bbef"), "tiger": Color("ff9e55"), "snake": Color("a7ed8e"), "dragon": Color("86e5f0")}
+const ACCENTS := PresentationTheme.ZODIAC_COLORS
 
 static func accent(id: String) -> Color:
-	return ACCENTS.get(id, PresentationTheme.SPEAKER)
+	return PresentationTheme.zodiac_color(id)
 
 static func effective(rule: ZodiacBossRule) -> Dictionary:
 	var state := rule.presentation()

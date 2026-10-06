@@ -63,10 +63,10 @@ func _run() -> void:
 	root.add_child(scene)
 	current_scene = scene
 	await _pause()
-	scene._restoring_run = true
+	scene.session.restoring = true
 	scene.drink_manager.progress.save_path = ""
 	scene.campaign.zodiac.progress = ZodiacProgress.new("")
-	scene.run_save = RunSave.new("user://zodiac_negotiation_smoke.save")
+	scene.session.run_save = RunSave.new("user://zodiac_negotiation_smoke.save")
 	scene.game_started = true
 	scene.menu_layer.hide()
 	scene.game_layer.position = Vector2.ZERO
@@ -117,13 +117,13 @@ func _run() -> void:
 		await _capture("noon_counteroffer_" + locale)
 	# Preview survives an actual disk save/load.
 	var pending := service.current_demand().duplicate(true)
-	_check(scene.run_save.save_run(scene.campaign, scene.deal), "pending counteroffer saves")
-	_check(scene.run_save.restore(scene.run_save.load_run(), scene.campaign, scene.deal), "pending counteroffer restores")
+	_check(scene.session.run_save.save_run(scene.campaign, scene.deal), "pending counteroffer saves")
+	_check(scene.session.run_save.restore(scene.session.run_save.load_run(), scene.campaign, scene.deal), "pending counteroffer restores")
 	table.refresh()
 	_check(service.current_demand() == pending and table.shade.visible, "saved counteroffer is unchanged")
 	await _click(table.choices.get_child(0))
 	_check(scene.deal.wallet.balance_vnd == 22500, "Accept pays confirmed counteroffer once")
-	_check(scene.displayed_wallet_vnd == scene.deal.wallet.balance_vnd, "displayed wallet observes committed Zodiac payment")
+	_check(scene.money_playback.displayed_balance == scene.deal.wallet.balance_vnd, "displayed wallet observes committed Zodiac payment")
 	# Shared browser selects the exact offer and a multi-card valid group.
 	for demand in [ZodiacDemand.make("SEAL", "OFFER_THREE", "PLAYER_CHOOSES"),
 			ZodiacDemand.make("SEAL", "SAME_SUIT_2", "PLAYER_CHOOSES", 2)]:
@@ -205,14 +205,14 @@ func _run() -> void:
 		if point.x >= 0: await _tap_point(point)
 		await _pause(0.05)
 		_check(table.shade.visible and table.character.texture.resource_path == ZodiacCatalog.sprite_path(id), "real focus sprite and touch route " + id)
-		table._close_conversation()
+		table.close_conversation()
 		await _pause()
 	service.daily.id = "cat"
 	scene.campaign._enter_phase(CampaignManager.CampaignPhase.EVENING_DEAL)
 	await _pause()
 	_check(not table.visible and scene.deal.zodiac_boss.id == "cat", "evening keeps boss service without daytime visitor")
 	_check(scene.deal.zodiac_boss.difficulty == service.difficulty(), "final disposition feeds evening boss")
-	for suffix in ["", ".bak", ".tmp"]: DirAccess.remove_absolute(scene.run_save.path + suffix)
+	for suffix in ["", ".bak", ".tmp"]: DirAccess.remove_absolute(scene.session.run_save.path + suffix)
 	scene.queue_free()
 	await _pause(0.2)
 	print("ZODIAC_SCENE_SMOKE checks=%d failures=%d" % [checks, failures.size()])

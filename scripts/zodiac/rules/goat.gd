@@ -43,7 +43,7 @@ func dragon_begin(rule, deal, state: Dictionary) -> void:
 	var notes: Array[int] = []
 	var parity_notes: Array[int] = []
 	var turn: int = deal.discard_count + 1
-	for cards: Array[CardData] in deal._hand_card_combinations():
+	for cards: Array[CardData] in deal.queries.hand_combinations():
 		var legal: bool = false
 		if tactic.action == "new_meld":
 			legal = deal.can_create_meld(cards) and deal.meld_creation_rule(cards).type == tactic.meld_type

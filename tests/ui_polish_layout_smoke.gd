@@ -20,7 +20,7 @@ func _run() -> void:
 	root.add_child(scene)
 	current_scene = scene
 	await settle()
-	scene.run_save = RunSave.new("user://ui-polish-%d.save" % Time.get_ticks_usec())
+	scene.session.run_save = RunSave.new("user://ui-polish-%d.save" % Time.get_ticks_usec())
 	var original_locale: String = scene.settings.locale_code
 	var original_wallet := scene.deal.wallet.balance_vnd
 	var front := scene.front_end
@@ -73,8 +73,8 @@ func _run() -> void:
 				scene.deck_screen.close()
 	check(scene.deal.wallet.balance_vnd == original_wallet, "navigation leaves the wallet unchanged")
 	scene.settings.set_locale(original_locale)
-	scene.music_controller._stop_all_mix_players()
-	scene.music_controller.music_director.stop()
+	scene.music.controller._stop_all_mix_players()
+	scene.music.controller.music_director.stop()
 	scene.queue_free()
 	await process_frame
 	print("UI_POLISH_LAYOUT_SMOKE checks=%d failed=%d" % [checks, failures.size()])

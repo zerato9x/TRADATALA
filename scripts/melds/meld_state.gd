@@ -15,7 +15,7 @@ func _init(p_meld_id: int = 0, p_meld_type: String = MeldRules.TYPE_INVALID, p_c
 	meld_id = p_meld_id
 	meld_type = p_meld_type
 	cards.append_array(p_cards)
-	cards = MeldRules.sorted_for_display(cards, meld_type)
+	cards = MeldRules.sorted_for_display(cards, meld_type, run_compatibility)
 
 
 func can_extend(additions: Array[CardData]) -> bool:
@@ -29,7 +29,7 @@ func can_extend(additions: Array[CardData]) -> bool:
 
 func extend(additions: Array[CardData]) -> void:
 	cards.append_array(additions)
-	cards = MeldRules.sorted_for_display(cards, meld_type)
+	cards = MeldRules.sorted_for_display(cards, meld_type, run_compatibility)
 
 
 func resolve_exhaustion(exhaustion_index: int) -> Dictionary:
@@ -43,3 +43,13 @@ func resolve_exhaustion(exhaustion_index: int) -> Dictionary:
 	}
 	exhaustion_triggered.emit(context)
 	return context
+
+# Object-table fields in run envelopes V1-V3, including shared CardData references.
+const RUN_SAVE_FIELDS_V3 := ["meld_id", "meld_type", "cards", "scored_points", "run_compatibility", "pair_created"]
+const RUN_SNAPSHOT_FIELDS := preload("res://scripts/campaign/run_snapshot_fields.gd")
+
+func run_value_snapshot() -> Dictionary:
+	return RUN_SNAPSHOT_FIELDS.fields(self, RUN_SAVE_FIELDS_V3)
+
+func restore_run_value(data: Dictionary) -> void:
+	RUN_SNAPSHOT_FIELDS.apply_fields(self, data, RUN_SAVE_FIELDS_V3)

@@ -14,6 +14,8 @@ signal exhaustion_triggered(context: Dictionary)
 const RESTING_HAND_SIZE := 9
 const ACTIVE_HAND_TARGET := 10
 const DISCARDS_PER_PHASE := 4
+# Before the final refill, seven mandatory discards cannot be recycled.
+const MIN_CAMPAIGN_CARDS := ACTIVE_HAND_TARGET + 2 * DISCARDS_PER_PHASE - 1
 
 const TUTORIAL_HAND_SPECS := [
 	["4", "Hearts"], ["5", "Hearts"], ["6", "Hearts"],
@@ -82,16 +84,7 @@ var _turn_started_with_ten: bool = false
 var _turn_committed_card_count: int = 0
 var _expected_deal_card_ids: Dictionary = {}
 var campaign_deck_cards: Array[CardData] = []
-var _advice_signature: int = 0
-var _advice_cache: Dictionary = {}
-
-
-func hand_advice() -> Dictionary:
-	var fingerprint := HandAdvice.signature(self)
-	if _advice_cache.is_empty() or fingerprint != _advice_signature:
-		_advice_cache = HandAdvice.analyze(self)
-		_advice_signature = fingerprint
-	return _advice_cache.duplicate(true)
+var queries := preload("res://scripts/gameplay/deal_queries.gd").new(self)
 
 
 func _init() -> void:
@@ -257,6 +250,7 @@ func snapshot_state(copy_history: bool = true) -> Dictionary:
 
 
 func restore_snapshot(snapshot: Dictionary) -> void:
+	queries.invalidate()
 	if snapshot.is_empty():
 		return
 	deck.restore_snapshot(snapshot.get("deck", {}) as Dictionary)
@@ -319,9 +313,22 @@ func restore_snapshot(snapshot: Dictionary) -> void:
 	_boss_wallet_pending.assign(snapshot.get("boss_wallet_pending", []))
 
 
+## Reorders owned physical references without creating a gameplay action.
+func reorder_hand(order: Array[CardData]) -> bool:
+	if order.size() != hand.size() or not MeldRules.physical_cards_valid(order, 1): return false
+	for card in order:
+		if not hand.has(card): return false
+	if order == hand: return false
+	hand.assign(order)
+	return true
+
+
 func set_current_drink(drink_id: String) -> Dictionary:
 	if not DrinkCatalog.is_known(drink_id):
 		return _failure("Unknown Drink ID: %s" % drink_id)
+	if current_drink_id != drink_id:
+		sam_dua_preserved_cards.clear()
+		sam_dua_used = false
 	current_drink_id = drink_id
 	var result := {
 		"ok": true,
@@ -336,6 +343,26 @@ func set_current_drink(drink_id: String) -> Dictionary:
 func set_campaign_deck(cards: Array[CardData]) -> void:
 	campaign_deck_cards.clear()
 	campaign_deck_cards.append_array(cards)
+
+
+func reconcile_campaign_deck(cards: Array[CardData]) -> void:
+	# Called only between deals by the campaign shop, without drawing or shuffling.
+	set_campaign_deck(cards)
+	var owned := {}
+	for card in cards: owned[card.unique_id] = true
+	for zone: Array[CardData] in [hand, deck.draw_pile, deck.discard_pile, recyclable_spent_cards, boss_borrowed_cards, sam_dua_preserved_cards]:
+		zone.assign(zone.filter(func(card: CardData): return owned.has(card.unique_id)))
+	for meld: MeldState in melds + boss_melds:
+		meld.cards.assign(meld.cards.filter(func(card: CardData): return owned.has(card.unique_id)))
+	discard_history.assign(discard_history.filter(func(record: DiscardRecord): return owned.has(record.card.unique_id)))
+	for settlement in settlements:
+		settlement.remaining_hand.assign(settlement.remaining_hand.filter(func(card: CardData): return owned.has(card.unique_id)))
+	if last_phase_resolution.get("remaining_hand") is Array:
+		last_phase_resolution.remaining_hand = last_phase_resolution.remaining_hand.filter(func(card: CardData): return owned.has(card.unique_id))
+	var locations := physical_card_locations()
+	for card in cards:
+		if not locations.has(card.unique_id): deck.draw_pile.append(card.copy_for_deal())
+	_expected_deal_card_ids = owned
 
 
 func exhaustion_status() -> Dictionary:
@@ -416,7 +443,7 @@ func physical_card_accounting_is_valid() -> bool:
 
 func can_use_nhan_tran(card: CardData, record: DiscardRecord) -> bool:
 	if zodiac_boss.is_locked(card): return false
-	if current_drink_id != DrinkCatalog.NHAN_TRAN or not _card_actions_available() or nhan_tran_used_this_phase:
+	if current_drink_id != DrinkCatalog.NHAN_TRAN or not card_actions_available() or nhan_tran_used_this_phase:
 		return false
 	if card == null or not hand.has(card) or record == null:
 		return false
@@ -429,7 +456,7 @@ func can_use_nhan_tran(card: CardData, record: DiscardRecord) -> bool:
 
 func can_use_den_da(card: CardData, record: DiscardRecord) -> bool:
 	if zodiac_boss.is_locked(card): return false
-	return current_drink_id == DrinkCatalog.DEN_DA and _card_actions_available() and not den_da_used_this_turn and card != null and hand.has(card) and record != null and discard_history.has(record) and (_discard_pile_index(record.card) >= 0 or recyclable_spent_cards.has(record.card))
+	return current_drink_id == DrinkCatalog.DEN_DA and card_actions_available() and not den_da_used_this_turn and card != null and hand.has(card) and record != null and discard_history.has(record) and (_discard_pile_index(record.card) >= 0 or recyclable_spent_cards.has(record.card))
 
 
 func use_den_da(card: CardData, record: DiscardRecord) -> Dictionary:
@@ -451,7 +478,7 @@ func use_den_da(card: CardData, record: DiscardRecord) -> Dictionary:
 
 
 func can_use_nau_da(meld_id: int) -> bool:
-	return current_drink_id == DrinkCatalog.NAU_DA and _card_actions_available() and not nau_da_used_phases.has(current_phase) and get_meld(meld_id) != null
+	return current_drink_id == DrinkCatalog.NAU_DA and card_actions_available() and not nau_da_used_phases.has(current_phase) and get_meld(meld_id) != null
 
 
 func use_nau_da(meld_id: int) -> Dictionary:
@@ -467,7 +494,7 @@ func use_nau_da(meld_id: int) -> Dictionary:
 	return result
 
 
-func has_phase_transition_choice() -> bool:
+func has_preservation_drink() -> bool:
 	return current_drink_id in [DrinkCatalog.SAM_DUA, DrinkCatalog.BAC_XIU]
 
 
@@ -496,7 +523,7 @@ func use_nhan_tran(card: CardData, record: DiscardRecord) -> Dictionary:
 
 func can_use_nuoc_voi(meld_id: int, card: CardData) -> bool:
 	if zodiac_boss.is_locked(card): return false
-	if current_drink_id != DrinkCatalog.NUOC_VOI or not _card_actions_available():
+	if current_drink_id != DrinkCatalog.NUOC_VOI or not card_actions_available():
 		return false
 	if nuoc_voi_used_phases.has(current_phase):
 		return false
@@ -533,12 +560,10 @@ func use_nuoc_voi(meld_id: int, card: CardData) -> Dictionary:
 
 
 func select_sam_dua_preserves(cards: Array[CardData]) -> Dictionary:
-	if not has_phase_transition_choice():
+	if not has_preservation_drink():
 		return _failure("Sâm dứa is not the active Drink.")
-	if current_phase != 1 or state not in [STATE_FINAL_COMMIT_WINDOW, STATE_PHASE_CHOICE]:
-		return _failure("Sâm dứa is prepared during the Phase 1 to Phase 2 transition.")
-	if sam_dua_used:
-		return _failure("Sâm dứa has already been used this Deal.")
+	if current_phase != 1 or state not in [STATE_ACTIVE, STATE_FINAL_COMMIT_WINDOW, STATE_PHASE_CHOICE]:
+		return _failure("Choose cards to carry into Phase 2 during Phase 1.")
 	if cards.size() > preservation_limit():
 		return _failure("Sâm dứa can preserve at most three loose cards.")
 	var seen_ids := {}
@@ -564,21 +589,21 @@ func current_drink_has_charge() -> bool:
 		DrinkCatalog.TRA_DA:
 			return false
 		DrinkCatalog.NHAN_TRAN:
-			return not nhan_tran_used_this_phase and _card_actions_available() and not discard_history_for_phase(current_phase).is_empty()
+			return not nhan_tran_used_this_phase and card_actions_available() and not discard_history_for_phase(current_phase).is_empty()
 		DrinkCatalog.DEN_DA:
-			return not den_da_used_this_turn and _card_actions_available()
+			return not den_da_used_this_turn and card_actions_available()
 		DrinkCatalog.NAU_DA:
-			return not nau_da_used_phases.has(current_phase) and _card_actions_available()
+			return not nau_da_used_phases.has(current_phase) and card_actions_available()
 		DrinkCatalog.STING:
-			return not pair_used_phases.has(current_phase) and _card_actions_available()
+			return not pair_used_phases.has(current_phase) and card_actions_available()
 		DrinkCatalog.BO_HUC:
-			return not pair_used_this_turn and _card_actions_available()
+			return not pair_used_this_turn and card_actions_available()
 		DrinkCatalog.C2_ICED_TEA:
-			return not c2_used and _card_actions_available()
+			return not c2_used and card_actions_available()
 		DrinkCatalog.NUOC_VOI:
-			return current_phase in [1, 2] and not nuoc_voi_used_phases.has(current_phase) and _card_actions_available()
+			return current_phase in [1, 2] and not nuoc_voi_used_phases.has(current_phase) and card_actions_available()
 		DrinkCatalog.SAM_DUA, DrinkCatalog.BAC_XIU:
-			return not sam_dua_used and current_phase == 1 and state in [STATE_FINAL_COMMIT_WINDOW, STATE_PHASE_CHOICE]
+			return current_phase == 1 and state in [STATE_ACTIVE, STATE_FINAL_COMMIT_WINDOW, STATE_PHASE_CHOICE]
 	return false
 
 
@@ -587,25 +612,22 @@ func drink_cue_trigger() -> Dictionary:
 	match current_drink_id:
 		DrinkCatalog.TRA_DA:
 			return {"active": tra_da_extra_discard_pending and state == STATE_ACTIVE, "drink_id": current_drink_id, "trigger_id": trigger_id}
-		DrinkCatalog.NHAN_TRAN:
-			var records := nhan_tran_meld_opportunity_records()
+		DrinkCatalog.NHAN_TRAN, DrinkCatalog.DEN_DA:
+			var records := drink_swap_opportunity_records()
 			return {"active": not records.is_empty(), "drink_id": current_drink_id, "trigger_id": trigger_id, "records": records}
 		DrinkCatalog.NUOC_VOI:
 			var targets := nuoc_voi_targets()
 			return {"active": not targets.is_empty(), "drink_id": current_drink_id, "trigger_id": trigger_id, "targets": targets}
-		DrinkCatalog.SAM_DUA:
-			var active := not sam_dua_used and current_phase == 1 and state == STATE_FINAL_COMMIT_WINDOW and not hand.is_empty()
+		DrinkCatalog.SAM_DUA, DrinkCatalog.BAC_XIU:
+			var active := current_drink_has_charge() and not hand.is_empty()
 			return {"active": active, "drink_id": current_drink_id, "trigger_id": trigger_id}
 	return {"active": false, "drink_id": current_drink_id, "trigger_id": trigger_id}
 
 
-func nhan_tran_meld_opportunity_records() -> Array[DiscardRecord]:
+func drink_swap_opportunity_records() -> Array[DiscardRecord]:
 	var records: Array[DiscardRecord] = []
-	if current_drink_id != DrinkCatalog.NHAN_TRAN or nhan_tran_used_this_phase or not _card_actions_available():
-		return records
-	for record in discard_history_for_phase(current_phase):
-		if _discard_pile_index(record.card) >= 0 and _card_completes_hand_meld(record.card):
-			records.append(record)
+	for opportunity in queries.drink_swap_opportunities():
+		if not records.has(opportunity.record): records.append(opportunity.record)
 	return records
 
 
@@ -621,7 +643,7 @@ func nuoc_voi_targets() -> Array[Dictionary]:
 func create_meld(selected_cards: Array[CardData], use_drink: bool = false) -> Dictionary:
 	var boss_guard := zodiac_boss.legality("new_meld", current_phase, -1, selected_cards)
 	if not boss_guard.is_empty(): return _failure(boss_guard)
-	var guard := _validate_commit_selection(selected_cards)
+	var guard := commit_selection_error(selected_cards)
 	if not guard.is_empty():
 		return _failure(guard)
 	var permission := meld_creation_rule(selected_cards, use_drink)
@@ -664,7 +686,7 @@ func create_meld(selected_cards: Array[CardData], use_drink: bool = false) -> Di
 
 
 func extend_meld(meld_id: int, selected_cards: Array[CardData]) -> Dictionary:
-	var guard := _validate_commit_selection(selected_cards)
+	var guard := commit_selection_error(selected_cards)
 	if not guard.is_empty():
 		return _failure(guard)
 	var meld := get_meld(meld_id)
@@ -798,26 +820,25 @@ func settle_phase() -> Dictionary:
 	return result
 
 
-func choose_phase_two(keep_hand: bool) -> Dictionary:
+func choose_phase_two(keep_hand: bool = false) -> Dictionary:
 	if state != STATE_PHASE_CHOICE or current_phase != 1:
-		return _failure("KEEP / DUMP is only available between Phases.")
-	if keep_hand and not has_phase_transition_choice():
-		return _failure("KEEP requires Sâm dứa or Bạc xỉu; normal Phase transitions DUMP.")
+		return _failure("Phase 2 starts after Phase 1 settlement.")
+	if keep_hand:
+		return _failure("Only cards marked with Sâm dứa or Bạc xỉu carry into Phase 2.")
 	var dumped: Array[CardData] = []
 	var preserved: Array[CardData] = []
-	if not keep_hand:
-		if has_phase_transition_choice():
-			for card in sam_dua_preserved_cards:
-				if hand.has(card) and preserved.size() < preservation_limit():
-					preserved.append(card)
-		for card in hand:
-			if not preserved.has(card):
-				dumped.append(card)
-		hand.clear()
-		hand.append_array(preserved)
-		deck.discard_many(dumped)
-		for card in dumped:
-			discard_history.append(DiscardRecord.new(card, current_phase, discard_history.size() + 1, DiscardRecord.KIND_DUMP))
+	if has_preservation_drink():
+		for card in sam_dua_preserved_cards:
+			if hand.has(card) and preserved.size() < preservation_limit():
+				preserved.append(card)
+	for card in hand:
+		if not preserved.has(card):
+			dumped.append(card)
+	hand.clear()
+	hand.append_array(preserved)
+	deck.discard_many(dumped)
+	for card in dumped:
+		discard_history.append(DiscardRecord.new(card, current_phase, discard_history.size() + 1, DiscardRecord.KIND_DUMP))
 	current_phase = 2
 	discard_count = 0
 	_reset_phase_metrics()
@@ -825,7 +846,7 @@ func choose_phase_two(keep_hand: bool) -> Dictionary:
 	var drawn := _begin_active_turn()
 	var result := {
 		"ok": true,
-		"action": "keep" if keep_hand else "dump",
+		"action": "phase_transition",
 		"dumped": dumped,
 		"preserved": preserved,
 		"drawn": drawn,
@@ -843,14 +864,14 @@ func get_meld(meld_id: int) -> MeldState:
 
 
 func can_create_meld(selected_cards: Array[CardData], use_drink: bool = false) -> bool:
-	return _card_actions_available() and zodiac_boss.legality("new_meld", current_phase, -1, selected_cards).is_empty() and _validate_commit_selection(selected_cards).is_empty() and meld_creation_rule(selected_cards, use_drink).get("type", MeldRules.TYPE_INVALID) != MeldRules.TYPE_INVALID
+	return card_actions_available() and zodiac_boss.legality("new_meld", current_phase, -1, selected_cards).is_empty() and commit_selection_error(selected_cards).is_empty() and meld_creation_rule(selected_cards, use_drink).get("type", MeldRules.TYPE_INVALID) != MeldRules.TYPE_INVALID
 
 
 func meld_creation_rule(cards: Array[CardData], use_drink: bool = false) -> Dictionary:
 	if use_drink and not current_drink_has_charge():
 		return {"type": MeldRules.TYPE_INVALID}
 	if use_drink and current_drink_has_charge():
-		if current_drink_id in [DrinkCatalog.STING, DrinkCatalog.BO_HUC] and cards.size() == 2 and cards[0].rank == cards[1].rank:
+		if current_drink_id in [DrinkCatalog.STING, DrinkCatalog.BO_HUC] and cards.size() == 2 and MeldRules.set_identity(cards, 2) != 0:
 			return {"type": MeldRules.TYPE_SET, "pair": true}
 		if current_drink_id == DrinkCatalog.C2_ICED_TEA and MeldRules.is_compatible_run(cards, "any"):
 			return {"type": MeldRules.TYPE_RUN, "compatibility": "any", "c2": true}
@@ -868,6 +889,8 @@ func drink_creation_target_ids(selected: Array[CardData]) -> Dictionary:
 	var ids := {}
 	if not current_drink_has_charge():
 		return ids
+	var flexible_hand := hand.any(func(card: CardData): return card.negative)
+	var available: Array[CardData] = hand.filter(func(card: CardData): return not zodiac_boss.is_locked(card))
 	# Test completion for each candidate, including gaps between selected run ends.
 	# This stays bounded by thirteen ranks even after whole-Meld recovery grows a hand.
 	for candidate in hand:
@@ -887,6 +910,12 @@ func drink_creation_target_ids(selected: Array[CardData]) -> Dictionary:
 		elif current_drink_id == DrinkCatalog.C2_ICED_TEA:
 			for low in range(1, 12):
 				for high in range(low + 2, 14):
+					if flexible_hand:
+						var completion := MeldRules.complete_run(available, required, low, high)
+						if not completion.is_empty() and can_create_meld(completion, true):
+							ids[candidate.unique_id] = true
+							break
+						continue
 					var run: Array[CardData] = required.duplicate()
 					var fits := true
 					for card in required:
@@ -911,11 +940,16 @@ func drink_creation_target_ids(selected: Array[CardData]) -> Dictionary:
 
 func can_extend_meld(meld_id: int, selected_cards: Array[CardData]) -> bool:
 	if not zodiac_boss.legality("extension", current_phase, meld_id, selected_cards).is_empty(): return false
-	if not _card_actions_available() or not _validate_commit_selection(selected_cards).is_empty():
+	if not card_actions_available() or not commit_selection_error(selected_cards).is_empty():
 		return false
 	var meld := get_meld(meld_id)
 	if meld == null:
 		return false
+	return can_extend_meld_shape(meld, selected_cards)
+
+
+## Shape matching only; callers must separately validate selection and boss policy.
+func can_extend_meld_shape(meld: MeldState, selected_cards: Array[CardData]) -> bool:
 	if meld.can_extend(selected_cards):
 		return true
 	if meld.meld_type != MeldRules.TYPE_RUN or current_drink_id not in [DrinkCatalog.MIA_TAC, DrinkCatalog.MIA_SAU_RIENG]:
@@ -923,137 +957,6 @@ func can_extend_meld(meld_id: int, selected_cards: Array[CardData]) -> bool:
 	var combined: Array[CardData] = meld.cards.duplicate()
 	combined.append_array(selected_cards)
 	return MeldRules.is_compatible_run(combined, "red" if current_drink_id == DrinkCatalog.MIA_TAC else "black")
-
-
-func legal_action_card_ids() -> Dictionary:
-	var meld_card_ids := {}
-	var extension_card_ids := {}
-	if not _card_actions_available():
-		return {"meld": meld_card_ids, "extend": extension_card_ids}
-	for combination in _hand_card_combinations():
-		var cards: Array[CardData] = combination
-		if cards.size() >= 3 and can_create_meld(cards):
-			for card in cards:
-				meld_card_ids[card.unique_id] = true
-		for meld in melds:
-			if can_extend_meld(meld.meld_id, cards):
-				for card in cards:
-					extension_card_ids[card.unique_id] = true
-				break
-	return {"meld": meld_card_ids, "extend": extension_card_ids}
-
-
-func legal_action_targets_for_selection(selected_cards: Array[CardData], selected_meld_id: int = -1) -> Dictionary:
-	var hand_card_ids := {}
-	var table_meld_ids := {}
-	if not _card_actions_available() or (selected_cards.is_empty() and selected_meld_id < 0):
-		return {"hand": hand_card_ids, "melds": table_meld_ids}
-	var selected_ids := {}
-	for card in selected_cards:
-		selected_ids[card.unique_id] = true
-	for combination in _hand_card_combinations(selected_cards):
-		var cards: Array[CardData] = combination
-		if not selected_ids.is_empty() and cards.size() >= 3 and _cards_include_ids(cards, selected_ids) and can_create_meld(cards):
-			for card in cards:
-				hand_card_ids[card.unique_id] = true
-		if selected_meld_id >= 0 and can_extend_meld(selected_meld_id, cards):
-			for card in cards:
-				hand_card_ids[card.unique_id] = true
-	if not selected_cards.is_empty():
-		for meld in melds:
-			if can_extend_meld(meld.meld_id, selected_cards):
-				table_meld_ids[meld.meld_id] = true
-	return {"hand": hand_card_ids, "melds": table_meld_ids}
-
-
-func probability_draw_pool() -> Array[CardData]:
-	var cards: Array[CardData] = []
-	cards.append_array(deck.draw_pile)
-	cards.append_array(deck.discard_pile)
-	cards.append_array(recyclable_spent_cards)
-	for meld in melds:
-		cards.append_array(meld.cards)
-	for meld in boss_melds: cards.append_array(meld.cards)
-	return cards
-
-
-func probability_draw_horizon() -> int:
-	var projected_hand_size := hand.size()
-	if state == STATE_ACTIVE:
-		projected_hand_size = maxi(projected_hand_size - 1, 0)
-	var refill_gap := maxi(ACTIVE_HAND_TARGET - projected_hand_size, 0)
-	var later_refills_this_phase := maxi(phase_discard_limit() - discard_count - 2, 0)
-	var next_phase_refills := phase_discard_limit(2) - 1 if current_phase == 1 else 0
-	return mini(refill_gap + later_refills_this_phase + next_phase_refills, probability_draw_pool().size())
-
-
-func _hand_card_combinations(required: Array[CardData] = []) -> Array:
-	var combinations: Array = []
-	# Whole-meld recovery can exceed ten cards. Never allocate 2^hand_size
-	# subsets for those hands. Minimal witnesses cover target cues; include
-	# the selection and full rank groups for larger commitments.
-	if hand.size() > 12:
-		var by_rank := {}
-		for a in range(hand.size()):
-			combinations.append([hand[a]] as Array[CardData])
-			var expanded: Array[CardData] = required.duplicate()
-			if not expanded.has(hand[a]): expanded.append(hand[a])
-			combinations.append(expanded)
-			if not by_rank.has(hand[a].rank): by_rank[hand[a].rank] = [] as Array[CardData]
-			by_rank[hand[a].rank].append(hand[a])
-			for b in range(a + 1, hand.size()):
-				combinations.append([hand[a], hand[b]] as Array[CardData])
-				for c in range(b + 1, hand.size()):
-					combinations.append([hand[a], hand[b], hand[c]] as Array[CardData])
-		for group in by_rank.values(): combinations.append(group)
-		if not required.is_empty(): combinations.append(required.duplicate())
-		return combinations
-	for mask in range(1, 1 << hand.size()):
-		var cards: Array[CardData] = []
-		for index in range(hand.size()):
-			if mask & (1 << index):
-				cards.append(hand[index])
-		combinations.append(cards)
-	return combinations
-
-
-func recommend_action() -> Dictionary:
-	var best := {"action": HandAdvisor.ACTION_NONE, "cards": [] as Array[CardData], "estimated_points": -1}
-	var candidates := _hand_card_combinations()
-	for cards: Array[CardData] in candidates:
-		if can_create_meld(cards):
-			var kind: String = meld_creation_rule(cards)["type"]
-			var points: int = preview_boss_payout(scoring.preview_new_meld(cards, kind, current_phase, phase_new_meld_count, state == STATE_FINAL_COMMIT_WINDOW), _next_meld_id).points
-			if points > int(best["estimated_points"]):
-				best = {"action": HandAdvisor.ACTION_NEW_MELD, "cards": cards, "meld_type": kind, "meld_id": -1, "estimated_points": points}
-	if best["action"] != HandAdvisor.ACTION_NONE: return best
-	for meld in melds:
-		for cards: Array[CardData] in candidates:
-			if can_extend_meld(meld.meld_id, cards):
-				var combined: Array[CardData] = meld.cards.duplicate()
-				combined.append_array(cards)
-				var points: int = preview_boss_payout(scoring.preview_extension(combined, meld.meld_type, ScoringPipeline.meld_value(meld.cards), current_phase, cards, state == STATE_FINAL_COMMIT_WINDOW), meld.meld_id).points
-				if points > int(best["estimated_points"]):
-					best = {"action": HandAdvisor.ACTION_EXTENSION, "cards": cards, "meld_type": meld.meld_type, "meld_id": meld.meld_id, "estimated_points": points}
-	return best
-
-
-func _cards_include_ids(cards: Array[CardData], required_ids: Dictionary) -> bool:
-	var remaining := required_ids.duplicate()
-	for card in cards:
-		remaining.erase(card.unique_id)
-	return remaining.is_empty()
-
-
-func _card_completes_hand_meld(discard_card: CardData) -> bool:
-	if discard_card == null:
-		return false
-	for first_index in range(hand.size()):
-		for second_index in range(first_index + 1, hand.size()):
-			var candidate: Array[CardData] = [hand[first_index], hand[second_index], discard_card]
-			if MeldRules.classify(candidate) != MeldRules.TYPE_INVALID:
-				return true
-	return false
 
 
 func deadwood_points() -> int:
@@ -1074,10 +977,6 @@ func current_deal_earnings_points() -> int:
 
 func current_deal_earnings_vnd() -> int:
 	return deal_earnings_vnd
-
-
-func current_phase_earnings_vnd() -> int:
-	return phase_earnings_vnd
 
 
 func discard_history_for_phase(phase: int) -> Array[DiscardRecord]:
@@ -1255,24 +1154,10 @@ func _finish_phase() -> Dictionary:
 	var u_bonus_paid_early := phase_metrics.u_bonus_paid
 
 	var is_mom := phase_metrics.new_phom_count == 0
-	var deadwood_value_sum := deadwood_points()
 	var deadwood_multiplier := hand.size() if is_mom else 1
-	var deadwood_context := {
-		"phase": current_phase,
-		"cards": hand,
-		"value_sum": deadwood_value_sum,
-		"multiplier": deadwood_multiplier,
-		"deadwood": deadwood_value_sum * deadwood_multiplier,
-		"mom": is_mom,
-	}
-	zodiac_boss.deadwood(self, deadwood_context)
-	deadwood_calculated.emit(deadwood_context)
-	var turn_deadwood: int = maxi(int(deadwood_context.get("deadwood", 0)), 0)
-	if turn_deadwood > 0:
-		var deadwood_vnd := wallet.apply_points(-turn_deadwood, "deadwood")
-		phase_earnings_vnd += deadwood_vnd
-		deal_earnings_vnd += deadwood_vnd
-	phase_metrics.deadwood_total += turn_deadwood
+	var deadwood_context := _settle_deadwood(deadwood_multiplier, is_mom)
+	var deadwood_value_sum := int(deadwood_context.value_sum)
+	var turn_deadwood := int(deadwood_context.deadwood)
 	var deadwood_total := phase_metrics.deadwood_total
 	var settlement := PhaseSettlement.new()
 	settlement.phase = current_phase
@@ -1282,6 +1167,8 @@ func _finish_phase() -> Dictionary:
 	settlement.deadwood_multiplier = maxi(int(deadwood_context.get("multiplier", deadwood_multiplier)), 0)
 	settlement.deadwood = deadwood_total
 	settlement.turn_deadwood = turn_deadwood
+	settlement.deadwood_penalty = int(deadwood_context.deadwood_penalty)
+	settlement.black_ink_profit = int(deadwood_context.black_ink_profit)
 	settlement.net = gross_after_u - deadwood_total
 	if current_phase == 2: zodiac_boss.settle(self)
 	settlement.net_vnd = phase_earnings_vnd
@@ -1310,7 +1197,7 @@ func _resolve_deal() -> void:
 
 
 func _validate_loose_selection(selected_cards: Array[CardData]) -> String:
-	if not _card_actions_available():
+	if not card_actions_available():
 		return "Card actions are unavailable right now."
 	if selected_cards.is_empty():
 		return "Select loose cards first."
@@ -1325,7 +1212,7 @@ func _validate_loose_selection(selected_cards: Array[CardData]) -> String:
 	return ""
 
 
-func _validate_commit_selection(selected_cards: Array[CardData]) -> String:
+func commit_selection_error(selected_cards: Array[CardData]) -> String:
 	var guard := _validate_loose_selection(selected_cards)
 	if not guard.is_empty():
 		return guard
@@ -1339,7 +1226,7 @@ func _validate_commit_selection(selected_cards: Array[CardData]) -> String:
 	return ""
 
 
-func _card_actions_available() -> bool:
+func card_actions_available() -> bool:
 	return state == STATE_ACTIVE or state == STATE_FINAL_COMMIT_WINDOW
 
 
@@ -1365,26 +1252,30 @@ func _record_relic_rate_vnd(amount_vnd: int, reason: String) -> void:
 
 
 func _deduct_turn_deadwood() -> Dictionary:
-	var value_sum := deadwood_points()
-	var context := {
-		"phase": current_phase,
-		"turn": discard_count,
-		"cards": hand.duplicate(),
-		"value_sum": value_sum,
-		"multiplier": 1,
-		"deadwood": value_sum,
-		"mom": false,
-	}
+	return _settle_deadwood(1, false)
+
+
+func _settle_deadwood(multiplier: int, is_mom: bool) -> Dictionary:
+	var context := ScoringPipeline.deadwood_resolution(hand, multiplier)
+	context.merge({"phase": current_phase, "turn": discard_count, "mom": is_mom})
 	zodiac_boss.deadwood(self, context)
 	deadwood_calculated.emit(context)
-	var turn_deadwood := maxi(int(context.get("deadwood", value_sum)), 0)
+	var penalty := maxi(int(context.deadwood), 0)
+	var profit := maxi(int(context.black_ink_profit), 0)
+	var turn_deadwood := penalty - profit
 	var wallet_before_vnd := wallet.balance_vnd
-	if turn_deadwood > 0:
-		var deadwood_vnd := wallet.apply_points(-turn_deadwood, "deadwood")
+	if penalty > 0:
+		var deadwood_vnd := wallet.apply_points(-penalty, "deadwood")
 		phase_earnings_vnd += deadwood_vnd
 		deal_earnings_vnd += deadwood_vnd
+	if profit > 0:
+		var ink_vnd := wallet.apply_points(profit, "black_ink")
+		phase_earnings_vnd += ink_vnd
+		deal_earnings_vnd += ink_vnd
+		zodiac_boss.income(self, ink_vnd, "black_ink")
 	phase_metrics.deadwood_total += turn_deadwood
 	phase_earnings_points = phase_metrics.raw_gross * gross_payout_multiplier() - phase_metrics.deadwood_total
+	context["deadwood_penalty"] = penalty
 	context["deadwood"] = turn_deadwood
 	context["wallet_before_vnd"] = wallet_before_vnd
 	context["wallet_after_vnd"] = wallet.balance_vnd
@@ -1569,7 +1460,7 @@ func _count_action(result: Dictionary) -> void:
 		event["card_ids"] = committed.map(func(card: CardData): return card.unique_id)
 		event["ranks"] = committed.map(func(card: CardData): return card.rank_index)
 		event["suits"] = committed.map(func(card: CardData): return card.suit)
-		event["properties"] = committed.map(func(card: CardData): return {"id": card.unique_id, "tags": card.gieo_properties.duplicate(), "shiny": card.shiny})
+		event["properties"] = committed.map(func(card: CardData): return {"id": card.unique_id, "fortune": card.fortune, "liquid": card.liquid, "negative": card.negative, "shiny": card.shiny})
 		event["suppression_reason"] = context.suppression_reason
 		event["points"] = context.final_points
 		event["hits"] = context.presentation_hits.duplicate(true)
@@ -1607,6 +1498,9 @@ func accounting_report() -> Dictionary:
 
 
 func _emit_result(result: Dictionary) -> void:
+	# Marks follow loose physical cards; a played, discarded, or swapped card
+	# cannot reappear at the transition through an old preservation reference.
+	sam_dua_preserved_cards = sam_dua_preserved_cards.filter(func(card): return hand.has(card))
 	# Promise observers receive only committed physical interactions. Drawing,
 	# scoring old Meld cards again, inspection, and rejected inputs do not touch targets.
 	var committed: Array[CardData] = []
@@ -1720,6 +1614,18 @@ func boss_discard_target(card_id: String, source: String) -> Dictionary:
 			_count_action(event)
 			return event
 	return {"ok": false}
+
+
+func preview_new_meld_payout(cards: Array[CardData], kind: String, final_commit: bool = false) -> Dictionary:
+	var context := scoring.preview_new_meld(cards, kind, current_phase, phase_new_meld_count, final_commit)
+	return preview_boss_payout(context, _next_meld_id)
+
+
+func preview_extension_payout(meld: MeldState, cards: Array[CardData], final_commit: bool = false) -> Dictionary:
+	var combined: Array[CardData] = meld.cards.duplicate()
+	combined.append_array(cards)
+	var context := scoring.preview_extension(combined, meld.meld_type, ScoringPipeline.meld_value(meld.cards), current_phase, cards, final_commit)
+	return preview_boss_payout(context, meld.meld_id)
 
 
 func preview_boss_payout(context: ScoringContext, meld_id: int = -1) -> Dictionary:

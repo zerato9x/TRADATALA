@@ -36,7 +36,6 @@ func preview_new_meld(cards: Array[CardData], meld_type: String, phase: int, pha
 	var context := _build_context(cards, meld_type, phase)
 	context.action_type = "new_meld"
 	context.is_last_call = is_last_call
-	_apply_gold(context)
 	_apply_modifiers(context)
 	context.theoretical_score = _calculate_theoretical(context)
 	_resolve_full_meld_trigger(context)
@@ -70,7 +69,6 @@ func preview_extension(
 	context.old_meld_score = old_meld_score
 	context.added_cards.append_array(added_cards)
 	context.is_last_call = is_last_call
-	_apply_gold(context)
 	_apply_modifiers(context)
 	context.theoretical_score = _calculate_theoretical(context)
 	context.base_extension_score = maxi(context.theoretical_score - old_meld_score, 0)
@@ -81,7 +79,6 @@ func preview_extension(
 func score_meld_trigger(cards: Array[CardData], meld_type: String, phase: int) -> ScoringContext:
 	var context := _build_context(cards, meld_type, phase)
 	context.action_type = ACTION_EXHAUSTION_MELD
-	_apply_gold(context)
 	_apply_modifiers(context)
 	context.theoretical_score = _calculate_theoretical(context)
 	_resolve_full_meld_trigger(context)
@@ -98,18 +95,31 @@ static func is_perfected_run(cards: Array[CardData], meld_type: String) -> bool:
 	# DealState validates the meld's suit compatibility; legal drink Runs can mix suits.
 	if meld_type != MeldRules.TYPE_RUN or cards.size() != 13 or not MeldRules.is_compatible_run(cards, "any"):
 		return false
-	var ranks: Array[int] = []
-	for card in cards:
-		ranks.append(card.rank_index)
-	ranks.sort()
-	return ranks[0] == 1 and ranks[-1] == 13
+	return true # Matching thirteen distinct legal ranks already proves A through K.
 
 
 static func deadwood_points(cards: Array[CardData]) -> int:
 	var value_sum := 0
 	for card in cards:
-		value_sum += card.score_value()
+		value_sum += card.deadwood_value()
 	return value_sum
+
+
+static func deadwood_resolution(cards: Array[CardData], multiplier: int = 1) -> Dictionary:
+	var normal := 0
+	var profit := 0
+	var penalty_cards: Array[CardData] = []
+	var ink_cards: Array[CardData] = []
+	for card in cards:
+		if card.fortune < 0:
+			profit -= card.deadwood_value()
+			ink_cards.append(card)
+		else:
+			normal += card.intrinsic_value()
+			penalty_cards.append(card)
+	return {"cards": cards.duplicate(), "penalty_cards": penalty_cards, "ink_cards": ink_cards,
+		"value_sum": normal, "multiplier": multiplier, "deadwood": normal * multiplier,
+		"black_ink_profit": profit}
 
 
 static func meld_value(cards: Array[CardData]) -> int:
@@ -152,10 +162,6 @@ func _resolve_full_meld_trigger(context: ScoringContext) -> void:
 		reason = TRIGGER_PERFECTED_RUN
 	var gieo_retriggers := _gieo_full_meld_retrigger_count(context)
 	_resolve_passes(context, context.theoretical_score, total_passes + gieo_retriggers, reason, total_passes)
-
-
-func _resolve_single_pass(context: ScoringContext, points: int) -> void:
-	_resolve_passes(context, points, 1, "")
 
 
 func _resolve_extension_passes(context: ScoringContext) -> void:
@@ -222,13 +228,13 @@ func _make_scoring_pass(context: ScoringContext, pass_index: int, origin: String
 	scoring_pass.retrigger_count = 0
 	scoring_pass.final_points = points
 	if origin == TRIGGER_GIEO_RETRIGGER:
-		var property_id := GieoQueService.PROPERTY_MELD_RETRIGGER
+		var property_id := CardData.JACKPOT_LIQUID
 		var source_index := 0
 		for previous: ScoringContext in context.scoring_passes:
 			if previous.trigger_origin == TRIGGER_GIEO_RETRIGGER:
 				source_index += 1
 		for card in context.cards:
-			if card.has_gieo_property(property_id):
+			if card.echo_count() > 0:
 				if source_index == 0:
 					scoring_pass.retrigger_source_id = card.unique_id
 					scoring_pass.retrigger_property = property_id
@@ -243,7 +249,7 @@ func _polish_contribution(context: ScoringContext, card: CardData) -> int:
 	var multiplier := context.local_mult
 	if context.action_type == "extension" and context.trigger_index == 0 and not context.added_cards.has(card):
 		multiplier -= context.cards.size() - context.added_cards.size()
-	return card.score_value() * (multiplier + context.local_mult * context.qualifying_gold(card).size())
+	return card.score_value() * multiplier
 
 
 func _apply_polish(context: ScoringContext) -> void:
@@ -266,22 +272,10 @@ func _build_presentation_hits(context: ScoringContext) -> void:
 	var shown_cards: Array[CardData] = context.added_cards if delta_pass else context.cards
 	var accounted := 0
 	for card in shown_cards:
-		var points := card.score_value() * context.local_mult
-		context.presentation_hits.append(_card_hit(card, points, ""))
-		accounted += points
-		for property_id in context.qualifying_gold(card):
-			context.presentation_hits.append(_card_hit(card, points, property_id))
+		var points := card.intrinsic_value() * context.local_mult
+		for contribution in maxi(card.fortune, 1):
+			context.presentation_hits.append(_card_hit(card, points, "GOLD" if contribution > 0 else ""))
 			accounted += points
-	if delta_pass:
-		# Composition Gold on older cards still contributes to this event's sum.
-		# Show its actual card trigger, leaving intrinsic growth in meld_delta.
-		for card in context.cards:
-			if context.added_cards.has(card):
-				continue
-			for property_id in context.qualifying_gold(card):
-				var points := card.score_value() * context.local_mult
-				context.presentation_hits.append(_card_hit(card, points, property_id))
-				accounted += points
 	for card in context.cards:
 		if card.shiny:
 			var bonus := _polish_contribution(context, card)
@@ -299,17 +293,10 @@ func _build_presentation_hits(context: ScoringContext) -> void:
 func _card_hit(card: CardData, points: int, property_id: String) -> Dictionary:
 	return {
 		"card_id": card.unique_id, "label": card.short_label(),
-		"texture_path": card.texture_path(), "properties": card.gieo_properties.duplicate(), "shiny": card.shiny,
+		"texture_path": card.texture_path(), "fortune": card.fortune, "liquid": card.liquid, "negative": card.negative, "shiny": card.shiny,
 		"property": property_id, "kind": "card" if property_id.is_empty() else "card_retrigger",
 		"points": points,
 	}
-
-
-func _apply_gold(context: ScoringContext) -> void:
-	# Each condition contributes the current physical-card value once, before count.
-	for card in context.cards:
-		context.card_value_sum += card.score_value() * context.qualifying_gold(card).size()
-	context.base_score = context.card_value_sum
 
 
 func _gieo_full_meld_retrigger_count(context: ScoringContext) -> int:
@@ -318,8 +305,7 @@ func _gieo_full_meld_retrigger_count(context: ScoringContext) -> int:
 		return 0
 	var count := 0
 	for card in context.cards:
-		if card.has_gieo_property(GieoQueService.PROPERTY_MELD_RETRIGGER):
-			count += 1
+		count += card.echo_count()
 	return count
 
 

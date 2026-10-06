@@ -14,13 +14,13 @@ func _run() -> void:
 	root.add_child(scene)
 	current_scene = scene
 	await process_frame
-	scene.run_save = RunSave.new("user://front-end-smoke-%d.save" % Time.get_ticks_usec())
+	scene.session.run_save = RunSave.new("user://front-end-smoke-%d.save" % Time.get_ticks_usec())
 	scene.drink_manager.progress.save_path = ""
 	scene.campaign.difficulty_progress = preload("res://scripts/campaign/difficulty_progress.gd").new("")
 	var front := scene.front_end
 	front.show_home()
 	check(front.page == "home" and front.visible, "home opens directly")
-	check(not scene.get_node("TitleScreen/TitleDisc").visible, "opening gate is absent")
+	check(scene.get_node_or_null("TitleScreen") == null, "opening gate is absent")
 	front.show_setup()
 	check(front.draft.music_system == scene.settings.music_system, "music inherits settings")
 	check(front.draft.difficulty == 1, "fresh setup begins at difficulty one")
@@ -39,7 +39,7 @@ func _run() -> void:
 	await create_timer(1.0).timeout
 	check(scene.game_started and not scene.campaign.run_seed.is_empty(), "start works without music selection")
 	# Capture a live save to exercise Home, replacement, and Continue navigation.
-	scene.run_save.save_run(scene.campaign, scene.deal, scene._music_checkpoint())
+	scene.session.run_save.save_run(scene.campaign, scene.deal, scene.music.snapshot())
 	front.show_home()
 	check(not front.saved.is_empty(), "home discovers saved run")
 	front.show_setup()
@@ -54,8 +54,8 @@ func _run() -> void:
 	check(not front.selected_collection.is_empty(), "zodiac progress opens")
 	for message in failures: push_error(message)
 	print("FRONT_END_SMOKE failures=%d" % failures.size())
-	scene.music_controller._stop_all_mix_players()
-	scene.music_controller.music_director.stop()
+	scene.music.controller._stop_all_mix_players()
+	scene.music.controller.music_director.stop()
 	scene.queue_free()
 	await process_frame
 	quit(0 if failures.is_empty() else 1)

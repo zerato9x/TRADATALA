@@ -10,7 +10,7 @@ static func make(verb: String, targeting: String = "ANY", authority: String = "P
 
 static func legal(card: CardData, demand: Dictionary) -> bool:
 	match String(demand.get("verb", "")):
-		"REMOVE_PROPERTY": return not card.gieo_properties.is_empty()
+		"REMOVE_PROPERTY": return card.has_fortune_properties()
 		"RESET": return card.has_permanent_changes()
 		"SEAL": return not card.transformation_locked
 		"SET_RANK": return not card.transformation_locked and String(demand.destination) in DeckManager.RANKS and card.rank != String(demand.destination)
@@ -54,7 +54,7 @@ static func prepare(template: Dictionary, deck: Array[CardData], rng: RandomNumb
 			# Prefer valuable targets, with seeded tie ordering. Every chosen card
 			# must leave a complete group available; greed cannot strand an offer.
 			cards = CardTargetQuery.shuffled(cards, rng)
-			cards.sort_custom(func(a: CardData, b: CardData): return a.gieo_properties.size() > b.gieo_properties.size() if a.gieo_properties.size() != b.gieo_properties.size() else a.rank_index > b.rank_index)
+			cards.sort_custom(func(a: CardData, b: CardData): return a.permanent_property_count() > b.permanent_property_count() if a.permanent_property_count() != b.permanent_property_count() else a.rank_index > b.rank_index)
 			for card in cards:
 				var next: Array[CardData] = picked.duplicate()
 				next.append(card)

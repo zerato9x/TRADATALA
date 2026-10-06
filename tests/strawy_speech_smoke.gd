@@ -38,7 +38,7 @@ func check_speech(locale: String) -> void:
 	var before := var_to_str(ui.deal.snapshot_state())
 	var text := ui.strawy.copy.text
 	check(ui.strawy.copy.visible_characters == 0, "requested text begins hidden " + locale)
-	check(text.contains(GameGlossary.words("choose a Drink", "gọi nước")), "first-day help explains the next action " + locale)
+	check(text.length() < 60 and ui.strawy._context_detail().contains(GameGlossary.words("choose a Drink", "gọi nước")), "first-day help explains the next action " + locale)
 	await create_timer(0.15).timeout
 	var size := ui.strawy.box.size
 	var button_position := (ui.strawy.actions.get_child(1) as Control).position
@@ -88,14 +88,14 @@ func check_speech(locale: String) -> void:
 
 func check_deal_speech(locale: String) -> void:
 	ui.settings.set_locale(locale)
-	ui.selected_card_ids.clear()
+	ui.interactions.selected_ids.clear()
 	ui.strawy.open_help()
-	check(ui.strawy.copy.text.contains(GameGlossary.words("Select them and HẠ", "Chọn rồi HẠ")), "Deal tutorial explains how to play the ready Set " + locale)
+	check(ui.strawy.copy.text.length() < 60 and ui.strawy._context_detail().contains(GameGlossary.words("Select them and HẠ", "Chọn rồi HẠ")), "Deal tutorial explains how to play the ready Set " + locale)
 	await finish_text(true)
 	await capture("deal")
 	ui.strawy.start_tour()
 	var before := var_to_str(ui.deal.snapshot_state())
-	var play: Dictionary = ui.deal.hand_advice().play
+	var play: Dictionary = ui.deal.queries.hand_advice().play
 	check(play.action == HandAdvisor.ACTION_NEW_MELD and ui.strawy.copy.text.contains("HẠ"), "Deal tour explains the scoring action " + locale)
 	for card: CardData in play.cards:
 		check(ui.strawy.copy.text.contains(card.short_label()), "tour identifies every recommended card " + locale)
@@ -103,7 +103,7 @@ func check_deal_speech(locale: String) -> void:
 	await capture("deal-tour")
 	check(var_to_str(ui.deal.snapshot_state()) == before, "explanations and text taps never play recommended cards " + locale)
 	ui.strawy.close()
-	ui.selected_card_ids[ui.deal.hand[0].unique_id] = true
+	ui.interactions.selected_ids[ui.deal.hand[0].unique_id] = true
 	ui.strawy.open_help()
 	ui.strawy._explain_cards()
 	check(ui.strawy.copy.visible_characters == 0 and ui.strawy.copy.text.contains(ui.deal.hand[0].short_label()), "requested card details also animate " + locale)
@@ -116,10 +116,8 @@ func _run() -> void:
 	root.add_child(ui)
 	current_scene = ui
 	await create_timer(0.3).timeout
-	ui.run_save = RunSave.new("user://strawy-speech.save")
+	ui.session.run_save = RunSave.new("user://strawy-speech.save")
 	ui.drink_manager.progress.save_path = ""
-	var title := ui.get_node_or_null("TitleScreen")
-	if title: title.queue_free()
 	ui.game_started = true
 	ui.game_layer.position = Vector2.ZERO
 	ui.menu_layer.hide()

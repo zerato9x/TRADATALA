@@ -37,7 +37,7 @@ func _run() -> void:
 		var card: CardData = campaign.gieo_que.persistent_deck[0]
 		card.apply_rank("K", 13)
 		card.apply_suit("Hearts")
-		card.add_gieo_property("GOLD_SET")
+		card.adjust_fortune(2)
 		service.debug_offer(ZodiacDemand.make("RESET", "HAS_GOLD_PROPERTY", "ZODIAC_CHOOSES"))
 		_check(service.respond("HAGGLE").get("requires_confirmation", false), "counteroffer prepared without mutation")
 		var expected := {"current": service.current_demand().duplicate(true), "rng": service._rng.state, "card": card.permanent_snapshot()}

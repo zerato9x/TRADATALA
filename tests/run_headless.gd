@@ -26,14 +26,17 @@ func _run() -> void:
 		preload("res://tests/test_run_progression.gd").new(),
 		preload("res://tests/test_resolve_accounting.gd").new(),
 		TestSuiteScript.new(),
+		preload("res://tests/test_card_action_cache.gd").new(),
 		DrinkRosterSuiteScript.new(),
 		CampaignTestSuiteScript.new(),
 		MoneyPresentationTestSuiteScript.new(),
 		GieoQueTestSuiteScript.new(),
 		preload("res://tests/test_gieo_card_fx.gd").new(),
 		preload("res://tests/test_misc_npc.gd").new(),
+		preload("res://tests/test_shoe_shine.gd").new(),
 		MusicAntiFatigueTestSuiteScript.new(),
 		preload("res://tests/test_relics.gd").new(),
+		preload("res://tests/test_hang_rong_shop.gd").new(),
 	], "", "", {}, true)
 	print("TRADATALA_TESTS total=%d passed=%d failed=%d skipped=%d" % [
 		result["total"], result["passed"], result["failed"], result["skipped"]

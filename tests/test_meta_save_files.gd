@@ -129,7 +129,7 @@ func test_invalid_slot_choice_and_mismatched_identity_do_not_change_active_file(
 	assert_eq(saves.active_slot, 1)
 	var file := FileAccess.open(saves.meta_path(2), FileAccess.WRITE)
 	var payload := JSON.stringify(saves._pack_json(saves.data))
-	file.store_string(JSON.stringify({"version": 1, "payload": payload, "sha256": RunSave._digest(payload.to_utf8_buffer())}))
+	file.store_string(JSON.stringify({"version": 1, "payload": payload, "sha256": RunSave.payload_digest(payload.to_utf8_buffer())}))
 	file.close()
 	assert_false(saves.select(2, campaign))
 	assert_eq(saves.active_slot, 1)

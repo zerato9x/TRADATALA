@@ -38,12 +38,12 @@ func _fixture(id: String, level: int, phase: int = 2) -> void:
 	scene.deal.zodiac_boss.begin_turn(phase, scene.deal.hand, scene.deal)
 	scene.deal.zodiac_boss.take_events()
 	scene.modal_overlay.hide()
-	scene.interaction_locked = false
-	scene.selected_card_ids.clear()
-	scene.selected_meld_id = -1
-	scene._set_hand_interaction_enabled(true)
-	scene.displayed_wallet_vnd = scene.deal.wallet.balance_vnd
-	scene.money_queue_wallet_vnd = scene.displayed_wallet_vnd
+	scene.interactions.locked = false
+	scene.interactions.selected_ids.clear()
+	scene.interactions.selected_meld_id = -1
+	scene.card_table.set_hand_interaction_enabled(true)
+	scene.money_playback.displayed_balance = scene.deal.wallet.balance_vnd
+	scene.money_playback.queued_balance = scene.money_playback.displayed_balance
 	scene._sync_all()
 
 func _run() -> void:
@@ -52,10 +52,10 @@ func _run() -> void:
 	root.add_child(scene)
 	current_scene = scene
 	await _frames()
-	scene._restoring_run = true
+	scene.session.restoring = true
 	scene.drink_manager.progress.save_path = ""
 	scene.campaign.zodiac.progress = ZodiacProgress.new("")
-	scene.run_save = RunSave.new("user://zodiac-roster-smoke.save")
+	scene.session.run_save = RunSave.new("user://zodiac-roster-smoke.save")
 	scene.campaign.run_seed = "zodiac-roster-smoke"
 	scene.campaign.gieo_que.reset_campaign()
 	scene.game_started = true
@@ -91,27 +91,30 @@ func _run() -> void:
 		await _frames()
 		_check(Rect2(Vector2.ZERO, Vector2(root.size)).encloses(hud.panel.get_global_rect()), "boss HUD fits alternate viewport")
 		_check(not hud.panel.get_global_rect().intersects(scene.draw_pile_visual.get_global_rect()), "boss HUD clears scaled draw pile")
-	# Pointer-driven rule expansion stays inside the scrollable rule card.
+	# Pointer-driven rules open the current Handbook above the table.
 	_fixture("dragon", 3)
 	await _click(hud.detail_button)
-	_check(hud.details.visible, "pointer expands full rule")
+	var book := root.get_node_or_null("GameGlossary") as GameGlossary
+	_check(book != null and book._entries[0].body.contains(ZodiacCatalog.rule_text("dragon", 3)), "Pointer opens the complete boss rule in Handbook")
 	await _frames()
-	_check(Rect2(Vector2.ZERO, Vector2(root.size)).encloses(hud.details_panel.get_global_rect()), "expanded rule stays onscreen")
+	_check(book != null and book.layer > 850, "Handbook rules stay above game overlays")
 	await _capture("dragon_rule_expanded_vi")
+	if book != null: book.queue_free()
+	await _frames()
 	# Boss receipts observe committed entries and queue the exact net balance.
 	_fixture("pig", 2, 1)
 	scene.deal.zodiac_boss.data.target_vnd = 100000
 	var journal_before := scene.deal.wallet.journal.size()
 	var result := scene.deal.create_meld(scene.deal.hand.slice(0, 3))
 	scene._sync_all(result)
-	scene._queue_scoring(result.context)
-	_check(scene.money_queue_wallet_vnd == scene.deal.wallet.balance_vnd, "Pig queue matches committed siphoned payout")
+	scene.money_feedback.queue_scoring(result.context)
+	_check(scene.money_playback.queued_balance == scene.deal.wallet.balance_vnd, "Pig queue matches committed siphoned payout")
 	_check(scene.deal.wallet.journal.size() == journal_before + 2, "presentation never mutates wallet")
 	scene.money_presentation.request_fast_forward()
-	await scene._wait_for_money_job(scene.next_money_job_id - 1)
-	_check(scene.displayed_wallet_vnd == scene.deal.wallet.balance_vnd, "Pig displayed balance reaches real net")
+	await scene.money_playback.wait_for(scene.money_playback.next_job_id - 1)
+	_check(scene.money_playback.displayed_balance == scene.deal.wallet.balance_vnd, "Pig displayed balance reaches real net")
 	await _frames()
-	for meld_view: Control in scene.meld_views.values():
+	for meld_view: Control in scene.card_table.meld_views.values():
 		_check(not hud.panel.get_global_rect().intersects(meld_view.get_global_rect()), "HUD clears actual player Meld")
 	await _capture("pig_player_meld")
 	# A suppressed play must still queue automatic boss deductions.
@@ -120,10 +123,10 @@ func _run() -> void:
 	scene.deal.zodiac_boss.data.repeat_count = 1
 	scene.deal.boss_adjust_wallet(-7000, "zodiac:rat:meld")
 	result = scene.deal.create_meld(scene.deal.hand.slice(0, 3))
-	scene._queue_scoring(result.context)
-	_check(scene.money_queue_wallet_vnd == scene.deal.wallet.balance_vnd, "zero-paid action still presents boss deduction")
+	scene.money_feedback.queue_scoring(result.context)
+	_check(scene.money_playback.queued_balance == scene.deal.wallet.balance_vnd, "zero-paid action still presents boss deduction")
 	scene.money_presentation.request_fast_forward()
-	await scene._wait_for_money_job(scene.next_money_job_id - 1)
+	await scene.money_playback.wait_for(scene.money_playback.next_job_id - 1)
 	# Mouse-owned faces are separate from player Melds.
 	_fixture("rat", 2, 1)
 	var discarded := scene.deal.hand[-1]
@@ -162,10 +165,10 @@ func _run() -> void:
 	_check(scene.modal_mode == "zodiac_endgame" and scene.modal_overlay.visible, "post-Snake choice modal visible")
 	_check(scene.modal_primary.text == "ĐỐI MẶT THÌN", "Dragon choice localized")
 	await _capture("post_snake_choice_vi")
-	var saved := scene.run_save.capture(scene.campaign, scene.deal)
-	_check(scene._resume_saved_run(saved), "choice save resumes")
+	var saved := scene.session.run_save.capture(scene.campaign, scene.deal)
+	_check(scene.session.resume(saved), "choice save resumes")
 	_check(scene.modal_mode == "zodiac_endgame", "resumed choice has same actions")
-	scene._restoring_run = true
+	scene.session.restoring = true
 	await _click(scene.modal_primary)
 	await _frames(45)
 	_check(scene.campaign.current_phase == CampaignManager.CampaignPhase.DRAGON_DEAL, "Dragon pointer choice starts encounter")
@@ -181,7 +184,7 @@ func _run() -> void:
 	await _click(scene.modal_secondary)
 	_check(scene.campaign.current_phase == CampaignManager.CampaignPhase.MONEY_REQUIREMENT_CHECK, "continue choice enters ordinary collection")
 	_check(scene.deal.physical_card_accounting_is_valid(), "endgame hand remains physically valid")
-	for suffix in ["", ".bak", ".tmp"]: DirAccess.remove_absolute(scene.run_save.path + suffix)
+	for suffix in ["", ".bak", ".tmp"]: DirAccess.remove_absolute(scene.session.run_save.path + suffix)
 	scene.queue_free()
 	await _frames()
 	print("ZODIAC_FULL_ROSTER_SMOKE checks=%d failures=%d" % [checks, failures.size()])

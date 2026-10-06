@@ -29,9 +29,6 @@ func run() -> void:
 	root.add_child(scene)
 	current_scene = scene
 	await process_frame
-	var title := scene.get_node_or_null("TitleScreen")
-	if title != null:
-		title.queue_free()
 	scene.game_started = true
 	scene.game_layer.position = Vector2.ZERO
 	scene.menu_layer.hide()
@@ -42,9 +39,9 @@ func run() -> void:
 	scene.drink_manager.afternoon_drink_id = DrinkCatalog.STING
 	scene.deal.set_current_drink(DrinkCatalog.STING)
 	scene.deal.wallet.reset(2887500)
-	scene.displayed_wallet_vnd = 2887500
-	scene.money_queue_wallet_vnd = 2887500
-	scene.interaction_locked = false
+	scene.money_playback.displayed_balance = 2887500
+	scene.money_playback.queued_balance = 2887500
+	scene.interactions.locked = false
 	var complete: Array[CardData] = []
 	for rank in range(1, 14):
 		var label := "A" if rank == 1 else ("J" if rank == 11 else ("Q" if rank == 12 else ("K" if rank == 13 else str(rank))))
@@ -60,9 +57,9 @@ func run() -> void:
 	check(scene.game_layer.get_node_or_null("EmptyGlasses") == null, "28 retired drinks create no cup pile")
 	check(scene.get_node_or_null("GameLayer/TableSurface/DrinkProps/EmptyDrinkProp") == null, "retired cup prop is absent")
 	check(scene.drink_table_button.visible, "active drink remains on the table")
-	var run_view: MeldView = scene.meld_views[81]
+	var run_view: MeldView = scene.card_table.meld_views[81]
 	var assigned := 0
-	for band in scene.reactive_meld_cards_by_band.values():
+	for band in scene.card_table.reactive_meld_cards_by_band.values():
 		for entry in band:
 			if entry.view == run_view:
 				assigned += 1
@@ -76,27 +73,27 @@ func run() -> void:
 	scene._on_music_band_pulse(0, 1.0)
 	await create_timer(0.08).timeout
 	check(first.scale.y > 1.1, "completed run bounces without selection")
-	var hand_view: PlayingCardView = scene.hand_views.values()[0]
+	var hand_view: PlayingCardView = scene.card_table.hand_views.values()[0]
 	check(absf(hand_view._texture.rotation) <= deg_to_rad(0.81), "hand sway remains tiny")
-	var face := (scene.meld_views[82] as MeldView).get_scoring_card_control(distant[-1].unique_id)
+	var face := (scene.card_table.meld_views[82] as MeldView).get_scoring_card_control(distant[-1].unique_id)
 	scene.meld_scroll.scroll_horizontal = 0
 	await scene._reveal_scoring_card(face)
 	check(scene.meld_scroll.scroll_horizontal > 0, "offscreen scoring scrolls the table")
 	check(scene.meld_scroll.get_global_rect().encloses(face.get_global_rect()), "target card is fully visible before its payout")
 	var context := scene.deal.scoring.preview_new_meld(distant, MeldRules.TYPE_SET, 1)
 	var balance := scene.deal.wallet.balance_vnd
-	scene._queue_scoring(context, scene.meld_views[82])
+	scene.money_feedback.queue_scoring(context, scene.card_table.meld_views[82])
 	await create_timer(0.45).timeout
 	check(scene.wallet_value.text == VndWallet.format_amount(balance), "wallet waits while score accumulates")
 	check(scene.money_presentation.bill_layer.get_child_count() > 0, "earnings form a visible stack")
 	var deadline := Time.get_ticks_msec() + 10000
-	while scene.money_queue_running and Time.get_ticks_msec() < deadline:
+	while scene.money_playback.running and Time.get_ticks_msec() < deadline:
 		await process_frame
-	check(not scene.money_queue_running, "stack payout completes")
+	check(not scene.money_playback.running, "stack payout completes")
 	check(scene.deal.wallet.balance_vnd == balance, "payout animation never mutates authoritative balance")
-	var visual := scene._capture_exhaustion_visual(scene.deal.melds[1], scene.meld_views[82])
+	var visual := scene._capture_exhaustion_visual(scene.deal.melds[1], scene.card_table.meld_views[82])
 	scene.deal.melds.remove_at(1)
-	scene._sync_melds()
+	scene.card_table.sync_melds()
 	await process_frame
 	var ghost: Control = visual.cards[0]
 	check(scene.meld_scroll.is_ancestor_of(ghost), "exhaustion cards stay clipped to the scrollable table")
@@ -106,8 +103,8 @@ func run() -> void:
 	await scene._return_exhaustion_visual(visual)
 	await process_frame
 	check(not is_instance_valid(visual.anchor), "exhaustion snapshot is released after return")
-	scene.displayed_wallet_vnd = balance
-	scene.money_queue_wallet_vnd = balance
+	scene.money_playback.displayed_balance = balance
+	scene.money_playback.queued_balance = balance
 	scene._refresh_stats()
 	scene.meld_scroll.scroll_horizontal = 0
 	await create_timer(0.2).timeout
@@ -116,8 +113,8 @@ func run() -> void:
 		root.get_texture().get_image().save_png("res://.godot/demo-refinements-table.png")
 	var spiral_balance := 288750000
 	scene.deal.wallet.reset(spiral_balance)
-	scene.displayed_wallet_vnd = spiral_balance
-	scene.money_queue_wallet_vnd = spiral_balance
+	scene.money_playback.displayed_balance = spiral_balance
+	scene.money_playback.queued_balance = spiral_balance
 	scene._refresh_stats()
 	var point := scene.wallet_pile_anchor.get_global_transform_with_canvas() * (scene.wallet_pile_anchor.size * 0.5)
 	for index in 3:
@@ -169,8 +166,8 @@ func run() -> void:
 		check(not is_instance_valid(scene.wallet_spiral), "Escape closes the easter egg")
 		check(is_equal_approx(scene.game_layer.modulate.a, 1.0), "HUD returns after exit")
 	check(scene.deal.wallet.balance_vnd == spiral_balance, "wallet easter egg preserves money")
-	scene.music_controller._stop_all_mix_players()
-	scene.music_controller.music_director.stop()
+	scene.music.controller._stop_all_mix_players()
+	scene.music.controller.music_director.stop()
 	await create_timer(0.2).timeout
 	scene.queue_free()
 	await process_frame

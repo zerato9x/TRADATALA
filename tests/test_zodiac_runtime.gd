@@ -396,8 +396,8 @@ func test_preview_and_helper_are_pure_across_all_bosses_and_tiers() -> void:
 			var deck_before := deal.deck._rng.state
 			var wallet_before := deal.wallet.journal.duplicate(true)
 			var cards: Array[CardData] = deal.hand.slice(0, mini(3, deal.hand.size()))
-			deal.preview_boss_payout(deal.scoring.preview_new_meld(cards, MeldRules.classify(cards), 1), deal._next_meld_id)
-			deal.recommend_action()
+			deal.preview_new_meld_payout(cards, MeldRules.classify(cards))
+			deal.queries.recommend_action()
 			HandAdvice.analyze(deal)
 			assert_eq(deal.zodiac_boss.snapshot(), boss_before)
 			assert_eq(deal.deck._rng.state, deck_before)

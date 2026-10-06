@@ -1,0 +1,170 @@
+[
+  {
+    "name": "parse",
+    "pass": true,
+    "marker": "",
+    "stdout": "G:\\PHOM\\TRADATALA\\.godot\\validation\\parse.log",
+    "stderr": "G:\\PHOM\\TRADATALA\\.godot\\validation\\parse.err.log",
+    "verified_at": "2026-10-07T00:45:38.1478364+07:00"
+  },
+  {
+    "name": "core",
+    "pass": true,
+    "marker": "TRADATALA_TESTS total=391 passed=391 failed=0 skipped=0",
+    "stdout": "G:\\PHOM\\TRADATALA\\.godot\\validation\\core.log",
+    "stderr": "G:\\PHOM\\TRADATALA\\.godot\\validation\\core.err.log",
+    "verified_at": "2026-10-07T00:46:03.6061793+07:00"
+  },
+  {
+    "name": "runtime",
+    "pass": true,
+    "marker": "TRADATALA_SCENE_SMOKE passed",
+    "stdout": "G:\\PHOM\\TRADATALA\\.godot\\validation\\runtime.log",
+    "stderr": "G:\\PHOM\\TRADATALA\\.godot\\validation\\runtime.err.log",
+    "verified_at": "2026-10-07T00:41:00.2605730+07:00"
+  },
+  {
+    "name": "tutorial_scene",
+    "pass": true,
+    "marker": "TUTORIAL_REPLACEMENT_SMOKE: 0 failures",
+    "stdout": "G:\\PHOM\\TRADATALA\\.godot\\validation\\tutorial_scene.log",
+    "stderr": "G:\\PHOM\\TRADATALA\\.godot\\validation\\tutorial_scene.err.log",
+    "verified_at": "2026-10-07T00:42:13.7980014+07:00"
+  },
+  {
+    "name": "event_table_overhaul",
+    "pass": true,
+    "marker": "EVENT_TABLE_OVERHAUL: 116 checks, 0 failures",
+    "stdout": "G:\\PHOM\\TRADATALA\\.godot\\validation\\event_table_overhaul.log",
+    "stderr": "G:\\PHOM\\TRADATALA\\.godot\\validation\\event_table_overhaul.err.log",
+    "verified_at": "2026-10-07T00:42:42.2961319+07:00"
+  },
+  {
+    "name": "misc_npc_scene",
+    "pass": true,
+    "marker": "MISC_NPC_SCENE_SMOKE PASS",
+    "stdout": "G:\\PHOM\\TRADATALA\\.godot\\validation\\misc_npc_scene.log",
+    "stderr": "G:\\PHOM\\TRADATALA\\.godot\\validation\\misc_npc_scene.err.log",
+    "verified_at": "2026-10-07T00:43:00.9792636+07:00"
+  },
+  {
+    "name": "campaign",
+    "pass": true,
+    "marker": "CAMPAIGN_OVERHAUL_SCENE: 0 failures",
+    "stdout": "G:\\PHOM\\TRADATALA\\.godot\\validation\\campaign.log",
+    "stderr": "G:\\PHOM\\TRADATALA\\.godot\\validation\\campaign.err.log",
+    "verified_at": "2026-10-07T00:41:37.1844295+07:00"
+  },
+  {
+    "name": "campaign-demo",
+    "pass": true,
+    "marker": "CAMPAIGN_OVERHAUL_SCENE: 0 failures",
+    "stdout": "G:\\PHOM\\TRADATALA\\.godot\\validation\\campaign-demo.log",
+    "stderr": "G:\\PHOM\\TRADATALA\\.godot\\validation\\campaign-demo.err.log",
+    "verified_at": "2026-10-07T00:42:07.1228805+07:00"
+  },
+  {
+    "name": "gieo_que_screen",
+    "pass": true,
+    "marker": "GIEO_QUE_SCREEN_SMOKE checks=460 failures=0",
+    "stdout": "G:\\PHOM\\TRADATALA\\.godot\\validation\\gieo_que_screen.log",
+    "stderr": "G:\\PHOM\\TRADATALA\\.godot\\validation\\gieo_que_screen.err.log",
+    "verified_at": "2026-10-07T00:43:15.4905687+07:00"
+  },
+  {
+    "name": "shoe-write",
+    "pass": true,
+    "marker": "SHOE_SHINE_RESUME_SMOKE checks=9 failures=0",
+    "stdout": "G:\\PHOM\\TRADATALA\\.godot\\validation\\shoe-write.log",
+    "stderr": "G:\\PHOM\\TRADATALA\\.godot\\validation\\shoe-write.err.log",
+    "verified_at": "2026-10-07T00:43:17.2691997+07:00"
+  },
+  {
+    "name": "shoe-read",
+    "pass": true,
+    "marker": "SHOE_SHINE_RESUME_SMOKE checks=19 failures=0",
+    "stdout": "G:\\PHOM\\TRADATALA\\.godot\\validation\\shoe-read.log",
+    "stderr": "G:\\PHOM\\TRADATALA\\.godot\\validation\\shoe-read.err.log",
+    "verified_at": "2026-10-07T00:43:19.1028810+07:00"
+  },
+  {
+    "name": "shoe-en",
+    "pass": true,
+    "marker": "SHOE_SHINE_SCENE_SMOKE checks=89 failures=0",
+    "stdout": "G:\\PHOM\\TRADATALA\\.godot\\validation\\shoe-en.log",
+    "stderr": "G:\\PHOM\\TRADATALA\\.godot\\validation\\shoe-en.err.log",
+    "verified_at": "2026-10-07T00:43:31.9926998+07:00"
+  },
+  {
+    "name": "shoe-vi",
+    "pass": true,
+    "marker": "SHOE_SHINE_SCENE_SMOKE checks=89 failures=0",
+    "stdout": "G:\\PHOM\\TRADATALA\\.godot\\validation\\shoe-vi.log",
+    "stderr": "G:\\PHOM\\TRADATALA\\.godot\\validation\\shoe-vi.err.log",
+    "verified_at": "2026-10-07T00:43:45.1230075+07:00"
+  },
+  {
+    "name": "shoe-large-en",
+    "pass": true,
+    "marker": "SHOE_SHINE_SCENE_SMOKE checks=89 failures=0",
+    "stdout": "G:\\PHOM\\TRADATALA\\.godot\\validation\\shoe-large-en.log",
+    "stderr": "G:\\PHOM\\TRADATALA\\.godot\\validation\\shoe-large-en.err.log",
+    "verified_at": "2026-10-07T00:43:58.4202002+07:00"
+  },
+  {
+    "name": "shoe-large-vi",
+    "pass": true,
+    "marker": "SHOE_SHINE_SCENE_SMOKE checks=89 failures=0",
+    "stdout": "G:\\PHOM\\TRADATALA\\.godot\\validation\\shoe-large-vi.log",
+    "stderr": "G:\\PHOM\\TRADATALA\\.godot\\validation\\shoe-large-vi.err.log",
+    "verified_at": "2026-10-07T00:44:11.8004831+07:00"
+  },
+  {
+    "name": "fortune-write",
+    "pass": true,
+    "marker": "FORTUNE_FRESH_PROCESS_WRITE: PASS",
+    "stdout": "G:\\PHOM\\TRADATALA\\.godot\\validation\\fortune-write.log",
+    "stderr": "G:\\PHOM\\TRADATALA\\.godot\\validation\\fortune-write.err.log",
+    "verified_at": "2026-10-07T00:44:13.8093253+07:00"
+  },
+  {
+    "name": "fortune-read",
+    "pass": true,
+    "marker": "FORTUNE_FRESH_PROCESS_READ: PASS",
+    "stdout": "G:\\PHOM\\TRADATALA\\.godot\\validation\\fortune-read.log",
+    "stderr": "G:\\PHOM\\TRADATALA\\.godot\\validation\\fortune-read.err.log",
+    "verified_at": "2026-10-07T00:44:15.4858624+07:00"
+  },
+  {
+    "name": "hang-rong-write",
+    "pass": true,
+    "marker": "HANG_RONG_RESUME_SMOKE checks=6 failures=0",
+    "stdout": "G:\\PHOM\\TRADATALA\\.godot\\validation\\hang-rong-write.log",
+    "stderr": "G:\\PHOM\\TRADATALA\\.godot\\validation\\hang-rong-write.err.log",
+    "verified_at": "2026-10-07T00:44:17.2194522+07:00"
+  },
+  {
+    "name": "hang-rong-read",
+    "pass": true,
+    "marker": "HANG_RONG_RESUME_SMOKE checks=32 failures=0",
+    "stdout": "G:\\PHOM\\TRADATALA\\.godot\\validation\\hang-rong-read.log",
+    "stderr": "G:\\PHOM\\TRADATALA\\.godot\\validation\\hang-rong-read.err.log",
+    "verified_at": "2026-10-07T00:44:18.9039965+07:00"
+  },
+  {
+    "name": "strawy_scene",
+    "pass": true,
+    "marker": "STRAWY_SCENE_SMOKE checks=139 failures=0",
+    "stdout": "G:\\PHOM\\TRADATALA\\.godot\\validation\\strawy_scene.log",
+    "stderr": "G:\\PHOM\\TRADATALA\\.godot\\validation\\strawy_scene.err.log",
+    "verified_at": "2026-10-07T00:46:43.1920136+07:00"
+  },
+  {
+    "name": "resolve_scene",
+    "pass": true,
+    "marker": "RESOLVE_SCENE_SMOKE: PASS",
+    "stdout": "G:\\PHOM\\TRADATALA\\.godot\\validation\\resolve_scene.log",
+    "stderr": "G:\\PHOM\\TRADATALA\\.godot\\validation\\resolve_scene.err.log",
+    "verified_at": "2026-10-07T00:46:54.1140281+07:00"
+  }
+]

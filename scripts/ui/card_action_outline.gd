@@ -42,11 +42,6 @@ func set_drink_cue(active: bool) -> void:
 	set_cues(false, false, active, active)
 
 
-func set_emphasized(value: bool) -> void:
-	_emphasized = value and (_cue_mode & CUE_DRINK) != 0
-	queue_redraw()
-
-
 func play_target_pulse(_strength: float = 0.6) -> void:
 	# The outline inherits its card's motion; never scale it independently.
 	queue_redraw()

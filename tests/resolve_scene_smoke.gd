@@ -29,9 +29,6 @@ func _run() -> void:
 	root.add_child(scene)
 	current_scene = scene
 	await pause()
-	var title := scene.get_node_or_null("TitleScreen")
-	if title != null:
-		title.queue_free()
 	if OS.get_cmdline_user_args().has("--english"):
 		TranslationServer.set_locale("en")
 	await scene._on_play_pressed()
@@ -57,6 +54,8 @@ func _run() -> void:
 	scene.campaign._finish_day()
 	await pause()
 	check(scene.resolve_mode == "collection", "collector blocks progression")
+	check(scene.event_table.table_state == EventTableController.TABLE_STATE_RESOLUTION and not scene.event_table.visible, "collection owns the stage after old table transitions finish")
+	check(scene.event_table.focused_npc_id.is_empty() and not scene.event_table.deck_focused, "collection releases prior NPC and deck focus")
 	check(scene.resolve_receipt.portrait.visible, "collector portrait visible")
 	check(not scene.resolve_receipt._report.has("actions") and not scene.resolve_receipt._report.has("entries"), "collection excludes historical detail")
 	check(scene.resolve_receipt._scroll.size.y > 180, "details retain readable space")
@@ -68,6 +67,7 @@ func _run() -> void:
 	await create_timer(1.3).timeout
 	scene._show_campaign_outcome(true)
 	await pause()
+	check(scene.event_table.table_state == EventTableController.TABLE_STATE_RESOLUTION and not scene.event_table.visible, "outcome owns the stage after old table transitions finish")
 	await capture("res://.godot/resolve-outcome.png")
 	check(scene.resolve_receipt.primary.get_global_rect().end.y <= root.size.y, "new run fits viewport")
 	await click(scene.resolve_receipt.primary)

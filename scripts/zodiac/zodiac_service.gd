@@ -19,7 +19,7 @@ var persuasion := ZodiacPersuasion.new()
 var _watched_cards: Array[CardData] = []
 
 func _init() -> void:
-	persuasion.bind(self)
+	persuasion.bind(self, _rng)
 
 func uses_persuasion() -> bool:
 	return not ZodiacCatalog.persuasion_config(active_id()).is_empty() and not daily.get("legacy_negotiation", false)
@@ -54,20 +54,37 @@ func rebind_observers() -> void:
 	if not campaign.relic_shop.runtime.inventory_changed.is_connected(_observe_inventory): campaign.relic_shop.runtime.inventory_changed.connect(_observe_inventory)
 
 func _observe_card_change(card_id: String, revision: int, operation: String) -> void:
-	if uses_persuasion(): persuasion.observe_cards([card_id], _key("card:%s:%d:%s" % [card_id, revision, operation]), "card_alter")
+	if uses_persuasion(): persuasion.observe_cards([card_id], record_key("card:%s:%d:%s" % [card_id, revision, operation]), "card_alter")
 
 func _observe_transformations(changes: Array[Dictionary]) -> void:
 	if not uses_persuasion(): return
 	for change in changes:
 		var card: CardData = change.get("card")
 		if card != null:
-			persuasion.observe_cards([card.unique_id], _key("gieo:%s:%d" % [card.unique_id, campaign.activities.size()]), "card_alter")
+			persuasion.observe_cards([card.unique_id], record_key("gieo:%s:%d" % [card.unique_id, campaign.activities.size()]), "card_alter")
 
 func _observe_inventory() -> void:
 	if uses_persuasion(): persuasion.observe_inventory()
 
-func bind(owner_campaign: RefCounted, owner_deal: DealState) -> void:
+func bind_campaign(owner_campaign: RefCounted) -> void:
 	_campaign_ref = weakref(owner_campaign)
+
+func response_locked() -> bool:
+	return _committing or _restoring
+
+func is_restoring() -> bool:
+	return _restoring
+
+func begin_commit() -> bool:
+	if response_locked(): return false
+	_committing = true
+	return true
+
+func finish_commit() -> void:
+	_committing = false
+
+func bind(owner_campaign: RefCounted, owner_deal: DealState) -> void:
+	bind_campaign(owner_campaign)
 	deal = owner_deal
 	if not deal.state_changed.is_connected(_observe_action): deal.state_changed.connect(_observe_action)
 	if not deal.wallet.balance_changed.is_connected(_observe_wallet): deal.wallet.balance_changed.connect(_observe_wallet)
@@ -109,8 +126,8 @@ func begin_day(day: int, seed_value: int) -> void:
 	if id.is_empty(): return
 	# Prerequisites earned today are evaluated on a subsequent encounter only.
 	if not uses_persuasion() and progress.eligible(id) and not progress.owns(id):
-		progress.commit(id, _key("scene_available"), {}, ["special_scene_unlocked"])
-	progress.meet(id, _key("encounter"))
+		progress.commit(id, record_key("scene_available"), {}, ["special_scene_unlocked"])
+	progress.meet(id, record_key("encounter"))
 	rebind_observers()
 	changed.emit()
 
@@ -125,7 +142,7 @@ func mood() -> String:
 	if _negotiation_profile().is_empty() and negotiation().is_empty() and int(daily.get("successes", 0)) == 0: return "NORMAL"
 	return String(negotiation().get("final_disposition", "")) if not String(negotiation().get("final_disposition", "")).is_empty() else _negotiation_mood()
 
-func _key(suffix: String) -> String:
+func record_key(suffix: String) -> String:
 	return "%s:%s:%s:%s" % [run_id, daily.get("day", -1), active_id(), suffix]
 
 func enter_event(slot: int) -> void:
@@ -211,7 +228,7 @@ func _publish_demand(demand: Dictionary) -> void:
 	demand["id"] = "%d:%d" % [int(daily.day), int(negotiation().cursor)]
 	negotiation().current_demand = demand
 	negotiation().counteroffer = {}
-	progress.commit(active_id(), _key("seen:" + demand.id), {"requests_seen": 1})
+	progress.commit(active_id(), record_key("seen:" + demand.id), {"requests_seen": 1})
 
 func _resource_legal(demand: Dictionary) -> bool:
 	match String(demand.verb):
@@ -359,7 +376,7 @@ func _finish_demand(demand: Dictionary, success: bool, resolution: String, incre
 		"demand": demand.duplicate(true), "changes": changes, "counter_increments": increments.duplicate(),
 		"memory_tags": [active_id(), "success" if success else "failed", resolution]}
 	daily.last_result = result
-	progress.commit(active_id(), _key("demand:" + String(demand.id)), increments)
+	progress.commit(active_id(), record_key("demand:" + String(demand.id)), increments)
 	return result
 
 func counteroffer_for(demand: Dictionary, strategy: String) -> Dictionary:
@@ -455,7 +472,7 @@ func _observe_action(result: Dictionary) -> void:
 	if uses_persuasion():
 		if result.get("ok", false):
 			var ids: Array = result.get("committed_card_ids", [])
-			persuasion.observe_cards(ids, _key("deal:%d:%d:%s" % [campaign.current_phase, deal.action_history.size(), result.get("action", "")]), "card_use")
+			persuasion.observe_cards(ids, record_key("deal:%d:%d:%s" % [campaign.current_phase, deal.action_history.size(), result.get("action", "")]), "card_use")
 		return
 	if active_id().is_empty() or campaign == null: return
 	for promise: Dictionary in daily.get("promises", []):
@@ -560,7 +577,7 @@ func finish_boss() -> void:
 	var counters := {mood().to_lower() + "_victories": 1}
 	var state := negotiation()
 	if not uses_persuasion() and not state.is_empty() and int(state.resolved_demand_count) >= int(state.demand_count) and int(state.failed_responses) == 0: counters.perfect_request_days = 1
-	progress.commit(active_id(), _key("boss"), counters)
+	progress.commit(active_id(), record_key("boss"), counters)
 	if active_id() == "snake": endgame = {"status": "choice", "day": campaign.current_day_index, "difficulty": deal.zodiac_boss.difficulty}
 	changed.emit()
 
@@ -613,5 +630,12 @@ func finish_dragon() -> void:
 	endgame.status = "victory" if won else "failed"
 	endgame["analysis"] = deal.zodiac_boss.data.get("analysis", {}).duplicate(true)
 	if won:
-		progress.commit("dragon", _key("dragon_ending"), {"victories": 1}, ["ending_rong_ran_len_may"])
+		progress.commit("dragon", record_key("dragon_ending"), {"victories": 1}, ["ending_rong_ran_len_may"])
 	changed.emit()
+
+func begin_run_restore() -> void:
+	_restoring = true
+
+func finish_run_restore() -> void:
+	rebind_observers()
+	_restoring = false

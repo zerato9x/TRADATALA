@@ -1,0 +1,235 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/music_player_view.gd" id="1_player_view"]
+
+[ext_resource type="Texture2D" path="res://cards/red_backing.png" id="12_75tx2"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_6qrug"]
+bg_color = Color(0.14901961, 0.21960784, 0.3254902, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.43137255, 0.56078434, 0.70980394, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+shadow_color = Color(0.019607844, 0.011764706, 0.007843138, 0.7411765)
+shadow_size = 3
+shadow_offset = Vector2(0, 3)
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_h4r81"]
+bg_color = Color(0.122196086, 0.18007843, 0.26690197, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.43137255, 0.56078434, 0.70980394, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_moc86"]
+bg_color = Color(0.20392157, 0.32156864, 0.47843137, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.51666665, 0.62666667, 0.75333333, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+shadow_color = Color(0.019607844, 0.011764706, 0.007843138, 0.7411765)
+shadow_size = 4
+shadow_offset = Vector2(0, 3)
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_tnw2n"]
+bg_color = Color(0.14901961, 0.13725491, 0.12156863, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.31764707, 0.28235295, 0.23137255, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_6sdb8"]
+bg_color = Color(1, 1, 1, 0)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.9607843, 0.7490196, 0.25882354, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_28e1x"]
+bg_color = Color(0.09019608, 0.07058824, 0.05882353, 0.9490196)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.5529412, 0.35686275, 0.1882353, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+shadow_color = Color(0.019607844, 0.011764706, 0.007843138, 0.7411765)
+shadow_size = 6
+shadow_offset = Vector2(0, 3)
+anti_aliasing = false
+
+[node name="MusicPlayer" type="PanelContainer"]
+custom_minimum_size = Vector2(0, 250)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_28e1x")
+
+script = ExtResource("1_player_view")
+
+[node name="Margin" type="MarginContainer" parent="."]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="Content" type="HBoxContainer" parent="Margin"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="Cover" type="TextureRect" parent="Margin/Content"]
+custom_minimum_size = Vector2(200, 200)
+layout_mode = 2
+texture = ExtResource("12_75tx2")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Details" type="VBoxContainer" parent="Margin/Content"]
+custom_minimum_size = Vector2(256, 230)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 5
+
+[node name="NowPlaying" type="Label" parent="Margin/Content/Details"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9607843, 0.7490196, 0.25882354, 1)
+theme_override_font_sizes/font_size = 10
+text = "NOW PLAYING"
+
+[node name="TrackTitle" type="Label" parent="Margin/Content/Details"]
+custom_minimum_size = Vector2(0, 36)
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.94509804, 0.77254903, 1)
+theme_override_font_sizes/font_size = 15
+text = "CẢI LƯƠNG × VỌNG CỔ FUNK"
+vertical_alignment = 1
+autowrap_mode = 2
+
+[node name="Variant" type="Label" parent="Margin/Content/Details"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7254902, 0.6784314, 0.56078434, 1)
+theme_override_font_sizes/font_size = 11
+text = "MAIN  ·  SIDE 1"
+
+[node name="MusicSystemRow" type="HBoxContainer" parent="Margin/Content/Details"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Label" type="Label" parent="Margin/Content/Details/MusicSystemRow"]
+custom_minimum_size = Vector2(92, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7254902, 0.6784314, 0.56078434, 1)
+theme_override_font_sizes/font_size = 10
+text = "MUSIC SYSTEM"
+
+[node name="Selector" type="OptionButton" parent="Margin/Content/Details/MusicSystemRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_default_cursor_shape = 2
+theme_override_font_sizes/font_size = 10
+
+[node name="TrackList" type="OptionButton" parent="Margin/Content/Details"]
+custom_minimum_size = Vector2(0, 32)
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_default_cursor_shape = 2
+theme_override_font_sizes/font_size = 11
+theme_override_styles/normal = SubResource("StyleBoxFlat_6qrug")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_h4r81")
+theme_override_styles/hover = SubResource("StyleBoxFlat_moc86")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_tnw2n")
+theme_override_styles/focus = SubResource("StyleBoxFlat_6sdb8")
+
+[node name="Progress" type="ProgressBar" parent="Margin/Content/Details"]
+custom_minimum_size = Vector2(0, 9)
+layout_mode = 2
+max_value = 1.0
+step = 0.001
+show_percentage = false
+
+[node name="Time" type="Label" parent="Margin/Content/Details"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7254902, 0.6784314, 0.56078434, 1)
+theme_override_font_sizes/font_size = 10
+text = "0:00 / 0:00"
+horizontal_alignment = 2
+
+[node name="Footer" type="HBoxContainer" parent="Margin/Content/Details"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="PlayPause" type="Button" parent="Margin/Content/Details/Footer"]
+custom_minimum_size = Vector2(72, 32)
+layout_mode = 2
+mouse_default_cursor_shape = 2
+theme_override_font_sizes/font_size = 11
+theme_override_styles/normal = SubResource("StyleBoxFlat_6qrug")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_h4r81")
+theme_override_styles/hover = SubResource("StyleBoxFlat_moc86")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_tnw2n")
+theme_override_styles/focus = SubResource("StyleBoxFlat_6sdb8")
+text = "PAUSE"
+
+[node name="Shuffle" type="Button" parent="Margin/Content/Details/Footer"]
+custom_minimum_size = Vector2(82, 32)
+layout_mode = 2
+mouse_default_cursor_shape = 2
+theme_override_font_sizes/font_size = 10
+theme_override_styles/normal = SubResource("StyleBoxFlat_6qrug")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_h4r81")
+theme_override_styles/hover = SubResource("StyleBoxFlat_moc86")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_tnw2n")
+theme_override_styles/focus = SubResource("StyleBoxFlat_6sdb8")
+text = "SHUFFLE: OFF"
+
+[node name="Repeat" type="Button" parent="Margin/Content/Details/Footer"]
+custom_minimum_size = Vector2(86, 32)
+layout_mode = 2
+mouse_default_cursor_shape = 2
+theme_override_font_sizes/font_size = 10
+theme_override_styles/normal = SubResource("StyleBoxFlat_6qrug")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_h4r81")
+theme_override_styles/hover = SubResource("StyleBoxFlat_moc86")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_tnw2n")
+theme_override_styles/focus = SubResource("StyleBoxFlat_6sdb8")
+text = "REPEAT: OFF"
+
+[node name="UpNext" type="Label" parent="Margin/Content/Details"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.7254902, 0.6784314, 0.56078434, 1)
+theme_override_font_sizes/font_size = 10
+text = "UP NEXT: MAIN · SIDE 2"
+vertical_alignment = 1
+text_overrun_behavior = 3

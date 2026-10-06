@@ -59,39 +59,37 @@ func sync(state: Dictionary) -> void:
 	visible = active
 	if not active: return
 	caption.text = String(state.skill)
-	caption.add_theme_color_override("font_color", View.accent(id))
+	PresentationTheme.style_text(caption, &"mechanic", 14)
 	var copy := ""
 	var progress := 0.0
 	match id:
 		"pig":
-			copy = ZodiacCatalog.words("HELD %s · Gross %s / %s", "GIỮ %s · Tổng thu %s / %s") % [VndWallet.format_vnd(int(state.pool_vnd)), VndWallet.format_vnd(int(state.progress_vnd)), VndWallet.format_vnd(int(state.target_vnd))]
-			copy += "\n" + (ZodiacCatalog.words("Target met · pool returned", "Đạt mục tiêu · đã hoàn quỹ") if state.target_met else ZodiacCatalog.words("%d%% held until the target", "Giữ %d%% tới mục tiêu") % int(ZodiacCatalog.tuning(id, "siphon_percent", state.difficulty)))
+			copy = ZodiacCatalog.words("Returned ✓", "Đã hoàn ✓") if state.target_met else "%s / %s" % [VndWallet.format_vnd(int(state.progress_vnd)), VndWallet.format_vnd(int(state.target_vnd))]
 			progress = float(state.progress_vnd) / maxf(int(state.target_vnd), 1)
 		"ox":
-			copy = ZodiacCatalog.words("Next burden is shown on each loose card.\nPlay or discard a card to remove its burden.", "Gánh nặng lần tới hiện trên từng lá rác.\nHạ, nối hoặc bỏ lá để hết gánh nặng.")
+			copy = ZodiacCatalog.words("Next loss: on each card", "Phạt tới: trên từng lá")
 		"horse":
 			var action := String(state.required_action)
 			copy = ZodiacCatalog.words("Meld twice or Extend twice", "Tạo hai Phỏm hoặc Nối hai lần") if action.is_empty() else "%s · %d/2" % [ZodiacCatalog.action_label(action), int(state.pair_count)]
-			copy += "\n" + (ZodiacCatalog.words("Pair complete · choose your discard", "Đủ cặp · tự chọn lá bỏ") if int(state.pair_count) >= 2 else ZodiacCatalog.words("Grace available: %d", "Còn %d lần ân hạn") % int(state.pair_grace) if int(state.pair_grace) > 0 else ZodiacCatalog.words("Incomplete pair → random mandatory discard", "Chưa đủ cặp → bỏ bắt buộc ngẫu nhiên"))
+			copy += "\n" + (ZodiacCatalog.words("Complete ✓", "Đủ cặp ✓") if int(state.pair_count) >= 2 else ZodiacCatalog.words("Grace %d", "Ân hạn %d") % int(state.pair_grace) if int(state.pair_grace) > 0 else ZodiacCatalog.words("Discard → random", "Bỏ → ngẫu nhiên"))
 			if int(state.difficulty) == ZodiacCatalog.UNPLEASED: copy += ZodiacCatalog.words(" · 2 turns / Phase", " · 2 lượt / Hiệp")
 			progress = int(state.pair_count) / 2.0
 		"goat":
 			copy = ZodiacCatalog.words("NEXT RANK: ", "HẠNG TIẾP: ") + (DeckManager.RANKS[int(state.expected_rank) - 1] if int(state.expected_rank) > 0 else ZodiacCatalog.words("choose the first note", "chọn nhịp đầu"))
-			copy += "\n" + (ZodiacCatalog.words("Start with an ODD Rank", "Mở bằng hạng LẺ") if int(state.turn_number) % 2 else ZodiacCatalog.words("Start with an EVEN Rank", "Mở bằng hạng CHẴN")) if int(state.difficulty) == ZodiacCatalog.UNPLEASED else "\n" + ZodiacCatalog.words("Ascending committed ranks · K → A", "Hạng vừa đánh tăng liên tiếp · K → A")
+			copy += " · " + (ZodiacCatalog.words("ODD", "LẺ") if int(state.turn_number) % 2 else ZodiacCatalog.words("EVEN", "CHẴN")) if int(state.difficulty) == ZodiacCatalog.UNPLEASED else ""
 			if int(state.rhythm_grace) > 0: copy += ZodiacCatalog.words(" · %d grace", " · %d lần tha") % int(state.rhythm_grace)
 		"rat":
-			copy = ZodiacCatalog.words("Mouse owns %d Meld(s) · Last loss %s", "Tý giữ %d Phỏm · Vừa mất %s") % [host.deal.boss_melds.size(), VndWallet.format_vnd(absi(int(state.get("hostile_result", {}).get("amount_vnd", 0))))]
-			copy += "\n" + ZodiacCatalog.words("Discarded cards can pay Mouse. See its Melds in ?.", "Bài bỏ có thể trả thưởng cho Tý. Xem Phỏm của Tý ở ?.")
+			copy = ZodiacCatalog.words("Mouse · %d Meld(s) · %s", "Tý · %d Phỏm · %s") % [host.deal.boss_melds.size(), VndWallet.format_vnd(-absi(int(state.get("hostile_result", {}).get("amount_vnd", 0))))]
 		"tiger":
-			copy = ZodiacCatalog.words("SNATCHED %d · your turn continues", "ĐÃ VỒ %d LÁ · lượt vẫn tiếp tục") % state.get("removed_ids", []).size()
-			if int(state.difficulty) == ZodiacCatalog.UNPLEASED: copy += "\n" + ZodiacCatalog.words("Exhaustion recycles cards; no bonus.", "Cạn bài vẫn xáo lại; không có thưởng.")
+			copy = ZodiacCatalog.words("Snatched %d", "Đã vồ %d lá") % state.get("removed_ids", []).size()
+			if int(state.difficulty) == ZodiacCatalog.UNPLEASED: copy += " · " + ZodiacCatalog.words("Exhaustion: no bonus", "Cạn bài: không thưởng")
 		"snake":
 			copy = ""
 			_sync_commands(state.get("commands", []))
 		"dragon":
 			copy = ZodiacCatalog.tactic_label(state.tactic) + " · " + ZodiacCatalog.words("Earned %s / %s", "Đã thu %s / %s") % [VndWallet.format_vnd(int(state.progress_vnd)), VndWallet.format_vnd(int(state.target_vnd))]
 			var modifier: String = state.get("modifier_id", "")
-			copy += "\n[color=#%s]%s · %s[/color]" % [View.accent(modifier).to_html(false), ZodiacCatalog.display_name(modifier), ZodiacCatalog.modifier_text(state, host.deal)]
+			copy += "\n" + ZodiacCatalog.display_name(modifier)
 			progress = float(state.progress_vnd) / maxf(int(state.target_vnd), 1)
 	if body.text != copy: body.text = copy
 	body.visible = id != "snake"
@@ -106,7 +104,7 @@ func sync(state: Dictionary) -> void:
 			ink.shader = METERS[id]
 			meter.material = ink
 		(meter.material as ShaderMaterial).set_shader_parameter("progress", clampf(progress, 0, 1))
-	tooltip_text = String(state.rule)
+	tooltip_text = ZodiacCatalog.words("Handbook", "Sổ tay")
 
 func fit_width(width: float) -> void:
 	body.size.x = width
@@ -166,14 +164,13 @@ func _sync_commands(list: Array) -> void:
 		commands.add_child(empty)
 
 func _select_command(command: Dictionary) -> void:
-	if not visible or host.interaction_locked or command.status != "pending": return
+	if not visible or host.interactions.locked or command.status != "pending": return
 	# Selection is a convenience, never a second action/obedience path.
-	host.selected_card_ids.clear()
 	var ids: Array = command.get("suggested_ids", [command.get("card_id", "")])
+	var cards: Array[CardData] = []
 	for card: CardData in host.deal.hand:
-		if card.unique_id in ids: host.selected_card_ids[card.unique_id] = true
-	host.selected_meld_id = int(command.get("meld_id", -1))
-	host._sync_all()
+		if card.unique_id in ids: cards.append(card)
+	if not host.set_card_selection(cards, int(command.get("meld_id", -1))): return
 	(host.extend_button if command.action == "extension" else host.ha_button if command.action == "new_meld" else host.drink_table_button if command.action == "drink" else host.discard_button).grab_focus()
 
 func _sync_faces(ids: Array) -> void:

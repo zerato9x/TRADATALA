@@ -7,6 +7,8 @@ const CardSymbolArtScript := preload("res://scripts/ui/card_symbol_art.gd")
 var cash_anchor: Control
 var cash_button: Button
 var relic_buttons: Array[Button] = []
+var relic_tray: ScrollContainer
+var relic_plane: Control
 var journey_button: Button
 var journey_detail: PanelContainer
 var detail_copy: Label
@@ -120,6 +122,10 @@ func _build_journey() -> void:
 	add_child(journey_detail)
 	journey_detail.hide()
 
+func collapse() -> void:
+	_set_expanded(false)
+	_refresh_journey()
+
 func _set_expanded(value: bool) -> void:
 	expanded = value
 	journey_detail.visible = value
@@ -132,13 +138,12 @@ func _input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.pressed:
 		var point: Vector2 = get_global_transform_with_canvas().affine_inverse() * event.position
 		if not journey_detail.get_rect().has_point(point) and not journey_button.get_rect().has_point(point):
-			_set_expanded(false)
-			_refresh_journey()
+			collapse()
 
 func _build_objects() -> void:
 	cash_anchor = Control.new()
 	cash_anchor.name = "EventCashPiles"
-	cash_anchor.position = Vector2(425, 385)
+	cash_anchor.position = Vector2(425, 365)
 	cash_anchor.size = Vector2(270, 194)
 	cash_anchor.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(cash_anchor)
@@ -160,42 +165,54 @@ func _build_objects() -> void:
 		inspect_card.hide())
 	add_child(cash_button)
 	cash_button.show()
-	for index in RelicRuntime.MAX_EQUIPPED:
-		var button := Button.new()
-		button.name = "TableRelic%d" % index
-		button.position = [Vector2(733, 330), Vector2(842, 394), Vector2(711, 498), Vector2(858, 540)][index]
-		button.size = Vector2(130, 104)
-		button.rotation = deg_to_rad([-13.0, 9.0, -8.0, 16.0][index])
-		button.pivot_offset = button.size * 0.5
-		button.flat = true
-		button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-		var icon := TextureRect.new()
-		icon.name = "RelicIcon"
-		icon.position = Vector2.ZERO
-		icon.size = button.size
-		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		var shadow := TextureRect.new()
-		shadow.name = "ContactShadow"
-		shadow.position = Vector2(3, 6)
-		shadow.size = button.size
-		shadow.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		shadow.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		shadow.modulate = Color(0, 0, 0, 0.4)
-		shadow.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		button.add_child(shadow)
-		button.add_child(icon)
-		for state in ["normal", "hover", "pressed", "focus"]:
-			button.add_theme_stylebox_override(state, StyleBoxEmpty.new())
-		button.mouse_entered.connect(_inspect_relic.bind(index))
-		button.focus_entered.connect(_inspect_relic.bind(index))
-		button.pressed.connect(_inspect_relic.bind(index))
-		button.mouse_exited.connect(_leave_relic.bind(index))
-		button.focus_exited.connect(_leave_relic.bind(index))
-		button.visible = not DemoBuild.enabled()
-		add_child(button)
-		relic_buttons.append(button)
+	relic_tray = ScrollContainer.new()
+	relic_tray.name = "TableRelicTray"
+	relic_tray.position = Vector2(704, 326)
+	relic_tray.size = Vector2(288, 246)
+	relic_tray.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	add_child(relic_tray)
+	relic_plane = Control.new()
+	relic_plane.name = "PhysicalRelics"
+	relic_plane.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	relic_plane.custom_minimum_size = Vector2(272, 0)
+	relic_tray.add_child(relic_plane)
+
+func _build_table_relic(index: int) -> void:
+	var button := Button.new()
+	button.name = "TableRelic%d" % index
+	button.position = Vector2(5 + (index % 2) * 140, 5 + floori(index / 2.0) * 106)
+	button.size = Vector2(128, 100)
+	button.rotation = deg_to_rad([-9.0, 6.0, -4.0][index % 3])
+	button.pivot_offset = button.size * 0.5
+	button.flat = true
+	button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	var icon := TextureRect.new()
+	icon.name = "RelicIcon"
+	icon.position = Vector2.ZERO
+	icon.size = button.size
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var shadow := TextureRect.new()
+	shadow.name = "ContactShadow"
+	shadow.position = Vector2(3, 6)
+	shadow.size = button.size
+	shadow.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	shadow.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	shadow.modulate = Color(0, 0, 0, 0.4)
+	shadow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	button.add_child(shadow)
+	button.add_child(icon)
+	for state in ["normal", "hover", "pressed", "focus"]:
+		button.add_theme_stylebox_override(state, StyleBoxEmpty.new())
+	button.mouse_entered.connect(_inspect_relic.bind(index))
+	button.focus_entered.connect(_inspect_relic.bind(index))
+	button.pressed.connect(_inspect_relic.bind(index))
+	button.mouse_exited.connect(_leave_relic.bind(index))
+	button.focus_exited.connect(_leave_relic.bind(index))
+	button.visible = not DemoBuild.enabled()
+	relic_plane.add_child(button)
+	relic_buttons.append(button)
 
 func sync(presentation: MoneyPresentation, amount: int, relics: Array[String], current_day: int, slot: int, requirement: int, campaign_days: Array[Dictionary]) -> void:
 	money = presentation
@@ -213,6 +230,16 @@ func sync(presentation: MoneyPresentation, amount: int, relics: Array[String], c
 		inspect_card.hide()
 		for button in relic_buttons:
 			button.scale = Vector2.ONE
+	if equipped != relics:
+		for tween in object_tweens.values():
+			if tween != null and tween.is_valid(): tween.kill()
+		object_tweens.clear()
+		for button in relic_buttons:
+			relic_plane.remove_child(button)
+			button.queue_free()
+		relic_buttons.clear()
+		for index in relics.size(): _build_table_relic(index)
+		relic_plane.custom_minimum_size.y = ceil(relics.size() / 2.0) * 106 + 8
 	equipped = relics.duplicate()
 	for index in relic_buttons.size():
 		var button := relic_buttons[index]
@@ -222,7 +249,7 @@ func sync(presentation: MoneyPresentation, amount: int, relics: Array[String], c
 		(button.get_node("ContactShadow") as TextureRect).texture = icon.texture
 		button.visible = occupied and not DemoBuild.enabled()
 		button.text = ""
-		button.tooltip_text = "" if occupied else words("Empty equipment slot. Visit Hàng Rong to equip an item.", "Ô vật phẩm trống. Ghé Hàng Rong để trang bị.")
+		button.tooltip_text = RelicCatalog.display_name(equipped[index]) + "\n" + RelicCatalog.effect(equipped[index]) if occupied else ""
 	var signature := "%s:%s:%s:%s:%s:%s" % [day_index, event_slot, target, balance, days.size(), TranslationServer.get_locale()]
 	if signature != journey_signature:
 		journey_signature = signature
@@ -238,13 +265,13 @@ func _rebuild_cash() -> void:
 	var breakdown := MoneyPresentation.denomination_breakdown(balance)
 	for index in breakdown.size():
 		var entry: Dictionary = breakdown[index]
-		var bill := money._new_bill_stack(int(entry.denomination), int(entry.count), Vector2(155, 68))
+		var bill := money.create_bill_stack(int(entry.denomination), int(entry.count), Vector2(155, 68))
 		bill.position = Vector2((index % 2) * 89 + (index / 2) * 4, (index / 2) * 29)
 		bill.rotation = deg_to_rad(-12 + (index * 7) % 23)
 		# A close silhouette anchors the notes to the plastic surface.
 		var shadow := TextureRect.new()
 		shadow.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		shadow.texture = money._texture_for(int(entry.denomination))
+		shadow.texture = money.denomination_texture(int(entry.denomination))
 		shadow.position = Vector2(3, 5)
 		shadow.size = bill.size
 		shadow.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
@@ -323,12 +350,10 @@ func _show_effect(copy: String) -> void:
 	inspect_card.show()
 
 func _inspect_relic(index: int) -> void:
-	if index >= equipped.size():
-		_show_effect(words("EMPTY SLOT\nVisit Hàng Rong to equip an item.", "Ô TRỐNG\nGhé Hàng Rong để trang bị vật phẩm."))
-		return
+	if index >= equipped.size(): return
 	var id := equipped[index]
 	_lift_relic(index, true)
-	_show_effect(String(RelicCatalog.DEFINITIONS[id].name) + "\n" + RelicCatalog.effect(id))
+	_show_effect(RelicCatalog.display_name(id) + "\n" + RelicCatalog.effect(id))
 
 func _leave_relic(index: int) -> void:
 	_lift_relic(index, false)

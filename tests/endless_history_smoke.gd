@@ -32,7 +32,7 @@ func _run() -> void:
 	var legacy_bytes := var_to_bytes({"root": legacy_root, "objects": save._records})
 	var legacy_usec := Time.get_ticks_usec() - start
 	var file := FileAccess.open(save.path, FileAccess.WRITE)
-	file.store_var({"version": 1, "payload": legacy_bytes, "sha256": RunSave._digest(legacy_bytes)}, false)
+	file.store_var({"version": 1, "payload": legacy_bytes, "sha256": RunSave.payload_digest(legacy_bytes)}, false)
 	file.close()
 	var old := save.load_run()
 	check(not old.is_empty(), "v1 saves still load")

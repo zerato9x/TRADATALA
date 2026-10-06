@@ -166,3 +166,13 @@ func _select_demo_drink(slot: int, drink_id: String) -> Dictionary:
 	var period := ["morning", "noon", "afternoon", "evening"][slot] as String
 	drink_selected.emit(drink_id, period, price)
 	return {"ok": true, "drink_id": drink_id, "period": period, "price_vnd": price}
+
+# Stable fields of the existing V3 run envelope. Change this schema explicitly.
+const RUN_SAVE_FIELDS_V3 := ["day_index", "day_target_vnd", "empty_glasses", "current_event_slot", "event_ordered", "morning_drink_id", "afternoon_drink_id", "active_drink_id"]
+const RUN_SNAPSHOT_FIELDS := preload("res://scripts/campaign/run_snapshot_fields.gd")
+
+func run_snapshot() -> Dictionary:
+	return RUN_SNAPSHOT_FIELDS.fields(self, RUN_SAVE_FIELDS_V3)
+
+func restore_run_snapshot(data: Dictionary) -> void:
+	RUN_SNAPSHOT_FIELDS.apply_fields(self, data, RUN_SAVE_FIELDS_V3)

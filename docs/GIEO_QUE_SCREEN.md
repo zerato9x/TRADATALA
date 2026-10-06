@@ -1,5 +1,9 @@
 # Gieo Quẻ screen audit — 2026-09-10
 
+Historical audit. The cabinet and lever are retained by the
+[current Fortune overhaul](GIEO_FORTUNE_OVERHAUL_2026-10-05.md); rank/suit destination
+selection has been replaced by signed Fortune and exact Jackpot card selection.
+
 The post-pull failure was reproduced in Godot 4.7.1: `_activate_oracle_group()`
 assigned the untyped result of an array-valued conditional to `Array[Label]`.
 The runtime error interrupted the reveal and left the panel busy. Both label

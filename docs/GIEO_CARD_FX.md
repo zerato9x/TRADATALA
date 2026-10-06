@@ -1,5 +1,8 @@
 # Gieo Quẻ: permanent card marks
 
+Historical audit. The current signed Fortune, Vietnamese tattoo growth and Jackpot
+materials are documented in [the 2026-10-05 overhaul](GIEO_FORTUNE_OVERHAUL_2026-10-05.md).
+
 Visual redesign, 2026-09-10. Four persistent property signatures share one printing
 system. The pale embossed/silk study is replaced; the score-trigger VFX system
 remains removed. No shader or artwork from another game is used.

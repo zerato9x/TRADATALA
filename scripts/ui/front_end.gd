@@ -31,6 +31,7 @@ var setup_body: VBoxContainer
 var collection_body: VBoxContainer
 var footer: HBoxContainer
 var title_label: Label
+var music_player: MusicPlayerView
 var music_page: VBoxContainer
 var settings_page: VBoxContainer
 var files_body: VBoxContainer
@@ -83,21 +84,12 @@ func configure(owner: MatchUI) -> void:
 			"settings": settings_page = body
 			"files": files_body = body
 			"boss_lab": boss_lab_body = body
-	# Keep the existing, wired jukebox and settings controls in the new navigation.
-	host.music_player_panel.reparent(music_page)
-	host.music_player_panel.custom_minimum_size = Vector2.ZERO
-	for label: Label in host.music_player_panel.find_children("*", "Label", true, false):
-		label.add_theme_font_size_override("font_size", 14)
-		label.add_theme_color_override("font_color", CREAM)
-	host.music_track_title.add_theme_font_size_override("font_size", 24)
-	host.music_track_title.add_theme_color_override("font_color", GOLD)
-	for button: Button in host.music_player_panel.find_children("*", "Button", true, false):
-		PresentationTheme.configure_button(button)
-		button.custom_minimum_size.y = 42
+	music_player = preload("res://scenes/ui/music_player.tscn").instantiate() as MusicPlayerView
+	music_page.add_child(music_player)
+	music_player.configure(host.music)
+	host.music.changed.connect(_update_now_playing)
 	_render_settings()
-	host.menu_layer.get_node("MenuCenter").hide()
-	host.return_to_game_button.hide()
-	host.music_controller.band_pulse.connect(_on_beat)
+	host.music.controller.band_pulse.connect(_on_beat)
 	host.settings.locale_changed.connect(func(_locale: String): _render_settings.call_deferred(); refresh.call_deferred())
 	get_viewport().size_changed.connect(_on_size_changed)
 	_on_size_changed()
@@ -138,8 +130,10 @@ func _process(delta: float) -> void:
 		pulse_values[index] = move_toward(pulse_values[index], 0.0, delta * 3.5)
 		logo_words[index].pivot_offset = logo_words[index].size * 0.5
 		logo_words[index].scale = Vector2.ONE * (1.0 + pulse_values[index] * 0.08)
-	if is_instance_valid(_now_playing) and host != null and host.music_track_title != null:
-		_now_playing.text = words("♫  ", "♫  ") + host.music_track_title.text
+
+func _update_now_playing() -> void:
+	if is_instance_valid(_now_playing):
+		_now_playing.text = "♫  " + ReactiveMusicController.display_title_for_theme(host.music.controller.current_theme_id)
 
 func refresh() -> void:
 	match page:
@@ -155,8 +149,8 @@ func show_home() -> void:
 	confirming = false
 	customizing = false
 	busy = false
-	saved = host.run_save.load_run()
-	save_message = words("Recovered the backup save.", "Đã khôi phục bản lưu dự phòng.") if host.run_save.recovered_backup else host.run_save.error
+	saved = host.session.run_save.load_run()
+	save_message = words("Recovered the backup save.", "Đã khôi phục bản lưu dự phòng.") if host.session.run_save.recovered_backup else host.session.run_save.error
 	if not transient_error.is_empty():
 		save_message = transient_error
 		transient_error = ""
@@ -169,18 +163,19 @@ func show_home() -> void:
 	elif not saved.is_empty():
 		var resume := _button(words("CONTINUE", "TIẾP TỤC"), func(): resume_requested.emit(), "tea")
 		resume.tooltip_text = _save_summary()
-		resume.disabled = not host.save_files.usable()
+		resume.disabled = not host.session.save_files.usable()
 		home_body.add_child(resume)
-	var new_run := _button(words("EXIT DEBUG", "THOÁT THỬ NGHIỆM") if host.boss_debug_active else words("NEW RUN", "VÁN MỚI"), host._leave_boss_debug if host.boss_debug_active else show_setup, "gold")
+	var new_run := _button(words("EXIT DEBUG", "THOÁT THỬ NGHIỆM") if host.session.debug_active else words("NEW RUN", "VÁN MỚI"), host.leave_boss_debug if host.session.debug_active else show_setup, "gold")
+	new_run.name = "NewRun"
 	new_run.custom_minimum_size.y = 56
-	new_run.disabled = not host.boss_debug_active and not host.save_files.usable()
+	new_run.disabled = not host.session.debug_active and not host.session.save_files.usable()
 	home_body.add_child(new_run)
-	if host.save_files != null:
-		var file_name: String = host.save_files.data.get("name", "")
-		var file_label := _label(words("SAVE FILE %d", "Ô LƯU %d") % host.save_files.active_slot + (" · " + file_name if not file_name.is_empty() else ""), 15, GOLD)
+	if host.session.save_files != null:
+		var file_name: String = host.session.save_files.data.get("name", "")
+		var file_label := _label(words("SAVE FILE %d", "Ô LƯU %d") % host.session.save_files.active_slot + (" · " + file_name if not file_name.is_empty() else ""), 15, GOLD)
 		file_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		home_body.add_child(file_label)
-		if not host.save_files.error.is_empty(): save_message = host.save_files.error
+		if not host.session.save_files.error.is_empty(): save_message = host.session.save_files.error
 	if not save_message.is_empty(): home_body.add_child(_label(save_message, 15, GOLD))
 	var nav := GridContainer.new()
 	nav.name = "HomeNavigation"
@@ -189,9 +184,15 @@ func show_home() -> void:
 	nav.add_theme_constant_override("v_separation", 12)
 	home_body.add_child(nav)
 	nav.add_child(_button(words("COLLECTIONS", "BỘ SƯU TẬP"), show_collections))
-	nav.add_child(_button(words("HANDBOOK", "SỔ TAY"), func(): handbook_requested.emit()))
-	nav.add_child(_button(words("MUSIC", "ÂM NHẠC"), func(): _show_page("music")))
-	nav.add_child(_button(words("SETTINGS", "TÙY CHỌN"), func(): _show_page("settings")))
+	var handbook := _button(words("HANDBOOK", "SỔ TAY"), func(): handbook_requested.emit())
+	handbook.name = "Handbook"
+	nav.add_child(handbook)
+	var music_button := _button(words("MUSIC", "ÂM NHẠC"), show_music)
+	music_button.name = "Music"
+	nav.add_child(music_button)
+	var settings_button := _button(words("SETTINGS", "TÙY CHỌN"), show_settings)
+	settings_button.name = "Settings"
+	nav.add_child(settings_button)
 	var files := _button(words("SAVE FILES", "CÁC Ô LƯU"), show_save_files)
 	files.name = "SaveFiles"
 	nav.add_child(files)
@@ -205,6 +206,7 @@ func show_home() -> void:
 	_now_playing.add_theme_color_override("font_outline_color", Color("#081525"))
 	_now_playing.add_theme_constant_override("outline_size", 3)
 	home_body.add_child(_now_playing)
+	_update_now_playing()
 	_show_page("home")
 
 func _save_summary() -> String:
@@ -256,7 +258,7 @@ func _render_setup() -> void:
 	next.disabled = draft.difficulty >= host.campaign.difficulty_progress.unlocked
 	stepper.add_child(next)
 	challenge.add_child(_label(words("Starting wallet: ", "Ví ban đầu: ") + VndWallet.format_vnd(CampaignConfig.STARTING_WALLET_VND), 17, GOLD))
-	challenge.add_child(_label(words("Earn enough to pay each day's debt. Clear Sunday to unlock the next difficulty.", "Kiếm đủ tiền trả nợ mỗi ngày. Trả xong Chủ nhật để mở độ khó tiếp theo."), 16))
+	challenge.add_child(_button(words("HANDBOOK", "SỔ TAY"), func(): GameGlossary.open(host, "campaign")))
 	var unlocked: int = host.campaign.difficulty_progress.unlocked
 	if unlocked < 28:
 		var next_days := CampaignConfig.day_definitions(unlocked + 1)
@@ -403,8 +405,9 @@ func _render_drink_detail(detail: VBoxContainer) -> void:
 	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	detail.add_child(sprite)
 	detail.add_child(_label(host.drink_manager.progress.goal_text(id), 17))
-	detail.add_child(_label(DrinkCatalog.effect_text(id), 17))
+	detail.add_child(_label(QuickInfo.drink(id), 20))
 	detail.add_child(_label(words("Price: %d%% of today's debt", "Giá: %d%% nợ hôm nay") % int(DrinkManager.PRICE_PERCENT[id]), 16, MUTED))
+	detail.add_child(_button(words("HANDBOOK", "SỔ TAY"), func(): GameGlossary.open_entry(host, DrinkCatalog.display_name(id), DrinkCatalog.effect_text(id) + "\n\n" + host.drink_manager.progress.goal_text(id), "drinks")))
 
 func _render_zodiac_detail(detail: VBoxContainer) -> void:
 	var id := selected_collection
@@ -426,6 +429,12 @@ func _render_zodiac_detail(detail: VBoxContainer) -> void:
 	var state := words("EMBLEM OWNED", "ĐÃ CÓ HUY HIỆU") if progress.owns(id) else words("SPECIAL SCENE READY", "ĐÃ MỞ CẢNH ĐẶC BIỆT") if progress.eligible(id) else words("REQUIREMENTS IN PROGRESS", "ĐANG HOÀN THÀNH ĐIỀU KIỆN")
 	detail.add_child(_label(state, 17, GOLD))
 
+func show_music() -> void:
+	_show_page("music")
+
+func show_settings() -> void:
+	_show_page("settings")
+
 func _render_settings() -> void:
 	_clear(settings_page)
 	var panel := _card(settings_page)
@@ -437,6 +446,7 @@ func _render_settings() -> void:
 		caption.custom_minimum_size.x = 170
 		row.add_child(caption)
 		var slider := HSlider.new()
+		slider.name = "MusicVolume" if bool(setting[2]) else "SoundVolume"
 		slider.min_value = 0
 		slider.max_value = 100
 		slider.step = 1
@@ -451,16 +461,16 @@ func _render_settings() -> void:
 		amount.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		row.add_child(amount)
 		if bool(setting[2]):
-			slider.value_changed.connect(func(value: float): amount.text = "%d%%" % roundi(value); host._on_music_volume_changed(value))
+			slider.value_changed.connect(func(value: float): amount.text = "%d%%" % roundi(value); host.settings.set_music_volume(value))
 		else:
-			slider.value_changed.connect(func(value: float): amount.text = "%d%%" % roundi(value); host._on_sound_volume_changed(value))
+			slider.value_changed.connect(func(value: float): amount.text = "%d%%" % roundi(value); host.settings.set_sound_volume(value))
 	panel.add_child(_label(words("LANGUAGE", "NGÔN NGỮ"), 17))
 	var languages := OptionButton.new()
 	languages.name = "Language"
 	languages.add_item(words("VIETNAMESE", "TIẾNG VIỆT"))
 	languages.add_item(words("ENGLISH", "TIẾNG ANH"))
 	languages.select(host.settings.locale_index())
-	languages.item_selected.connect(func(index: int): host._on_language_selected(index))
+	languages.item_selected.connect(func(index: int): host.settings.set_locale(host.settings.SUPPORTED_LOCALES[index]))
 	panel.add_child(languages)
 	for spec in [["ShowStrawy", words("SHOW STRAWY", "HIỆN STRAWY"), host.settings.strawy_enabled], ["Tutorial", words("TUTORIAL", "HƯỚNG DẪN"), host.settings.tutorial_enabled], ["FirstSeed", words("FIRST SEED", "BÀI KHỞI ĐẦU"), host.settings.first_seed_enabled]]:
 		var toggle := CheckButton.new()
@@ -481,7 +491,6 @@ func _show_page(id: String) -> void:
 	var changed := active_page != id
 	page = id
 	active_page = id
-	host.menu_page = StringName(id)
 	for key in pages: (pages[key] as Control).visible = key == id
 	title_label.text = {"home": "", "setup": words("NEW RUN", "VÁN MỚI"), "collections": words("COLLECTIONS", "BỘ SƯU TẬP"), "music": words("MUSIC", "ÂM NHẠC"), "settings": words("SETTINGS", "TÙY CHỌN"), "files": words("SAVE FILES", "CÁC Ô LƯU"), "boss_lab": words("BOSS LAB · DEBUG", "THỬ CON GIÁP")}.get(id, "")
 	_apply_page_layout()
@@ -498,8 +507,8 @@ func _show_page(id: String) -> void:
 			footer.add_child(_button(words("CANCEL", "HỦY"), func(): confirming = false; _render_setup()))
 		footer.add_child(_button(words("REPLACE RUN", "THAY VÁN") if confirming else words("START RUN", "BẮT ĐẦU"), _start_pressed, "gold"))
 	if id == "boss_lab":
-		if host.boss_debug_active:
-			footer.add_child(_button(words("EXIT SANDBOX", "THOÁT THỬ NGHIỆM"), host._leave_boss_debug))
+		if host.session.debug_active:
+			footer.add_child(_button(words("EXIT SANDBOX", "THOÁT THỬ NGHIỆM"), host.leave_boss_debug))
 		var resume := _button(words("RESUME TEST", "TIẾP TỤC THỬ"), _resume_debug)
 		resume.name = "ResumeBossTest"
 		resume.disabled = not FileAccess.file_exists(BossDebugSession.SAVE_PATH) and not FileAccess.file_exists(BossDebugSession.SAVE_PATH + ".bak")
@@ -591,14 +600,14 @@ func _clear(parent: Node) -> void:
 func show_save_files() -> void:
 	_clear(files_body)
 	files_body.add_child(_label(words("Each file keeps its own drink unlocks, difficulty levels, Zodiac emblems, and endings across New Run.", "Mỗi ô giữ riêng các món nước, độ khó, huy hiệu Con Giáp và kết thúc đã mở qua các ván mới."), 17))
-	if not host.save_files.error.is_empty(): files_body.add_child(_label(host.save_files.error, 16, GOLD))
-	if host.boss_debug_active: files_body.add_child(_label(words("Exit the debug sandbox to change save files.", "Thoát thử nghiệm để đổi ô lưu."), 16, GOLD))
+	if not host.session.save_files.error.is_empty(): files_body.add_child(_label(host.session.save_files.error, 16, GOLD))
+	if host.session.debug_active: files_body.add_child(_label(words("Exit the debug sandbox to change save files.", "Thoát thử nghiệm để đổi ô lưu."), 16, GOLD))
 	var cards := GridContainer.new()
 	cards.columns = 1 if size.x < 900 else 3
 	cards.add_theme_constant_override("h_separation", 14)
 	cards.add_theme_constant_override("v_separation", 14)
 	files_body.add_child(cards)
-	for info: Dictionary in host.save_files.summaries():
+	for info: Dictionary in host.session.save_files.summaries():
 		var body := _card(cards)
 		body.get_parent().get_parent().size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		var name: String = info.name
@@ -619,7 +628,7 @@ func show_save_files() -> void:
 		if info.damaged: body.add_child(_label(words("Damaged file · preserved", "Ô bị lỗi · được giữ nguyên"), 15, GOLD))
 		var button := _button(words("ACTIVE FILE", "Ô ĐANG DÙNG") if info.active else words("LOAD FILE", "DÙNG Ô NÀY") if info.exists else words("CREATE FILE", "TẠO Ô LƯU"), _choose_file.bind(int(info.slot)), "tea" if info.active else "neutral")
 		button.name = "SaveFile_%d" % int(info.slot)
-		button.disabled = info.active or info.damaged or host.boss_debug_active
+		button.disabled = info.active or info.damaged or host.session.debug_active
 		body.add_child(button)
 	var rename := _card(files_body)
 	rename.add_child(_label(words("NAME THE ACTIVE FILE", "ĐẶT TÊN Ô ĐANG DÙNG"), 17, GOLD))
@@ -628,20 +637,20 @@ func show_save_files() -> void:
 	var entry := LineEdit.new()
 	entry.name = "SaveFileName"
 	entry.max_length = 40
-	entry.text = host.save_files.data.get("name", "")
+	entry.text = host.session.save_files.data.get("name", "")
 	entry.placeholder_text = words("Player name", "Tên người chơi")
 	entry.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	entry.custom_minimum_size.y = 44
 	row.add_child(entry)
-	var save_name := _button(words("SAVE NAME", "LƯU TÊN"), func(): host.save_files.rename_file(entry.text); show_save_files())
+	var save_name := _button(words("SAVE NAME", "LƯU TÊN"), func(): host.session.save_files.rename_file(entry.text); show_save_files())
 	save_name.name = "SaveFileRename"
-	save_name.disabled = host.boss_debug_active
+	save_name.disabled = host.session.debug_active
 	row.add_child(save_name)
 	_show_page("files")
 
 func _choose_file(slot: int) -> void:
-	if not host._select_save_file(slot):
-		transient_error = host.save_files.error if not host.save_files.error.is_empty() else words("Could not change save file.", "Không thể đổi ô lưu.")
+	if not host.select_save_file(slot):
+		transient_error = host.session.save_files.error if not host.session.save_files.error.is_empty() else words("Could not change save file.", "Không thể đổi ô lưu.")
 		show_error(transient_error)
 		return
 	show_home()
@@ -719,7 +728,7 @@ func _refresh_boss_rule() -> void:
 	if is_instance_valid(boss_rule_preview): boss_rule_preview.text = ZodiacCatalog.rule_text(boss_options.boss, boss_options.difficulty)
 
 func _start_debug() -> void:
-	if not host._start_boss_debug(boss_options): show_error(words("Could not start the boss test.", "Không thể bắt đầu thử Con Giáp."))
+	if not host.start_boss_debug(boss_options): show_error(words("Could not start the boss test.", "Không thể bắt đầu thử Con Giáp."))
 
 func _resume_debug() -> void:
-	if not host._resume_boss_debug(): show_error(words("No valid saved boss test is available.", "Chưa có bản thử Con Giáp hợp lệ."))
+	if not host.resume_boss_debug(): show_error(words("No valid saved boss test is available.", "Chưa có bản thử Con Giáp hợp lệ."))

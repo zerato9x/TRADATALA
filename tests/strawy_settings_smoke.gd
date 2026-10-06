@@ -33,11 +33,11 @@ func tap_choice(ui: MatchUI, name: String) -> void:
 		root.push_input(mouse,true)
 
 func check_helper_preference(ui: MatchUI) -> void:
-	ui._restoring_run = false
-	ui.interaction_locked = false
+	ui.session.restoring = false
+	ui.interactions.locked = false
 	ui.strawy.window_focused = true
 	var before := var_to_str(ui.deal.snapshot_state())
-	ui.strawy._prepare_discard()
+	ui.strawy.preview_action()
 	check(not ui.strawy.quick_action.is_empty(),"fixture has a pending discard preview")
 	ui.front_end._render_settings()
 	var toggle: CheckButton = ui.front_end.find_child("ShowStrawy",true,false)
@@ -131,20 +131,18 @@ func _run() -> void:
 	await create_timer(0.3).timeout
 	ui.settings.set_music_system("playing_tracks")
 	if "--resume-only" not in OS.get_cmdline_user_args(): ui.settings.set_locale("vi" if "--vi" in OS.get_cmdline_user_args() else "en")
-	ui.run_save = RunSave.new("user://strawy-settings.save")
+	ui.session.run_save = RunSave.new("user://strawy-settings.save")
 	ui.drink_manager.progress.save_path = ""
-	ui._restoring_run = true
+	ui.session.restoring = true
 	if "--resume-only" in OS.get_cmdline_user_args():
 		check(not ui.settings.tutorial_enabled and ui.settings.first_seed_enabled, "settings loaded in fresh process")
 		check(not ui.settings.strawy_enabled and ui.settings.strawy_choice_made and ui.settings.tutorial_completed,"helper preference and answered tutorial question survive a fresh process")
-		var saved := ui.run_save.load_run()
-		check(not saved.is_empty() and ui._resume_saved_run(saved), "saved run resumes in fresh process")
+		var saved := ui.session.run_save.load_run()
+		check(not saved.is_empty() and ui.session.resume(saved), "saved run resumes in fresh process")
 		await create_timer(0.8).timeout
 		check(not ui.campaign.onboarding.first_seed_enabled, "resume retains run's policy despite changed preference")
 		check(not ui.strawy.actor.is_visible_in_tree() and not ui.strawy.choice_open,"resume keeps the helper disabled and does not ask again")
 	else:
-		var title := ui.get_node_or_null("TitleScreen")
-		if title: title.queue_free()
 		ui.game_started = true
 		ui.game_layer.position = Vector2.ZERO
 		ui.menu_layer.hide()
@@ -167,15 +165,15 @@ func _run() -> void:
 				if first_seed: opening.assign(ui.campaign.onboarding.opening_ids("morning",ui.campaign.gieo_que.persistent_deck))
 				expected.start_deal(CampaignOnboarding.SEED if first_seed else ui.campaign.seed_for("deal",0),false,opening)
 				check(ui.deal.hand.map(func(c): return c.unique_id) == expected.hand.map(func(c): return c.unique_id), "correct curated or run-seeded hand")
-				check(not ui.strawy.box.visible and not ui.campaign_coach.box.visible, "tutorial has no unrequested speech")
+				check(not ui.strawy.box.visible, "tutorial has no unrequested speech")
 				if tutorial:
-					var hint: Array[String] = ui.campaign_coach._hint()
-					check(ui.strawy._context_copy() == GameGlossary.words(hint[1],hint[2]), "requested tutorial includes what to do with the real hand")
+					var hint: Array[String] = preload("res://scripts/ui/campaign_hints.gd").instruction(ui.campaign, ui.deal, ui.current_campaign_event, ui.event_table.focused_npc_id, ui.resolve_mode)
+					check(ui.strawy._context_detail() == GameGlossary.words(hint[1],hint[2]), "requested tutorial includes what to do with the real hand")
 		await check_helper_preference(ui)
 		ui.settings.set_tutorial_enabled(false)
 		ui.settings.set_first_seed_enabled(true)
 		check(not ui.campaign.onboarding.first_seed_enabled, "changing preference does not change current run")
-		check(ui.run_save.save_run(ui.campaign,ui.deal), "save run policy for fresh-process read")
+		check(ui.session.run_save.save_run(ui.campaign,ui.deal), "save run policy for fresh-process read")
 	print("STRAWY_SETTINGS_SMOKE checks=%d failures=%d" % [checks,failures.size()])
 	ui.queue_free()
 	await create_timer(0.4).timeout

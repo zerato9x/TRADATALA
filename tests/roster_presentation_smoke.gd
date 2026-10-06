@@ -24,7 +24,7 @@ func table_contract(label: String) -> void:
 				check(command.get_theme_font("font").get_string_size(command.text, HORIZONTAL_ALIGNMENT_LEFT, -1, command.get_theme_font_size("font_size")).x <= guide.size.x, label + " whole Snake command fits")
 	for card in scene.deal.hand:
 		var hint: Dictionary = View.hand_hint(scene.deal.zodiac_boss, card, scene.deal.hand)
-		var control: PlayingCardView = scene.hand_views[card.unique_id]
+		var control: PlayingCardView = scene.card_table.hand_views[card.unique_id]
 		check(control._zodiac_cue != null and control._zodiac_cue.visible if not hint.is_empty() else control._zodiac_cue == null or not control._zodiac_cue.visible, label + " physical card cue scoped correctly")
 		if not hint.is_empty():
 			check(control._zodiac_cue.surface.material is ShaderMaterial and control._zodiac_cue.mouse_filter == Control.MOUSE_FILTER_IGNORE, label + " shader keeps physical card input")
@@ -42,9 +42,8 @@ func _run() -> void:
 	root.add_child(scene)
 	current_scene = scene
 	await frames()
-	scene.get_node("TitleScreen").queue_free()
-	scene._restoring_run = true
-	scene.run_save = RunSave.new("user://roster-presentation.save")
+	scene.session.restoring = true
+	scene.session.run_save = RunSave.new("user://roster-presentation.save")
 	scene.drink_manager.progress.save_path = ""
 	scene.campaign.zodiac.progress = ZodiacProgress.new("")
 	scene.campaign.run_seed = "roster-presentation"
@@ -79,7 +78,7 @@ func _run() -> void:
 		var first := scene.deal.create_meld(scene.deal.hand.slice(0, 3))
 		scene._sync_all(first)
 		await frames()
-		check(hud.mechanic_guide.body.get_parsed_text().contains("13.500") and hud.mechanic_guide.body.get_parsed_text().contains("45.000"), "Pig pool and gross progress remain visible")
+		check(hud.state_label.text.contains("13.500") and hud.mechanic_guide.body.get_parsed_text().contains("45.000"), "Pig pool and gross progress remain visible once each")
 		check(is_equal_approx(hud.mechanic_guide.meter.material.get_shader_parameter("progress"), 0.9), "Pig progress shader reads actual goal")
 		await capture("pig-%s-held" % locale)
 		var second := scene.deal.create_meld(scene.deal.hand.slice(0, 3))
@@ -98,7 +97,7 @@ func _run() -> void:
 		await capture("ox-%s-carried" % locale)
 		var meld_result := scene.deal.create_meld(scene.deal.hand.slice(0, 3))
 		scene._sync_all(meld_result)
-		check(not scene.hand_views.has(held.unique_id), "Ox cue leaves hand with committed card")
+		check(not scene.card_table.hand_views.has(held.unique_id), "Ox cue leaves hand with committed card")
 		# Horse counter follows committed pairs and real phase turn limits.
 		await fixture("horse", 3)
 		for i in 2:
@@ -113,7 +112,7 @@ func _run() -> void:
 		scene._sync_all(meld_result)
 		var seven := extra_card("7", "Hearts")
 		scene._sync_all()
-		check(scene.hand_views[seven.unique_id]._zodiac_cue.visible and hud.mechanic_guide.body.get_parsed_text().contains("7"), "Goat next Rank visible and attached to physical card")
+		check(scene.card_table.hand_views[seven.unique_id]._zodiac_cue.visible and hud.mechanic_guide.body.get_parsed_text().contains("7"), "Goat next Rank visible and attached to physical card")
 		var miss := scene.deal.create_meld(scene.deal.hand.slice(0, 3))
 		scene._sync_all(miss)
 		check(miss.context.final_points == 0 and scene.deal.zodiac_boss.data.expected_rank == 7, "Goat miss cannot fake next note")
@@ -127,8 +126,8 @@ func _run() -> void:
 		check(pending != null, "Snake fixture has a usable pending command")
 		if pending != null:
 			await click(pending)
-			check(policy == scene.deal.zodiac_boss.snapshot() and not scene.selected_card_ids.is_empty(), "command pointer selects cards without obeying or mutating rules")
-			var selected := scene._selected_cards()
+			check(policy == scene.deal.zodiac_boss.snapshot() and not scene.interactions.selected_ids.is_empty(), "command pointer selects cards without obeying or mutating rules")
+			var selected := scene.interactions.selected_cards()
 			meld_result = scene.deal.create_meld(selected)
 			check(meld_result.ok, "selected Snake command uses normal Meld API")
 			scene._sync_all(meld_result)
@@ -148,10 +147,11 @@ func _run() -> void:
 		check(hud.opponent_cards.get_child_count() == 3, "drawer exposes every Mouse Meld")
 		check(hud.opponent_cards.get_child(0).find_children("*", "ColorRect", true, false).any(func(node: Node): return node.name == "RatStolenMeld"), "stolen physical cards use Mouse stitch shader")
 		await click(hud.detail_button)
-		check(hud.details_panel.visible and (hud.details_panel.find_child("CloseBossRule", true, false) as Button).has_focus(), "rule drawer receives keyboard focus")
-		check(hud.details_panel.get_global_rect().encloses((hud.details_panel.find_child("CloseBossRule", true, false) as Button).get_global_rect()), "focused rule close button remains visible outside scroll")
+		var book := root.get_node_or_null("GameGlossary") as GameGlossary
+		check(book != null and (book.find_child("CloseHandbook", true, false) as Button).has_focus(), "rule Handbook receives keyboard focus")
+		check(book != null and book._entries[0].body.contains("#"), "Handbook includes every owned Mouse Meld")
 		await capture("rat-%s-all-melds" % locale)
-		hud._toggle_details()
+		if book != null: await click(book.find_child("CloseHandbook", true, false))
 		await fixture("rat", 2)
 		var long_run: Array[CardData] = []
 		for rank in DeckManager.RANKS:
@@ -161,14 +161,12 @@ func _run() -> void:
 		check(scene.deal.boss_commit_meld(long_run, -1, "rat").ok, "Mouse full 13-card run commits normally")
 		scene._sync_all()
 		await click(hud.detail_button)
-		var stolen_faces: GridContainer = hud.opponent_cards.get_child(0).get_node("StolenCardFaces")
-		check(stolen_faces.get_child_count() == 13 and stolen_faces.size.x <= hud.details_panel.size.x - 20, "all 13 stolen faces wrap within the drawer")
-		var rule_scroll: ScrollContainer = hud.details_panel.find_child("RuleScroll", true, false)
-		rule_scroll.scroll_vertical = 9999
+		book = root.get_node_or_null("GameGlossary") as GameGlossary
 		await frames(5)
-		check(rule_scroll.get_global_rect().encloses((stolen_faces.get_child(12) as Control).get_global_rect()), "last stolen card is reachable by scrolling")
+		check(book != null and long_run.all(func(card: CardData): return book._entries[0].body.contains(card.short_label())), "all 13 stolen identities remain readable in Handbook")
+		check(book != null and book._body.text.get_slice_count("symbol_heart.png") - 1 == 13 and book._body.text.contains("]K[/color]"), "all 13 stolen cards use rank + suit, including the last card")
 		await capture("rat-%s-long-run" % locale)
-		hud._toggle_details()
+		if book != null: await click(book.find_child("CloseHandbook", true, false))
 		# Every Dragon modifier projects its real mechanic onto the affected object.
 		for modifier in preload("res://scripts/zodiac/rules/dragon.gd").MODIFIERS:
 			await fixture("dragon", 2)
@@ -191,9 +189,9 @@ func _run() -> void:
 				var set_cards: Array[CardData] = scene.deal.hand.filter(func(card: CardData): return card.rank == "9")
 				meld_result = scene.deal.create_meld(set_cards)
 				scene._sync_all(meld_result)
-				check(meld_result.ok and scene.meld_views[meld_result.meld_id].get_node("DogLoyalGuard").visible, "Dragon Dog guard follows curated loyal Meld")
+				check(meld_result.ok and scene.card_table.meld_views[meld_result.meld_id].get_node("DogLoyalGuard").visible, "Dragon Dog guard follows curated loyal Meld")
 			if modifier in ["snake", "cat", "ox", "dog"]: await capture("dragon-%s-%s" % [locale, modifier])
-		for blocker: Control in [scene.modal_overlay, scene.deck_screen, scene.discard_archive_overlay, scene.menu_layer]:
+		for blocker: Control in [scene.modal_overlay, scene.deck_screen, scene.pile_archive.overlay, scene.menu_layer]:
 			blocker.show()
 			await frames()
 			check(not hud.mechanic_guide.is_visible_in_tree(), "overlay clears guide " + blocker.name)

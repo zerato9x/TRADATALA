@@ -2,7 +2,7 @@ class_name TextReveal
 extends Node
 ## Conversational copy only. Full strings stay available to layout and gameplay.
 const SPEED := 90.0
-var _watched: Dictionary = {}
+var controls := preload("res://scripts/ui/visible_text_controls.gd").new()
 var _locale := ""
 
 static func reveal(control: Control, delay: float = 0.0, speed: float = SPEED) -> Tween:
@@ -29,28 +29,26 @@ static func finish(control: Control) -> void:
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
-	get_tree().node_added.connect(_watch)
-	_collect(get_tree().root)
+	controls.state_factory = _new_state
+	controls.hidden.connect(_hide)
+	controls.removed.connect(_hide)
+	add_child(controls)
 
-func _collect(node: Node) -> void:
-	_watch(node)
-	for child in node.get_children(): _collect(child)
+func _new_state(_control: Control) -> Dictionary:
+	return {"text": "", "visible": false, "elapsed": 0.0, "active": false}
 
-func _watch(node: Node) -> void:
-	# Metadata can be assigned after node_added, during the owner's configure/ready.
-	if node is Label or node is RichTextLabel:
-		_watched[node.get_instance_id()] = {"ref": weakref(node), "text": "", "visible": false, "elapsed": 0.0, "active": false}
+func _hide(control: Control, state: Dictionary) -> void:
+	state.visible = false
+	if control.has_meta("manual_text_reveal"): finish(control)
+	elif state.active: _complete(control, state)
 
 func _process(delta: float) -> void:
 	var locale := TranslationServer.get_locale()
 	var locale_changed := locale != _locale
 	_locale = locale
-	for id in _watched.keys():
-		var state: Dictionary = _watched[id]
+	for state: Dictionary in controls.visible_states():
 		var control: Control = state.ref.get_ref()
-		if not is_instance_valid(control):
-			_watched.erase(id)
-			continue
+		if not is_instance_valid(control): continue
 		if not control.has_meta("conversation_text") or control.has_meta("manual_text_reveal"): continue
 		var shown := control.is_visible_in_tree()
 		var copy: String = control.text
@@ -76,7 +74,7 @@ func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.echo: return
 	var pressed: bool = (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT) or (event is InputEventScreenTouch and event.pressed) or event.is_action_pressed("ui_accept")
 	if not pressed: return
-	for state: Dictionary in _watched.values():
+	for state: Dictionary in controls.visible_states():
 		var control: Control = state.ref.get_ref()
 		if not is_instance_valid(control) or not control.is_visible_in_tree(): continue
 		if control.has_meta("manual_text_reveal"): finish(control)

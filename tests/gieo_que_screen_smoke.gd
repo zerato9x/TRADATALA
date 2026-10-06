@@ -19,7 +19,7 @@ func _run() -> void:
 	scene.campaign._enter_phase(CampaignManager.CampaignPhase.MORNING_EVENT)
 	scene.event_table.focus_npc(EventTableController.NPC_THAY_BOI)
 	await create_timer(0.5).timeout
-	var panel := scene.campaign_participants.get_child(0) as GieoQuePanel
+	var panel := scene.event_table.participants_container.get_child(0) as GieoQuePanel
 	_check(panel != null, "campaign opens Gieo panel")
 	var service := panel.service
 	var npc := scene.event_table.get_node("ThayBoiFocused") as Control
@@ -38,6 +38,7 @@ func _run() -> void:
 	_check(scene.event_table.conversation.position == Vector2(165, 510), "dialogue clears Strawy's reserved lower-left dock")
 	_check(panel._lever_button.z_index > 0, "lever draws over cabinet mount")
 	_check(panel._stage.get_node("OracleTitle").get_rect().end.y < 80, "title stays inside cabinet plaque")
+	_check(panel._stage.has_node("GieoGuide"), "ready cabinet exposes Handbook")
 	for reel in panel._reels:
 		_check((reel["panel"] as Control).clip_contents, "reel motion is clipped to drum")
 		_check((reel["panel"] as Control).find_children("*", "Label", true, false).is_empty(), "drum contains symbols only")
@@ -48,7 +49,7 @@ func _run() -> void:
 	var pull_started := Time.get_ticks_msec()
 	panel._lever_button.pressed.emit()
 	_check(panel._busy and scene.event_table.back_button.disabled, "pull locks campaign navigation immediately")
-	panel._on_cast_pressed(false)
+	panel.cast(false)
 	_check(service.paid_cast_count_today == 0, "double pull cannot charge twice")
 	if "--capture" in OS.get_cmdline_user_args():
 		await create_timer(0.4).timeout
@@ -57,12 +58,13 @@ func _run() -> void:
 	_check(panel.presentation_state == GieoQuePanel.PresentationState.SHOWING_RESULT, "full lever and both trigram animations finish")
 	_check(panel.displayed_reel_values() == service.current_result["lines"], "six rendered lines match charged result")
 	_check(panel._decision_row.is_visible_in_tree(), "decisions become visible after reveal")
+	_check(panel._stage.has_node("GieoGuide"), "Handbook stays accessible after casting rebuilds the cabinet")
 	_check(Rect2(Vector2(306, 431), Vector2(442, 98)).encloses(panel._decision_row.get_rect()), "choices fit inside cabinet lower HUD")
 	if "--capture" in OS.get_cmdline_user_args():
 		_check(Time.get_ticks_msec() - pull_started < 3500, "real-time cast reaches choices in under 3.5 seconds")
 		await _capture("result")
 	Engine.time_scale = 30.0
-	await panel._on_cast_pressed(true)
+	await panel.cast(true)
 	_check(service.paid_cast_count_today == 1 and service.wallet.balance_vnd == 990_000, "animated reroll charges once")
 	panel._on_refuse_pressed()
 	_check(not scene.event_table.back_button.disabled, "refuse unlocks campaign Back")
@@ -80,18 +82,15 @@ func _run() -> void:
 		service.reset_campaign()
 		var lines: Array[String] = []
 		for bit in range(6):
-			lines.append("D" if bits & (1 << bit) else "A")
+			lines.append("P" if bits & (1 << bit) else "N")
 		service.cast(lines)
 		panel._rebuild()
 		await panel._on_accept_pressed()
-		if service.state == GieoQueService.STATE_DESTINATION_SELECTION:
-			var rank: bool = String(service.current_result.get("jackpot", "")) == GieoQueService.JACKPOT_THUAN_DUONG or service.current_result["effect"] == GieoQueService.EFFECT_CHOOSE_RANK
-			await panel._on_destination_pressed("K" if rank else "Hearts")
 		if service.state == GieoQueService.STATE_TARGET_SELECTION:
 			var cards: Array[CardData] = service.resolved_targets if not service.resolved_targets.is_empty() else service.persistent_deck
 			await process_frame
 			_check(scene.deck_screen.visible and scene.deck_screen._cards.size() == 52, "composition %d offers shared deck with full inspection" % bits)
-			_check(scene.deck_screen._purpose.text.contains(tr(service.effect_label_key())), "composition %d repeats rolled effect while choosing" % bits)
+			_check(String(scene.deck_screen._purpose.get_meta("full_terms", "")).contains(service.effect_label()) and scene.deck_screen._purpose.text.length() < 30, "composition %d keeps picker short and retains full effect for Handbook" % bits)
 			if not picker_captured and DisplayServer.get_name() != "headless":
 				picker_captured = true
 				await _capture("deck_choice")
@@ -110,7 +109,8 @@ func _run() -> void:
 		var rows := panel._find_controls_with_meta(panel, &"gieo_transform_row")
 		_check(rows.size() == service.last_transformations.size(), "composition %d keeps final card changes inspectable" % bits)
 		for row in rows:
-			_check((row.get_meta("after_card") as Control).modulate.a == 1.0, "final transformed card is visible")
+			_check((row.get_meta("card_art") as Control).modulate.a == 1.0, "final transformed card is visible")
+		_check(panel._stage.has_node("SlotMachineArt"), "composition %d retains slot machine through transformation" % bits)
 	service.wallet.reset(0)
 	panel._rebuild()
 	_check(not service.can_afford_pull(), "paid pull unavailable with empty wallet")

@@ -27,7 +27,14 @@ var suit: String
 var base_value: int
 var value_modifiers: Array[int] = []
 var enhancements: Array[String] = []
-var gieo_properties: Array[String] = []
+const FORTUNE_MIN := -6
+const FORTUNE_MAX := 6
+const JACKPOT_LIQUID := "LIQUID"
+const JACKPOT_NEGATIVE := "NEGATIVE"
+var fortune: int = 0:
+	set(value): fortune = clampi(value, FORTUNE_MIN, FORTUNE_MAX)
+var liquid: bool = false
+var negative: bool = false
 # Separate day-scoped polish; excluded from permanent snapshots.
 var shiny: bool = false
 var transformation_locked: bool = false
@@ -48,10 +55,98 @@ func _init(
 
 
 func score_value() -> int:
+	return intrinsic_value() * maxi(fortune, 1)
+
+
+func intrinsic_value() -> int:
 	var total := base_value
 	for modifier in value_modifiers:
 		total += modifier
 	return total
+
+
+# Deadwood is a signed cost: Black Ink produces income. Gold uses normal value.
+func deadwood_value() -> int:
+	return intrinsic_value() * (-absi(fortune) if fortune < 0 else 1)
+
+
+func echo_count() -> int:
+	return 1 if liquid else 0
+
+
+func is_glitch() -> bool:
+	return liquid and negative
+
+
+func jackpot_state() -> String:
+	if is_glitch(): return "GLITCH"
+	if liquid: return JACKPOT_LIQUID
+	if negative: return JACKPOT_NEGATIVE
+	return ""
+
+
+func fortune_label() -> String:
+	return "%+d" % fortune if fortune != 0 else "0"
+
+
+func has_fortune_properties() -> bool:
+	return fortune != 0 or liquid or negative
+
+
+func permanent_property_count() -> int:
+	return int(fortune != 0) + int(liquid) + int(negative)
+
+
+func permanent_property_ids() -> Array[String]:
+	var properties: Array[String] = []
+	if fortune > 0: properties.append("GOLD")
+	elif fortune < 0: properties.append("BLACK_INK")
+	if liquid: properties.append(JACKPOT_LIQUID)
+	if negative: properties.append(JACKPOT_NEGATIVE)
+	return properties
+
+
+func adjust_fortune(delta: int) -> bool:
+	if transformation_locked: return false
+	var before := persuasion_fingerprint()
+	fortune += delta
+	_notify_permanent(before, "fortune")
+	return before != persuasion_fingerprint()
+
+
+func meld_rank_options() -> Array[int]:
+	var ranks: Array[int] = []
+	if is_glitch():
+		for value in range(1, 14): ranks.append(value)
+	elif negative:
+		for value in range(maxi(rank_index - 1, 1), mini(rank_index + 1, 13) + 1): ranks.append(value)
+	else: ranks.append(rank_index)
+	return ranks
+
+
+func meld_suit_options() -> Array[String]:
+	var suits: Array[String] = []
+	if is_glitch():
+		suits.assign(DeckManager.SUITS)
+		return suits
+	if negative:
+		suits.assign(["Hearts", "Diamonds"] if suit in ["Hearts", "Diamonds"] else ["Spades", "Clubs"])
+	else: suits.append(suit)
+	return suits
+
+
+func can_represent(value: int, suit_identity: String = "") -> bool:
+	if value < 1 or value > 13: return false
+	var glitch := is_glitch()
+	if not glitch and (absi(value - rank_index) > 1 if negative else value != rank_index): return false
+	if suit_identity in ["", "any"]: return true
+	var red := suit in ["Hearts", "Diamonds"]
+	if suit_identity == "red": return glitch or red
+	if suit_identity == "black": return glitch or not red
+	if suit_identity not in DeckManager.SUITS: return false
+	if glitch: return true
+	if negative: return (suit_identity in ["Hearts", "Diamonds"]) == red
+	return suit_identity == suit
 
 
 func apply_rank(p_rank: String, p_rank_index: int) -> void:
@@ -70,18 +165,15 @@ func apply_suit(p_suit: String) -> void:
 	_notify_permanent(before, "suit")
 
 
-func add_gieo_property(property_id: String) -> bool:
+func add_jackpot(property_id: String) -> bool:
 	if transformation_locked: return false
-	if property_id.is_empty() or gieo_properties.has(property_id):
-		return false
 	var before := persuasion_fingerprint()
-	gieo_properties.append(property_id)
+	match property_id:
+		JACKPOT_LIQUID: liquid = true
+		JACKPOT_NEGATIVE: negative = true
+		_: return false
 	_notify_permanent(before, "property")
-	return true
-
-
-func has_gieo_property(property_id: String) -> bool:
-	return gieo_properties.has(property_id)
+	return before != persuasion_fingerprint()
 
 
 func permanent_snapshot() -> Dictionary:
@@ -90,14 +182,18 @@ func permanent_snapshot() -> Dictionary:
 		"rank": rank,
 		"rank_index": rank_index,
 		"suit": suit,
-		"gieo_properties": gieo_properties.duplicate(),
+		"fortune": fortune,
+		"liquid": liquid,
+		"negative": negative,
 		"transformation_locked": transformation_locked,
 	}
 
 
 func copy_for_deal() -> CardData:
 	var deal_copy := CardData.new(unique_id, rank, rank_index, suit, base_value)
-	deal_copy.gieo_properties.append_array(gieo_properties)
+	deal_copy.fortune = fortune
+	deal_copy.liquid = liquid
+	deal_copy.negative = negative
 	deal_copy.shiny = shiny
 	deal_copy.transformation_locked = transformation_locked
 	return deal_copy
@@ -107,7 +203,9 @@ func alter_for_zodiac(operation: String) -> void:
 	var before := persuasion_fingerprint()
 	match operation:
 		"remove_property":
-			if not gieo_properties.is_empty(): gieo_properties.pop_back()
+			if negative: negative = false
+			elif liquid: liquid = false
+			else: fortune = 0
 		"seal": transformation_locked = true
 		"reset":
 			# Canonical identity is stable even after rank/suit transformations.
@@ -117,7 +215,9 @@ func alter_for_zodiac(operation: String) -> void:
 			rank_index = DeckManager.RANKS.find(rank) + 1
 			base_value = rank_index
 			suit = identity[2].capitalize()
-			gieo_properties.clear()
+			fortune = 0
+			liquid = false
+			negative = false
 			value_modifiers.clear()
 			enhancements.clear()
 			shiny = false
@@ -138,14 +238,14 @@ func _notify_permanent(before: Dictionary, operation: String) -> void:
 
 func has_permanent_changes() -> bool:
 	var identity := unique_id.split("_")
-	if identity.size() != 3 or identity[0] != "standard": return false
-	return rank != identity[1].to_upper() or suit.to_lower() != identity[2] or not gieo_properties.is_empty() or not value_modifiers.is_empty() or not enhancements.is_empty() or shiny
+	var changed_identity := identity.size() == 3 and identity[0] == "standard" and (rank != identity[1].to_upper() or suit.to_lower() != identity[2])
+	return changed_identity or has_fortune_properties() or not value_modifiers.is_empty() or not enhancements.is_empty() or shiny
 
 
-func gieo_property_descriptions() -> Array[String]:
+func fortune_descriptions() -> Array[String]:
 	var descriptions: Array[String] = []
-	for property_id in gieo_properties:
-		var key := gieo_property_label_key(property_id)
+	for property_id in permanent_property_ids():
+		var key := property_label_key(property_id)
 		if not key.is_empty():
 			descriptions.append(TranslationServer.translate(key + "_DESC"))
 	return descriptions
@@ -166,14 +266,52 @@ func short_label() -> String:
 	return "%s%s" % [rank, SUIT_SYMBOLS.get(suit, "?")]
 
 
-static func gieo_property_label_key(property_id: String) -> String:
+func inspection_text() -> String:
+	var text := "%s · %s\n%s %s" % [rank, TranslationServer.translate("SUIT_" + suit.to_upper()), TranslationServer.translate("CARD_FORTUNE"), fortune_label()]
+	if not jackpot_state().is_empty(): text += "\n" + TranslationServer.translate(property_label_key(jackpot_state()))
+	if shiny: text += " · " + TranslationServer.translate("CARD_SHINY")
+	return text
+
+
+# Old printing is folded once at the save boundary; old physical ranks/suits survive.
+# Each conditional Gold bonus formerly added one contribution. Preserve its potency
+# as 1 + number of Gold marks, capped at 6. Liquid keeps its one non-recursive Echo.
+func migrate_legacy_state(data: Dictionary) -> void:
+	if data.has("fortune"): return
+	var gold_count := 0
+	for property_id: String in data.get("gieo_properties", []):
+		if property_id.begins_with("GOLD_"): gold_count += 1
+		elif property_id == "MELD_RETRIGGER": liquid = true
+	fortune = mini(gold_count + 1, FORTUNE_MAX) if gold_count > 0 else 0
+
+
+static func from_permanent_snapshot(data: Dictionary) -> CardData:
+	var card := CardData.new(String(data.get("unique_id", "")), String(data.get("rank", "A")), int(data.get("rank_index", 1)), String(data.get("suit", "Spades")), int(data.get("rank_index", 1)))
+	card.fortune = int(data.get("fortune", 0))
+	card.liquid = bool(data.get("liquid", false))
+	card.negative = bool(data.get("negative", false))
+	card.transformation_locked = bool(data.get("transformation_locked", false))
+	card.migrate_legacy_state(data)
+	return card
+
+
+static func property_label_key(property_id: String) -> String:
 	match property_id:
-		"GOLD_MAKING_PHOM": return "GIEO_PROPERTY_MAKING"
-		"GOLD_EXTEND": return "GIEO_PROPERTY_EXTEND"
-		"GOLD_SET": return "GIEO_PROPERTY_SET"
-		"GOLD_RUN": return "GIEO_PROPERTY_RUN"
-		"GOLD_BIG_PHOM": return "GIEO_PROPERTY_BIG"
-		"GOLD_LAST_CALL": return "GIEO_PROPERTY_LAST_CALL"
-		"MELD_RETRIGGER": return "GIEO_PROPERTY_LIQUID"
+		"GOLD": return "CARD_GOLD"
+		"BLACK_INK": return "CARD_BLACK_INK"
+		"LIQUID": return "GIEO_PROPERTY_LIQUID"
+		"NEGATIVE": return "CARD_NEGATIVE"
+		"GLITCH": return "CARD_GLITCH"
 		"SHINY": return "CARD_SHINY"
 	return ""
+
+# Object-table fields in run envelopes V1-V3, including shared CardData references.
+const RUN_SAVE_FIELDS_V3 := ["mutation_revision", "unique_id", "rank", "rank_index", "suit", "base_value", "value_modifiers", "enhancements", "fortune", "liquid", "negative", "shiny", "transformation_locked"]
+const RUN_SNAPSHOT_FIELDS := preload("res://scripts/campaign/run_snapshot_fields.gd")
+
+func run_value_snapshot() -> Dictionary:
+	return RUN_SNAPSHOT_FIELDS.fields(self, RUN_SAVE_FIELDS_V3)
+
+func restore_run_value(data: Dictionary) -> void:
+	RUN_SNAPSHOT_FIELDS.apply_fields(self, data, RUN_SAVE_FIELDS_V3)
+	migrate_legacy_state(data)

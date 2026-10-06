@@ -160,7 +160,7 @@ func _write(next: Dictionary, keep_backup: bool) -> bool:
 	next.saved_at = int(Time.get_unix_time_from_system())
 	var payload := JSON.stringify(_pack_json(next))
 	var bytes := payload.to_utf8_buffer()
-	var envelope := JSON.stringify({"version": VERSION, "payload": payload, "sha256": RunSave._digest(bytes)})
+	var envelope := JSON.stringify({"version": VERSION, "payload": payload, "sha256": RunSave.payload_digest(bytes)})
 	if envelope.to_utf8_buffer().size() > max_file_bytes: error = "Permanent progress exceeds the save limit."; return false
 	var destination := meta_path(int(next.slot))
 	var file := FileAccess.open(destination + ".tmp", FileAccess.WRITE)
@@ -191,7 +191,7 @@ func _read(source: String, expected_slot: int = -1) -> Dictionary:
 	var envelope: Variant = parser.data
 	if not envelope is Dictionary or typeof(envelope.get("version")) not in [TYPE_INT, TYPE_FLOAT] or envelope.version != VERSION or not envelope.get("payload") is String:
 		error = "Unsupported or damaged permanent save."; return {}
-	if RunSave._digest(envelope.payload.to_utf8_buffer()) != envelope.get("sha256", ""):
+	if RunSave.payload_digest(envelope.payload.to_utf8_buffer()) != envelope.get("sha256", ""):
 		error = "Permanent save checksum mismatch."; return {}
 	if parser.parse(envelope.payload) != OK: error = "Invalid permanent save payload."; return {}
 	_json_error = false

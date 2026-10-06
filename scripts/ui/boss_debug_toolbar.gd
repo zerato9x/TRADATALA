@@ -18,9 +18,9 @@ func configure(owner: MatchUI) -> void:
 	body.add_child(caption)
 	var buttons := HBoxContainer.new()
 	body.add_child(buttons)
-	for spec in [["Replay", "Chơi lại", host._replay_boss_debug], ["Boss Lab", "Chọn", host._open_boss_lab], ["Exit", "Thoát", host._leave_boss_debug]]:
+	for spec in [["Replay", "Chơi lại", host.replay_boss_debug], ["Boss Lab", "Chọn", host.open_boss_lab], ["Exit", "Thoát", host.leave_boss_debug]]:
 		var button := Button.new()
-		button.text = host._run_words(spec[0], spec[1])
+		button.text = GameGlossary.words(spec[0], spec[1])
 		button.custom_minimum_size = Vector2(48, 26)
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		PresentationTheme.configure_button(button)
@@ -32,8 +32,8 @@ func configure(owner: MatchUI) -> void:
 
 func _process(_delta: float) -> void:
 	if host == null: return
-	visible = host.boss_debug_active and host.game_started and not host.menu_layer.visible
+	visible = host.session.debug_active and host.game_started and not host.menu_layer.visible
 	if not visible: return
-	for item: Dictionary in localized_buttons: item.button.text = host._run_words(item.en, item.vi)
+	for item: Dictionary in localized_buttons: item.button.text = GameGlossary.words(item.en, item.vi)
 	var options: Dictionary = host.campaign.debug_context.get("options", {})
-	caption.text = host._run_words("DEBUG SANDBOX · %s\nPhase %d · %s", "THỬ NGHIỆM · %s\nHiệp %d · %s") % [ZodiacCatalog.display_name(options.get("boss", "")), host.deal.current_phase, ZodiacCatalog.disposition_label(ZodiacCatalog.difficulty_name(host.deal.zodiac_boss.difficulty))]
+	caption.text = GameGlossary.words("DEBUG SANDBOX · %s\nPhase %d · %s", "THỬ NGHIỆM · %s\nHiệp %d · %s") % [ZodiacCatalog.display_name(options.get("boss", "")), host.deal.current_phase, ZodiacCatalog.disposition_label(ZodiacCatalog.difficulty_name(host.deal.zodiac_boss.difficulty))]

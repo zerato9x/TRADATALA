@@ -117,7 +117,7 @@ func record_action(deal: DealState, result: Dictionary) -> void:
 			add_progress("nhan_tran_swaps")
 		"nuoc_voi_return":
 			add_progress("nuoc_voi_returns")
-		"dump":
+		"phase_transition":
 			if deal.current_drink_id == DrinkCatalog.SAM_DUA:
 				add_progress("sam_dua_preserved", result.get("preserved", []).size())
 
@@ -136,3 +136,12 @@ func _save() -> void:
 		error = DirAccess.rename_absolute(save_path + ".tmp", save_path)
 	if error != OK:
 		push_warning("Could not save drink unlocks: %s" % error_string(error))
+
+func run_snapshot() -> Dictionary:
+	return {"counters": counters.duplicate(), "seen": _seen_melds.duplicate()}
+
+func restore_run_snapshot(data: Dictionary) -> void:
+	for metric: String in data.get("counters", {}):
+		counters[metric] = maxi(int(counters.get(metric, 0)), int(data.counters[metric]))
+	_seen_melds = data.get("seen", {}).duplicate()
+	_save()

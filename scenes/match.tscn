@@ -4,10 +4,8 @@
 [ext_resource type="FontFile" path="res://assets/DFVN Pexel Grotesk.ttf" id="1_slo71"]
 [ext_resource type="Texture2D" path="res://assets/environment/sidewalk_table.png" id="3_tcije"]
 [ext_resource type="PackedScene" path="res://scenes/ui/match_board.tscn" id="4_6dstc"]
-[ext_resource type="PackedScene" path="res://scenes/ui/main_menu.tscn" id="5_et4mf"]
 [ext_resource type="PackedScene" path="res://scenes/ui/reactive_music.tscn" id="6_4bnf7"]
 [ext_resource type="PackedScene" path="res://scenes/ui/action_legend.tscn" id="7_verbs"]
-[ext_resource type="Script" path="res://scripts/ui/title_disc.gd" id="8_title_disc"]
 [sub_resource type="Theme" id="Theme_3ygla"]
 default_font = ExtResource("1_slo71")
 default_font_size = 14
@@ -37,18 +35,14 @@ stretch_mode = 6
 
 [node name="GameLayer" type="Control" parent="." unique_id=1632460617 instance=ExtResource("4_6dstc")]
 
-[node name="MainMenu" type="Control" parent="." unique_id=466794877 instance=ExtResource("5_et4mf")]
-
-[node name="ReactiveMusic" type="Node" parent="." unique_id=1528161153 instance=ExtResource("6_4bnf7")]
-
-[node name="TitleScreen" type="CanvasLayer" parent="."]
-layer = 230
-
-[node name="TitleDisc" type="Control" parent="TitleScreen"]
+[node name="MainMenu" type="Control" parent="." unique_id=466794877]
+z_index = 500
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-script = ExtResource("8_title_disc")
+metadata/match_binding = "menu_layer"
+
+[node name="ReactiveMusic" type="Node" parent="." unique_id=1528161153 instance=ExtResource("6_4bnf7")]

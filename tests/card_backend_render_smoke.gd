@@ -33,9 +33,9 @@ func _run() -> void:
 	for treatment in ["plain", "polished", "gold", "liquid"]:
 		for view in views:
 			view.card.shiny = treatment == "polished"
-			view.card.gieo_properties.clear()
-			if treatment == "gold": view.card.gieo_properties.append("GOLD_SET")
-			if treatment == "liquid": view.card.gieo_properties.append("MELD_RETRIGGER")
+			view.card.fortune = 6 if treatment == "gold" else 0
+			view.card.liquid = treatment == "liquid"
+			view.card.negative = false
 			view.set_card(view.card)
 		for sample in [0.0, 1.5, 12.0]:
 			for view in views:

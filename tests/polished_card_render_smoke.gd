@@ -35,7 +35,7 @@ func _run() -> void:
 			face.size = Vector2(114, 158) if column < 3 else Vector2(142, 197)
 			face.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 			canvas.add_child(face)
-			GieoCardFX.apply_properties(face, [] if column < 3 else GieoCardFX.PROPERTIES, row == 1)
+			GieoCardFX.apply_state(face, 0 if column < 3 else 6, column >= 3, column >= 3, row == 1)
 			if face.material != null:
 				face.material.set_shader_parameter("freeze_motion", true)
 				face.material.set_shader_parameter("sample_time", 0.0)

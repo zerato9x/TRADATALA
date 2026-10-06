@@ -6,10 +6,29 @@ signal response_selected(response_id: String)
 @onready var speaker: Label = %Speaker
 @onready var speech: RichTextLabel = %Speech
 var _reveal: Tween
+var _full_line := ""
+var handbook: Button
 
 
 func _ready() -> void:
 	speech.set_meta("manual_text_reveal", true)
+	speech.custom_minimum_size.y = 36
+	custom_minimum_size.y = 88
+	var heading := HBoxContainer.new()
+	heading.name = "ConversationHeading"
+	$Lines.add_child(heading)
+	$Lines.move_child(heading, 0)
+	speaker.reparent(heading)
+	speaker.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var guide := Button.new()
+	handbook = guide
+	guide.name = "NpcHandbook"
+	guide.text = GameGlossary.words("Handbook", "Sổ tay")
+	PresentationTheme.configure_button(guide)
+	guide.add_theme_font_size_override("font_size", 16)
+	guide.custom_minimum_size.y = 28
+	guide.pressed.connect(func(): GameGlossary.open_entry(self, speaker.text, _full_line, "npcs"))
+	heading.add_child(guide)
 	%SmallTalk.pressed.connect(func() -> void: response_selected.emit("small_talk"))
 	%Leave.pressed.connect(func() -> void: response_selected.emit("leave"))
 
@@ -21,9 +40,10 @@ func show_responses(enabled: bool, can_leave: bool = true) -> void:
 	%Leave.disabled = not can_leave
 
 
-func say(speaker_name: String, line: String) -> void:
-	var formatted := PresentationTheme.emphasize_money(ActionVocabulary.colorize(line))
-	if visible and speaker.text == speaker_name and speech.text == formatted:
+func say(speaker_name: String, line: String, show_full_line: bool = false) -> void:
+	_full_line = line
+	var formatted := PresentationTheme.emphasize_money(ActionVocabulary.colorize(line if show_full_line else QuickInfo.first_sentence(line)))
+	if visible and speaker.text == speaker_name and speech.get_meta("semantic_source_text", speech.text) == formatted:
 		return
 	speaker.text = speaker_name
 	PresentationTheme.style_text(speaker, &"speaker", 20)

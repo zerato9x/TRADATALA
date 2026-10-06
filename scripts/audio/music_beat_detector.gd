@@ -120,10 +120,6 @@ func reset() -> void:
 	detected_beat_count = 0
 
 
-func analyzer_available() -> bool:
-	return _analyzer != null
-
-
 func _acquire_analyzer() -> void:
 	var bus_index := AudioServer.get_bus_index(bus_name)
 	if bus_index < 0 or analyzer_effect_index >= AudioServer.get_bus_effect_count(bus_index):

@@ -88,7 +88,7 @@ func configure(owner: MatchUI) -> void:
 
 func refresh() -> void:
 	if host.campaign == null: return
-	day.text = host._campaign_day_name() if not host.campaign.current_day().is_empty() else "—"
+	day.text = CampaignText.day_name(host.campaign) if not host.campaign.current_day().is_empty() else "—"
 	goal.text = ZodiacCatalog.words("Goal ", "Mục tiêu ") + VndWallet.format_vnd(host.campaign.daily_requirement()) if not host.campaign.current_day().is_empty() else "—"
 	progress.value = clampf(float(host.deal.wallet.balance_vnd) / maxf(host.campaign.daily_requirement(), 1) * 100.0, 0, 100)
 	goal.tooltip_text = "%s / %s" % [VndWallet.format_vnd(host.deal.wallet.balance_vnd), VndWallet.format_vnd(host.campaign.daily_requirement())]

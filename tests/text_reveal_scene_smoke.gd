@@ -65,18 +65,49 @@ func _run() -> void:
 	await frames()
 	button.text = ""
 	await frames()
-	check(not button.has_node("TypewriterCaption") and button.get_theme_color("font_color") == Color.RED, "button restyling is untouched")
+	check(not button.has_node("TypewriterCaption") and button.get_theme_color("font_color") == PresentationTheme.ACTION, "buttons follow the shared action color without typewriter effects")
 	label.text = "100000"
 	for index in 30:
 		label.text = str(100000 + index)
 		await process_frame
 	check(label.visible_characters == -1, "money updates remain immediate")
+	# Parent visibility, detachment and repeated replacement must release work.
+	var captions = root.get_node("GameTextPresentation").controls
+	var reveals = scene.get_node("TextReveal").controls
+	var caption_baseline: int = captions.tracked_count()
+	var reveal_baseline: int = reveals.tracked_count()
+	var visible_baseline: int = captions.visible_count()
+	for replacement in 4:
+		var parent := Control.new()
+		root.add_child(parent)
+		var semantic := Label.new()
+		semantic.text = "9H · +250.000 VNĐ"
+		parent.add_child(semantic)
+		await frames()
+		check(captions.tracked_count() == caption_baseline + 1 and reveals.tracked_count() == reveal_baseline + 1, "new text registers once")
+		check(semantic.get_child_count() == 1, "semantic caption has one renderer")
+		TextReveal.reveal(semantic, 0.0, 5.0)
+		await frames()
+		parent.hide()
+		await frames()
+		check(captions.visible_count() == visible_baseline, "hidden ancestor removes text from visible work")
+		check(semantic.visible_characters == -1 and not semantic.has_meta("text_reveal_tween"), "hidden ancestor cancels manual reveal")
+		parent.show()
+		await frames()
+		root.remove_child(parent)
+		check(captions.tracked_count() == caption_baseline and reveals.tracked_count() == reveal_baseline, "detached text unregisters immediately")
+		root.add_child(parent)
+		await frames()
+		check(semantic.get_child_count() == 1 and captions.tracked_count() == caption_baseline + 1, "reattached text has one registration and renderer")
+		parent.queue_free()
+		await frames()
+		check(captions.tracked_count() == caption_baseline and reveals.tracked_count() == reveal_baseline, "replacement leaves no retained text controls")
 	fixture.queue_free()
 	var npc: NpcConversation = load("res://scenes/ui/npc_conversation.tscn").instantiate()
 	root.add_child(npc)
 	npc.say("Trà Đá", "Xin chào. Một ly trà đá giá 2.000 VNĐ. Ngồi xuống rồi hãy chọn nước.")
 	check(npc.speech.visible_characters == 0, "NPC starts at zero")
-	await create_timer(0.15).timeout
+	await create_timer(0.04).timeout
 	check(npc.speech.visible_characters > 0 and npc.speech.visible_characters < npc.speech.get_total_character_count(), "NPC speech advances gradually")
 	var progress := npc.speech.visible_characters
 	npc.say("Trà Đá", "Xin chào. Một ly trà đá giá 2.000 VNĐ. Ngồi xuống rồi hãy chọn nước.")
@@ -87,9 +118,8 @@ func _run() -> void:
 	await create_timer(0.15).timeout
 	check(npc.speech.visible_characters == -1, "finishing cancels the tween permanently")
 	npc.queue_free()
-	scene.get_node("TitleScreen").queue_free()
-	scene._restoring_run = true
-	scene.run_save = RunSave.new("user://typewriter-fixture.save")
+	scene.session.restoring = true
+	scene.session.run_save = RunSave.new("user://typewriter-fixture.save")
 	scene.drink_manager.progress.save_path = ""
 	scene.campaign.zodiac.progress = ZodiacProgress.new("")
 	scene.game_started = true
