@@ -32,21 +32,6 @@ const TIME_PERIOD_REGIONS := {
 	"afternoon": Rect2(96, 0, 48, 48),
 	"evening": Rect2(0, 48, 48, 48),
 }
-const DRINK_FULL_TEXTURES := {
-	DrinkCatalog.TRA_DA: preload("res://assets/drinks/tra_da_full.png"),
-	DrinkCatalog.NUOC_VOI: preload("res://assets/drinks/nuoc_voi_full.png"),
-	DrinkCatalog.NHAN_TRAN: preload("res://assets/drinks/nhan_tran_full.png"),
-	DrinkCatalog.SAM_DUA: preload("res://assets/drinks/sam_dua_full.png"),
-}
-const DRINK_HALF_TEXTURES := {
-	DrinkCatalog.TRA_DA: preload("res://assets/drinks/tra_da_half.png"),
-	DrinkCatalog.NUOC_VOI: preload("res://assets/drinks/nuoc_voi_half.png"),
-	DrinkCatalog.NHAN_TRAN: preload("res://assets/drinks/nhan_tran_half.png"),
-	DrinkCatalog.SAM_DUA: preload("res://assets/drinks/sam_dua_half.png"),
-}
-const DRINK_TABLE_MORNING_POSITION := Vector2(1033, 398)
-const DRINK_TABLE_NOON_POSITION := Vector2(1033, 398)
-
 var session := preload("res://scripts/campaign/run_session_coordinator.gd").new()
 const INTERACTION_SCRIPT := preload("res://scripts/ui/match_interaction.gd")
 var interactions := INTERACTION_SCRIPT.new()
@@ -912,17 +897,11 @@ func _drink_is_spent_in_current_window() -> bool:
 func _sync_drink_table_visual() -> void:
 	if drink_table_button == null or drink_table_texture == null:
 		return
-	var has_previous_drink := drink_manager != null and drink_manager.morning_drink_id != DrinkCatalog.NONE and drink_manager.afternoon_drink_id != DrinkCatalog.NONE
-	drink_table_button.position = DRINK_TABLE_NOON_POSITION if has_previous_drink else DRINK_TABLE_MORNING_POSITION
 	var spent: bool = _drink_is_spent_in_current_window()
-	var textures: Dictionary = DRINK_HALF_TEXTURES if spent else DRINK_FULL_TEXTURES
-	# Testing Drinks share the shop's filled placeholder glass; an empty glass
-	# incorrectly suggests an unused Drink is exhausted or unavailable.
-	var texture := textures.get(deal.current_drink_id, textures[DrinkCatalog.TRA_DA] if deal.current_drink_id != DrinkCatalog.NONE else null) as Texture2D
+	var texture := DrinkPresentation.texture(deal.current_drink_id, DrinkPresentation.fill_for(deal, spent))
 	drink_table_button.visible = texture != null
 	drink_table_texture.texture = texture
-	var tint: Color = Color.WHITE if DrinkCatalog.basic_ids().has(deal.current_drink_id) else DrinkShop.COLORS.get(DrinkCatalog.category(deal.current_drink_id), Color.WHITE)
-	drink_table_texture.modulate = tint * (Color(0.94, 0.94, 0.94, 0.92) if spent else Color.WHITE)
+	drink_table_texture.modulate = DrinkPresentation.tint(deal.current_drink_id)
 	drink_table_button.tooltip_text = drink_tooltip()
 
 

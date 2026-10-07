@@ -336,7 +336,7 @@ func _run() -> void:
 	_check(scene.get_node_or_null("GameLayer/ActionDock/MarginContainer/HBoxContainer/ContextDivider") != null and scene.get_node_or_null("GameLayer/ActionDock/MarginContainer/HBoxContainer/ActionDivider") != null, "bottom dock visibly separates context, utility, and core actions")
 	_check(scene.get_node_or_null("GameLayer/TableSurface/DrinkProps/ActiveDrink") == scene.drink_table_button, "active Drink has a clickable in-world table prop")
 	_check(scene.drink_table_texture != null and scene.drink_table_texture.texture != null and scene.drink_table_texture.texture.resource_path == "res://assets/drinks/tra_da_full.png", "unused starter Drink shows its full sprite")
-	_check(scene.drink_table_button.position == MatchUI.DRINK_TABLE_MORNING_POSITION, "morning Drink occupies the former HUD position to the right of the hand")
+	_check(scene.drink_table_button.position.is_equal_approx((scene.drink_table_button.get_parent() as Control).size + Vector2(-183, -8)), "Drink occupies the fixed slot on the table beside the hand: %s / %s" % [scene.drink_table_button.position, (scene.drink_table_button.get_parent() as Control).size])
 	_check(scene.drink_table_button.size == Vector2(112, 178) and scene.drink_table_texture.size == Vector2(112, 144), "the clickable Drink uses the sprite plus its separate nameplate footprint")
 	_check(scene.drink_charge_outline.get_parent() == scene.drink_table_button and scene.drink_charge_outline.size == Vector2(112, 144), "the blue charge outline wraps the Drink sprite itself")
 	_check(scene.drink_name_label.get_parent() == scene.drink_table_button and scene.drink_name_label.position.y >= scene.drink_table_texture.position.y + scene.drink_table_texture.size.y, "the bordered Drink name sits below the sprite")

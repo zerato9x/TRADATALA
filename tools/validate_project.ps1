@@ -93,6 +93,7 @@ try {
     Invoke-Check 'jukebox' 'res://tests/jukebox_scene_smoke.gd'
     Invoke-Check 'money-fast-forward' 'res://tests/money_fast_forward_smoke.gd'
     Invoke-Check 'boss-money-presence' 'res://tests/boss_money_presence_smoke.gd'
+    Invoke-Check 'drink-presentation' 'res://tests/drink_presentation_smoke.gd'
     Invoke-Check 'boss-dog-monkey' 'res://tests/dog_monkey_presentation_smoke.gd'
     Invoke-Check 'music-transport' 'res://tests/music_transport_smoke.gd'
     Invoke-Check 'music-write' 'res://tests/music_resume_scene_smoke.gd'

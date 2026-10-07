@@ -397,8 +397,9 @@ func _render_drink_detail(detail: VBoxContainer) -> void:
 	var id := selected_collection
 	detail.add_child(_label(DrinkCatalog.display_name(id), 24, GOLD))
 	var sprite := TextureRect.new()
-	var asset_path := "res://assets/drinks/%s_full.png" % id
-	sprite.texture = load(asset_path) if ResourceLoader.exists(asset_path) else preload("res://assets/drinks/tra_da_full.png")
+	sprite.name = "DrinkCollectionSprite"
+	sprite.texture = DrinkPresentation.texture(id)
+	sprite.modulate = DrinkPresentation.tint(id)
 	sprite.custom_minimum_size = Vector2(0, 100)
 	sprite.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	sprite.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED

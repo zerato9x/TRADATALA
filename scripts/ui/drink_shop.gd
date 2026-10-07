@@ -4,8 +4,6 @@ extends VBoxContainer
 signal drink_inspected(drink_id: String)
 signal order_requested(drink_id: String)
 
-const GLASS := preload("res://assets/drinks/glass_empty.png")
-const COLORS := {"basic": Color("b5d490"), "caffeine": Color("c69871"), "energy": Color("f4bd67"), "sugar": Color("a1d5df")}
 var selected_id: String = ""
 var _manager: DrinkManager
 var _completed: bool = false
@@ -81,13 +79,13 @@ func configure(manager: DrinkManager, completed: bool) -> void:
 			column.modulate = Color(0.42, 0.42, 0.42, 0.8)
 		button.add_child(column)
 		var glass := TextureRect.new()
+		glass.name = "DrinkSprite"
 		glass.custom_minimum_size = Vector2(0, 72)
 		glass.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		glass.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		glass.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-		var basic_path := "res://assets/drinks/%s_full.png" % drink_id
-		glass.texture = load(basic_path) if ResourceLoader.exists(basic_path) else preload("res://assets/drinks/tra_da_full.png")
-		glass.modulate = Color.WHITE if DrinkCatalog.basic_ids().has(drink_id) else COLORS.get(DrinkCatalog.category(drink_id), Color.WHITE)
+		glass.texture = DrinkPresentation.texture(drink_id)
+		glass.modulate = DrinkPresentation.tint(drink_id)
 		if not manager.is_unlocked(drink_id):
 			var shader := Shader.new()
 			shader.code = "shader_type canvas_item; void fragment() { vec4 c = texture(TEXTURE, UV); float g = dot(c.rgb, vec3(0.299, 0.587, 0.114)); COLOR *= vec4(vec3(g), c.a); }"

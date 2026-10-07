@@ -1,6 +1,5 @@
 [gd_scene format=3]
 
-[ext_resource type="Texture2D" path="res://assets/drinks/glass_empty.png" id="1_mygkg"]
 [ext_resource type="Texture2D" path="res://assets/drinks/tra_da_full.png" id="2_clyp3"]
 [ext_resource type="Texture2D" path="res://cards/red_backing.png" id="3_8panh"]
 [ext_resource type="Script" path="res://scripts/ui/card_action_outline.gd" id="4_e8ygk"]
@@ -1573,10 +1572,14 @@ mouse_filter = 2
 
 [node name="ActiveDrink" type="Button" parent="TableSurface/DrinkProps" unique_id=1025236126]
 layout_mode = 0
-offset_left = 1033.0
-offset_top = 398.0
-offset_right = 1145.0
-offset_bottom = 576.0
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -183.0
+offset_top = -8.0
+offset_right = -71.0
+offset_bottom = 170.0
 tooltip_text = "Đồ uống hiện tại: Trà đá
 
 Mỗi lượt một lần: nhấn Đồ uống trước, rồi chọn 1 lá bài rời để đổi nó với lá bỏ mới nhất. Số lá trên tay không đổi."
