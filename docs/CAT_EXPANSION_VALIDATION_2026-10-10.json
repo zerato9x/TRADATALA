@@ -1,0 +1,135 @@
+{
+  "date": "2026-10-10",
+  "engine": "Godot 4.7.1",
+  "scope": "Cat daytime persuasion through Kindred",
+  "checks": [
+    {
+      "name": "runtime",
+      "script": "res://tests/runtime_scene_smoke.gd",
+      "args": [],
+      "pass": true,
+      "marker": "TRADATALA_SCENE_SMOKE passed",
+      "stdout_sha256": "9C8A1B7FC8249B700CA1E88D69157DCBCDD118E52496FD1EB943C5FB909ADEF0",
+      "stderr_sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+    },
+    {
+      "name": "zodiac_scene",
+      "script": "res://tests/zodiac_scene_smoke.gd",
+      "args": [],
+      "pass": true,
+      "marker": "ZODIAC_SCENE_SMOKE checks=106 failures=0",
+      "stdout_sha256": "FE3A2ADFEA646478799C0F144D10BADBF9594DA91A48CA0F2AA0F8C34C047C75",
+      "stderr_sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+    },
+    {
+      "name": "boss-presentation",
+      "script": "res://tests/boss_presentation_smoke.gd",
+      "args": [],
+      "pass": true,
+      "marker": "BOSS_PRESENTATION_SMOKE checks=647 failures=0 rendered=true",
+      "stdout_sha256": "1C460C2B86051A3A84BF2BBA67006799543963273EB48C4153D7EC90326D8326",
+      "stderr_sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+    },
+    {
+      "name": "cat-scene",
+      "script": "res://tests/cat_persuasion_scene_smoke.gd",
+      "args": [],
+      "pass": true,
+      "marker": "CAT_PERSUASION_SCENE_SMOKE checks=333 failures=0 captures=29",
+      "stdout_sha256": "5790EE6CDCC6208289CEEBD4547298B95FD1303C3C61D12D666E3702928902A1",
+      "stderr_sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+    },
+    {
+      "name": "cat-expansion",
+      "script": "res://tests/cat_expansion_scene_smoke.gd",
+      "args": [],
+      "pass": true,
+      "marker": "CAT_EXPANSION_SCENE_SMOKE checks=557 failures=0 captures=60",
+      "stdout_sha256": "FA56D669C21CFAF884089F3BCC0A1E99350E16B03F9E2A17002843F0C098C962",
+      "stderr_sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+    },
+    {
+      "name": "cat-write",
+      "script": "res://tests/cat_persuasion_resume_smoke.gd",
+      "args": [
+        "--write"
+      ],
+      "pass": true,
+      "marker": "CAT_PERSUASION_RESUME_WRITE checks=14 failures=0",
+      "stdout_sha256": "69689119A07C2F905A4F116F69511C4F05B716156449A4CFB75814602252CA74",
+      "stderr_sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+    },
+    {
+      "name": "cat-read",
+      "script": "res://tests/cat_persuasion_resume_smoke.gd",
+      "args": [
+        "--read"
+      ],
+      "pass": true,
+      "marker": "CAT_PERSUASION_RESUME_READ checks=44 failures=0",
+      "stdout_sha256": "A9972E5203417D3F6D82B35AC6F8CBB3EF9B5F0DF380CA644DA2485316BAB11D",
+      "stderr_sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+    },
+    {
+      "name": "negotiation-write",
+      "script": "res://tests/zodiac_negotiation_resume_smoke.gd",
+      "args": [
+        "--write"
+      ],
+      "pass": true,
+      "marker": "ZODIAC_NEGOTIATION_RESUME_WRITE checks=5 failures=0",
+      "stdout_sha256": "8FF9B8F915118177C80AB73093A6B1BE3CD1136AB885D279798A10E4E7F2D5AB",
+      "stderr_sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+    },
+    {
+      "name": "negotiation-read",
+      "script": "res://tests/zodiac_negotiation_resume_smoke.gd",
+      "args": [
+        "--read"
+      ],
+      "pass": true,
+      "marker": "ZODIAC_NEGOTIATION_RESUME_READ checks=10 failures=0",
+      "stdout_sha256": "9FA7804F7429A59CDCAA1F42C2D98EFFB5C2DE68E0D49B04814967A67661E9F6",
+      "stderr_sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+    },
+    {
+      "name": "core",
+      "script": "res://tests/run_headless.gd",
+      "pass": true,
+      "marker": "TRADATALA_TESTS total=413 passed=413 failed=0 skipped=0",
+      "stdout_sha256": "206EC9CFA1763466D072EA9510FE20B9653E8A07267BB1687B9DD617892EAE42",
+      "stderr_sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+    }
+  ],
+  "editor_import": {
+    "pass": true,
+    "sha256": "F6B96C85169694AEBC3C07231DA7256CE6B705C97700B781A57028851ED0A2EE"
+  },
+  "screenshots": [
+    {
+      "path": "docs/screenshots/cat-expansion-2026-10-10/last_chance_vi.png",
+      "sha256": "66EEA969B45C6BDB3D9A72491FD65A08237716ACCB5D0E6BD5CE927077D0BC29"
+    },
+    {
+      "path": "docs/screenshots/cat-expansion-2026-10-10/last_chance_en.png",
+      "sha256": "4AB728F0FF093D7AA8D554288DF5FBED3D1CE5C39AD8237FC1900AFF493631F6"
+    },
+    {
+      "path": "docs/screenshots/cat-expansion-2026-10-10/chosen_card_remembered_en.png",
+      "sha256": "008FC4444318F1F590CA8F623F9D9FC6ECD6435686B8443EF83EDE9AC6110CA2"
+    },
+    {
+      "path": "docs/screenshots/cat-expansion-2026-10-10/choice_terms_vi_1280.png",
+      "sha256": "DC6D8E17C5CCAAE390A8F5C371EB565A6CE16A1F56A4B806FD9726BA900390E8"
+    },
+    {
+      "path": "docs/screenshots/cat-expansion-2026-10-10/cat.t2.card_memory_BROKEN_en_1280.png",
+      "sha256": "6029B32002A5C2FC07B05998EB490F06E82FB5CB0CC7A4D1195360A205837B2D"
+    }
+  ],
+  "source_dialogue_sha256": "84A401A39732EDEF2E1EE44A44BC48BAD5D4643245C4EAB6E69B08A65BE7DF1D",
+  "cat_rule_sha256": "7BBBB7B056309E1E0BA4AF9BAB574A424D2FE5E63F19DDBD33FE7B56116342DD",
+  "unrelated_dirty_baseline_changes": [],
+  "committed": false,
+  "pushed": false
+}

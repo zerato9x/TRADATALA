@@ -311,6 +311,8 @@ func refresh() -> void:
 		promise_label.text = ZodiacCatalog.words("PROMISE · ", "CAM KẾT · ") + ZodiacCatalog.display_name(host.campaign.zodiac.active_id())
 		for promise: Dictionary in host.campaign.zodiac.daily.get("promises", []):
 			if promise.get("engine", "") != "persuasion" or promise.get("outcome_applied", false): continue
+			if promise.accepted_terms.get("interaction", "") == "deal_action":
+				promise_label.text = ZodiacCatalog.display_name(host.campaign.zodiac.active_id()) + " · " + (ZodiacCatalog.words("Done", "Đã làm") if promise.get("matched", false) else ZodiacCatalog.words("Missed", "Quá hạn") if promise.broken else ZodiacCatalog.words("Pending", "Chưa làm"))
 			promise_label.text += "\n" + QuickInfo.promise(promise.accepted_terms, host.campaign.gieo_que.persistent_deck)
 			break
 		promise_panel.tooltip_text = ZodiacCatalog.words("Handbook", "Sổ tay")

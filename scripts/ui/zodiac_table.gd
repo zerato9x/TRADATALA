@@ -22,6 +22,8 @@ var selected_card_id := ""
 var selected_ids: Array[String] = []
 var target_preview: HBoxContainer
 var detail_button: Button
+var memory_button: Button
+var history_open := false
 var nameplate: Label
 var details_open := false
 var _clock := 0.0
@@ -91,6 +93,9 @@ func configure(match_host: Control) -> void:
 	status = _label(16)
 	mechanics = _label(16)
 	mechanics.hide()
+	for label: Label in [contract_label, status, mechanics]:
+		label.remove_meta("conversation_text")
+		TextReveal.finish(label)
 	target_preview = HBoxContainer.new()
 	target_preview.name = "DemandCards"
 	target_preview.add_theme_constant_override("separation", 8)
@@ -115,7 +120,15 @@ func configure(match_host: Control) -> void:
 	detail_button = Button.new()
 	detail_button.name = "ZodiacDetails"
 	detail_button.pressed.connect(_open_handbook)
-	body.add_child(detail_button)
+	var detail_row := HBoxContainer.new()
+	body.add_child(detail_row)
+	detail_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	detail_row.add_child(detail_button)
+	memory_button = Button.new()
+	memory_button.name = "CatMemory"
+	memory_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	memory_button.pressed.connect(_show_history)
+	detail_row.add_child(memory_button)
 	close_button = Button.new()
 	close_button.name = "CloseConversation"
 	close_button.custom_minimum_size.y = 40
@@ -143,7 +156,12 @@ func refresh() -> void:
 	close_button.text = ZodiacCatalog.words("Back to the table", "Về bàn")
 	detail_button.text = ZodiacCatalog.words("Handbook", "Sổ tay")
 	PresentationTheme.configure_button(detail_button)
-	if shade.visible and scene_page < 0: _build_conversation()
+	memory_button.text = ZodiacCatalog.localized(ZodiacCatalog.persuasion_config(service.active_id()).get("memory_button", {"en": "Cat's memory", "vi": "Điều Mão nhớ"}))
+	memory_button.visible = service.uses_persuasion()
+	PresentationTheme.configure_button(memory_button)
+	if shade.visible and scene_page < 0:
+		if history_open: _show_history()
+		else: _build_conversation()
 
 func open_conversation() -> void:
 	if not _event_available() or host.modal_overlay.visible or host.score_overlay.visible: return
@@ -152,6 +170,7 @@ func open_conversation() -> void:
 		host.event_table.focus_npc(EventTableController.NPC_ZODIAC)
 		return
 	scene_page = -1
+	history_open = false
 	host.event_table.content_panel.hide()
 	host.event_table.conversation.hide()
 	shade.show()
@@ -183,6 +202,8 @@ func _button(text: String, action: Callable) -> Button:
 	return button
 
 func _build_conversation() -> void:
+	history_open = false
+	dialogue.set_meta("conversation_text", true)
 	_clear_choices()
 	choices.columns = 3
 	if service.uses_persuasion():
@@ -274,7 +295,7 @@ func _build_persuasion() -> void:
 		var result: Dictionary = visit.outcomes[-1]
 		status.text += " · " + (ZodiacCatalog.words("Kept", "Đã giữ") if result.resolved_successfully else ZodiacCatalog.words("Broken", "Thất hứa"))
 	if quote.stage == "judged" and service.progress.relationship_tier(service.active_id()) > int(visit.get("relationship_at_start", 1)):
-		status.text += " · " + ZodiacCatalog.words("FAMILIAR +", "QUEN MẶT +")
+		status.text += " · " + ZodiacCatalog.relationship_label(service.progress.relationship_tier(service.active_id())) + " +"
 	targets.hide()
 	alterations.hide()
 	card_select_button.hide()
@@ -304,7 +325,10 @@ func _build_persuasion() -> void:
 		var haggle := _button(ZodiacCatalog.words("HAGGLE", "MẶC CẢ"), _respond.bind("HAGGLE", token))
 		haggle.disabled = not quote.can_haggle
 		haggle.mouse_filter = Control.MOUSE_FILTER_IGNORE if haggle.disabled else Control.MOUSE_FILTER_STOP
-		haggle.tooltip_text = ZodiacCatalog.words("No valid replacement target is available.", "Không có đối tượng thay thế hợp lệ.") if haggle.disabled and quote.stage != "counteroffer" else ""
+		haggle.tooltip_text = (ZodiacCatalog.words("You already choose one of the three cards.", "Bạn đã được chọn một trong ba lá.") if quote.demand.get("authority", "") == "OFFER_THREE_PLAYER_CHOOSES" else ZodiacCatalog.words("No valid replacement target is available.", "Không có đối tượng thay thế hợp lệ.")) if haggle.disabled and quote.stage != "counteroffer" else ""
+	elif service.active_id() != "cat" and service.progress.record(service.active_id()).get("special_scene_unlocked", false) and not service.progress.owns(service.active_id()):
+		choices.columns = 1
+		_button(ZodiacCatalog.words("A private moment…", "Một khoảnh khắc riêng…"), func(): scene_page = 0; _show_scene())
 
 func _answer_button(answer_id: String, answer_text: String) -> Button:
 	var button := _button("", Callable())
@@ -314,6 +338,7 @@ func _answer_button(answer_id: String, answer_text: String) -> Button:
 	button.set_meta("answer_text", answer_text)
 	var label := Label.new()
 	label.text = answer_id + " · " + answer_text
+	label.name = "AnswerText"
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.add_theme_font_size_override("font_size", 17)
@@ -411,6 +436,7 @@ func _respond(response: String, expected_offer: String = "") -> void:
 	_focus_first_choice.call_deferred()
 
 func _show_history() -> void:
+	history_open = true
 	_clear_choices()
 	contract_label.hide()
 	card_select_button.hide()
@@ -420,6 +446,33 @@ func _show_history() -> void:
 	alterations.hide()
 	var id := service.active_id()
 	var history := service.progress.record(id)
+	if service.uses_persuasion():
+		var config := ZodiacCatalog.persuasion_config(id)
+		dialogue.remove_meta("conversation_text")
+		TextReveal.finish(dialogue)
+		dialogue.text = ZodiacCatalog.localized(config.get("memory_title", {"en": "What Cat remembers", "vi": "Điều Mão nhớ"}))
+		status.text = ZodiacCatalog.relationship_label(service.progress.relationship_tier(id))
+		mechanics.text = ZodiacCatalog.words("Promises kept: %d · Broken: %d · Refused: %d", "Giữ lời: %d · Thất hứa: %d · Từ chối: %d") % [int(history.get("promises_kept", 0)), int(history.get("promises_broken", 0)), int(history.get("promises_refused", 0))]
+		for step: Dictionary in config.get("progression", []):
+			if service.progress.relationship_tier(id) != int(step.from): continue
+			mechanics.text += "\n\n" + (ZodiacCatalog.words("To become %s: keep %d promises across %d kinds, then finish a visit at Normal or Pleased.\nKept: %d / %d · Kinds: %d / %d", "Để thành %s: giữ %d lời hứa thuộc %d loại, rồi kết thúc lần gặp ở Bình thường hoặc Hài lòng.\nGiữ lời: %d / %d · Loại: %d / %d") % [ZodiacCatalog.relationship_label(int(step.to)), int(step.kept), int(step.distinct), mini(int(step.kept), int(history.get("promises_kept", 0))), int(step.kept), mini(int(step.distinct), service.progress.promise_kinds(id)), int(step.distinct)])
+		var topics: Dictionary = service.progress.memories.get(id, {})
+		if topics.is_empty(): mechanics.text += "\n\n" + ZodiacCatalog.words("No promises to remember yet.", "Chưa có lời hứa nào để nhớ.")
+		for topic in topics:
+			var entry: Dictionary = topics[topic]
+			var result_label: String = {"FULFILLED": ZodiacCatalog.words("Kept", "Đã giữ"), "BROKEN": ZodiacCatalog.words("Broken", "Thất hứa"), "REFUSED": ZodiacCatalog.words("Refused", "Đã từ chối")}.get(entry.result, "")
+			var topic_label: String = {"cat.leave_card": ZodiacCatalog.words("Leave it alone", "Để yên nó"), "cat.keep_relic": ZodiacCatalog.words("Keep it", "Giữ nó"), "cat.protect_card": ZodiacCatalog.words("Don't change it", "Đừng đổi nó")}.get(topic, "")
+			if config.get("memory_topics", {}).has(topic): topic_label = ZodiacCatalog.localized(config.memory_topics[topic])
+			mechanics.text += "\n\n%s · %s\n%s" % [topic_label, result_label, ZodiacCatalog.memory_target(entry)]
+		choices.columns = 1
+		if not config.get("emblem_unlock", {}).is_empty():
+			mechanics.text += "\n\n" + ZodiacCatalog.words("EMBLEM · Kindred, 3 kept promises across 2 kinds, 1 honest refusal, and 1 Pleased boss victory. Meet again to share a private moment.", "HUY HIỆU · Hợp cạ, giữ 3 lời hứa thuộc 2 loại, 1 lần từ chối thẳng và 1 lần thắng boss Hài lòng. Gặp lại để có khoảnh khắc riêng.")
+			mechanics.text += "\n" + (ZodiacCatalog.words("Refusals: %d / 1 · Pleased victories: %d / 1", "Từ chối: %d / 1 · Thắng Hài lòng: %d / 1") % [mini(1, int(history.get("promises_refused", 0))), mini(1, int(history.get("pleased_victories", 0)))])
+			if service.progress.owns(id):
+				_button(ZodiacCatalog.words("Call ", "Gọi ") + ZodiacCatalog.display_name(id), func(): service.prefer_emblem(id); _show_history())
+				_button(ZodiacCatalog.words("Use seeded appearance", "Chọn theo hạt giống"), func(): service.prefer_emblem(); _show_history())
+		_button(ZodiacCatalog.words("Back", "Trở lại"), _build_conversation)
+		return
 	dialogue.text = ZodiacCatalog.words("EMBLEM", "HUY HIỆU")
 	mechanics.text = ""
 	var labels := {"requests_resolved": ZodiacCatalog.words("Requests resolved", "Yêu cầu hoàn thành"), "requests_refused_successfully": ZodiacCatalog.words("Respected refusals", "Từ chối được tôn trọng"), "pleased_victories": ZodiacCatalog.words("Pleased boss victories", "Thắng boss hài lòng"), "restraint_kept": ZodiacCatalog.words("Restraint promises kept", "Cam kết kiềm chế đã giữ")}

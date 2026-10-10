@@ -53,9 +53,14 @@ func _eligible(node: Dictionary) -> bool:
 	if node.get("once_only", false) and history.get("content:" + String(node.id), false): return false
 	for flag: String in node.get("requirements", {}).get("history", {}):
 		if int(history.get(flag, 0)) < int(node.requirements.history[flag]): return false
+	if node.has("memory_key"):
+		var remembered: Dictionary = service.progress.memory(service.active_id(), node.memory_key)
+		if not node.get("prompts", {}).has(remembered.get("result", "")): return false
 	var terms: Dictionary = node.get("promise", {})
 	if terms.is_empty(): return true
-	return not _target_pool(terms).is_empty()
+	if terms.get("target_kind", "") == "ACTION": return _action_terms_valid(terms)
+	var pool := _target_pool(terms)
+	return pool.size() >= (3 if node.get("initial_authority", "") == "OFFER_THREE_PLAYER_CHOOSES" else 1)
 
 func _target_pool(terms: Dictionary) -> Array:
 	if terms.get("target_kind", "") == "RELIC":
@@ -74,6 +79,16 @@ func _open_node() -> void:
 		visit.status = "awaiting_afternoon" if not service.daily.promises.is_empty() else "complete"
 		return
 	visit.node = visit.plan[visit.cursor].duplicate(true)
+	if visit.node.has("memory_key"):
+		# Bind once. Refreshing or resuming cannot rewrite the recalled event.
+		var remembered: Dictionary = service.progress.memory(service.active_id(), visit.node.memory_key)
+		visit.node["bound_memory"] = remembered
+		visit.node["prompt"] = visit.node.get("prompts", {}).get(remembered.get("result", ""), []).duplicate(true)
+		for line: Dictionary in visit.node.prompt:
+			line.en = String(line.en).replace("{target}", ZodiacCatalog.memory_target(remembered, "en"))
+			line.vi = String(line.vi).replace("{target}", ZodiacCatalog.memory_target(remembered, "vi"))
+		if visit.node.has("answers_by_result"):
+			visit.node["answers"] = visit.node.answers_by_result.get(remembered.get("result", ""), []).duplicate(true)
 	visit.stage = "question"
 	visit.dialogue = visit.node.get("prompt", []).duplicate(true)
 	visit.terms = {}
@@ -82,6 +97,13 @@ func _open_node() -> void:
 	visit.next_node_id = ""
 	if visit.node.has("promise"):
 		visit.terms = visit.node.promise.duplicate(true)
+		visit.terms["target_ids"] = []
+		visit.terms["relic_id"] = ""
+		visit.terms["offered_ids"] = []
+		visit.terms["authority"] = "PLAYER_COMMITS"
+		if visit.terms.get("target_kind", "") == "ACTION":
+			service.conversation_history[service.active_id()] = visit.node.id
+			return
 		var pool := _target_pool(visit.terms)
 		# Requirements were checked before selection. Never substitute different terms.
 		if pool.is_empty():
@@ -93,6 +115,10 @@ func _open_node() -> void:
 		visit.terms["relic_id"] = target if target is String else ""
 		visit.terms["offered_ids"] = []
 		visit.terms["authority"] = "ZODIAC_CHOOSES"
+		if visit.node.get("initial_authority", "") == "OFFER_THREE_PLAYER_CHOOSES":
+			visit.terms.authority = "OFFER_THREE_PLAYER_CHOOSES"
+			visit.terms.offered_ids = CardTargetQuery.physical_ids(CardTargetQuery.random_cards(pool, 3, _rng))
+			visit.terms.target_ids = []
 	service.conversation_history[service.active_id()] = visit.node.id
 
 func token() -> String:
@@ -186,8 +212,13 @@ func resolve_last_chance(answer_id: String, expected: String = "") -> bool:
 	if not _can_interact(expected) or state().get("stage", "") != "last_chance": return false
 	for choice: Dictionary in state().get("recovery_node", {}).get("answers", []):
 		if choice.get("id", "") != answer_id or not choice.has("recovery_success"): continue
-		state().dialogue = choice.get("reaction", []).duplicate(true)
+		if not service.begin_commit(): return false
+		state().dialogue = [{"speaker": "player", "en": choice.en, "vi": choice.vi}]
+		state().dialogue.append_array(choice.get("reaction", []).duplicate(true))
 		_complete_last_chance(bool(choice.recovery_success))
+		state().history.append({"kind": "LAST_CHANCE", "answer_id": answer_id, "recovered": bool(choice.recovery_success), "dialogue": state().dialogue.duplicate(true)})
+		service.progress.commit(service.active_id(), token() + ":recovery", {"last_chances_recovered" if choice.recovery_success else "last_chances_declined": 1})
+		service.finish_commit()
 		service.changed.emit()
 		return true
 	return false
@@ -222,16 +253,25 @@ func can_accept(ids: Array = []) -> bool:
 
 func _terms_valid(offer: Dictionary) -> bool:
 	if offer.is_empty(): return false
+	if offer.get("target_kind", "") == "ACTION": return _action_terms_valid(offer)
 	if offer.target_kind == "RELIC": return offer.get("relic_id", "") in service.campaign.relic_shop.runtime.inventory
 	var pool := _target_pool(offer)
 	var ids: Array = offer.offered_ids if offer.get("authority", "") == "OFFER_THREE_PLAYER_CHOOSES" else offer.target_ids
 	return not ids.is_empty() and CardTargetQuery.resolve_ids(pool, ids).size() == ids.size()
 
+func _action_terms_valid(offer: Dictionary) -> bool:
+	if offer.get("interaction", "") != "deal_action" or offer.get("polarity", "") != "DO" or offer.get("window", "") != "NEXT_DEAL": return false
+	if offer.get("condition", "") == "early_score": return int(offer.get("deal_phase", 0)) == 1
+	return offer.get("condition", "") == "do_action" and offer.get("action", "") in ["new_meld", "extension"] and int(offer.get("deal_phase", -1)) in [0, 1, 2]
+
 func can_haggle() -> bool:
-	return has_terms() and state().counteroffer.is_empty() and not _counter_pool().is_empty()
+	return has_terms() and state().counteroffer.is_empty() and terms().get("authority", "") != "OFFER_THREE_PLAYER_CHOOSES" and not _counter_pool().is_empty()
 
 func _counter_pool() -> Array:
 	var strategy: String = state().get("node", {}).get("responses", {}).get("HAGGLE", {}).get("strategy", "")
+	if strategy == "ALTERNATE_ACTION":
+		var alternative: Dictionary = state().node.responses.HAGGLE.get("terms", {})
+		return [alternative] if _action_terms_valid(alternative) else []
 	var pool := _target_pool(terms())
 	match strategy:
 		"OFFER_THREE": return pool if pool.size() >= 3 else []
@@ -249,6 +289,7 @@ func respond(response: String, ids: Array = [], expected: String = "") -> Dictio
 	var counter: bool = not visit.counteroffer.is_empty()
 	if response == "ACCEPT" and offer.authority == "OFFER_THREE_PLAYER_CHOOSES": offer.target_ids = ids.duplicate()
 	var response_key := "COUNTER_ACCEPT" if counter and response == "ACCEPT" and visit.node.responses.has("COUNTER_ACCEPT") else response
+	if counter and response == "REFUSE" and visit.node.responses.has("COUNTER_REFUSE"): response_key = "COUNTER_REFUSE"
 	var authored: Dictionary = visit.node.responses[response_key]
 	var result := {"ok": true, "kind": "PROMISE", "node_id": visit.node.id, "response": response,
 		"terms": offer, "counteroffer_accepted": counter and response == "ACCEPT", "pending": response == "ACCEPT",
@@ -263,7 +304,8 @@ func respond(response: String, ids: Array = [], expected: String = "") -> Dictio
 			"zodiac": service.active_id(), "accepted_terms": offer.duplicate(true), "target_ids": offer.target_ids.duplicate(),
 			"relic_id": offer.relic_id, "window": offer.window, "phase": CampaignManager.CampaignPhase.AFTERNOON_DEAL,
 			"judgement_slot": EventManager.EventSlot.AFTERNOON, "accepted_day": service.daily.day,
-			"status": "pending", "started": offer.window == "ZODIAC_RETURN", "completed": false, "broken": false,
+			"memory_details": _memory_details(offer, visit.node.id, "", counter),
+			"status": "pending", "started": offer.window == "ZODIAC_RETURN", "completed": false, "broken": false, "matched": false,
 			"observations": {}, "outcome_applied": false, "outcomes": visit.node.outcomes.duplicate(true), "baseline": {}}
 		if offer.target_kind == "CARD":
 			var card: CardData = CardTargetQuery.resolve_ids(service.campaign.gieo_que.persistent_deck, offer.target_ids)[0]
@@ -271,6 +313,10 @@ func respond(response: String, ids: Array = [], expected: String = "") -> Dictio
 		service.daily.promises.append(promise)
 		result["promise_id"] = promise_id
 		if counter: visit.counteroffer = offer.duplicate(true)
+	else:
+		var refusal_id: String = service.record_key("refusal:%s:%d" % [offer.id, int(visit.cursor)])
+		service.progress.commit(service.active_id(), refusal_id, {"promises_refused": 1})
+		service.progress.remember(service.active_id(), refusal_id + ":memory", offer.id, _memory_details(offer, visit.node.id, "REFUSED", counter))
 	visit.dialogue = authored.dialogue.duplicate(true)
 	visit.next_stage = "advance"
 	visit.stage = "reaction"
@@ -282,12 +328,27 @@ func respond(response: String, ids: Array = [], expected: String = "") -> Dictio
 	service.changed.emit()
 	return result
 
+func _memory_details(offer: Dictionary, node_id: String, result: String, counter: bool) -> Dictionary:
+	var card_id: String = offer.get("target_ids", [])[0] if not offer.get("target_ids", []).is_empty() else ""
+	var cards := CardTargetQuery.resolve_ids(service.campaign.gieo_que.persistent_deck, [card_id])
+	var label: String = cards[0].short_label() if not cards.is_empty() else "that card"
+	var details := {"result": result, "node_id": node_id, "target_id": card_id, "target_label": label,
+		"relic_id": String(offer.get("relic_id", "")), "counteroffer": counter}
+	if offer.get("target_kind", "") == "ACTION":
+		details.target_label = ""
+		details["commitment_en"] = String(offer.get("en", ""))
+		details["commitment_vi"] = String(offer.get("vi", ""))
+	return details
+
 func _haggle() -> Dictionary:
 	if not can_haggle(): return {"ok": false, "error": "no_counteroffer"}
 	var pool := _counter_pool()
 	var counter := terms().duplicate(true)
 	var strategy: String = state().node.responses.HAGGLE.strategy
-	if strategy == "OFFER_THREE":
+	if strategy == "ALTERNATE_ACTION":
+		counter = pool[0].duplicate(true)
+		counter.merge({"target_ids": [], "relic_id": "", "offered_ids": [], "authority": "PLAYER_COMMITS"})
+	elif strategy == "OFFER_THREE":
 		counter.authority = "OFFER_THREE_PLAYER_CHOOSES"
 		counter.offered_ids = CardTargetQuery.physical_ids(CardTargetQuery.random_cards(pool, 3, _rng))
 		counter.target_ids = []
@@ -325,6 +386,28 @@ func finish_deal(period: String) -> void:
 	for promise: Dictionary in service.daily.get("promises", []):
 		if promise.get("engine", "") == "persuasion" and promise.get("deal_started", false): promise.completed = true
 
+func observe_action(result: Dictionary, event_id: String) -> void:
+	if service.is_restoring() or service.campaign == null or service.deal == null or not result.get("ok", false): return
+	if service.campaign.current_phase != CampaignManager.CampaignPhase.AFTERNOON_DEAL: return
+	for promise: Dictionary in service.daily.get("promises", []):
+		if promise.get("engine", "") != "persuasion" or not promise.get("deal_started", false) or promise.get("completed", false) or promise.get("outcome_applied", false): continue
+		var offer: Dictionary = promise.accepted_terms
+		if offer.get("interaction", "") != "deal_action" or promise.observations.has(event_id): continue
+		var action: String = result.get("action", "")
+		var phase: int = service.deal.current_phase
+		var context: ScoringContext = result.get("context")
+		var matches := false
+		if offer.condition == "early_score":
+			matches = phase == 1 and service.deal.discard_count == 0 and action in ["new_meld", "extension"] and context != null and context.final_points > 0
+			if not promise.get("matched", false) and (phase > 1 or (action == "discard" and result.get("discard_kind", "") == DiscardRecord.KIND_MANDATORY)):
+				promise.broken = true
+		elif action == offer.action and context != null:
+			matches = int(offer.deal_phase) == 0 or phase == int(offer.deal_phase)
+		if not matches and not promise.broken: continue
+		promise.observations[event_id] = {"action": action, "phase": phase, "mandatory_discards": service.deal.discard_count, "matched": matches}
+		if matches and not promise.broken: promise.matched = true
+		service.changed.emit()
+
 func observe_cards(ids: Array, event_id: String, interaction: String) -> void:
 	if service.is_restoring(): return
 	for promise: Dictionary in service.daily.get("promises", []):
@@ -355,7 +438,7 @@ func judge() -> void:
 		if promise.accepted_terms.interaction == "card_alter":
 			var cards := CardTargetQuery.resolve_ids(service.campaign.gieo_que.persistent_deck, promise.target_ids)
 			if cards.is_empty() or cards[0].persuasion_fingerprint() != promise.baseline: promise.broken = true
-		var success := not bool(promise.broken)
+		var success: bool = not bool(promise.broken) and (promise.accepted_terms.get("interaction", "") != "deal_action" or bool(promise.get("matched", false)))
 		var authored: Dictionary = promise.outcomes["FULFILLED" if success else "BROKEN"]
 		# Settle once, before emitting observers or writing permanent history.
 		promise.outcome_applied = true
@@ -366,7 +449,13 @@ func judge() -> void:
 			"dialogue": authored.dialogue.duplicate(true), "authored_delta": int(authored.delta), "pending": false}
 		state().outcomes.append(result)
 		service.daily.last_result = result
-		service.progress.commit(service.active_id(), String(promise.id) + ":judged", {"promises_kept" if success else "promises_broken": 1})
+		var semantic_id: String = promise.get("semantic_id", promise.accepted_terms.id)
+		var increments := {"promises_kept" if success else "promises_broken": 1}
+		increments[("promise_kept:" if success else "promise_broken:") + semantic_id] = 1
+		service.progress.commit(service.active_id(), String(promise.id) + ":judged", increments)
+		var remembered: Dictionary = promise.get("memory_details", _memory_details(promise.accepted_terms, promise.node_id, "", false)).duplicate(true)
+		remembered.result = "FULFILLED" if success else "BROKEN"
+		service.progress.remember(service.active_id(), String(promise.id) + ":memory", semantic_id, remembered)
 		service.daily.promises.erase(promise)
 	if service.daily.get("promises", []).any(func(promise: Dictionary): return promise.get("engine", "") == "persuasion" and not promise.get("outcome_applied", false)): return
 	state().judged = true
@@ -379,12 +468,16 @@ func reminder() -> String:
 	var lines: Array[String] = []
 	for promise: Dictionary in service.daily.get("promises", []):
 		if promise.get("engine", "") != "persuasion" or promise.get("outcome_applied", false): continue
-		lines.append(describe_terms(promise.accepted_terms))
+		var line := describe_terms(promise.accepted_terms)
+		if promise.accepted_terms.get("interaction", "") == "deal_action":
+			line += "\n" + (ZodiacCatalog.words("Done · judged on return", "Đã làm · xét khi gặp lại") if promise.get("matched", false) else ZodiacCatalog.words("Deadline missed", "Đã quá hạn") if promise.broken else ZodiacCatalog.words("Pending", "Chưa hoàn thành"))
+		lines.append(line)
 	return "\n".join(lines)
 
 func describe_terms(offer: Dictionary) -> String:
 	if offer.is_empty(): return ""
 	var text := ZodiacCatalog.localized(offer)
+	if offer.get("target_kind", "") == "ACTION": return text
 	var names: Array[String] = []
 	if offer.target_kind == "RELIC": names.append(RelicCatalog.display_name(offer.relic_id))
 	else:

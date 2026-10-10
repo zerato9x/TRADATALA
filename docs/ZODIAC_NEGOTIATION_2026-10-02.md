@@ -1,6 +1,6 @@
 # Zodiac Noon / Afternoon negotiation — 2026-10-02
 
-This records the October 2 implementation and validation. Rooster continues to use this demand grammar. Fresh Cat encounters now use [the authored Tier 1 / Tier 1+ persuasion flow](CAT_PERSUASION_VERTICAL_SLICE_2026-10-03.md); Cat demand counts, old personality favorites, and Special-scene progression described below apply only to historical behavior or an already-started legacy save. The October 3 report contains current validation results.
+This records the October 2 implementation and validation. Fresh Rooster encounters now use [authored persuasion through Kindred](ROOSTER_EXPANSION_2026-10-10.md). Fresh Cat encounters use [the authored Tier 1 / Tier 1+ persuasion flow](CAT_PERSUASION_VERTICAL_SLICE_2026-10-03.md) and [the Kindred expansion](CAT_EXPANSION_2026-10-10.md). Demand counts, old personality favorites, and negotiation progression described below apply to historical behavior or an already-started legacy save.
 
 The fixed pay → promise → alter → gift sequence has been replaced with campaign-owned, configurable Noon demand chains. The day's Zodiac uses its supplied overlay in the Event Table's top-right NPC slot at **NOON** and **AFTERNOON**. Lottery Uncle still occupies that slot in Morning; in Afternoon he appears only in the lottery result receipt. Dragon remains the existing post-Snake endgame encounter.
 

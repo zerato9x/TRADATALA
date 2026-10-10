@@ -24,6 +24,7 @@ func _fixture() -> CampaignManager:
 	campaign.zodiac.progress.commit("rooster", "fixture", {}, ["emblem_unlocked"])
 	campaign.zodiac.choose_emblem(0, "rooster")
 	campaign.start_campaign(true, "ZODIAC-RESUME")
+	campaign.zodiac.daily["legacy_negotiation"] = true
 	campaign._enter_phase(CampaignManager.CampaignPhase.NOON_EVENT)
 	return campaign
 

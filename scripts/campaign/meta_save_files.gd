@@ -72,6 +72,7 @@ func attach(campaign: RefCounted) -> void:
 	var zodiac := ZodiacProgress.new("")
 	zodiac.records = data.get("zodiac", {}).get("records", {}).duplicate(true)
 	zodiac.seen = data.get("zodiac", {}).get("seen", {}).duplicate()
+	zodiac.memories = data.get("zodiac", {}).get("memories", {}).duplicate(true)
 	zodiac.path = meta_path()
 	zodiac.save_callback = _persist_attached
 	campaign.zodiac.progress = zodiac
@@ -218,6 +219,19 @@ func _valid(value: Dictionary) -> bool:
 			if not _text_key(key) or not (entry is bool or entry is int) or (entry is int and entry < 0): return false
 	for key in value.zodiac.seen:
 		if not _text_key(key) or not value.zodiac.seen[key] is bool: return false
+	if not value.zodiac.get("memories", {}) is Dictionary: return false
+	for id in value.zodiac.get("memories", {}):
+		if not _text_key(id) or not value.zodiac.memories[id] is Dictionary: return false
+		for topic in value.zodiac.memories[id]:
+			var entry: Variant = value.zodiac.memories[id][topic]
+			if not _text_key(topic) or not entry is Dictionary: return false
+			if not entry.get("revision") is int or int(entry.revision) < 1: return false
+			if entry.get("result", "") not in ["FULFILLED", "BROKEN", "REFUSED"]: return false
+			for key in ["event_id", "node_id", "target_id", "target_label", "relic_id"]:
+				if not entry.get(key) is String: return false
+			if not entry.get("counteroffer") is bool: return false
+			if entry.has("commitment_en") or entry.has("commitment_vi"):
+				if not entry.get("commitment_en") is String or not entry.get("commitment_vi") is String: return false
 	return _plain(value, 0)
 
 func _text_key(value: Variant) -> bool:

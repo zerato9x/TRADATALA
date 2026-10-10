@@ -49,6 +49,8 @@ const LEGACY_CAT_PROFILE := {"demand_range": [2, 3], "thresholds": [1, 2], "refu
 			{"verb": "PAY", "resource_amount": 5000}],
 		"promises": [{"condition": "wallet_floor", "resource_amount": 5000}, {"condition": "dont_action", "action": "extension"}]}
 const CAT_PERSUASION := preload("res://scripts/zodiac/content/cat_tier_1.gd")
+const CAT_EXPANSION := preload("res://scripts/zodiac/content/cat_expansion.gd")
+const ROOSTER_PERSUASION := preload("res://scripts/zodiac/content/rooster_persuasion.gd")
 const DEFINITIONS := {
 	"rooster": {"thresholds": [1, 2], "deadlines": {"PLEASED": 3, "NORMAL": 2, "NEUTRAL": 2, "UNPLEASED": 1},
 		"favorites": ["toothpicks", "sunflower_seeds"], "favorite_tags": ["practical"],
@@ -78,14 +80,29 @@ static func negotiation_profile(id: String, legacy_cat: bool = false) -> Diction
 	return NEGOTIATION_PROFILES.get(id, {}).duplicate(true)
 
 static func persuasion_nodes(id: String) -> Array:
-	return CAT_PERSUASION.NODES.duplicate(true) if id == "cat" else []
+	var sources: Array = []
+	if id == "cat":
+		sources = CAT_PERSUASION.NODES.duplicate(true) + CAT_EXPANSION.NODES.duplicate(true)
+	elif id == "rooster": sources = ROOSTER_PERSUASION.NODES.duplicate(true)
+	var nodes: Array = []
+	for authored: Dictionary in sources:
+		var node := authored.duplicate(true)
+		if node.has("promise_from"):
+			for source: Dictionary in sources:
+				if source.id != node.promise_from: continue
+				for key in ["promise", "responses", "outcomes"]:
+					if not node.has(key): node[key] = source[key].duplicate(true)
+		nodes.append(node)
+	return nodes
 
 static func persuasion_content_rank(tier: Variant) -> int:
 	var label := str(tier)
 	return label.trim_suffix("+").to_int() * 2 + (1 if label.ends_with("+") else 0)
 
 static func persuasion_config(id: String) -> Dictionary:
-	return CAT_PERSUASION.CONFIG.duplicate(true) if id == "cat" else {}
+	if id == "cat": return CAT_EXPANSION.CONFIG.duplicate(true)
+	if id == "rooster": return ROOSTER_PERSUASION.CONFIG.duplicate(true)
+	return {}
 
 static func persuasion_special(id: String, history: Dictionary) -> Dictionary:
 	# Specials are authored overrides, never a random content bucket.
@@ -98,6 +115,13 @@ static func persuasion_special(id: String, history: Dictionary) -> Dictionary:
 
 static func patience_disposition(patience: int) -> String:
 	return "PLEASED" if patience >= 4 else "NORMAL" if patience >= 2 else "UNPLEASED"
+
+static func memory_target(entry: Dictionary, locale: String = "") -> String:
+	if entry.has("commitment_en"):
+		return localized({"en": entry.commitment_en, "vi": entry.commitment_vi}) if locale.is_empty() else entry.get("commitment_vi" if locale.begins_with("vi") else "commitment_en", "")
+	var relic_id: String = entry.get("relic_id", "")
+	if not relic_id.is_empty(): return RelicCatalog.display_name(relic_id) if locale.is_empty() else RelicCatalog.name_in(relic_id, locale)
+	return entry.get("target_label", words("that card", "lá bài đó"))
 
 static func relationship_label(tier: int) -> String:
 	return words(["STRANGER", "FAMILIAR", "KINDRED", "CONFIDANT", "COMPANION"][clampi(tier, 1, 5) - 1],

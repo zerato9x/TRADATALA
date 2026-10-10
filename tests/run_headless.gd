@@ -19,6 +19,7 @@ func _run() -> void:
 		preload("res://tests/test_boss_debug.gd").new(),
 		preload("res://tests/test_hand_advice.gd").new(),
 		preload("res://tests/test_zodiac.gd").new(), preload("res://tests/test_cat_persuasion.gd").new(),
+		preload("res://tests/test_rooster_persuasion.gd").new(),
 		preload("res://tests/test_zodiac_runtime.gd").new(),
 		preload("res://tests/test_zodiac_endgame.gd").new(),
 		preload("res://tests/test_presentation_text.gd").new(),

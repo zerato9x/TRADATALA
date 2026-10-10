@@ -1,7 +1,7 @@
 extends SceneTree
 ## Fresh processes restore shown content, chosen identities, and real breaches.
 const EXPECTED := "user://cat_persuasion_expected.values"
-const CASES := ["question", "reaction", "counteroffer", "untouched", "relic", "altered", "judged"]
+const CASES := ["question", "reaction", "counteroffer", "untouched", "relic", "altered", "judged", "kindred_memory", "kindred_choice", "last_chance"]
 var checks := 0
 var failures: Array[String] = []
 
@@ -36,7 +36,7 @@ func _node(service: ZodiacService, id: String) -> void:
 
 func _record(service: ZodiacService) -> Dictionary:
 	return {"daily": service.daily.duplicate(true), "rng": service._rng.state,
-		"memory": service.conversation_history.duplicate(), "quote": service.quote(), "mood": service.mood()}
+		"memory": service.conversation_history.duplicate(), "quote": service.quote(), "mood": service.mood(), "memories": service.progress.memories.duplicate(true)}
 
 func _run() -> void:
 	var writing := "--write" in OS.get_cmdline_user_args()
@@ -51,7 +51,19 @@ func _run() -> void:
 		var service := campaign.zodiac
 		var save := RunSave.new("user://cat_resume_" + case + ".save")
 		if writing:
-			if case == "reaction": service.answer_question("A")
+			if case == "last_chance": service.persuasion.apply_patience(-3)
+			elif case.begins_with("kindred_"):
+				service.progress.commit("cat", "resume:varied", {"promises_kept": 3, "promise_kept:cat.leave_card": 2, "promise_kept:cat.keep_relic": 1})
+				service.progress.record_disposition("cat", "resume:kindred", "NORMAL")
+				if case == "kindred_memory":
+					service.progress.remember("cat", "resume:memory", "cat.leave_card", {"result": "BROKEN", "node_id": "cat.t1plus.leave_it_alone", "target_id": "standard_4_hearts", "target_label": "4♥", "relic_id": "", "counteroffer": false})
+					_node(service, "cat.t2.card_memory")
+				else:
+					_node(service, "cat.t2.your_choice")
+					service.answer_question("A")
+					service.continue_conversation()
+					service.persuasion.select_card(service.current_demand().offered_ids[2])
+			elif case == "reaction": service.answer_question("A")
 			elif case == "counteroffer":
 				_node(service, "cat.t1plus.leave_it_alone")
 				service.answer_question("B")
@@ -90,6 +102,17 @@ func _run() -> void:
 			_check(save.restore(save.load_run(), campaign, service.deal), "checkpoint restored " + case)
 			_check(_record(service) == expected[case], "shown state, physical targets and RNG unchanged " + case)
 			match case:
+				"kindred_memory":
+					_check(service.progress.relationship_tier("cat") == ZodiacProgress.KINDRED, "Kindred relationship survives fresh process")
+					_check(service.persuasion.state().node.bound_memory.result == "BROKEN" and service.quote().speech.contains("4♥"), "Cat recalls saved physical card and breach")
+				"kindred_choice":
+					var ids: Array = service.persuasion.state().selection
+					_check(service.respond("ACCEPT", ids).pending, "resumed voluntary choice commits the saved card")
+					_check(service.daily.promises[0].target_ids == ids, "selected physical target remains exact")
+				"last_chance":
+					var token := service.offer_token()
+					_check(service.persuasion.resolve_last_chance("A", token), "authored Last Chance resumes")
+					_check(not service.persuasion.resolve_last_chance("A", token) and int(service.persuasion.state().patience) == 1, "recovery cannot replay")
 				"question":
 					_check(service.has_open_question() and int(service.persuasion.state().patience) == 3, "saved Question does not restart/reroll")
 				"reaction":

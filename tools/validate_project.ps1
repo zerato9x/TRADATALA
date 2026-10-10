@@ -136,6 +136,10 @@ try {
         Invoke-Check 'hang-rong-large-vi' 'res://tests/hang_rong_presentation_smoke.gd' @('--large', '--vietnamese')
         Invoke-Check 'boss-presentation' 'res://tests/boss_presentation_smoke.gd'
         Invoke-Check 'cat-scene' 'res://tests/cat_persuasion_scene_smoke.gd'
+        Invoke-Check 'cat-expansion' 'res://tests/cat_expansion_scene_smoke.gd'
+        Invoke-Check 'rooster-scene' 'res://tests/rooster_persuasion_scene_smoke.gd'
+        Invoke-Check 'rooster-write' 'res://tests/rooster_persuasion_resume_smoke.gd' @('--write')
+        Invoke-Check 'rooster-read' 'res://tests/rooster_persuasion_resume_smoke.gd' @('--read')
         Invoke-Check 'cat-write' 'res://tests/cat_persuasion_resume_smoke.gd' @('--write')
         Invoke-Check 'cat-read' 'res://tests/cat_persuasion_resume_smoke.gd' @('--read')
         Invoke-Check 'negotiation' 'res://tests/zodiac_negotiation_tests.gd'

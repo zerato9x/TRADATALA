@@ -76,6 +76,8 @@ func _run() -> void:
 	service.choose_emblem(0, "rooster")
 	scene.run_seed_input = "zodiac-ui-smoke"
 	scene._start_campaign()
+	# Retain real UI coverage of already-started legacy demands and costs.
+	service.daily["legacy_negotiation"] = true
 	await _pause()
 	scene.event_table.unfocus_npc()
 	var table: Control = scene.zodiac_table

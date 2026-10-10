@@ -12,6 +12,8 @@ func _campaign(id: String = "rooster") -> CampaignManager:
 	campaign.zodiac.progress.commit(id, "fixture", {}, ["emblem_unlocked"])
 	campaign.zodiac.choose_emblem(0, id)
 	campaign.start_campaign(true, "zodiac-tests")
+	# These fixtures exercise the saved demand grammar. Fresh Rooster has its own suite.
+	if id == "rooster": campaign.zodiac.daily["legacy_negotiation"] = true
 	return campaign
 
 func _event(campaign: CampaignManager, slot: int) -> void:

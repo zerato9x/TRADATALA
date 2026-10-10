@@ -30,6 +30,10 @@ static func drink(id: String) -> String:
 static func demand(offer: Dictionary) -> String:
 	if offer.is_empty(): return ""
 	if offer.has("interaction"):
+		if offer.interaction == "deal_action":
+			if offer.get("condition", "") == "early_score":
+				return words("Next Deal: score in Phase 1 before discard #1", "Ván kế: ghi điểm ở Hiệp 1 trước lần bỏ #1")
+			return (words("Phase 1: new Meld ≥1", "Hiệp 1: hạ Phỏm mới ≥1") if offer.get("action", "") == "new_meld" else words("Next Deal: Extension ≥1 · either Phase", "Ván kế: Nối ≥1 · Hiệp nào cũng được"))
 		var actions := {"card_use": words("Use", "Dùng"), "card_alter": words("Change", "Đổi"), "permanent_change": words("Change", "Đổi"), "card_change": words("Change", "Đổi"), "relic_loss": words("Lose relic", "Mất di vật")}
 		var action: String = actions.get(offer.interaction, words("Interact", "Tương tác"))
 		if offer.get("polarity", "") == "DONT": action = words("Don't ", "Không ") + action.to_lower()
@@ -52,6 +56,10 @@ static func demand(offer: Dictionary) -> String:
 	return line + "\n" + (words("You choose", "Bạn chọn") if ZodiacDemand.player_controls(offer) else words("Random", "Ngẫu nhiên") if offer.get("authority", "") == "RANDOM" else words("Zodiac chooses", "Con Giáp chọn"))
 
 static func promise(terms: Dictionary, deck: Array[CardData]) -> String:
+	if terms.get("interaction", "") == "deal_action":
+		if terms.get("condition", "") == "early_score": return words("Score before discard #1", "Điểm trước lần bỏ #1")
+		if terms.get("action", "") == "new_meld": return words("P1: new Meld ≥1", "H1: Phỏm mới ≥1")
+		return words("Extension ≥1 · P1/P2", "Nối ≥1 · H1/H2")
 	var negative: bool = terms.get("polarity", "") == "DONT"
 	var action := words("Don't use", "Không dùng") if negative else words("Use", "Dùng")
 	if terms.get("interaction", "") == "card_alter": action = words("Don't change", "Không đổi") if negative else words("Change", "Đổi")

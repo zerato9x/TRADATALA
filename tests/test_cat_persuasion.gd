@@ -81,7 +81,7 @@ func _collect_lines(value: Variant, lines: Dictionary) -> void:
 		for item in value: _collect_lines(item, lines)
 
 func test_exact_authored_dialogue_answer_order_deltas_and_no_traits() -> void:
-	var nodes := ZodiacCatalog.persuasion_nodes("cat")
+	var nodes := ZodiacCatalog.CAT_PERSUASION.NODES.duplicate(true)
 	assert_eq(nodes.size(), 6)
 	var deltas := [[0, 1, -1], [1, 0, -1], [1, 0, -1], [0, 1, -1], [-1, 0, 1], [0, 1, -1]]
 	for index in nodes.size():
@@ -466,32 +466,31 @@ func test_restore_does_not_falsely_break_relic_and_rebinds_card_observers() -> v
 	assert_true(copy.zodiac.daily.promises[0].broken)
 	_cleanup(save.path)
 
-func test_last_chance_is_once_pending_without_prose_and_hook_restores_one() -> void:
+func test_authored_last_chance_is_once_and_restores_one() -> void:
 	var campaign := _campaign()
 	var engine := campaign.zodiac.persuasion
 	engine.apply_patience(-3)
-	assert_eq(engine.state().stage, "last_chance_pending")
+	assert_eq(engine.state().stage, "last_chance")
 	assert_true(engine.state().last_chance_consumed)
 	assert_false(engine.state().interaction_locked)
 	assert_false(campaign.zodiac.answer_question("B").ok)
 	assert_false(campaign.zodiac.respond("ACCEPT").ok)
-	assert_false(engine.resolve_last_chance("A"))
-	assert_true(engine.state().recovery_node.is_empty())
+	assert_false(engine.resolve_last_chance("invalid"))
+	assert_false(engine.state().recovery_node.is_empty())
 	var save := RunSave.new("user://cat_last_chance.save")
 	assert_true(save.save_run(campaign, campaign.zodiac.deal))
 	var copy := _campaign()
 	assert_true(save.restore(save.load_run(), copy, copy.zodiac.deal))
 	assert_eq(copy.zodiac.persuasion.state(), engine.state())
-	# Exercise the generic authored hook using test-only outcomes; Cat has none.
-	engine._complete_last_chance(true)
+	assert_true(engine.resolve_last_chance("A"))
 	assert_eq(engine.state().patience, 1)
 	assert_eq(campaign.zodiac.mood(), "UNPLEASED")
 	engine.apply_patience(-1)
 	assert_true(engine.state().interaction_locked)
 	assert_eq(engine.state().stage, "locked")
 	assert_eq(engine.state().final_disposition, "UNPLEASED")
-	assert_true(copy.zodiac.persuasion.end_pending_recovery())
-	assert_true(copy.zodiac.persuasion.state().recovery_unavailable)
+	assert_true(copy.zodiac.persuasion.resolve_last_chance("B"))
+	assert_true(copy.zodiac.persuasion.state().interaction_locked)
 	_cleanup(save.path)
 
 func test_actual_three_negative_answers_trigger_last_chance_without_softlock() -> void:
@@ -500,9 +499,9 @@ func test_actual_three_negative_answers_trigger_last_chance_without_softlock() -
 		assert_true(campaign.zodiac.answer_question("C").ok)
 		if campaign.zodiac.persuasion.state().stage == "reaction": campaign.zodiac.continue_conversation()
 	assert_eq(campaign.zodiac.persuasion.state().patience, 0)
-	assert_eq(campaign.zodiac.persuasion.state().stage, "last_chance_pending")
+	assert_eq(campaign.zodiac.persuasion.state().stage, "last_chance")
 	assert_false(campaign.complete_current_event())
-	assert_true(campaign.zodiac.persuasion.end_pending_recovery())
+	assert_true(campaign.zodiac.persuasion.resolve_last_chance("B"))
 	assert_false(campaign.zodiac.has_open_interaction())
 
 func test_selection_does_not_perturb_deck_gieo_boss_or_other_streams() -> void:
@@ -537,7 +536,7 @@ func test_final_patience_is_existing_cat_evening_difficulty_and_stalk_counts() -
 
 func test_no_unauthored_cat_special_or_early_emblem_scene() -> void:
 	var campaign := _campaign()
-	assert_true(ZodiacCatalog.persuasion_config("cat").last_chance.is_empty())
+	assert_false(ZodiacCatalog.persuasion_config("cat").last_chance.is_empty())
 	assert_true(ZodiacCatalog.persuasion_special("cat", {"ending": true}).is_empty())
 	assert_false(campaign.zodiac.complete_scene())
 	assert_true(ZodiacCatalog.negotiation_profile("cat").is_empty())
@@ -562,3 +561,194 @@ func test_old_started_cat_save_finishes_its_original_cost_without_new_engine() -
 	service.begin_day(7, 12)
 	service.daily.id = "cat"
 	assert_true(service.uses_persuasion())
+
+func _next_cat_visit(campaign: CampaignManager, day: int) -> void:
+	campaign.current_day_index = day
+	campaign.zodiac.begin_day(day, campaign.seed_for("zodiac_selection", 0))
+	assert_eq(campaign.zodiac.active_id(), "cat")
+	campaign._enter_phase(CampaignManager.CampaignPhase.NOON_EVENT)
+
+func _kindred(campaign: CampaignManager) -> void:
+	campaign.zodiac.progress.commit("cat", "fixture:varied_keeps", {"promises_kept": 3, "promise_kept:cat.leave_card": 2, "promise_kept:cat.keep_relic": 1})
+	campaign.zodiac.progress.record_disposition("cat", "fixture:kindred", "NORMAL")
+	assert_eq(campaign.zodiac.progress.relationship_tier("cat"), ZodiacProgress.KINDRED)
+
+func test_kindred_requires_real_varied_keeps_and_unlocks_on_a_later_visit() -> void:
+	var campaign := _campaign(true)
+	for index in 3:
+		if index > 0: _next_cat_visit(campaign, index * 7)
+		if index == 1:
+			campaign.relic_shop.runtime.acquire("comb")
+			_terms(campaign, "cat.t1plus.keep_it", "C")
+		else: _terms(campaign, "cat.t1plus.leave_it_alone", "B")
+		assert_true(campaign.zodiac.respond("ACCEPT").pending)
+		assert_true(campaign.zodiac.continue_conversation())
+		_afternoon(campaign)
+		_judge(campaign)
+		assert_eq(campaign.zodiac.progress.relationship_tier("cat"), ZodiacProgress.KINDRED if index == 2 else ZodiacProgress.FAMILIAR)
+	assert_eq(campaign.zodiac.progress.record("cat").promises_kept, 3)
+	assert_eq(campaign.zodiac.progress.record("cat").kindred_transitions, 1)
+	var before := campaign.zodiac.progress.snapshot()
+	campaign.zodiac.persuasion.judge()
+	assert_eq(campaign.zodiac.progress.snapshot(), before)
+	_next_cat_visit(campaign, 21)
+	assert_eq(campaign.zodiac.persuasion.state().node.content_tier, "2")
+	assert_eq(campaign.zodiac.persuasion.state().plan.size(), 1)
+
+func test_repeating_one_promise_and_pleased_answers_cannot_farm_kindred() -> void:
+	var campaign := _campaign(true)
+	var progress := campaign.zodiac.progress
+	progress.commit("cat", "fixture:one_kind", {"promises_kept": 30, "promise_kept:cat.leave_card": 30})
+	for index in 10: progress.record_disposition("cat", "fixture:happy:%d" % index, "PLEASED")
+	assert_eq(progress.relationship_tier("cat"), ZodiacProgress.FAMILIAR)
+	progress.commit("cat", "fixture:second_kind", {"promise_kept:cat.keep_relic": 1})
+	progress.record_disposition("cat", "fixture:bad_day", "UNPLEASED")
+	assert_eq(progress.relationship_tier("cat"), ZodiacProgress.FAMILIAR)
+	progress.record_disposition("cat", "fixture:normal_day", "NORMAL")
+	assert_eq(progress.relationship_tier("cat"), ZodiacProgress.KINDRED)
+	progress.record_disposition("cat", "fixture:later_bad_day", "UNPLEASED")
+	assert_eq(progress.relationship_tier("cat"), ZodiacProgress.KINDRED)
+
+func test_kept_broken_and_refused_memories_reference_the_accepted_physical_target() -> void:
+	for result in ["FULFILLED", "BROKEN", "REFUSED"]:
+		var campaign := _campaign(true)
+		_terms(campaign, "cat.t1plus.leave_it_alone")
+		var offer := campaign.zodiac.current_demand().duplicate(true)
+		if result == "REFUSED":
+			var wallet := campaign.wallet.balance_vnd
+			assert_true(campaign.zodiac.respond("REFUSE").ok)
+			assert_eq(campaign.wallet.balance_vnd, wallet)
+			assert_true(campaign.zodiac.daily.promises.is_empty())
+		else:
+			assert_true(campaign.zodiac.respond("ACCEPT").pending)
+			campaign.zodiac.continue_conversation()
+			_afternoon(campaign)
+			if result == "BROKEN": campaign.zodiac.persuasion.observe_cards(offer.target_ids, "fixture:committed-use", "card_use")
+			_judge(campaign)
+		var remembered := campaign.zodiac.progress.memory("cat", "cat.leave_card")
+		assert_eq(remembered.result, result)
+		assert_eq(remembered.target_id, offer.target_ids[0])
+		_kindred(campaign)
+		_next_cat_visit(campaign, 7)
+		_node(campaign, "cat.t2.card_memory")
+		assert_eq(campaign.zodiac.persuasion.state().node.bound_memory.result, result)
+		assert_false(campaign.zodiac.quote().speech.contains("{target}"))
+		assert_eq(campaign.zodiac.persuasion.state().node.answers.size(), 3)
+		if result != "REFUSED": assert_true(campaign.zodiac.quote().speech.contains(remembered.target_label))
+
+func test_initial_player_choice_requires_selection_and_accept_stores_one_card() -> void:
+	var campaign := _campaign(true)
+	_kindred(campaign)
+	_terms(campaign, "cat.t2.your_choice", "A")
+	var offer := campaign.zodiac.current_demand()
+	assert_eq(offer.authority, "OFFER_THREE_PLAYER_CHOOSES")
+	assert_eq(offer.offered_ids.size(), 3)
+	assert_eq(offer.target_ids, [])
+	assert_false(campaign.zodiac.respond("ACCEPT").ok)
+	assert_false(campaign.zodiac.persuasion.can_haggle())
+	var chosen: String = offer.offered_ids[2]
+	assert_true(campaign.zodiac.persuasion.select_card(chosen))
+	var token := campaign.zodiac.offer_token()
+	assert_true(campaign.zodiac.respond("ACCEPT", [chosen], token).pending)
+	assert_false(campaign.zodiac.respond("ACCEPT", [chosen], token).ok)
+	assert_eq(campaign.zodiac.daily.promises[0].target_ids, [chosen])
+	assert_eq(campaign.zodiac.daily.promises[0].memory_details.target_id, chosen)
+	assert_false(campaign.zodiac.daily.promises[0].memory_details.counteroffer)
+
+func test_memory_revision_and_newer_profile_survive_an_old_run_checkpoint() -> void:
+	var campaign := _campaign(true)
+	_terms(campaign, "cat.t1plus.leave_it_alone")
+	assert_true(campaign.zodiac.respond("ACCEPT").pending)
+	campaign.zodiac.continue_conversation()
+	_afternoon(campaign)
+	var save := RunSave.new("user://cat_old_memory_checkpoint.save")
+	assert_true(save.save_run(campaign, campaign.zodiac.deal))
+	_judge(campaign)
+	var first := campaign.zodiac.progress.memory("cat", "cat.leave_card")
+	var later := first.duplicate(true)
+	later.result = "BROKEN"
+	assert_true(campaign.zodiac.progress.remember("cat", "fixture:newer_memory", "cat.leave_card", later))
+	var newest := campaign.zodiac.progress.memory("cat", "cat.leave_card")
+	assert_true(int(newest.revision) > int(first.revision))
+	assert_true(save.restore(save.load_run(), campaign, campaign.zodiac.deal))
+	_judge(campaign)
+	assert_eq(campaign.zodiac.progress.memory("cat", "cat.leave_card"), newest)
+	assert_eq(campaign.zodiac.progress.record("cat").promises_kept, 1)
+	_cleanup(save.path)
+
+func test_bound_memory_dialogue_is_frozen_while_permanent_memory_changes() -> void:
+	var campaign := _campaign(true)
+	_kindred(campaign)
+	var details := {"result": "BROKEN", "node_id": "cat.t1plus.leave_it_alone", "target_id": "standard_4_hearts", "target_label": "4♥", "relic_id": "", "counteroffer": false}
+	campaign.zodiac.progress.remember("cat", "fixture:recall", "cat.leave_card", details)
+	_node(campaign, "cat.t2.card_memory")
+	var before := campaign.zodiac.quote()
+	details.result = "FULFILLED"
+	campaign.zodiac.progress.remember("cat", "fixture:new_recall", "cat.leave_card", details)
+	assert_eq(campaign.zodiac.quote(), before)
+	var save := RunSave.new("user://cat_bound_memory.save")
+	assert_true(save.save_run(campaign, campaign.zodiac.deal))
+	assert_true(save.restore(save.load_run(), campaign, campaign.zodiac.deal))
+	assert_eq(campaign.zodiac.quote(), before)
+	assert_eq(campaign.zodiac.persuasion.state().node.bound_memory.result, "BROKEN")
+	_cleanup(save.path)
+
+func test_memory_and_kindred_persist_in_actual_meta_profile_and_new_run() -> void:
+	var root_path := "user://cat_expansion_profile"
+	var files := MetaSaveFiles.new(root_path, "")
+	var campaign := _campaign()
+	files.attach(campaign)
+	campaign.zodiac.progress.record_disposition("cat", "fixture:met_familiar", "PLEASED")
+	_kindred(campaign)
+	var details := {"result": "FULFILLED", "node_id": "cat.t1plus.keep_it", "target_id": "", "target_label": "", "relic_id": "comb", "counteroffer": true}
+	assert_true(campaign.zodiac.progress.remember("cat", "fixture:kept_comb", "cat.keep_relic", details))
+	assert_eq(files.error, "")
+	var reloaded := MetaSaveFiles.new(root_path, "")
+	var copy := _campaign()
+	reloaded.attach(copy)
+	assert_eq(copy.zodiac.progress.relationship_tier("cat"), ZodiacProgress.KINDRED)
+	assert_eq(copy.zodiac.progress.memory("cat", "cat.keep_relic").relic_id, "comb")
+	copy.start_campaign(true, copy.run_seed)
+	copy._enter_phase(CampaignManager.CampaignPhase.NOON_EVENT)
+	_node(copy, "cat.t2.relic_memory")
+	TranslationServer.set_locale("en")
+	assert_true(copy.zodiac.quote().speech.contains("Comb"))
+	TranslationServer.set_locale("vi")
+	assert_true(copy.zodiac.quote().speech.contains("Lược"))
+	TranslationServer.set_locale("en")
+	for slot in range(1, 4): _cleanup(files.meta_path(slot))
+	_cleanup(root_path + "/active.cfg")
+	DirAccess.remove_absolute(root_path)
+
+func test_recovery_token_is_single_use_and_legacy_pending_recovery_remains_exitable() -> void:
+	var campaign := _campaign()
+	campaign.zodiac.persuasion.apply_patience(-3)
+	var token := campaign.zodiac.offer_token()
+	assert_true(campaign.zodiac.persuasion.resolve_last_chance("C", token))
+	assert_false(campaign.zodiac.persuasion.resolve_last_chance("C", token))
+	assert_eq(campaign.zodiac.persuasion.state().patience, 1)
+	assert_eq(campaign.zodiac.progress.record("cat").last_chances_recovered, 1)
+	var visit := campaign.zodiac.persuasion.state()
+	visit.stage = "last_chance_pending"
+	visit.recovery_node = {}
+	assert_true(campaign.zodiac.persuasion.end_pending_recovery())
+	assert_true(visit.interaction_locked)
+	assert_eq(visit.final_disposition, "UNPLEASED")
+
+func test_kindred_content_requires_actual_memory_and_has_localized_choices() -> void:
+	var campaign := _campaign(true)
+	_kindred(campaign)
+	for node: Dictionary in ZodiacCatalog.persuasion_nodes("cat"):
+		if node.content_tier != "2": continue
+		if node.has("memory_key"):
+			assert_false(campaign.zodiac.persuasion._eligible(node))
+			continue
+		assert_true(campaign.zodiac.persuasion._eligible(node))
+		for answer: Dictionary in node.answers:
+			assert_true(not answer.en.is_empty() and not answer.vi.is_empty())
+			assert_false(answer.has("traits"))
+			assert_true(int(answer.delta) in [-1, 0, 1])
+	var nodes := ZodiacCatalog.persuasion_nodes("cat")
+	var choice_node: Dictionary = nodes.filter(func(node: Dictionary): return node.id == "cat.t2.your_choice")[0]
+	campaign.gieo_que.persistent_deck.resize(2)
+	assert_false(campaign.zodiac.persuasion._eligible(choice_node))

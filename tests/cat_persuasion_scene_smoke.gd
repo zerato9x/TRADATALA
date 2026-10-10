@@ -85,7 +85,7 @@ func _fit_question(locale: String) -> void:
 	_check(Rect2(Vector2.ZERO, Vector2(root.size)).encloses(table.body.get_global_rect()), "panel fits viewport " + locale)
 	for index in 3:
 		var button: Button = table.choices.get_child(index)
-		var label: Label = button.get_child(0)
+		var label: Label = button.get_node("AnswerText")
 		var font_height := label.get_theme_font("font").get_height(17)
 		_check(label.get_line_count() * font_height <= label.size.y + 1, "full answer text fits row %d %s" % [index, locale])
 		_check(not button.disabled and button.focus_mode == Control.FOCUS_ALL, "answer is clickable and keyboard focusable")
@@ -147,7 +147,7 @@ func _run() -> void:
 		for viewport_size in [Vector2i(1280, 720), Vector2i(1920, 1080)]:
 			root.size = viewport_size
 			await _pause()
-			for node: Dictionary in ZodiacCatalog.persuasion_nodes("cat"):
+			for node: Dictionary in ZodiacCatalog.CAT_PERSUASION.NODES:
 				_set_node(node.id)
 				await _fit_question(locale)
 				if node.content_tier == "1+":

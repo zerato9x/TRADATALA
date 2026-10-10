@@ -1,0 +1,290 @@
+{
+  "recorded_at_utc": "2026-10-10T16:54:59.6695100Z",
+  "rooster_fresh_process": {
+    "read_checks": 47,
+    "write_checks": 17,
+    "failures": 0,
+    "permanent_profile_and_file_isolation": true,
+    "saved_states": 10
+  },
+  "date": "2026-10-10",
+  "godot": "4.7.1.stable.official.a13da4feb",
+  "core": {
+    "new_rooster_cases": 18,
+    "passed": 431,
+    "total": 431,
+    "failed": 0
+  },
+  "service_snapshot_version": 4,
+  "scope": "Rooster daytime persuasion through Kindred",
+  "rooster_rendered": {
+    "captures": 111,
+    "checks": 809,
+    "emblem_scene_reachable": true,
+    "renderer": "gl_compatibility",
+    "failures": 0,
+    "locales": [
+      "en",
+      "vi"
+    ],
+    "completed_real_afternoon_deal": true,
+    "viewport_sizes": [
+      "1280x720",
+      "1920x1080"
+    ],
+    "actual_gui_meld": true
+  },
+  "checks": [
+    {
+      "engine_errors": 0,
+      "completion": [],
+      "args": [],
+      "pass": true,
+      "name": "parse",
+      "stderr": "C:\\Stuffs\\TRADATALA\\.godot\\validation\\parse.err.log",
+      "script": "res://scripts/ui/match_ui.gd",
+      "stdout": "C:\\Stuffs\\TRADATALA\\.godot\\validation\\parse.log",
+      "stdout_sha256": "9D581EC5492FE988C9C06BA731F53831E0DE994203E89AE19FFCF5B503748ACC",
+      "stderr_sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+    },
+    {
+      "engine_errors": 0,
+      "completion": [
+        "TRADATALA_TESTS total=431 passed=431 failed=0 skipped=0"
+      ],
+      "args": [],
+      "pass": true,
+      "name": "core",
+      "stderr": "C:\\Stuffs\\TRADATALA\\.godot\\validation\\core.err.log",
+      "script": "res://tests/run_headless.gd",
+      "stdout": "C:\\Stuffs\\TRADATALA\\.godot\\validation\\core.log",
+      "stdout_sha256": "B975E47BD0A16DD45384ECB7BCD7A22ADA95DCBD0DA7A5ECD851BC96951173D4",
+      "stderr_sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+    },
+    {
+      "engine_errors": 0,
+      "completion": [
+        "TRADATALA_SCENE_SMOKE passed"
+      ],
+      "args": [],
+      "pass": true,
+      "name": "runtime",
+      "stderr": "C:\\Stuffs\\TRADATALA\\.godot\\validation\\runtime.err.log",
+      "script": "res://tests/runtime_scene_smoke.gd",
+      "stdout": "C:\\Stuffs\\TRADATALA\\.godot\\validation\\runtime.log",
+      "stdout_sha256": "9C8A1B7FC8249B700CA1E88D69157DCBCDD118E52496FD1EB943C5FB909ADEF0",
+      "stderr_sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+    },
+    {
+      "engine_errors": 0,
+      "completion": [
+        "ZODIAC_SCENE_SMOKE checks=106 failures=0"
+      ],
+      "args": [],
+      "pass": true,
+      "name": "zodiac_scene",
+      "stderr": "C:\\Stuffs\\TRADATALA\\.godot\\validation\\zodiac_scene.err.log",
+      "script": "res://tests/zodiac_scene_smoke.gd",
+      "stdout": "C:\\Stuffs\\TRADATALA\\.godot\\validation\\zodiac_scene.log",
+      "stdout_sha256": "A4EEB588230CBCF19BA9F7263599C8473244BE3A3A1841F3DB04AA1AB06D00E2",
+      "stderr_sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+    },
+    {
+      "engine_errors": 0,
+      "completion": [
+        "BOSS_PRESENTATION_SMOKE checks=647 failures=0 rendered=true"
+      ],
+      "args": [],
+      "pass": true,
+      "name": "boss-presentation",
+      "stderr": "C:\\Stuffs\\TRADATALA\\.godot\\validation\\boss-presentation.err.log",
+      "script": "res://tests/boss_presentation_smoke.gd",
+      "stdout": "C:\\Stuffs\\TRADATALA\\.godot\\validation\\boss-presentation.log",
+      "stdout_sha256": "1C460C2B86051A3A84BF2BBA67006799543963273EB48C4153D7EC90326D8326",
+      "stderr_sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+    },
+    {
+      "engine_errors": 0,
+      "completion": [
+        "CAT_PERSUASION_SCENE_SMOKE checks=333 failures=0 captures=29"
+      ],
+      "args": [],
+      "pass": true,
+      "name": "cat-scene",
+      "stderr": "C:\\Stuffs\\TRADATALA\\.godot\\validation\\cat-scene.err.log",
+      "script": "res://tests/cat_persuasion_scene_smoke.gd",
+      "stdout": "C:\\Stuffs\\TRADATALA\\.godot\\validation\\cat-scene.log",
+      "stdout_sha256": "5790EE6CDCC6208289CEEBD4547298B95FD1303C3C61D12D666E3702928902A1",
+      "stderr_sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+    },
+    {
+      "engine_errors": 0,
+      "completion": [
+        "CAT_EXPANSION_SCENE_SMOKE checks=557 failures=0 captures=60"
+      ],
+      "args": [],
+      "pass": true,
+      "name": "cat-expansion",
+      "stderr": "C:\\Stuffs\\TRADATALA\\.godot\\validation\\cat-expansion.err.log",
+      "script": "res://tests/cat_expansion_scene_smoke.gd",
+      "stdout": "C:\\Stuffs\\TRADATALA\\.godot\\validation\\cat-expansion.log",
+      "stdout_sha256": "FA56D669C21CFAF884089F3BCC0A1E99350E16B03F9E2A17002843F0C098C962",
+      "stderr_sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+    },
+    {
+      "engine_errors": 0,
+      "completion": [
+        "ROOSTER_PERSUASION_RESUME_WRITE checks=17 failures=0"
+      ],
+      "args": [
+        "--write"
+      ],
+      "pass": true,
+      "name": "rooster-write",
+      "stderr": "C:\\Stuffs\\TRADATALA\\.godot\\validation\\rooster-write.err.log",
+      "script": "res://tests/rooster_persuasion_resume_smoke.gd",
+      "stdout": "C:\\Stuffs\\TRADATALA\\.godot\\validation\\rooster-write.log",
+      "stdout_sha256": "12ED2EF43AAE2B0FFA272A9F8BBECD8E762CD2A8392201283C55C4D5C62C96A1",
+      "stderr_sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+    },
+    {
+      "engine_errors": 0,
+      "completion": [
+        "ROOSTER_PERSUASION_RESUME_READ checks=47 failures=0"
+      ],
+      "args": [
+        "--read"
+      ],
+      "pass": true,
+      "name": "rooster-read",
+      "stderr": "C:\\Stuffs\\TRADATALA\\.godot\\validation\\rooster-read.err.log",
+      "script": "res://tests/rooster_persuasion_resume_smoke.gd",
+      "stdout": "C:\\Stuffs\\TRADATALA\\.godot\\validation\\rooster-read.log",
+      "stdout_sha256": "BE0EAE33B3EFAD34FCF3D3A7ED0AB5F995A9BB5C22F5536E48624A4DDCC5C6F3",
+      "stderr_sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+    },
+    {
+      "engine_errors": 0,
+      "completion": [
+        "CAT_PERSUASION_RESUME_WRITE checks=14 failures=0"
+      ],
+      "args": [
+        "--write"
+      ],
+      "pass": true,
+      "name": "cat-write",
+      "stderr": "C:\\Stuffs\\TRADATALA\\.godot\\validation\\cat-write.err.log",
+      "script": "res://tests/cat_persuasion_resume_smoke.gd",
+      "stdout": "C:\\Stuffs\\TRADATALA\\.godot\\validation\\cat-write.log",
+      "stdout_sha256": "69689119A07C2F905A4F116F69511C4F05B716156449A4CFB75814602252CA74",
+      "stderr_sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+    },
+    {
+      "engine_errors": 0,
+      "completion": [
+        "CAT_PERSUASION_RESUME_READ checks=44 failures=0"
+      ],
+      "args": [
+        "--read"
+      ],
+      "pass": true,
+      "name": "cat-read",
+      "stderr": "C:\\Stuffs\\TRADATALA\\.godot\\validation\\cat-read.err.log",
+      "script": "res://tests/cat_persuasion_resume_smoke.gd",
+      "stdout": "C:\\Stuffs\\TRADATALA\\.godot\\validation\\cat-read.log",
+      "stdout_sha256": "A9972E5203417D3F6D82B35AC6F8CBB3EF9B5F0DF380CA644DA2485316BAB11D",
+      "stderr_sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+    },
+    {
+      "engine_errors": 0,
+      "completion": [
+        "ZODIAC_NEGOTIATION_RESUME_WRITE checks=5 failures=0"
+      ],
+      "args": [
+        "--write"
+      ],
+      "pass": true,
+      "name": "negotiation-write",
+      "stderr": "C:\\Stuffs\\TRADATALA\\.godot\\validation\\negotiation-write.err.log",
+      "script": "res://tests/zodiac_negotiation_resume_smoke.gd",
+      "stdout": "C:\\Stuffs\\TRADATALA\\.godot\\validation\\negotiation-write.log",
+      "stdout_sha256": "8FF9B8F915118177C80AB73093A6B1BE3CD1136AB885D279798A10E4E7F2D5AB",
+      "stderr_sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+    },
+    {
+      "engine_errors": 0,
+      "completion": [
+        "ZODIAC_NEGOTIATION_RESUME_READ checks=10 failures=0"
+      ],
+      "args": [
+        "--read"
+      ],
+      "pass": true,
+      "name": "negotiation-read",
+      "stderr": "C:\\Stuffs\\TRADATALA\\.godot\\validation\\negotiation-read.err.log",
+      "script": "res://tests/zodiac_negotiation_resume_smoke.gd",
+      "stdout": "C:\\Stuffs\\TRADATALA\\.godot\\validation\\negotiation-read.log",
+      "stdout_sha256": "9FA7804F7429A59CDCAA1F42C2D98EFFB5C2DE68E0D49B04814967A67661E9F6",
+      "stderr_sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+    },
+    {
+      "engine_errors": 0,
+      "completion": [
+        "ROOSTER_PERSUASION_SCENE_SMOKE checks=809 failures=0 captures=111"
+      ],
+      "args": [],
+      "pass": true,
+      "name": "rooster-scene",
+      "stderr": "C:\\Stuffs\\TRADATALA\\.godot\\validation\\rooster-scene.err.log",
+      "script": "res://tests/rooster_persuasion_scene_smoke.gd",
+      "stdout": "C:\\Stuffs\\TRADATALA\\.godot\\validation\\rooster-scene.log",
+      "stdout_sha256": "3DE042C4E1B5883A1BCE6CE7D12C9BF242984CA718179C5459BD82E917A9515E",
+      "stderr_sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+    }
+  ],
+  "delivery": "Local working tree; no commit or push requested",
+  "authored_sha256": {
+    "tests/rooster_persuasion_resume_smoke.gd": "327A1F1B3CC9E170ADC673912169A9A05D509DC38CAF84A6EFC8BE57ACBFD60A",
+    "tests/test_rooster_persuasion.gd.uid": "B89AC2F985F8303549D31CA4935115E79A3DB4DAB0AC0DB9A312C857339D536B",
+    "scripts/ui/zodiac_table.gd": "324CB03986C277FB6D2AC455B5EA1CF708D23BE7330DD4D24936099862D6E879",
+    "tests/test_zodiac.gd": "AAD689B6FCA4D908E61FC10C0CDA51BC70CE98E6A5ED014C04538225BE81BCF9",
+    "docs/ZODIAC_NEGOTIATION_2026-10-02.md": "54ACBCB1D594543BFC07344A55518DF2CF07CB0AF32E2DAEC46E817003E54228",
+    "scripts/zodiac/content/rooster_persuasion.gd.uid": "90E1257D0EF41F86E13B930DDD242200DBD8F249EA788E1D614CD620B569114A",
+    "tests/zodiac_scene_smoke.gd": "028D00C35706708B4523DBAC9756E295575DA84DA8FF1D1D597340171C90FAD1",
+    "scripts/zodiac/zodiac_catalog.gd": "95035CD0E527AF1F2190702420CA195DEBA38606905EE8D803F020F4E3B41172",
+    "tests/zodiac_negotiation_resume_smoke.gd": "6DCB0EF34054712D0CCCA743B4B094CBA741F78D67932B49EA35B99898E1BADD",
+    "tests/rooster_persuasion_scene_smoke.gd": "D651FC9097A69C24F156DEB78E86EBFEEC947C39803303BC74F2FF8694E443EA",
+    "tests/rooster_persuasion_scene_smoke.gd.uid": "380793815467528B0B05424667E44D0C06520BB40D0742D44ED11586B9390634",
+    "tools/validate_project.ps1": "AA45671E815DF976673260967FF1248A9773D6755A0FD4E5683738F9DCDED7AF",
+    "tests/zodiac_negotiation_tests.gd": "8F29F76EF34379542F77541376BB354EFDB3BBD6FA09FF22E5201D68812EC7C1",
+    "tests/test_rooster_persuasion.gd": "E69569FCE60002BD34095EF2F24234122CB293B4BA1E08444FCDD9F39F77057C",
+    "scripts/ui/zodiac_boss_hud.gd": "FE25BA81B98918A600F7ED73B5C9718A74952C0FB240403C72A4BADFF99B338E",
+    "scripts/campaign/meta_save_files.gd": "4ABCAC58EE2735AD14A658733DA56857A4E7226FA775FA8F6405CD1EA2AF037A",
+    "scripts/zodiac/zodiac_service.gd": "85B1C11BBBB19E11E31AB967AF6D0DDCF5CE063A2D1CDDA3F2C0866AA01F5906",
+    "scripts/zodiac/zodiac_progress.gd": "436D3E8D7FDCAF22890D2E78B65038A30ECBC9302DA43553C4C0588A308F3EAD",
+    "scripts/zodiac/zodiac_persuasion.gd": "D395A861AF98A6B098B3A4768FBB0A514D62B3E8FCCFA097E92E219D60524814",
+    "README.md": "6292977D963CFB5EF70021FCB5A7201428F0CC661F971004312E64D5D93D4685",
+    "tests/rooster_persuasion_resume_smoke.gd.uid": "2860A44E9A8D0CB19E7049E2DAF381B0D2B2419C3DE18086718188228E9973F1",
+    "scripts/ui/quick_info.gd": "229FC7FD2A79B1192D9AF6EF13B2DE7F03052690AD0D0B27FF3D18A5FE93F529",
+    "tests/run_headless.gd": "B56840C985312AAE2C5F02A34E01321BBAE3304251A41EDC8F75A697AD0FE231",
+    "scripts/zodiac/content/rooster_persuasion.gd": "93A68601D4B6BD7DE3BA9CE7CACA9BFAAC25FA00E6CE9E5219EACEDAE567D2FE"
+  },
+  "screenshot_sha256": {
+    "docs/screenshots/rooster-expansion-2026-10-10/stranger-en.png": "BF69928BD684E04E68E8752896CC6DD4C2D2EE3C52CB4628C1FE07EE0BE095D3",
+    "docs/screenshots/rooster-expansion-2026-10-10/action-pending-en.png": "2F344AEA4E7E7232FB9A92F11E7A25DE7550C21E806A307D3EDFA8468905A9CC",
+    "docs/screenshots/rooster-expansion-2026-10-10/deadline-memory-vi.png": "60F8ABE9A43433F9EF44BF893A630EC341A88783A1DFFA5E9E2177526DCED44C",
+    "docs/screenshots/rooster-expansion-2026-10-10/action-done-en.png": "1C534F3CA0B35C44B99E25A79A1624F4F44516E0CAC3895601B13495E2AD8FF9",
+    "docs/screenshots/rooster-expansion-2026-10-10/private-moment-en.png": "3E919389D0BC0AB21BA12FADB7CB8D51612C38D7CA929BB9ABF6200CBD4BE0AF",
+    "docs/screenshots/rooster-expansion-2026-10-10/ledger-en.png": "CCA62CEF2D2367EECA4BA4ABC63AA3B0EF60C69ADE258F117656576D7814F387",
+    "docs/screenshots/rooster-expansion-2026-10-10/counteroffer-en.png": "0F1DD2D5F190890869ACDFC13611D6F6806C5A61C7DE0E160E304CBDEE923D22"
+  },
+  "preservation": {
+    "cat_rule_sha256": "7BBBB7B056309E1E0BA4AF9BAB574A424D2FE5E63F19DDBD33FE7B56116342DD",
+    "rooster_evening_rule_unchanged": true,
+    "rooster_rule_sha256": "8845362F6E9F48BB5AF74AF07FE2A9F7256B8B4A40657D2BB44E8A25EA729FA4",
+    "unrelated_files_hash_preserved": 201,
+    "cat_authority_sha256": "84A401A39732EDEF2E1EE44A44BC48BAD5D4643245C4EAB6E69B08A65BE7DF1D",
+    "unrelated_changed": [],
+    "baseline_dirty_and_untracked": 210
+  }
+}
