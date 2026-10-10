@@ -266,6 +266,7 @@ func configure_deal_nodes(nodes: Array[Control]) -> void:
 			continue
 		_deal_home[node] = {
 			"position": node.position,
+			"offsets": Vector4(node.offset_left, node.offset_top, node.offset_right, node.offset_bottom),
 			"scale": node.scale,
 			"modulate": node.modulate,
 		}
@@ -882,8 +883,7 @@ func _animate_deal_out() -> void:
 			continue
 		node.visible = true
 		var home: Dictionary = _deal_home[node]
-		var target := Vector2(home["position"]) + _deal_exit_offset(node.name)
-		_transition.tween_property(node, "position", target, TRANSITION_SECONDS)
+		_tween_deal_offset(_transition, node, home, _deal_exit_offset(node.name))
 		_transition.tween_property(node, "modulate:a", 0.0, TRANSITION_SECONDS * 0.78)
 	_transition.chain().tween_callback(_finish_deal_exit)
 
@@ -907,7 +907,7 @@ func _finish_event_exit() -> void:
 			continue
 		var home: Dictionary = _deal_home[node]
 		node.visible = true
-		node.position = Vector2(home["position"]) + _deal_exit_offset(node.name)
+		_set_deal_offset(_deal_exit_offset(node.name), node, home.offsets)
 		node.scale = Vector2(home["scale"])
 		node.modulate = Color(home["modulate"])
 		node.modulate.a = 0.0
@@ -917,9 +917,24 @@ func _finish_event_exit() -> void:
 		if node == null or not _deal_home.has(node):
 			continue
 		var home: Dictionary = _deal_home[node]
-		tween.tween_property(node, "position", Vector2(home["position"]), TRANSITION_SECONDS)
+		_tween_deal_offset(tween, node, home, Vector2.ZERO)
 		tween.tween_property(node, "modulate", Color(home["modulate"]), TRANSITION_SECONDS)
 	tween.chain().tween_callback(func() -> void: deal_presentation_ready.emit())
+
+
+func _tween_deal_offset(tween: Tween, node: Control, home: Dictionary, target: Vector2) -> void:
+	# Animate the authored offsets, so the anchors still respond during a resize.
+	var offsets: Vector4 = home.offsets
+	var current := Vector2(node.offset_left - offsets.x, node.offset_top - offsets.y)
+	tween.tween_method(_set_deal_offset.bind(node, offsets), current, target, TRANSITION_SECONDS)
+
+
+func _set_deal_offset(displacement: Vector2, node: Control, offsets: Vector4) -> void:
+	if not is_instance_valid(node): return
+	node.offset_left = offsets.x + displacement.x
+	node.offset_top = offsets.y + displacement.y
+	node.offset_right = offsets.z + displacement.x
+	node.offset_bottom = offsets.w + displacement.y
 
 
 func _set_header_focused(focused: bool, animate: bool = true) -> void:

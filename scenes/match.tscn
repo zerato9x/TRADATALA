@@ -6,6 +6,7 @@
 [ext_resource type="PackedScene" path="res://scenes/ui/match_board.tscn" id="4_6dstc"]
 [ext_resource type="PackedScene" path="res://scenes/ui/reactive_music.tscn" id="6_4bnf7"]
 [ext_resource type="PackedScene" path="res://scenes/ui/action_legend.tscn" id="7_verbs"]
+[ext_resource type="PackedScene" path="res://scenes/ui/table_ambience.tscn" id="8_ambience"]
 [sub_resource type="Theme" id="Theme_3ygla"]
 default_font = ExtResource("1_slo71")
 default_font_size = 14
@@ -32,6 +33,8 @@ mouse_filter = 2
 texture = ExtResource("3_tcije")
 expand_mode = 1
 stretch_mode = 6
+
+[node name="TableAmbience" parent="." instance=ExtResource("8_ambience")]
 
 [node name="GameLayer" type="Control" parent="." unique_id=1632460617 instance=ExtResource("4_6dstc")]
 

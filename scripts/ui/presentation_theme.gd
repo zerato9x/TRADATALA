@@ -167,29 +167,42 @@ static func panel_style(
 
 
 static func configure_button(button: Button, tone: String = "neutral") -> void:
-	var base := Color("#263853")
-	var hover := Color("#34527a")
-	var border := Color("#6e8fb5")
-	var font_color := ACTION
+	var base := Color("#23494b")
+	var hover := Color("#32605c")
+	var border := Color("#73938a")
+	var font_color := INK
 	if tone == "gold":
-		base = Color("#9a641f")
-		hover = Color("#bf8428")
-		border = GOLD
+		base = Color("#e2b35f")
+		hover = Color("#f5ce7c")
+		border = Color("#ffdda0")
+		font_color = PAPER_INK
 	elif tone == "tea":
-		base = Color("#3d702d")
-		hover = Color("#57933a")
-		border = TEA
+		base = Color("#35664b")
+		hover = Color("#448963")
+		border = Color("#a1c985")
 	elif tone == "danger":
-		base = Color("#71372e")
-		hover = Color("#99493c")
-		border = RED
+		base = Color("#783f36")
+		hover = Color("#a45642")
+		border = Color("#d69373")
 		font_color = DANGER
-	button.set_meta("text_role", &"danger" if tone == "danger" else &"action")
-	button.add_theme_stylebox_override("normal", panel_style(base, border, 2, 2, 3))
-	button.add_theme_stylebox_override("hover", panel_style(hover, border.lightened(0.15), 2, 2, 4))
-	button.add_theme_stylebox_override("pressed", panel_style(base.darkened(0.18), border, 2, 2, 0))
-	button.add_theme_stylebox_override("disabled", panel_style(Color("#26231f"), Color("#51483b"), 1, 2, 0))
-	button.add_theme_stylebox_override("focus", panel_style(Color.TRANSPARENT, GOLD, 2, 2, 0))
+	button.set_meta("text_surface", &"paper" if tone == "gold" else &"dark")
+	button.set_meta("text_role", &"danger" if tone == "danger" else &"body")
+	button.add_theme_stylebox_override("normal", enamel_style(base, border))
+	button.add_theme_stylebox_override("hover", enamel_style(hover, border.lightened(0.16)))
+	var pressed := enamel_style(base.darkened(0.1), border)
+	pressed.shadow_size = 0
+	pressed.border_width_top = 3
+	pressed.border_width_bottom = 2
+	button.add_theme_stylebox_override("pressed", pressed)
+	var disabled := enamel_style(Color("#aaa18a") if tone == "gold" else Color("#252f30"), Color("#606457"))
+	disabled.shadow_size = 0
+	button.add_theme_stylebox_override("disabled", disabled)
+	var focus := panel_style(Color.TRANSPARENT, Color("#fff1c2"), 2, 3, 0)
+	focus.expand_margin_left = 2
+	focus.expand_margin_top = 2
+	focus.expand_margin_right = 2
+	focus.expand_margin_bottom = 2
+	button.add_theme_stylebox_override("focus", focus)
 	button.add_theme_color_override("font_color", font_color)
 	button.add_theme_color_override("font_hover_color", font_color.lightened(0.12))
 	button.add_theme_color_override("font_pressed_color", font_color)
@@ -197,4 +210,27 @@ static func configure_button(button: Button, tone: String = "neutral") -> void:
 	button.add_theme_font_size_override("font_size", 16)
 	button.focus_mode = Control.FOCUS_ALL
 	button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	if button.get_node_or_null("EnamelEdges") == null:
+		var edges := preload("res://scripts/ui/enamel_button_fx.gd").new()
+		edges.name = "EnamelEdges"
+		edges.accent = PAPER_INK if tone == "gold" else GOLD
+		button.add_child(edges)
+
+
+static func enamel_style(background: Color, edge: Color) -> StyleBoxFlat:
+	var style := panel_style(background, edge, 1, 3, 3)
+	style.border_width_bottom = 4
+	style.shadow_offset = Vector2(0, 3)
+	style.content_margin_left = 10
+	style.content_margin_right = 10
+	# Compact help and boss controls share this style; their hit boxes must not grow.
+	style.content_margin_top = 2
+	style.content_margin_bottom = 2
+	return style
+
+
+static func paper_labels(root: Node) -> void:
+	if root is Label or root is RichTextLabel:
+		root.set_meta("text_surface", &"paper")
+	for child in root.get_children(): paper_labels(child)
 

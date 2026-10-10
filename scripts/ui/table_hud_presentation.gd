@@ -7,7 +7,9 @@ var progress: ProgressBar
 var history: PanelContainer
 
 static func glass(accent: Color = Color("94774d"), opacity: float = 0.72) -> StyleBoxFlat:
-	return PresentationTheme.panel_style(Color(0.055, 0.08, 0.12, opacity), Color(accent, 0.7), 1, 5, 2)
+	var style := PresentationTheme.panel_style(Color(0.035, 0.075, 0.09, opacity), Color(accent, 0.85), 1, 4, 3)
+	style.border_width_bottom = 3
+	return style
 
 func configure(owner: MatchUI) -> void:
 	host = owner
@@ -46,6 +48,13 @@ func configure(owner: MatchUI) -> void:
 	column.add_child(progress)
 	for panel: PanelContainer in [host.campaign_money_hud.rate_panel, host.campaign_money_hud.income_panel, host.campaign_money_hud.panel]:
 		panel.add_theme_stylebox_override("panel", glass())
+	# Color belongs to the resource, not a second set of gameplay rules.
+	var wallet_style := glass(PresentationTheme.GOLD, 0.76)
+	wallet_style.border_width_left = 4
+	host.campaign_money_hud.panel.add_theme_stylebox_override("panel", wallet_style)
+	var income_style := glass(PresentationTheme.MONEY_GAIN, 0.74)
+	income_style.border_width_left = 3
+	host.campaign_money_hud.income_panel.add_theme_stylebox_override("panel", income_style)
 	var dock := host.get_node("GameLayer/ActionDock") as Panel
 	dock.add_theme_stylebox_override("panel", glass())
 	# Notices sit in the left seat margin, away from cards and the turn register.
@@ -63,19 +72,23 @@ func configure(owner: MatchUI) -> void:
 	host.banner_label.max_lines_visible = 6
 	host.banner_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	host.banner_label.add_theme_font_size_override("font_size", 12)
-	# Keep hover, selection, keyboard focus and disabled cues opaque and legible.
+	# Use the same tactile controls as the front end, without changing targets.
 	for button: Button in [host.menu_button, host.hint_button, host.sort_button, host.ha_button, host.extend_button, host.discard_button, host.settle_button]:
-		for state in ["normal", "hover", "pressed", "disabled"]:
-			var style := button.get_theme_stylebox(state).duplicate() as StyleBoxFlat
-			if style == null: continue
-			style.bg_color.a = 0.76 if state == "normal" else 0.68 if state == "disabled" else 0.94
-			style.shadow_size = 1
-			button.add_theme_stylebox_override(state, style)
+		var pixels := button.get_theme_font_size("font_size")
+		var tone := "gold" if button == host.settle_button else "tea" if button == host.ha_button else "neutral"
+		PresentationTheme.configure_button(button, tone)
+		button.add_theme_font_size_override("font_size", pixels)
+		if button in [host.ha_button, host.extend_button, host.discard_button, host.settle_button]:
+			button.set_meta("text_role", &"action")
+		for state in ["normal", "hover", "pressed"]:
+			var style := button.get_theme_stylebox(state) as StyleBoxFlat
+			style.content_margin_left = 6
+			style.content_margin_right = 6
 	for caption: Label in host.pile_caption_labels.values():
 		caption.add_theme_stylebox_override("normal", glass())
 	for count: Label in [host.draw_count, host.discard_count_label, host.drink_name_label]:
 		count.add_theme_stylebox_override("normal", glass())
-	host.empty_meld_label.modulate.a = 0.6
+	host.empty_meld_label.modulate.a = 0.42
 	history = host.get_node("GameLayer/TableSurface/DiscardHistoryHUD")
 	history.add_theme_stylebox_override("panel", glass(Color("6985a0"), 0.6))
 	history.mouse_filter = Control.MOUSE_FILTER_IGNORE

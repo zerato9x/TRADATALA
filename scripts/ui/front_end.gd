@@ -6,7 +6,7 @@ signal resume_requested()
 signal return_requested()
 signal handbook_requested()
 
-const CARD := Color("#121e2aee")
+const CARD := Color("#142d30f5")
 const GOLD := Color("#f5bf42")
 const CREAM := Color("#f8edcf")
 const MUTED := Color("#c6b896")
@@ -41,6 +41,7 @@ var boss_rule_preview: Label
 var _previous_focus: Control
 var _now_playing: Label
 var _layout_width := 0
+var _page_tween: Tween
 
 func words(en: String, vi: String) -> String:
 	return vi if TranslationServer.get_locale().begins_with("vi") else en
@@ -84,6 +85,7 @@ func configure(owner: MatchUI) -> void:
 			"settings": settings_page = body
 			"files": files_body = body
 			"boss_lab": boss_lab_body = body
+	$MenuTableau.body = home_body
 	music_player = preload("res://scenes/ui/music_player.tscn").instantiate() as MusicPlayerView
 	music_page.add_child(music_player)
 	music_player.configure(host.music)
@@ -110,12 +112,13 @@ func _on_size_changed() -> void:
 
 func _apply_page_layout() -> void:
 	var home := page == "home"
+	$MenuTableau.visible = home
 	$SafeArea/Frame/Header/Logo.visible = home
 	title_label.visible = not home
 	$SafeArea/Frame/Header.custom_minimum_size.y = (160 if size.y >= 650 else 100) if home else 60
 	for label in logo_words:
 		label.add_theme_font_size_override("font_size", 88 if size.y >= 650 else 66)
-	$Shade.color.a = 0.3 if home else 0.55
+	$Shade.color.a = 0.17 if home else 0.5
 	if pages.has("home"):
 		var inset := maxi(0, roundi(($SafeArea/Frame.custom_minimum_size.x - 500) * 0.5))
 		for side in ["left", "right"]:
@@ -168,12 +171,14 @@ func show_home() -> void:
 	var new_run := _button(words("EXIT DEBUG", "THOÁT THỬ NGHIỆM") if host.session.debug_active else words("NEW RUN", "VÁN MỚI"), host.leave_boss_debug if host.session.debug_active else show_setup, "gold")
 	new_run.name = "NewRun"
 	new_run.custom_minimum_size.y = 56
+	new_run.add_theme_font_size_override("font_size", 23)
 	new_run.disabled = not host.session.debug_active and not host.session.save_files.usable()
 	home_body.add_child(new_run)
 	if host.session.save_files != null:
 		var file_name: String = host.session.save_files.data.get("name", "")
 		var file_label := _label(words("SAVE FILE %d", "Ô LƯU %d") % host.session.save_files.active_slot + (" · " + file_name if not file_name.is_empty() else ""), 15, GOLD)
 		file_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		file_label.set_meta("text_role", &"muted")
 		home_body.add_child(file_label)
 		if not host.session.save_files.error.is_empty(): save_message = host.session.save_files.error
 	if not save_message.is_empty(): home_body.add_child(_label(save_message, 15, GOLD))
@@ -197,9 +202,17 @@ func show_home() -> void:
 	files.name = "SaveFiles"
 	nav.add_child(files)
 	if BossDebugSession.available():
-		var lab := _button(words("DEBUG BOSSES · F9", "THỬ CON GIÁP · F9"), show_boss_lab)
+		var lab := _button(words("BOSS LAB · F9", "THỬ CON GIÁP · F9"), show_boss_lab)
 		lab.name = "BossLab"
 		nav.add_child(lab)
+	var glyphs := ["cards", "book", "record", "settings", "save", "boss"]
+	for i in nav.get_child_count():
+		var button := nav.get_child(i) as Button
+		button.icon = load("res://assets/ui/navigation/%s.svg" % glyphs[i])
+		button.expand_icon = true
+		button.add_theme_constant_override("icon_max_width", 22)
+		button.add_theme_constant_override("h_separation", 10)
+		button.add_theme_font_size_override("font_size", 16)
 	_now_playing = _label("", 15, CREAM)
 	_now_playing.name = "NowPlaying"
 	_now_playing.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -263,7 +276,7 @@ func _render_setup() -> void:
 	if unlocked < 28:
 		var next_days := CampaignConfig.day_definitions(unlocked + 1)
 		challenge.add_child(_label(words("NEXT LOCKED  ·  %d  ·  SUNDAY %s", "MỨC KẾ TIẾP  ·  %d  ·  CHỦ NHẬT %s") % [unlocked + 1, VndWallet.format_vnd(int(next_days[-1].required_vnd))], 15, MUTED))
-	var week := _card(columns)
+	var week := _card(columns, true)
 	week.add_child(_label(words("DAILY DEBT", "NỢ MỖI NGÀY"), 21, GOLD))
 	var days := CampaignConfig.day_definitions(draft.difficulty)
 	for i in days.size():
@@ -278,6 +291,7 @@ func _render_setup() -> void:
 		amount.custom_minimum_size.x = 205
 		amount.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		row.add_child(amount)
+	PresentationTheme.paper_labels(week)
 	if customizing:
 		_render_customize()
 	elif not confirming:
@@ -400,7 +414,7 @@ func _render_drink_detail(detail: VBoxContainer) -> void:
 	sprite.name = "DrinkCollectionSprite"
 	sprite.texture = DrinkPresentation.texture(id)
 	sprite.modulate = DrinkPresentation.tint(id)
-	sprite.custom_minimum_size = Vector2(0, 100)
+	sprite.custom_minimum_size = Vector2(0, 180)
 	sprite.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	sprite.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
@@ -416,7 +430,7 @@ func _render_zodiac_detail(detail: VBoxContainer) -> void:
 	var definition: Dictionary = ZodiacCatalog.DEFINITIONS[id]
 	var sprite := TextureRect.new()
 	sprite.texture = load(String(definition.sprite))
-	sprite.custom_minimum_size = Vector2(100, 100)
+	sprite.custom_minimum_size = Vector2(180, 180)
 	sprite.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	sprite.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	detail.add_child(sprite)
@@ -519,8 +533,10 @@ func _show_page(id: String) -> void:
 		footer.add_child(start)
 	if changed:
 		var panel: Control = pages[id]
+		if _page_tween != null and _page_tween.is_valid(): _page_tween.kill()
 		panel.modulate.a = 0.0
-		create_tween().tween_property(panel, "modulate:a", 1.0, 0.18)
+		_page_tween = create_tween()
+		_page_tween.tween_property(panel, "modulate:a", 1.0, 0.22).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 	_focus_page.call_deferred(id)
 
 func _focus_page(id: String) -> void:
@@ -559,10 +575,13 @@ func _unhandled_key_input(event: InputEvent) -> void:
 		go_back()
 		get_viewport().set_input_as_handled()
 
-func _card(parent: Node) -> VBoxContainer:
+func _card(parent: Node, paper: bool = false) -> VBoxContainer:
 	var panel := PanelContainer.new()
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	panel.add_theme_stylebox_override("panel", PresentationTheme.panel_style(CARD, Color("#8f7752"), 1, 3, 4))
+	var surface := PresentationTheme.panel_style(Color("e7d8b1") if paper else CARD, Color("ae9569"), 1, 4, 6)
+	surface.border_width_top = 4
+	surface.border_width_bottom = 3
+	panel.add_theme_stylebox_override("panel", surface)
 	parent.add_child(panel)
 	var margin := MarginContainer.new()
 	for side in ["left", "right"]: margin.add_theme_constant_override("margin_" + side, 18)
