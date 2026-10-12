@@ -31,7 +31,7 @@ var events: Array[Dictionary] = []
 var _mechanic: RefCounted
 
 func configure(zodiac_id: String = "", severity: Variant = "UNPLEASED", seed_value: int = 0) -> void:
-	id = "rat" if zodiac_id == "mouse" else zodiac_id
+	id = "rat" if zodiac_id == "mouse" else "ox" if zodiac_id == "buffalo" else zodiac_id
 	difficulty = ZodiacCatalog.difficulty_value(severity)
 	register_closed = false
 	locked_ids.clear()
@@ -110,6 +110,12 @@ func deadwood(deal, context: Dictionary) -> void:
 func turn_discard(deal, requested: CardData) -> CardData:
 	return _mechanic.turn_discard(self, deal, requested) if _mechanic != null else requested
 
+func command_discard(deal, requested: CardData) -> Dictionary:
+	return _mechanic.command_discard(self, deal, requested) if _mechanic != null else {}
+
+func command_refusal(action: String) -> Dictionary:
+	return _mechanic.command_refusal(self, action) if _mechanic != null else {}
+
 func phase_limit(current_phase: int, ordinary: int) -> int:
 	return _mechanic.phase_limit(self, current_phase, ordinary) if _mechanic != null else ordinary
 
@@ -145,6 +151,7 @@ func restore(saved: Dictionary) -> void:
 	data.merge(saved.get("data", {}).duplicate(true), true)
 	events.assign(saved.get("events", []))
 	rng.state = saved.get("rng", 0)
+	if _mechanic != null: _mechanic.restored(self, saved)
 
 func before_refill(deal) -> void:
 	if _mechanic != null: _mechanic.before_refill(self, deal)

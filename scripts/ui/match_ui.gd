@@ -753,7 +753,8 @@ func _show_campaign_event(event: EventInstance) -> void:
 		CampaignText.day_name(campaign),
 		tr(EventManager.slot_name_key(event.slot)),
 		_event_money_text(deal.wallet.balance_vnd),
-		campaign.gieo_que.persistent_deck.size()
+		campaign.gieo_que.persistent_deck.size(),
+		event.participants
 	)
 	if not event_table.cash_clicked.is_connected(_on_event_cash_clicked):
 		event_table.cash_clicked.connect(_on_event_cash_clicked)
@@ -1039,6 +1040,9 @@ func _refresh_actions() -> void:
 	discard_button.text = GameGlossary.words("END EMPTY TURN", "KẾT THÚC LƯỢT TRỐNG") if deal.hand.is_empty() else tr("ACTION_DISCARD")
 	discard_button.tooltip_text = tr("ACTION_DISCARD_TOOLTIP")
 	var can_skip_tra_da_extra := deal.state == DealState.STATE_ACTIVE and deal.tra_da_extra_discard_pending
+	if _snake_charm_active():
+		if not deal.hand.is_empty(): discard_button.text = ZodiacCatalog.words("CHARM DISCARD", "BỎ DO MÊ HOẶC")
+		discard_button.tooltip_text = ZodiacCatalog.words("Snake's active charm resolves first. This discard does not end your turn.", "Mê hoặc của Tỵ được giải quyết trước. Lần bỏ này không kết thúc lượt.")
 	settle_button.text = tr("ACTION_END_TURN") if can_skip_tra_da_extra else tr("ACTION_SETTLE")
 	settle_button.tooltip_text = tr("ACTION_END_TURN_TOOLTIP") if can_skip_tra_da_extra else tr("ACTION_SETTLE_TOOLTIP")
 	if deal.state == DealState.STATE_FINAL_COMMIT_WINDOW:
@@ -1089,7 +1093,7 @@ func _refresh_actions() -> void:
 		]
 		status_label.add_theme_color_override("font_color", PresentationTheme.MONEY_GAIN)
 	elif interactions.selected_meld_id >= 0 and deal.can_extend_meld(interactions.selected_meld_id, selected):
-		var meld := deal.get_meld(interactions.selected_meld_id)
+		var meld := deal.get_table_meld(interactions.selected_meld_id)
 		var combined: Array[CardData] = meld.cards.duplicate()
 		combined.append_array(selected)
 		var preview := deal.preview_extension_payout(meld, selected, deal.state == DealState.STATE_FINAL_COMMIT_WINDOW)
@@ -1608,12 +1612,14 @@ func _on_ha_pressed() -> void:
 	var selected := interactions.selected_cards()
 	interactions.locked = true
 	_refresh_actions()
-	_fly_cards(selected, meld_scroll.get_global_rect().get_center())
+	var snake_charmed := _snake_charm_active()
+	if not snake_charmed: _fly_cards(selected, meld_scroll.get_global_rect().get_center())
 	var use_drink := not deal.can_create_meld(selected)
 	var result := deal.create_meld(selected, use_drink)
 	if not result.get("ok", false):
 		_reject_action(result.get("message", "Hạ failed."))
 		return
+	if snake_charmed: _fly_surviving_scoring_cards(selected, result)
 	if use_drink:
 		ui_feedback.play_drink(deal.current_drink_id)
 	_play_card_sfx(CARD_SFX_PLACE)
@@ -1631,11 +1637,13 @@ func _on_extend_pressed() -> void:
 	var selected := interactions.selected_cards()
 	interactions.locked = true
 	_refresh_actions()
-	_fly_cards(selected, meld_scroll.get_global_rect().get_center())
+	var snake_charmed := _snake_charm_active()
+	if not snake_charmed: _fly_cards(selected, meld_scroll.get_global_rect().get_center())
 	var result := deal.extend_meld(interactions.selected_meld_id, selected)
 	if not result.get("ok", false):
 		_reject_action(result.get("message", "Extension failed."))
 		return
+	if snake_charmed: _fly_surviving_scoring_cards(selected, result)
 	_play_card_sfx(CARD_SFX_PLACE)
 	interactions.selected_ids.clear()
 	_sync_all(result)
@@ -1644,7 +1652,22 @@ func _on_extend_pressed() -> void:
 	_refresh_actions()
 
 
+func _snake_charm_active() -> bool:
+	return deal.zodiac_boss.id == "snake" and deal.zodiac_boss.data.commands.any(func(command: Dictionary): return command.status == "pending")
+
+func _fly_surviving_scoring_cards(cards: Array[CardData], result: Dictionary) -> void:
+	var lost := {}
+	for event: Dictionary in result.get("boss_events", []):
+		if event.get("source", "") != "snake": continue
+		if event.get("action", "") == "boss_discard_meld":
+			for id: String in event.card_ids: lost[id] = true
+		elif event.get("action", "") == "boss_discard": lost[event.card_id] = true
+	var survivors: Array[CardData] = cards.filter(func(card: CardData): return not lost.has(card.unique_id))
+	_fly_cards(survivors, meld_scroll.get_global_rect().get_center())
+
 func end_action_copy(kind: String) -> String:
+	if _snake_charm_active() and (kind == "discard" or deal.tra_da_extra_discard_pending):
+		return ZodiacCatalog.words("Resolve Snake's charm · turn continues", "Giải quyết mê hoặc của Tỵ · lượt tiếp tục")
 	if kind == "discard":
 		var cards := interactions.selected_cards()
 		var action := GameGlossary.words("End Turn?", "Kết lượt?") if cards.is_empty() else GameGlossary.words("Discard %s?", "Bỏ %s?") % cards[0].short_label()
@@ -1665,6 +1688,8 @@ func end_action_copy(kind: String) -> String:
 
 
 func _end_action_detail(kind: String) -> String:
+	if _snake_charm_active() and (kind == "discard" or deal.tra_da_extra_discard_pending):
+		return ZodiacCatalog.words("This action resolves the active charm without deadwood or refill. A refusal discards the charmed card or its whole Meld.", "Hành động này giải quyết mê hoặc hiện tại mà không phạt bài rời hay bù bài. Trái lệnh sẽ bỏ lá bị mê hoặc hoặc cả Phỏm chứa lá đó.")
 	if kind == "discard":
 		var cards := interactions.selected_cards()
 		var action := GameGlossary.words("End this empty turn.", "Kết thúc lượt trống này.") if cards.is_empty() else GameGlossary.words("Discard %s to end this turn.", "Bỏ %s để kết thúc lượt này.") % cards[0].short_label()
@@ -1694,7 +1719,7 @@ func _on_discard_pressed() -> void:
 	var card: CardData = selected[0] if not selected.is_empty() else null
 	interactions.locked = true
 	_refresh_actions()
-	_fly_cards(selected, discard_texture.get_global_rect().get_center())
+	if not _snake_charm_active(): _fly_cards(selected, discard_texture.get_global_rect().get_center())
 	var result: Dictionary = deal.end_empty_turn() if card == null else deal.discard_card(card)
 	if not result.get("ok", false):
 		_reject_action(result.get("message", "Discard failed."))
@@ -1711,7 +1736,10 @@ func _on_discard_pressed() -> void:
 	money_feedback.drain_exhaustion()
 	await money_feedback.drain_u_khan()
 	if presentation_generation != money_playback.generation: return
-	if result.get("extra_discard_pending", false):
+	if result.get("snake_charmed", false):
+		_release_deal_input()
+		_refresh_actions()
+	elif result.get("extra_discard_pending", false):
 		_show_banner(tr("BANNER_TRA_DA_EXTRA_DISCARD"))
 		_release_deal_input()
 		_refresh_actions()
@@ -1736,6 +1764,10 @@ func _on_settle_pressed() -> void:
 			_reject_action(turn_result.get("message", "Ending the turn failed."))
 			return
 		_sync_all(turn_result)
+		if turn_result.get("snake_charmed", false):
+			_release_deal_input()
+			_refresh_actions()
+			return
 		if turn_result.has("turn_resolution"):
 			money_feedback.show_turn_deadwood(turn_result["turn_resolution"], turn_result.get("boss_wallet_entries", []))
 		money_feedback.drain_exhaustion()
@@ -2504,7 +2536,7 @@ func _sync_passive_drink_sound(result: Dictionary) -> void:
 	if deal.current_drink_id == DrinkCatalog.TRA_DA and result.get("discard_kind", "") == DiscardRecord.KIND_DRINK_EXTRA:
 		ui_feedback.play_drink(deal.current_drink_id)
 	elif deal.current_drink_id in [DrinkCatalog.MIA_TAC, DrinkCatalog.MIA_SAU_RIENG] and result.get("action", "") in ["new_meld", "extension"]:
-		var meld := deal.get_meld(int(result.get("meld_id", -1)))
+		var meld := deal.get_table_meld(int(result.get("meld_id", -1)))
 		if meld != null and meld.meld_type == MeldRules.TYPE_RUN and MeldRules.classify(meld.cards) == MeldRules.TYPE_INVALID:
 			ui_feedback.play_drink(deal.current_drink_id)
 

@@ -4,7 +4,7 @@ extends RefCounted
 const SUITS := {"s": "Spades", "h": "Hearts", "d": "Diamonds", "c": "Clubs", "♠": "Spades", "♥": "Hearts", "♦": "Diamonds", "♣": "Clubs",
 	"spades": "Spades", "hearts": "Hearts", "diamonds": "Diamonds", "clubs": "Clubs", "bích": "Spades", "cơ": "Hearts", "rô": "Diamonds", "tép": "Clubs", "chuồn": "Clubs"}
 const ZODIAC_NAMES := {"rooster": "rooster", "dậu": "rooster", "cat": "cat", "mão": "cat", "dog": "dog", "tuất": "dog", "monkey": "monkey", "thân": "monkey",
-	"pig": "pig", "hợi": "pig", "ox": "ox", "sửu": "ox", "horse": "horse", "ngọ": "horse", "goat": "goat", "mùi": "goat", "rat": "rat", "mouse": "rat", "tý": "rat",
+	"pig": "pig", "hợi": "pig", "ox": "ox", "buffalo": "ox", "sửu": "ox", "horse": "horse", "ngọ": "horse", "goat": "goat", "mùi": "goat", "rat": "rat", "mouse": "rat", "tý": "rat",
 	"tiger": "tiger", "dần": "tiger", "snake": "snake", "tỵ": "snake", "dragon": "dragon", "thìn": "dragon"}
 const ACTION_WORDS := ["meld", "extend", "extension", "discard", "draw", "settle", "accept", "refuse", "haggle", "phỏm", "nối", "ghép", "bỏ", "rút", "chốt", "đồng ý", "từ chối", "mặc cả"]
 const MECHANIC_WORDS := ["deadwood", "mỏm", "last call", "chốt hạ", "gieo quẻ", "relic", "di vật", "shiny", "liquid", "sáng bóng", "lưu quang", "promise", "cam kết", "patience", "kiên nhẫn"]

@@ -1056,10 +1056,10 @@
     "monkey_1": {
       "decisions": {
         "monkey_1_bars_002_003": {
-          "cue_name": "",
+          "cue_name": "STARTER_EVENT",
           "notes": "",
           "status": "approved",
-          "updated_at_utc": "2026-09-08T02:34:52"
+          "updated_at_utc": "2026-10-09T08:15:06"
         },
         "monkey_1_bars_006_007": {
           "cue_name": "",
@@ -1068,28 +1068,28 @@
           "updated_at_utc": "2026-09-08T02:35:38"
         },
         "monkey_1_bars_006_009": {
-          "cue_name": "",
+          "cue_name": "MORNING_DEAL_PHASE_1",
           "notes": "",
           "status": "approved",
-          "updated_at_utc": "2026-09-08T02:35:50"
+          "updated_at_utc": "2026-10-09T08:15:17"
         },
         "monkey_1_bars_010_013": {
-          "cue_name": "",
+          "cue_name": "MORNING_DEAL_PHASE_2",
           "notes": "",
           "status": "approved",
-          "updated_at_utc": "2026-09-08T02:37:18"
+          "updated_at_utc": "2026-10-09T08:15:52"
         },
         "monkey_1_bars_018_019": {
-          "cue_name": "",
+          "cue_name": "MORNING_EVENT",
           "notes": "",
           "status": "approved",
-          "updated_at_utc": "2026-09-08T02:38:12"
+          "updated_at_utc": "2026-10-09T08:16:06"
         },
         "monkey_1_bars_022_023": {
-          "cue_name": "",
+          "cue_name": "NOON_DEAL_PHASE_1_SUS",
           "notes": "",
           "status": "approved",
-          "updated_at_utc": "2026-09-08T02:39:09"
+          "updated_at_utc": "2026-10-09T08:17:41"
         },
         "monkey_1_bars_027_030": {
           "cue_name": "",
@@ -1098,50 +1098,50 @@
           "updated_at_utc": "2026-09-08T02:40:39"
         },
         "monkey_1_bars_028_029": {
-          "cue_name": "",
+          "cue_name": "NOON_DEAL_PHASE_1",
           "notes": "",
           "status": "approved",
-          "updated_at_utc": "2026-09-08T02:40:49"
+          "updated_at_utc": "2026-10-09T08:17:15"
         },
         "monkey_1_bars_032_033": {
-          "cue_name": "",
+          "cue_name": "NOON_DEAL_PHASE_2_SUS",
           "notes": "",
           "status": "approved",
-          "updated_at_utc": "2026-09-08T02:41:54"
+          "updated_at_utc": "2026-10-09T08:17:45"
         },
         "monkey_1_bars_040_041": {
-          "cue_name": "",
+          "cue_name": "NOON_DEAL_PHASE_2",
           "notes": "",
           "status": "approved",
-          "updated_at_utc": "2026-09-08T02:42:48"
+          "updated_at_utc": "2026-10-09T08:17:06"
         }
       }
     },
     "monkey_2": {
       "decisions": {
         "monkey_2_bars_001_002": {
-          "cue_name": "",
+          "cue_name": "NOON_EVENT",
           "notes": "",
           "status": "approved",
-          "updated_at_utc": "2026-09-08T13:08:15"
+          "updated_at_utc": "2026-10-09T08:17:58"
         },
         "monkey_2_bars_005_008": {
-          "cue_name": "",
+          "cue_name": "AFTERNOON_DEAL_PHASE_1_SUSTAIN",
           "notes": "",
           "status": "approved",
-          "updated_at_utc": "2026-09-08T13:10:45"
+          "updated_at_utc": "2026-10-09T08:18:28"
         },
         "monkey_2_bars_009_012": {
-          "cue_name": "",
+          "cue_name": "AFTERNOON_DEAL_PHASE_1",
           "notes": "",
           "status": "approved",
-          "updated_at_utc": "2026-09-08T13:12:04"
+          "updated_at_utc": "2026-10-09T08:18:47"
         },
         "monkey_2_bars_013_014": {
-          "cue_name": "",
+          "cue_name": "AFTERNOON_DEAL_PHASE_2_SUSTAIN",
           "notes": "",
           "status": "approved",
-          "updated_at_utc": "2026-09-08T13:12:38"
+          "updated_at_utc": "2026-10-09T08:19:08"
         },
         "monkey_2_bars_014_015": {
           "cue_name": "",
@@ -1150,28 +1150,28 @@
           "updated_at_utc": "2026-09-08T13:12:28"
         },
         "monkey_2_bars_015_016": {
-          "cue_name": "",
+          "cue_name": "AFTERNOON_DEAL_PHASE_2",
           "notes": "",
           "status": "approved",
-          "updated_at_utc": "2026-09-08T13:13:10"
+          "updated_at_utc": "2026-10-09T08:20:57"
         },
         "monkey_2_bars_018_019": {
-          "cue_name": "",
+          "cue_name": "AFTERNOON_DEAL_PHASE_2",
           "notes": "",
-          "status": "approved",
-          "updated_at_utc": "2026-09-08T13:13:41"
+          "status": "rejected",
+          "updated_at_utc": "2026-10-09T08:20:50"
         },
         "monkey_2_bars_019_022": {
-          "cue_name": "",
+          "cue_name": "AFTERNOON_EVENT",
           "notes": "",
           "status": "approved",
-          "updated_at_utc": "2026-09-08T13:14:13"
+          "updated_at_utc": "2026-10-09T08:21:04"
         },
         "monkey_2_bars_026_029": {
-          "cue_name": "",
+          "cue_name": "EVENING_PHASE_1_SUSTAIN",
           "notes": "",
           "status": "approved",
-          "updated_at_utc": "2026-09-08T13:16:57"
+          "updated_at_utc": "2026-10-09T08:21:32"
         },
         "monkey_2_bars_027_028": {
           "cue_name": "",
@@ -1180,22 +1180,22 @@
           "updated_at_utc": "2026-09-08T13:16:19"
         },
         "monkey_2_bars_031_032": {
-          "cue_name": "",
+          "cue_name": "EVENING_PHASE_1_SUSTAIN",
           "notes": "",
           "status": "approved",
-          "updated_at_utc": "2026-09-08T13:18:32"
+          "updated_at_utc": "2026-10-09T08:21:56"
         },
         "monkey_2_bars_033_036": {
-          "cue_name": "",
+          "cue_name": "EVENING_PHASE_1",
           "notes": "",
           "status": "approved",
-          "updated_at_utc": "2026-09-08T13:19:13"
+          "updated_at_utc": "2026-10-09T08:22:07"
         },
         "monkey_2_bars_037_038": {
-          "cue_name": "",
+          "cue_name": "EVENING_PHASE_2_SUSTAIN",
           "notes": "",
           "status": "approved",
-          "updated_at_utc": "2026-09-08T13:20:00"
+          "updated_at_utc": "2026-10-09T08:22:29"
         },
         "monkey_2_bars_038_041": {
           "cue_name": "",
@@ -1204,22 +1204,22 @@
           "updated_at_utc": "2026-09-08T13:20:03"
         },
         "monkey_2_bars_041_042": {
-          "cue_name": "",
+          "cue_name": "EVENING_PHASE_2_SUSTAIN",
           "notes": "",
           "status": "approved",
-          "updated_at_utc": "2026-09-08T13:20:23"
+          "updated_at_utc": "2026-10-09T08:22:38"
         },
         "monkey_2_bars_043_044": {
-          "cue_name": "",
+          "cue_name": "EVENING_PHASE_2_SUSTAIN",
           "notes": "",
-          "status": "approved",
-          "updated_at_utc": "2026-09-08T13:20:33"
+          "status": "rejected",
+          "updated_at_utc": "2026-10-09T08:23:30"
         },
         "monkey_2_bars_045_046": {
-          "cue_name": "",
+          "cue_name": "EVENING_PHASE_2",
           "notes": "",
           "status": "approved",
-          "updated_at_utc": "2026-09-08T13:20:39"
+          "updated_at_utc": "2026-10-09T08:23:24"
         }
       }
     },
@@ -1348,16 +1348,16 @@
     "pig_1": {
       "decisions": {
         "pig_1_bars_001_002": {
-          "cue_name": "",
+          "cue_name": "STARTER_EVENT",
           "notes": "",
           "status": "approved",
-          "updated_at_utc": "2026-09-11T03:16:21"
+          "updated_at_utc": "2026-10-09T08:27:46"
         },
         "pig_1_bars_001_004": {
-          "cue_name": "EVENT (4bars)",
+          "cue_name": "MORNING_DEAL_PHASE_1",
           "notes": "",
           "status": "approved",
-          "updated_at_utc": "2026-09-11T03:15:40"
+          "updated_at_utc": "2026-10-09T08:28:34"
         },
         "pig_1_bars_003_004": {
           "cue_name": "",
@@ -1384,10 +1384,10 @@
           "updated_at_utc": "2026-09-02T05:32:36"
         },
         "pig_1_bars_010_011": {
-          "cue_name": "",
+          "cue_name": "MORNING_DEAL_PHASE_2_SUS",
           "notes": "",
           "status": "approved",
-          "updated_at_utc": "2026-09-02T05:32:35"
+          "updated_at_utc": "2026-10-09T08:29:18"
         },
         "pig_1_bars_013_016": {
           "cue_name": "",
@@ -1396,10 +1396,10 @@
           "updated_at_utc": "2026-09-11T03:18:13"
         },
         "pig_1_bars_013_020": {
-          "cue_name": "",
+          "cue_name": "MORNING_PHASE_2 + MORNING_EVENT",
           "notes": "",
           "status": "approved",
-          "updated_at_utc": "2026-09-11T03:19:15"
+          "updated_at_utc": "2026-10-09T08:29:12"
         },
         "pig_1_bars_014_017": {
           "cue_name": "",
@@ -1408,10 +1408,10 @@
           "updated_at_utc": "2026-09-11T03:19:22"
         },
         "pig_1_bars_021_024": {
-          "cue_name": "",
+          "cue_name": "NOON_PHASE_1",
           "notes": "",
           "status": "approved",
-          "updated_at_utc": "2026-09-02T05:26:59"
+          "updated_at_utc": "2026-10-09T08:29:30"
         },
         "pig_1_bars_029_030": {
           "cue_name": "",
@@ -1420,38 +1420,98 @@
           "updated_at_utc": "2026-09-11T03:21:27"
         },
         "pig_1_bars_029_032": {
-          "cue_name": "",
+          "cue_name": "NOON_PHASE_2",
           "notes": "",
           "status": "approved",
-          "updated_at_utc": "2026-09-11T03:21:25"
+          "updated_at_utc": "2026-10-09T08:31:57"
         }
       }
     },
     "pig_2": {
       "decisions": {
         "pig_2_bars_001_002": {
-          "cue_name": "",
+          "cue_name": "NOON_EVENT",
           "notes": "",
           "status": "approved",
-          "updated_at_utc": "2026-09-02T05:35:09"
+          "updated_at_utc": "2026-10-09T08:32:14"
         },
         "pig_2_bars_006_007": {
-          "cue_name": "",
+          "cue_name": "NOON_DEAL_PHASE_1",
           "notes": "",
           "status": "approved",
-          "updated_at_utc": "2026-09-02T05:36:00"
+          "updated_at_utc": "2026-10-09T08:32:35"
         },
         "pig_2_bars_011_012": {
+          "cue_name": "NOON_DEAL_PHASE_2",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-10-09T08:34:27"
+        },
+        "pig_2_bars_015_018": {
           "cue_name": "",
           "notes": "",
           "status": "approved",
-          "updated_at_utc": "2026-09-02T05:37:10"
+          "updated_at_utc": "2026-10-09T08:37:23"
         },
         "pig_2_bars_022_023": {
+          "cue_name": "NOON_EVENT",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-10-09T08:34:09"
+        },
+        "pig_2_bars_027_028": {
           "cue_name": "",
           "notes": "",
           "status": "approved",
-          "updated_at_utc": "2026-09-02T05:40:22"
+          "updated_at_utc": "2026-10-09T08:39:03"
+        },
+        "pig_2_bars_030_031": {
+          "cue_name": "",
+          "notes": "",
+          "status": "rejected",
+          "updated_at_utc": "2026-10-09T08:40:59"
+        },
+        "pig_2_bars_030_033": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-10-09T08:40:56"
+        },
+        "pig_2_bars_034_037": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-10-09T08:42:23"
+        },
+        "pig_2_bars_036_039": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-10-09T08:43:50"
+        },
+        "pig_2_bars_044_045": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-10-09T08:44:57"
+        },
+        "pig_2_bars_047_050": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-10-09T08:45:36"
+        },
+        "pig_2_bars_053_054": {
+          "cue_name": "",
+          "notes": "",
+          "status": "rejected",
+          "updated_at_utc": "2026-10-09T08:47:28"
+        },
+        "pig_2_bars_053_056": {
+          "cue_name": "",
+          "notes": "",
+          "status": "approved",
+          "updated_at_utc": "2026-10-09T08:47:25"
         }
       }
     },

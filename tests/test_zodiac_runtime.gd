@@ -208,7 +208,7 @@ func test_goat_committed_rank_progression_grace_parity_and_restore() -> void:
 			deal.zodiac_boss.data.expected_rank = 7
 		var extra := _cards(deal, [["7", "Hearts"]])
 		assert_gt(deal.extend_meld(made.meld_id, extra).context.final_points, 0)
-		assert_eq(deal.zodiac_boss.data.expected_rank, 8)
+		assert_eq(deal.zodiac_boss.data.expected_rank, 10)
 		var before := deal.wallet.balance_vnd
 		var off_pattern := deal.create_meld(deal.hand.slice(0, 3))
 		assert_true(off_pattern.ok)
@@ -226,6 +226,52 @@ func _top(deal: DealState, specs: Array) -> void:
 	var top: Array[CardData] = []
 	for spec: Array in specs: top.append(deal._take_tutorial_card(spec[0], spec[1]))
 	for i in range(top.size() - 1, -1, -1): deal.deck.draw_pile.append(top[i])
+
+func test_goat_three_rank_windows_accept_each_rank_advance_once_and_preview_safely() -> void:
+	for rank in [7, 8, 9]:
+		var deal := _deal("goat", 2)
+		deal.create_meld(deal.hand.slice(0, 3)) # 4/5/6 opens 7/8/9.
+		assert_eq(deal.zodiac_boss.presentation().accepted_ranks, [7, 8, 9])
+		var cards := _cards(deal, [[str(rank), "Hearts"], [str(rank), "Clubs"], [str(rank), "Diamonds"]])
+		var snapshot := deal.snapshot_state()
+		assert_gt(deal.preview_new_meld_payout(cards, MeldRules.TYPE_SET).points, 0)
+		assert_eq(deal.snapshot_state(), snapshot)
+		assert_gt(deal.create_meld(cards).context.final_points, 0)
+		assert_eq(deal.zodiac_boss.presentation().accepted_ranks, [10, 11, 12])
+		_restored(deal)
+	var run_deal := _deal("goat", 2)
+	run_deal.create_meld(run_deal.hand.slice(0, 3))
+	var next_run := _cards(run_deal, [["7", "Hearts"], ["8", "Hearts"], ["9", "Hearts"]])
+	assert_gt(run_deal.create_meld(next_run).context.final_points, 0)
+	assert_eq(run_deal.zodiac_boss.data.expected_rank, 10)
+	var outside := _cards(run_deal, [["9", "Clubs"], ["10", "Clubs"], ["J", "Clubs"]])
+	assert_eq(run_deal.create_meld(outside).context.final_points, 0)
+	assert_eq(run_deal.zodiac_boss.data.expected_rank, 10)
+
+func test_goat_window_wrap_grace_and_hard_parity() -> void:
+	for start in [11, 12, 13]:
+		var deal := _deal("goat", 2)
+		deal.zodiac_boss.data.expected_rank = start
+		var window: Array[int] = deal.zodiac_boss.presentation().accepted_ranks
+		var rank: String = DeckManager.RANKS[window[-1] - 1]
+		var cards := _cards(deal, [[rank, "Hearts"], [rank, "Clubs"], [rank, "Diamonds"]])
+		assert_gt(deal.create_meld(cards).context.final_points, 0)
+		assert_eq(deal.zodiac_boss.data.expected_rank, (start + 2) % 13 + 1)
+		_restored(deal)
+	var hard := _deal("goat", 3)
+	hard.zodiac_boss.data.expected_rank = 6 # Even start does not block the odd rank inside 6/7/8.
+	var sevens := _cards(hard, [["7", "Hearts"], ["7", "Clubs"], ["7", "Diamonds"]])
+	assert_gt(hard.create_meld(sevens).context.final_points, 0)
+	assert_eq(hard.zodiac_boss.data.expected_rank, 9)
+	var tens := _cards(hard, [["10", "Hearts"], ["10", "Clubs"], ["10", "Diamonds"]])
+	assert_eq(hard.create_meld(tens).context.final_points, 0)
+	assert_eq(hard.zodiac_boss.data.expected_rank, 9)
+	var easy := _deal("goat", 1)
+	easy.zodiac_boss.data.expected_rank = 2
+	assert_gt(easy.create_meld(easy.hand.slice(0, 3)).context.final_points, 0)
+	assert_eq(easy.zodiac_boss.data.rhythm_grace, 0)
+	assert_eq(easy.zodiac_boss.data.expected_rank, 7)
+	assert_eq(easy.create_meld(_cards(easy, [["Q", "Clubs"], ["Q", "Hearts"], ["Q", "Spades"]])).context.final_points, 0)
 
 func test_mouse_all_tiers_hostile_meld_ownership_wallet_and_accounting() -> void:
 	for level in [1, 2, 3]:
@@ -246,6 +292,49 @@ func test_mouse_all_tiers_hostile_meld_ownership_wallet_and_accounting() -> void
 		_restored(deal)
 		assert_false(deal.deck.discard_pile.has(card))
 		assert_true(deal.discard_history.is_empty())
+
+func test_rat_owned_melds_accept_paid_player_extensions_at_every_difficulty() -> void:
+	for level in [1, 2, 3]:
+		for suit in ["set", "run"]:
+			var deal := _deal("rat", level)
+			var originals := _cards(deal, [["J", "Hearts"], ["J", "Diamonds"], ["J", "Clubs"]] if suit == "set" else [["4", "Hearts"], ["5", "Hearts"], ["6", "Hearts"]])
+			for card in originals: deal.boss_discard_card(card, "fixture")
+			var made := deal.boss_commit_meld(originals, -1, "rat")
+			var meld: MeldState = deal.boss_melds[0]
+			var additions := _cards(deal, [["J", "Spades"]] if suit == "set" else [["7", "Hearts"], ["8", "Hearts"]])
+			# Remove unrelated plays so the adviser must find the boss-owned target.
+			for card in deal.hand.duplicate():
+				if not additions.has(card): deal.boss_discard_card(card, "fixture")
+			var spare := _cards(deal, [["A", "Clubs"]])
+			var preview := deal.preview_extension_payout(meld, additions)
+			assert_true(deal.can_extend_meld(made.meld_id, additions))
+			assert_eq(deal.get_meld(made.meld_id), null)
+			assert_eq(deal.get_table_meld(made.meld_id), meld)
+			assert_eq(deal.queries.recommend_action().meld_id, made.meld_id)
+			assert_true(deal.queries.legal_action_card_ids().extend.has(additions[0].unique_id))
+			assert_true(deal.queries.legal_action_targets_for_selection(additions, -1).melds.has(made.meld_id))
+			var wallet_before := deal.wallet.balance_vnd
+			var value_before := ScoringPipeline.meld_value(meld.cards)
+			var result := deal.extend_meld(made.meld_id, additions)
+			assert_true(result.ok)
+			assert_eq(result.earned_vnd, VndWallet.points_to_vnd(preview.points, deal.vnd_per_point))
+			assert_eq(result.context.base_extension_score, ScoringPipeline.meld_value(meld.cards) - value_before)
+			assert_eq(result.context.scoring_passes[0].final_points, result.context.base_extension_score)
+			assert_eq(deal.wallet.balance_vnd - wallet_before, result.earned_vnd)
+			assert_true(deal.melds.is_empty())
+			assert_true(deal.boss_melds.has(meld))
+			assert_eq(meld.cards.size(), originals.size() + additions.size())
+			assert_eq(deal.hand, spare)
+			assert_eq(deal.phase_metrics.extension_count, 1)
+			assert_false(deal.extend_meld(made.meld_id, additions).ok)
+			assert_eq(deal.wallet.balance_vnd - wallet_before, result.earned_vnd)
+			var restored := _restored(deal)
+			assert_eq(restored.get_table_meld(made.meld_id).cards.size(), meld.cards.size())
+			deal.current_drink_id = DrinkCatalog.NAU_DA
+			assert_false(deal.can_use_nau_da(made.meld_id))
+			deal.current_drink_id = DrinkCatalog.NUOC_VOI
+			assert_false(deal.can_use_nuoc_voi(made.meld_id, additions[-1]))
+			assert_true(deal.physical_card_accounting_is_valid())
 
 func test_mouse_hostile_extension_enters_player_meld_without_player_scoring() -> void:
 	var deal := _deal("rat", 2)
@@ -318,7 +407,7 @@ func test_tiger_immediate_all_tiers_highest_or_strategic_rank_and_restore() -> v
 		assert_true(deal.physical_card_accounting_is_valid())
 		assert_false(deal.zodiac_boss.presentation().has("prey"))
 
-func test_tiger_unpleased_suppresses_only_exhaustion_bonus_and_recycles_normally() -> void:
+func test_tiger_all_tiers_suppress_only_exhaustion_bonus_and_recycle_normally() -> void:
 	for level in [1, 2, 3]:
 		var deal := _deal("tiger", level)
 		assert_gt(deal.create_meld(deal.hand.slice(0, 3)).context.final_points, 0)
@@ -327,20 +416,39 @@ func test_tiger_unpleased_suppresses_only_exhaustion_bonus_and_recycles_normally
 		deal.deck.draw_pile.clear()
 		deal.move_to_recyclable_spent(stock)
 		deal.hand.append_array(deal.deck.draw(1))
-		assert_eq(deal.wallet.balance_vnd - before, 0 if level == 3 else 45_000)
+		assert_eq(deal.wallet.balance_vnd - before, 0)
 		assert_eq(deal.exhaustion_count, 1)
 		assert_true(deal.melds.is_empty())
 		assert_true(deal.physical_card_accounting_is_valid())
 
+
+func test_rat_all_tiers_suppress_exhaustion_but_keep_normal_scoring_and_recycling() -> void:
+	for level in [1, 2, 3]:
+		var deal := _deal("rat", level)
+		assert_gt(deal.create_meld(deal.hand.slice(0, 3)).context.final_points, 0)
+		var before := deal.wallet.balance_vnd
+		var stock: Array[CardData] = deal.deck.draw_pile.duplicate()
+		deal.deck.draw_pile.clear()
+		deal.move_to_recyclable_spent(stock)
+		deal.hand.append_array(deal.deck.draw(1))
+		assert_eq(deal.wallet.balance_vnd, before)
+		assert_eq(deal.exhaustion_count, 1)
+		assert_true(deal.melds.is_empty())
+		assert_true(deal.physical_card_accounting_is_valid())
+		_restored(deal)
 
 func test_snake_all_tiers_commands_sabotage_continues_turn_and_restore() -> void:
 	for level in [1, 2, 3]:
 		var deal := _deal("snake", level)
 		var copy := _restored(deal)
 		var before_rng := deal.deck._rng.state
+		var before_hand: Array = deal.hand.map(func(card): return card.unique_id)
 		deal.zodiac_boss.begin_turn(1, deal.hand, deal)
 		copy.zodiac_boss.begin_turn(1, copy.hand, copy)
-		assert_eq(deal.zodiac_boss.data.commands.size(), level)
+		assert_eq(deal.zodiac_boss.data.commands.size(), 1)
+		assert_eq(deal.zodiac_boss.data.command_limit, level)
+		assert_eq(deal.zodiac_boss.data.commands[0].status, "pending")
+		assert_eq(deal.hand.map(func(card): return card.unique_id), before_hand)
 		assert_eq(deal.zodiac_boss.snapshot(), copy.zodiac_boss.snapshot())
 		assert_eq(deal.discard_count, 0)
 		assert_eq(deal.state, DealState.STATE_ACTIVE)
@@ -349,6 +457,154 @@ func test_snake_all_tiers_commands_sabotage_continues_turn_and_restore() -> void
 		deal.current_phase = 2
 		deal.zodiac_boss.begin_phase(deal)
 		assert_true(deal.zodiac_boss.data.commands.is_empty())
+
+func test_snake_charms_resolve_consecutively_before_the_normal_turn_boundary() -> void:
+	for level in [1, 2, 3]:
+		var deal := _deal("snake", level)
+		deal.zodiac_boss.begin_turn(1, deal.hand, deal)
+		var stock_rng := deal.deck._rng.state
+		for index in level:
+			assert_eq(deal.zodiac_boss.data.commands.size(), index + 1)
+			assert_eq(deal.zodiac_boss.data.commands.filter(func(command: Dictionary): return command.status == "pending").size(), 1)
+			var command: Dictionary = deal.zodiac_boss.data.commands[-1]
+			var selected: Array[CardData] = []
+			for card in deal.hand:
+				if card.unique_id in command.get("suggested_ids", [command.card_id]): selected.append(card)
+			assert_false(selected.is_empty())
+			var before := deal.zodiac_boss.snapshot()
+			assert_false(deal.create_meld([]).ok)
+			assert_eq(deal.zodiac_boss.snapshot(), before)
+			var result: Dictionary
+			if command.action == "discard": result = deal.discard_card(selected[0])
+			elif command.action == "extension": result = deal.extend_meld(command.meld_id, selected)
+			else: result = deal.create_meld(selected)
+			assert_true(result.ok)
+			assert_eq(command.status, "fulfilled")
+			assert_eq(deal.discard_count, 0)
+			assert_eq(deal.zodiac_boss.turn_serial, 1)
+			assert_eq(deal.deck._rng.state, stock_rng)
+			assert_eq(deal.state, DealState.STATE_ACTIVE)
+			assert_true(deal.physical_card_accounting_is_valid())
+			_restored(deal)
+		assert_true(deal.zodiac_boss.data.commands.all(func(command: Dictionary): return command.status == "fulfilled"))
+		assert_true(deal.discard_card(deal.hand[-1]).ok)
+		assert_eq(deal.discard_count, 1)
+		assert_eq(deal.zodiac_boss.turn_serial, 2)
+		assert_eq(deal.zodiac_boss.data.commands.size(), 1)
+
+func test_snake_wrong_discard_is_extra_and_punishes_the_charmed_card() -> void:
+	for level in [1, 2, 3]:
+		var deal := _deal("snake", level)
+		deal.zodiac_boss.begin_turn(1, deal.hand, deal)
+		var command: Dictionary = deal.zodiac_boss.data.commands[0]
+		var wrong: CardData = deal.hand.filter(func(card: CardData): return card.unique_id != command.card_id)[0]
+		var before_stock := deal.deck.draw_pile.size()
+		var result := deal.discard_card(wrong)
+		assert_true(result.ok and result.turn_continues and result.snake_charmed)
+		assert_eq(command.status, "violated")
+		assert_eq(deal.deck.discard_pile.size(), 2)
+		assert_true(deal.deck.discard_pile.any(func(card: CardData): return card.unique_id == command.card_id))
+		assert_eq(deal.deck.draw_pile.size(), before_stock)
+		assert_eq(deal.discard_count, 0)
+		assert_eq(deal.discard_history.filter(func(record): return record.kind == DiscardRecord.KIND_MANDATORY).size(), 0)
+		assert_eq(deal.state, DealState.STATE_ACTIVE)
+		assert_true(deal.physical_card_accounting_is_valid())
+
+func test_snake_disobedience_destroys_the_whole_meld_containing_the_charmed_card() -> void:
+	for specs in [[["9", "Spades"], ["9", "Hearts"], ["9", "Diamonds"]], [["9", "Spades"], ["9", "Hearts"], ["9", "Diamonds"], ["9", "Clubs"]], [["4", "Hearts"], ["5", "Hearts"], ["6", "Hearts"], ["7", "Hearts"]]]:
+		var deal := _deal("snake", 3)
+		var cards := _cards(deal, specs)
+		deal.zodiac_boss.data.commands = [{"action": "discard", "card_id": cards[0].unique_id, "status": "pending"}]
+		var wallet_before := deal.wallet.balance_vnd
+		var result := deal.create_meld(cards)
+		assert_true(result.ok)
+		assert_eq(deal.zodiac_boss.data.commands[0].status, "violated")
+		assert_true(deal.melds.is_empty())
+		assert_true(cards.all(func(card: CardData): return deal.deck.discard_pile.has(card)))
+		assert_eq(deal.deck.discard_pile.size(), cards.size())
+		var loss: Dictionary = result.boss_events.filter(func(event: Dictionary): return event.action == "boss_discard_meld")[0]
+		assert_eq(loss.card_ids.size(), cards.size())
+		assert_eq(deal.wallet.balance_vnd - wallet_before, result.earned_vnd)
+		assert_eq(deal.discard_count, 0)
+		assert_eq(deal.state, DealState.STATE_ACTIVE)
+		assert_true(deal.physical_card_accounting_is_valid())
+		_restored(deal)
+
+func test_snake_charmed_existing_meld_is_lost_when_the_drink_command_is_refused() -> void:
+	var deal := _deal("snake", 3)
+	var first := deal.create_meld(deal.hand.slice(0, 3))
+	var owned := deal.get_meld(first.meld_id)
+	var cards: Array[CardData] = owned.cards.duplicate()
+	deal.set_current_drink(DrinkCatalog.NAU_DA)
+	deal.zodiac_boss.begin_turn(1, deal.hand, deal)
+	var command: Dictionary = deal.zodiac_boss.data.commands[0]
+	assert_eq(command.action_name, "nau_da_return")
+	assert_eq(command.meld_id, owned.meld_id)
+	var result := deal.create_meld(deal.hand.slice(0, 3))
+	assert_true(result.ok)
+	assert_eq(command.status, "violated")
+	assert_true(deal.get_meld(owned.meld_id) == null)
+	assert_eq(deal.melds.size(), 1)
+	assert_true(cards.all(func(card: CardData): return deal.deck.discard_pile.has(card)))
+	assert_true(deal.current_drink_has_charge())
+	assert_eq(deal.discard_count, 0)
+	assert_eq(deal.state, DealState.STATE_ACTIVE)
+	assert_true(deal.physical_card_accounting_is_valid())
+
+func test_snake_cannot_be_bypassed_by_skipping_tra_da_or_ending_an_empty_hand() -> void:
+	var deal := _deal("snake", 1)
+	deal.set_current_drink(DrinkCatalog.TRA_DA)
+	deal.zodiac_boss.begin_turn(1, deal.hand, deal)
+	deal.tra_da_extra_discard_pending = true
+	var command: Dictionary = deal.zodiac_boss.data.commands[0]
+	var refusal := deal.end_turn_without_tra_da_extra()
+	assert_true(refusal.ok and refusal.turn_continues)
+	assert_eq(command.status, "violated")
+	assert_true(deal.tra_da_extra_discard_pending)
+	assert_eq(deal.discard_count, 0)
+	assert_eq(deal.state, DealState.STATE_ACTIVE)
+	assert_true(deal.physical_card_accounting_is_valid())
+	assert_true(deal.end_turn_without_tra_da_extra().ok)
+	assert_false(deal.tra_da_extra_discard_pending)
+	assert_eq(deal.zodiac_boss.turn_serial, 2)
+	deal = _deal("snake", 3)
+	var made := deal.create_meld(deal.hand.slice(0, 3))
+	var remaining: Array[CardData] = deal.hand.duplicate()
+	deal.hand.clear()
+	deal.move_to_recyclable_spent(remaining)
+	deal.zodiac_boss.data.commands = [{"action": "drink", "action_name": "nau_da_return", "card_id": deal.melds[0].cards[0].unique_id, "meld_id": made.meld_id, "status": "pending"}]
+	refusal = deal.end_empty_turn()
+	assert_true(refusal.ok and refusal.turn_continues)
+	assert_true(deal.melds.is_empty())
+	assert_eq(deal.deck.discard_pile.size(), 3)
+	assert_eq(deal.discard_count, 0)
+	assert_eq(deal.state, DealState.STATE_ACTIVE)
+	assert_true(deal.physical_card_accounting_is_valid())
+
+func test_snake_moves_an_ignored_charmed_card_from_spent_to_discard() -> void:
+	var deal := _deal("snake", 1)
+	var card := deal.hand[-1]
+	deal.zodiac_boss.data.commands = [{"action": "discard", "card_id": card.unique_id, "status": "pending"}]
+	deal.hand.erase(card)
+	deal.move_to_recyclable_spent([card])
+	deal.zodiac_boss.after_action(deal, {"ok": true, "action": "sam_dua_selected"})
+	assert_false(deal.recyclable_spent_cards.has(card))
+	assert_true(deal.deck.discard_pile.has(card))
+	assert_eq(deal.discard_count, 0)
+	assert_eq(deal.state, DealState.STATE_ACTIVE)
+	assert_true(deal.physical_card_accounting_is_valid())
+
+func test_snake_old_queued_save_retains_only_the_first_live_charm() -> void:
+	var deal := _deal("snake", 3)
+	deal.zodiac_boss.data.commands = [{"action": "discard", "card_id": deal.hand[0].unique_id, "status": "fulfilled"}, {"action": "new_meld", "card_id": deal.hand[3].unique_id, "status": "pending"}, {"action": "discard", "card_id": deal.hand[-1].unique_id, "status": "pending"}]
+	var saved := deal.snapshot_state()
+	saved.zodiac_boss.data.erase("charm_version")
+	var copy := DealState.new()
+	copy.restore_snapshot(saved)
+	assert_eq(copy.zodiac_boss.data.commands.size(), 2)
+	assert_eq(copy.zodiac_boss.data.commands.filter(func(command: Dictionary): return command.status == "pending").size(), 1)
+	assert_eq(copy.zodiac_boss.data.command_limit, 3)
+	assert_true(copy.physical_card_accounting_is_valid())
 
 func test_snake_obedience_and_disobedience_do_not_skip_or_add_mandatory_discard() -> void:
 	for obey in [true, false]:

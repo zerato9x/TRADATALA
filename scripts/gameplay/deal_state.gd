@@ -689,7 +689,7 @@ func extend_meld(meld_id: int, selected_cards: Array[CardData]) -> Dictionary:
 	var guard := commit_selection_error(selected_cards)
 	if not guard.is_empty():
 		return _failure(guard)
-	var meld := get_meld(meld_id)
+	var meld := get_table_meld(meld_id)
 	if meld == null:
 		return _failure("Choose a table Meld to extend.")
 	if not can_extend_meld(meld_id, selected_cards):
@@ -729,6 +729,10 @@ func discard_card(card: CardData) -> Dictionary:
 		return _failure("Discarding is unavailable right now.")
 	if card == null or not hand.has(card):
 		return _failure("Choose one loose card to discard.")
+	var command_result := zodiac_boss.command_discard(self, card)
+	if not command_result.is_empty():
+		_emit_result(command_result)
+		return command_result
 	var is_tra_da_extra := current_drink_id == DrinkCatalog.TRA_DA and tra_da_extra_discard_pending
 	var requested_card := card
 	if not is_tra_da_extra: card = zodiac_boss.turn_discard(self, card)
@@ -791,6 +795,10 @@ func discard_card(card: CardData) -> Dictionary:
 func end_turn_without_tra_da_extra() -> Dictionary:
 	if current_drink_id != DrinkCatalog.TRA_DA or state != STATE_ACTIVE or not tra_da_extra_discard_pending:
 		return _failure("Tra Da has no optional extra discard to skip.")
+	var charm := zodiac_boss.command_refusal("tra_da_extra_skipped")
+	if not charm.is_empty():
+		_emit_result(charm)
+		return charm
 	tra_da_extra_discard_pending = false
 	var result := {
 		"ok": true,
@@ -860,6 +868,20 @@ func get_meld(meld_id: int) -> MeldState:
 	for meld in melds:
 		if meld.meld_id == meld_id:
 			return meld
+	return null
+
+
+## Both owners allow paid extensions. Recovery drinks still use get_meld()
+## because returning a boss's cards would change their physical ownership.
+func table_melds() -> Array[MeldState]:
+	var table: Array[MeldState] = melds.duplicate()
+	table.append_array(boss_melds)
+	return table
+
+
+func get_table_meld(meld_id: int) -> MeldState:
+	for meld in table_melds():
+		if meld.meld_id == meld_id: return meld
 	return null
 
 
@@ -942,7 +964,7 @@ func can_extend_meld(meld_id: int, selected_cards: Array[CardData]) -> bool:
 	if not zodiac_boss.legality("extension", current_phase, meld_id, selected_cards).is_empty(): return false
 	if not card_actions_available() or not commit_selection_error(selected_cards).is_empty():
 		return false
-	var meld := get_meld(meld_id)
+	var meld := get_table_meld(meld_id)
 	if meld == null:
 		return false
 	return can_extend_meld_shape(meld, selected_cards)
@@ -1478,6 +1500,9 @@ func _count_action(result: Dictionary) -> void:
 			event.points += exhausted_context.final_points
 			for scoring_pass: ScoringContext in exhausted_context.scoring_passes:
 				event.passes.append({"origin": scoring_pass.trigger_origin, "points": scoring_pass.final_points, "hits": scoring_pass.presentation_hits.duplicate(true)})
+	if action in ["boss_meld", "boss_extension"]:
+		for key in ["source", "meld_id", "card_ids", "amount_vnd", "transfers"]:
+			event[key] = result.get(key)
 	action_history.append(event)
 
 
@@ -1557,7 +1582,7 @@ func boss_discard_card(card: CardData, source: String) -> Dictionary:
 	_count_action(event)
 	return event
 
-# Boss cards never visit the player's loose hand or player scoring APIs.
+# Boss commits do not use the player's hand or scoring APIs.
 func boss_commit_meld(cards: Array[CardData], player_meld_id: int, source: String) -> Dictionary:
 	var target := get_meld(player_meld_id)
 	if player_meld_id >= 0 and target == null: return {"ok": false}
@@ -1574,6 +1599,11 @@ func boss_commit_meld(cards: Array[CardData], player_meld_id: int, source: Strin
 		context = scoring.preview_extension(combined, meld_type, ScoringPipeline.meld_value(target.cards), current_phase, cards)
 	var amount := -VndWallet.points_to_vnd(context.final_points, vnd_per_point)
 	boss_adjust_wallet(amount, "zodiac:%s:%s" % [source, "meld" if target == null else "extension"])
+	# Preserve origins before moving physical cards so the table can show the transaction.
+	var transfers: Array[Dictionary] = []
+	for card in cards:
+		transfers.append({"card_id": card.unique_id, "label": card.short_label(), "texture_path": card.texture_path(),
+			"origin": "stock" if boss_borrowed_cards.has(card) else "discard"})
 	for card in cards:
 		deck.discard_pile.erase(card)
 		boss_borrowed_cards.erase(card)
@@ -1587,6 +1617,7 @@ func boss_commit_meld(cards: Array[CardData], player_meld_id: int, source: Strin
 	target.scored_points = ScoringPipeline.meld_value(target.cards)
 	var event := {"ok": true, "action": "boss_meld" if player_meld_id < 0 else "boss_extension", "source": source,
 		"meld_id": target.meld_id, "meld_type": meld_type, "card_ids": cards.map(func(card: CardData): return card.unique_id),
+		"transfers": transfers,
 		"points": context.final_points, "theoretical_score": context.theoretical_score, "amount_vnd": amount,
 		"scoring_passes": []}
 	for scoring_pass: ScoringContext in context.scoring_passes:
@@ -1598,22 +1629,41 @@ func boss_commit_meld(cards: Array[CardData], player_meld_id: int, source: Strin
 func boss_discard_target(card_id: String, source: String) -> Dictionary:
 	for card in hand:
 		if card.unique_id == card_id: return boss_discard_card(card, source)
-	for meld in melds:
+	for meld in table_melds():
 		for card in meld.cards:
-			if card.unique_id != card_id or zodiac_boss.is_locked(card): continue
-			var remaining: Array[CardData] = meld.cards.duplicate()
-			remaining.erase(card)
-			var valid := MeldRules.is_compatible_run(remaining, meld.run_compatibility) if meld.meld_type == MeldRules.TYPE_RUN else MeldRules.classify(remaining) == meld.meld_type
-			if not valid: return {"ok": false}
-			meld.cards = MeldRules.sorted_for_display(remaining, meld.meld_type)
-			meld.scored_points = ScoringPipeline.meld_value(meld.cards)
-			deck.discard(card)
-			discard_history.append(DiscardRecord.new(card, current_phase, discard_count, DiscardRecord.KIND_BOSS_FORCED))
-			var event := {"ok": true, "action": "boss_discard", "source": source, "card_id": card_id, "label": card.short_label(), "meld_id": meld.meld_id, "turn_continues": true}
-			zodiac_boss.events.append(event)
-			_count_action(event)
-			return event
+			if card.unique_id == card_id: return boss_discard_meld(meld.meld_id, source)
+	for card in recyclable_spent_cards:
+		if card.unique_id != card_id: continue
+		recyclable_spent_cards.erase(card)
+		deck.discard(card)
+		discard_history.append(DiscardRecord.new(card, current_phase, discard_count, DiscardRecord.KIND_BOSS_FORCED))
+		var event := {"ok": true, "action": "boss_discard", "source": source, "card_id": card_id,
+			"label": card.short_label(), "texture_path": card.texture_path(), "origin": "spent", "turn_continues": true}
+		zodiac_boss.events.append(event)
+		_count_action(event)
+		return event
+	for card in deck.discard_pile:
+		if card.unique_id == card_id: return {"ok": true, "card_id": card_id, "already_discarded": true, "turn_continues": true}
 	return {"ok": false}
+
+
+func boss_discard_meld(meld_id: int, source: String) -> Dictionary:
+	var meld := get_table_meld(meld_id)
+	if meld == null or meld.cards.any(func(card: CardData): return zodiac_boss.is_locked(card)): return {"ok": false}
+	var transfers: Array[Dictionary] = []
+	for card in meld.cards:
+		transfers.append({"card_id": card.unique_id, "label": card.short_label(), "texture_path": card.texture_path(), "origin": "meld", "meld_id": meld_id})
+		deck.discard(card)
+		discard_history.append(DiscardRecord.new(card, current_phase, discard_count, DiscardRecord.KIND_BOSS_FORCED))
+	melds.erase(meld)
+	boss_melds.erase(meld)
+	_turn_started_with_ten = false
+	var event := {"ok": true, "action": "boss_discard_meld", "source": source, "meld_id": meld_id,
+		"card_ids": meld.cards.map(func(card: CardData): return card.unique_id), "transfers": transfers,
+		"turn_continues": true, "phase": current_phase, "turn": discard_count}
+	zodiac_boss.events.append(event)
+	_count_action(event)
+	return event
 
 
 func preview_new_meld_payout(cards: Array[CardData], kind: String, final_commit: bool = false) -> Dictionary:
@@ -1637,6 +1687,10 @@ func preview_boss_payout(context: ScoringContext, meld_id: int = -1) -> Dictiona
 
 func end_empty_turn() -> Dictionary:
 	if state != STATE_ACTIVE or not hand.is_empty(): return _failure("Only an empty active hand can end without a card.")
+	var charm := zodiac_boss.command_refusal("empty_turn_end")
+	if not charm.is_empty():
+		_emit_result(charm)
+		return charm
 	discard_count += 1
 	zodiac_boss.mandatory_discard(current_phase, discard_count)
 	var result := {"ok": true, "action": "empty_turn_end", "drawn": [] as Array[CardData], "no_loose_card": true}

@@ -199,11 +199,11 @@ func _run() -> void:
 	var starter_left_overlay := scene.event_table.get_node("DanhGiayOverlay") as TextureRect
 	var starter_right_overlay := scene.event_table.get_node("TraDaAuntieOverlay") as TextureRect
 	_check(scene.event_table.deck_focused and scene.event_table.day_label.get_parent().position.y < 20.0, "selecting the Event Deck uses the standard focus transition and moves the money header to the top")
-	_check(starter_left_overlay.modulate.a < 0.5 and starter_right_overlay.modulate.a < 0.5, "selecting the Event Deck dims the other Event participants")
+	_check(not starter_left_overlay.visible and starter_right_overlay.modulate.a < 0.5, "Event Deck focus dims Monday's available participant and keeps Shoeshiner absent")
 	_check(scene.deck_screen.visible and scene.deck_screen._cards.size() == 52 and not scene.pile_archive.overlay.visible, "Event Deck opens the shared full-screen browser with all physical cards")
 	scene.deck_screen.close()
 	await create_timer(EventTableController.TRANSITION_SECONDS + 0.05).timeout
-	_check(starter_left_overlay.visible and starter_right_overlay.visible, "Starter Event composes Đánh Giày at left and Cô Trà Đá at right from frame-registered overlays")
+	_check(not starter_left_overlay.visible and starter_right_overlay.visible, "Monday Starter presents Cô Trà Đá without Shoeshiner")
 	var starter_tea_selector := scene.event_table.get_node("TraDaAuntieSelect") as Button
 	_check(not starter_tea_selector.disabled, "the visible Cô Trà Đá overlay exposes a focused click target")
 	starter_tea_selector.pressed.emit()
@@ -228,12 +228,12 @@ func _run() -> void:
 	_check(scene.event_table.focused_npc_id.is_empty() and not scene.event_table.content_panel.visible, "Back clears focused NPC content and restores the event overview")
 	_check(scene.event_table.continue_button.visible, "Continue returns on the table overview")
 	var starter_shoe_selector := scene.event_table.get_node("DanhGiaySelect") as Button
+	_check(not starter_shoe_selector.visible, "Monday hides Shoeshiner selection")
 	starter_shoe_selector.pressed.emit()
-	await create_timer(EventTableController.TRANSITION_SECONDS + 0.05).timeout
-	_check(scene.event_table.focused_npc_id == EventTableController.NPC_DANH_GIAY and scene.event_table.participants_container.get_child(0) is ShoeShinePanel, "shoe-shine focus opens the implemented service panel")
-	scene.event_table.back_button.pressed.emit()
-	await create_timer(EventTableController.TRANSITION_SECONDS + 0.05).timeout
+	await process_frame
+	_check(scene.event_table.focused_npc_id.is_empty(), "Monday refuses stale Shoeshiner selection")
 	for npc_id in scene.event_table._npc_layers:
+		if npc_id == EventTableController.NPC_DANH_GIAY: continue
 		scene.event_table.focus_npc(npc_id)
 		_check(not scene.event_table.continue_button.visible, "Continue hidden for " + npc_id)
 		scene.event_table.back_button.disabled = false

@@ -10,11 +10,18 @@ func extra_card(rank: String, suit: String) -> CardData:
 
 func table_contract(label: String) -> void:
 	var hud = scene.zodiac_boss_hud
-	check(hud.state_label.get_theme_font("font").get_string_size(hud.state_label.text, HORIZONTAL_ALIGNMENT_LEFT, -1, hud.state_label.get_theme_font_size("font_size")).x <= hud.state_label.size.x + 1, label + " badge state is complete")
-	check(hud.panel.get_global_rect().end.x <= hud.mechanic_guide.get_global_rect().position.x or not hud.mechanic_guide.active, label + " guide clears badge")
+	check(hud.title.is_visible_in_tree() and hud.title.size.x >= hud.title.get_theme_font("font").get_string_size(hud.title.text, HORIZONTAL_ALIGNMENT_LEFT, -1, hud.title.get_theme_font_size("font_size")).x, label + " boss name is fully visible")
+	var rule_edge: Vector2 = hud.panel.get_global_transform().affine_inverse() * hud.detail_button.get_global_rect().end
+	check(absf(rule_edge.x - (hud.panel.size.x - 10)) <= 1, label + " rule button stays at the same right edge for every boss")
+	if hud.state_label.visible: check(hud.state_label.get_theme_font("font").get_string_size(hud.state_label.text, HORIZONTAL_ALIGNMENT_LEFT, -1, hud.state_label.get_theme_font_size("font_size")).x <= hud.state_label.size.x + 1, label + " live state is complete")
+	check(hud.panel.size.x <= 400 and hud.panel.size.y <= 112 and not hud.guidance.visible and not hud.skill.visible, label + " content-sized presentation has no decorative explanations")
+	if scene.deal.zodiac_boss.id in ["rooster", "cat", "dog", "ox", "rat", "tiger"]:
+		check(hud.panel.size.y <= 36 and hud.mechanic_slot.size.y <= 2, label + " simple mechanic has no empty body")
+	check(hud.panel.is_ancestor_of(hud.mechanic_guide), label + " mechanics share the boss presentation")
 	if hud.mechanic_guide.active:
 		var guide = hud.mechanic_guide
 		check(guide.is_visible_in_tree(), label + " mechanic guidance visible")
+		check(hud.panel.get_global_rect().encloses(guide.get_global_rect()) and (not hud.state_label.visible or scene.deal.zodiac_boss.id == "snake"), label + " mechanic replaces duplicate status inside the shared card")
 		check(guide.get_global_rect().end.y <= scene.meld_scroll.get_global_rect().position.y + 1, label + " Melds below guidance")
 		check(guide.body.get_content_height() <= guide.lane_height, label + " guide retains complete text")
 		for surface: Control in [scene.campaign_money_hud.panel, scene.draw_pile_visual, scene.discard_pile_visual, scene.hand_layer, scene.meld_scroll]:
@@ -57,6 +64,7 @@ func _run() -> void:
 	scene.game_layer.show()
 	scene.event_table.table_state = EventTableController.TABLE_STATE_DEAL
 	scene.event_table._finish_event_exit()
+	await create_timer(0.6).timeout
 	var hud = scene.zodiac_boss_hud
 	for locale in ["en", "vi"]:
 		scene.settings.set_locale(locale)
@@ -78,7 +86,7 @@ func _run() -> void:
 		var first := scene.deal.create_meld(scene.deal.hand.slice(0, 3))
 		scene._sync_all(first)
 		await frames()
-		check(hud.state_label.text.contains("13.500") and hud.mechanic_guide.body.get_parsed_text().contains("45.000"), "Pig pool and gross progress remain visible once each")
+		check(hud.mechanic_guide.pig_terms.text.contains("13.500") and hud.mechanic_guide.body.get_parsed_text().contains("45.000"), "Pig pool and gross progress remain visible once each")
 		check(is_equal_approx(hud.mechanic_guide.meter.material.get_shader_parameter("progress"), 0.9), "Pig progress shader reads actual goal")
 		await capture("pig-%s-held" % locale)
 		var second := scene.deal.create_meld(scene.deal.hand.slice(0, 3))
@@ -113,7 +121,7 @@ func _run() -> void:
 		var seven := extra_card("7", "Hearts")
 		scene._sync_all()
 		check(scene.card_table.hand_views[seven.unique_id]._zodiac_cue.visible and hud.mechanic_guide.body.get_parsed_text().contains("7"), "Goat next Rank visible and attached to physical card")
-		var miss := scene.deal.create_meld(scene.deal.hand.slice(0, 3))
+		var miss := scene.deal.create_meld([extra_card("2", "Hearts"), extra_card("2", "Clubs"), extra_card("2", "Diamonds")])
 		scene._sync_all(miss)
 		check(miss.context.final_points == 0 and scene.deal.zodiac_boss.data.expected_rank == 7, "Goat miss cannot fake next note")
 		await capture("goat-%s-next-note" % locale)
@@ -128,6 +136,13 @@ func _run() -> void:
 			await click(pending)
 			check(policy == scene.deal.zodiac_boss.snapshot() and not scene.interactions.selected_ids.is_empty(), "command pointer selects cards without obeying or mutating rules")
 			var selected := scene.interactions.selected_cards()
+			meld_result = scene.deal.discard_card(selected[0])
+			scene._sync_all(meld_result)
+			check(meld_result.ok and scene.deal.discard_count == 0, "first charmed discard continues the same turn")
+			await frames()
+			pending = hud.mechanic_guide.commands.get_child(0)
+			await click(pending)
+			selected = scene.interactions.selected_cards()
 			meld_result = scene.deal.create_meld(selected)
 			check(meld_result.ok, "selected Snake command uses normal Meld API")
 			scene._sync_all(meld_result)

@@ -18,6 +18,99 @@ var _card_beat_tweens: Dictionary = {}
 var _drink_eligible_card_ids: Dictionary = {}
 var _displayed_points := 0
 var _dog_guard: ColorRect
+var _rat_guard: ColorRect
+var _snake_guard: ColorRect
+var rat_owned := false
+
+func set_snake_charm(command: Dictionary) -> void:
+	var target_ids: Array = command.get("suggested_ids", [command.get("card_id", "")])
+	# Only the physical target's Meld is charmed. An Extension's receiving Meld
+	# keeps its normal action outline while the added hand card carries the ink.
+	var marked := not command.is_empty() and _card_views.keys().any(func(id): return id in target_ids)
+	if marked and _snake_guard == null:
+		_snake_guard = ColorRect.new()
+		_snake_guard.name = "SnakeCharmedMeld"
+		_snake_guard.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_snake_guard.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		var ink := ShaderMaterial.new()
+		ink.shader = preload("res://shaders/snake_command.gdshader")
+		ink.set_shader_parameter("meld_surface", true)
+		_snake_guard.material = ink
+		add_child(_snake_guard)
+	if _snake_guard != null: _snake_guard.visible = marked
+	for id in _card_views:
+		var face: Control = _card_views[id].get_node("SwayFace")
+		var charm := face.get_node_or_null("SnakeCharmCard") as ColorRect
+		var charmed := marked
+		if charmed and charm == null:
+			charm = ColorRect.new()
+			charm.name = "SnakeCharmCard"
+			charm.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			charm.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+			var ink := ShaderMaterial.new()
+			ink.shader = preload("res://shaders/snake_command.gdshader")
+			charm.material = ink
+			face.add_child(charm)
+		if charm != null: charm.visible = charmed
+		if charmed: _card_views[id].tooltip_text += "\n" + preload("res://scripts/ui/zodiac_presentation.gd").command_text(command)
+	if marked:
+		tooltip_text += "\n" + ZodiacCatalog.words("Snake's active charm · disobedience discards the target, including its whole Meld.", "Mê hoặc đang có hiệu lực của Tỵ · trái lệnh sẽ bỏ mục tiêu, kể cả cả Phỏm chứa lá đó.")
+
+func set_rat_owned(owned: bool) -> void:
+	rat_owned = owned
+	if owned: _title.set_meta("zodiac_id", "rat")
+	elif _title.has_meta("zodiac_id"): _title.remove_meta("zodiac_id")
+	if owned and _rat_guard == null:
+		_rat_guard = ColorRect.new()
+		_rat_guard.name = "RatOwnedMeld"
+		_rat_guard.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_rat_guard.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		var ink := ShaderMaterial.new()
+		ink.shader = preload("res://shaders/rat_stolen_meld.gdshader")
+		_rat_guard.material = ink
+		add_child(_rat_guard)
+	if _rat_guard != null: _rat_guard.visible = owned
+	if not owned: return
+	var owned_style := (get_theme_stylebox("panel") as StyleBoxFlat).duplicate() as StyleBoxFlat
+	owned_style.bg_color = Color("0c1b2ae8")
+	if _hint.text == tr("MELD_SELECT_EXTEND"): owned_style.border_color = PresentationTheme.zodiac_color("rat")
+	add_theme_stylebox_override("panel", owned_style)
+	_title.text = ZodiacCatalog.words("RAT · ", "TÝ · ") + _title.text
+	_title.add_theme_color_override("font_color", PresentationTheme.zodiac_color("rat"))
+	tooltip_text += "\n" + ZodiacCatalog.words("Rat's Meld · you can extend it and earn the added value.", "Phỏm của Tý · bạn có thể nối và nhận tiền cho giá trị tăng thêm.")
+	for texture: TextureRect in _card_views.values():
+		texture.tooltip_text += "\n" + ZodiacCatalog.words("Rat's Meld", "Phỏm của Tý")
+
+func set_rat_added_cards(ids: Array) -> void:
+	for id in _card_views:
+		var face: Control = _card_views[id].get_node("SwayFace")
+		var mark := face.get_node_or_null("RatAddedCard") as ColorRect
+		if id in ids and mark == null:
+			mark = ColorRect.new()
+			mark.name = "RatAddedCard"
+			mark.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			mark.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+			var ink := ShaderMaterial.new()
+			ink.shader = preload("res://shaders/rat_added_card.gdshader")
+			mark.material = ink
+			face.add_child(mark)
+			var label := Label.new()
+			label.name = "RatStamp"
+			label.text = ZodiacCatalog.words("RAT", "TÝ")
+			label.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
+			label.offset_top = -14
+			label.offset_bottom = -2
+			label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			label.add_theme_font_size_override("font_size", 9)
+			label.add_theme_color_override("font_color", Color("075da6"))
+			label.add_theme_color_override("font_shadow_color", Color("ffffff"))
+			label.add_theme_constant_override("shadow_offset_y", 1)
+			label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			mark.add_child(label)
+		if mark != null:
+			mark.visible = id in ids
+			mark.get_node("RatStamp").text = ZodiacCatalog.words("RAT", "TÝ")
+		if id in ids: _card_views[id].tooltip_text += "\n" + ZodiacCatalog.words("Added by Rat · its payout was your loss", "Tý đã nối lá này · thưởng của Tý trừ vào ví bạn")
 
 func set_dog_loyal(loyal: bool) -> void:
 	if loyal and _dog_guard == null:
@@ -87,6 +180,14 @@ func set_boss_payout_suppressed(suppressed: bool) -> void:
 	_score.text = ZodiacCatalog.words("VALUE %d · PAYS 0 VNĐ", "GIÁ TRỊ %d · TRẢ 0 VNĐ") % _displayed_points
 	_score.add_theme_color_override("font_color", PresentationTheme.DANGER)
 	tooltip_text += "\n" + ZodiacCatalog.words("Register closed. This Phase's legal scoring plays pay 0 VNĐ.", "Sổ đã đóng. Bài ghi điểm hợp lệ trong Hiệp này trả 0 VNĐ.")
+
+func set_goat_payout_receipt(receipt: Dictionary) -> void:
+	var amount := int(receipt.earned_vnd)
+	var missed: bool = receipt.get("suppression_reason", "") == "goat_rank_miss"
+	_score.text = ZodiacCatalog.words("VALUE %d · LAST %s", "GIÁ TRỊ %d · VỪA TRẢ %s") % [_displayed_points, VndWallet.format_vnd(amount)]
+	_score.add_theme_color_override("font_color", PresentationTheme.DANGER if missed else PresentationTheme.zodiac_color("goat"))
+	tooltip_text += "\n" + ZodiacCatalog.words("GOAT · last committed %s paid %s. Meld value is separate from the payout.", "MÙI · lần %s vừa đánh trả %s. Giá trị Phỏm được ghi riêng với tiền trả.") % [ZodiacCatalog.action_label(receipt.action), VndWallet.format_vnd(amount)]
+	if missed: tooltip_text += "\n" + ZodiacCatalog.feedback("goat_rank_miss")
 
 
 func play_card_beat_pulse(card_id: String, strength: float) -> void:

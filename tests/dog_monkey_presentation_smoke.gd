@@ -12,10 +12,11 @@ func check_guide(label: String) -> void:
 	var hud = scene.zodiac_boss_hud
 	var guide = hud.dance_guide
 	check(guide.is_visible_in_tree(), label + " full sequence is visible")
+	check(hud.panel.get_global_rect().encloses(guide.get_global_rect()), label + " sequence is inside the shared boss card")
 	check(guide.steps.size() == 3, label + " all three actions shown")
 	check(guide.row.get_combined_minimum_size().x <= guide.size.x, label + " full localized sequence fits")
 	check(guide.get_global_rect().end.y <= scene.meld_scroll.get_global_rect().position.y, label + " text sits above Melds")
-	for surface: Control in [hud.panel, scene.campaign_money_hud.panel, scene.draw_pile_visual, scene.discard_pile_visual, scene.hand_layer, scene.meld_scroll]:
+	for surface: Control in [scene.campaign_money_hud.panel, scene.draw_pile_visual, scene.discard_pile_visual, scene.hand_layer, scene.meld_scroll]:
 		check(not guide.get_global_rect().intersects(surface.get_global_rect()), label + " text clears " + surface.name)
 	check(guide.mouse_filter == Control.MOUSE_FILTER_IGNORE and guide.steps.all(func(step: Label): return step.mouse_filter == Control.MOUSE_FILTER_IGNORE), label + " guide passes pointer input")
 	check(guide.get_children().all(func(child: Node): return not child is PanelContainer and not child is Panel), label + " no frame or background")
@@ -172,7 +173,7 @@ func _run() -> void:
 		check(not hud.visible and scene.meld_scroll.offset_top == original_top, "menu clears guide and restores Meld geometry")
 		scene.menu_layer.hide()
 		await fixture("dog", 2)
-		check(not guide.visible and scene.meld_scroll.offset_top == original_top and hud.state_label.material == null, "boss switch clears Monkey effects and lane")
+		check(not guide.visible and hud.state_label.material == null and hud.panel.size.y <= 36, "boss switch clears Monkey effects and restores the single-row layout")
 		# Pointer input goes through the real scoring queue, including its overlay.
 		await fixture("monkey", 3)
 		scene.deal.zodiac_boss.data.sequence = ["new_meld", "extension", "discard"]

@@ -94,11 +94,6 @@ func _run() -> void:
 	_check(scene.current_campaign_event.can_exit, "order unlocks campaign continuation")
 	scene.event_table.unfocus_npc()
 	_check(not scene.event_table.conversation.visible, "Back dismisses the conversation")
-	scene.event_table.focus_npc(EventTableController.NPC_DANH_GIAY)
-	_check(scene.event_table.conversation.visible, "other NPCs use the shared conversation")
-	_check(scene.event_table.conversation._full_line.contains("em"), "Đánh Giày's full dialogue retains the kid's wording")
-	scene.event_table.conversation.get_node("Lines/Responses/SmallTalk").pressed.emit()
-	_check(scene.event_table.conversation.speech.get_parsed_text().contains("quả bóng"), "the kid has age-appropriate small talk")
 	var legend := scene.get_node("ActionLegend")
 	legend.get_node("Toggle").pressed.emit()
 	_check(legend.get_node("Shade").visible, "action vocabulary is accessible from the question mark")
@@ -228,6 +223,16 @@ func _run() -> void:
 	var mandatory_history_count := scene.deal.discard_history_for_phase(1).size() + scene.deal.discard_history_for_phase(2).size()
 	var visible_history_cards := scene.discard_history_row.get_children().filter(func(child: Node) -> bool: return child.has_meta("action_target_card_id"))
 	_check(visible_history_cards.size() == mandatory_history_count, "Den Da keeps between-phase DUMPs out of the four-per-phase history strip")
+	# Keep the Drink input fixture on Monday; check the kid on Tuesday afterward.
+	scene.campaign.current_day_index = 1
+	scene.campaign._begin_current_day()
+	await create_timer(0.5).timeout
+	scene.event_table.focus_npc(EventTableController.NPC_DANH_GIAY)
+	_check(scene.event_table.conversation.visible, "other NPCs use the shared conversation")
+	_check(scene.event_table.conversation._full_line.contains("em"), "Đánh Giày's full dialogue retains the kid's wording")
+	scene.event_table.conversation.get_node("Lines/Responses/SmallTalk").pressed.emit()
+	_check(scene.event_table.conversation.speech.get_parsed_text().contains("quả bóng"), "the kid has age-appropriate small talk")
+
 	scene.music.controller._stop_all_mix_players()
 	scene.music.controller.music_director.stop()
 	scene.queue_free()

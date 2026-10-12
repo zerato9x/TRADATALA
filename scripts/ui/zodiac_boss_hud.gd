@@ -5,6 +5,7 @@ var panel: PanelContainer
 var title: Label
 var skill: Label
 var state_label: Label
+var _header_spacer: Control
 var feedback: Label
 var details: Label
 var detail_button: Button
@@ -30,8 +31,17 @@ var _promise_details: Button
 var _meld_right_offset := 0.0
 var _meld_top_offset := 0.0
 var dance_guide: Control
+var fresh_guide: Control
+var fight_fx: Control
+var pair_fight_fx: Control
 var _fresh_ink: ShaderMaterial
 var mechanic_guide: Control
+var hunt_board: Control
+var hunt_fx: Control
+var snake_fx: Control
+var mechanic_slot: Control
+var guidance: Label
+const PRESENTATION_SIZE := Vector2(340, 34)
 const BossView := preload("res://scripts/ui/zodiac_presentation.gd")
 
 func _label(font_size: int) -> Label:
@@ -68,46 +78,90 @@ func configure(owner: Control) -> void:
 	add_child(evening_overlay)
 	dance_guide = preload("res://scripts/ui/monkey_dance_guide.gd").new()
 	add_child(dance_guide)
+	fresh_guide = preload("res://scripts/ui/monkey_fresh_guide.gd").new()
+	add_child(fresh_guide)
 	mechanic_guide = preload("res://scripts/ui/zodiac_mechanic_guide.gd").new()
 	add_child(mechanic_guide)
 	mechanic_guide.configure(host)
+	fight_fx = preload("res://scripts/ui/pig_monkey_fight_fx.gd").new()
+	add_child(fight_fx)
+	fight_fx.configure(host, self)
+	pair_fight_fx = preload("res://scripts/ui/horse_goat_fight_fx.gd").new()
+	add_child(pair_fight_fx)
+	pair_fight_fx.configure(host, self)
 	_fresh_ink = ShaderMaterial.new()
 	_fresh_ink.shader = preload("res://shaders/monkey_rhythm_text.gdshader")
 	panel = PanelContainer.new()
-	panel.name = "BossRuleCard"
-	panel.custom_minimum_size = Vector2(220, 48)
+	panel.name = "BossPresentation"
+	panel.custom_minimum_size = PRESENTATION_SIZE
 	panel.size = panel.custom_minimum_size
 	panel.mouse_filter = Control.MOUSE_FILTER_PASS
 	add_child(panel)
+	var panel_body := VBoxContainer.new()
+	panel_body.add_theme_constant_override("separation", 2)
+	panel.add_child(panel_body)
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 6)
-	panel.add_child(row)
-	var body := VBoxContainer.new()
-	body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	body.add_theme_constant_override("separation", 2)
-	row.add_child(body)
-	title = _label(12)
+	panel_body.add_child(row)
+	title = _label(14)
 	title.name = "BossName"
+	title.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	title.autowrap_mode = TextServer.AUTOWRAP_OFF
 	title.max_lines_visible = 1
 	title.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	body.add_child(title)
-	state_label = _label(13)
-	state_label.name = "BossState"
-	state_label.max_lines_visible = 1
-	state_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	body.add_child(state_label)
-	# Skill remains available to inspection and in the expanded rule.
-	skill = _label(15)
+	row.add_child(title)
+	skill = _label(11)
 	skill.name = "BossSkill"
-	body.add_child(skill)
-	skill.hide()
+	skill.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	skill.max_lines_visible = 1
+	skill.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	skill.add_theme_color_override("font_color", PresentationTheme.MUTED)
+	row.add_child(skill)
 	detail_button = Button.new()
 	detail_button.name = "BossRuleDetails"
-	detail_button.custom_minimum_size = Vector2(28, 30)
+	detail_button.custom_minimum_size = Vector2(28, 22)
 	PresentationTheme.configure_button(detail_button)
 	detail_button.add_theme_font_size_override("font_size", 16)
 	detail_button.pressed.connect(_toggle_details)
 	row.add_child(detail_button)
+	mechanic_slot = Control.new()
+	mechanic_slot.name = "BossMechanic"
+	mechanic_slot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel_body.add_child(mechanic_slot)
+	state_label = _label(16)
+	state_label.name = "BossState"
+	state_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	state_label.autowrap_mode = TextServer.AUTOWRAP_OFF
+	state_label.max_lines_visible = 1
+	row.add_child(state_label)
+	row.move_child(state_label, detail_button.get_index())
+	_header_spacer = Control.new()
+	_header_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_header_spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(_header_spacer)
+	row.move_child(_header_spacer, detail_button.get_index())
+	guidance = _label(12)
+	guidance.name = "BossGuidance"
+	guidance.position.y = 30
+	guidance.size = Vector2(420, 46)
+	mechanic_slot.add_child(guidance)
+	for guide: Control in [dance_guide, fresh_guide, mechanic_guide]:
+		guide.reparent(mechanic_slot)
+	hunt_board = preload("res://scripts/ui/rat_tiger_board.gd").new()
+	mechanic_slot.add_child(hunt_board)
+	hunt_board.configure(host)
+	hunt_board.receipt.reparent(row)
+	hunt_board.receipt.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.move_child(hunt_board.receipt, detail_button.get_index())
+	row.add_child(hunt_board.expand_button)
+	row.move_child(hunt_board.expand_button, detail_button.get_index())
+	hunt_board.expanded_changed.connect(_layout)
+	hunt_fx = preload("res://scripts/ui/rat_tiger_fight_fx.gd").new()
+	add_child(hunt_fx)
+	hunt_fx.configure(host, self)
+	snake_fx = preload("res://scripts/ui/snake_fight_fx.gd").new()
+	add_child(snake_fx)
+	snake_fx.configure(host)
 	details_panel = PanelContainer.new()
 	details_panel.name = "ExpandedBossRule"
 	details_panel.custom_minimum_size = Vector2(320, 230)
@@ -133,7 +187,7 @@ func configure(owner: Control) -> void:
 	details.name = "BossRuleDescription"
 	full_body.add_child(details)
 	opponent_cards = VBoxContainer.new()
-	opponent_cards.name = "MouseOwnedMelds"
+	opponent_cards.name = "RatOwnedMelds"
 	full_body.add_child(opponent_cards)
 	var close := Button.new()
 	close.name = "CloseBossRule"
@@ -207,10 +261,30 @@ func _process(delta: float) -> void:
 	var blocked := _blocked()
 	dance_guide.visible = panel.visible and host.deal.zodiac_boss.id == "monkey" and not host.deal.zodiac_boss.data.get("sequence", []).is_empty() and not blocked and not details_panel.visible
 	dance_guide.pause_effects(host.score_overlay.visible)
+	fresh_guide.visible = panel.visible and fresh_guide.active and not blocked and not details_panel.visible
+	fresh_guide.pause_effects(host.score_overlay.visible)
 	mechanic_guide.visible = mechanic_guide.active and not blocked and not details_panel.visible
+	mechanic_guide.pause_effects(host.score_overlay.visible)
+	fight_fx.visible = panel.visible and host.deal.zodiac_boss.id in ["pig", "monkey"] and not blocked and not details_panel.visible
+	fight_fx.pause_effects(host.score_overlay.visible)
+	pair_fight_fx.visible = panel.visible and host.deal.zodiac_boss.id in ["horse", "goat"] and not blocked and not details_panel.visible
+	pair_fight_fx.pause_effects(host.score_overlay.visible)
+	hunt_fx.visible = panel.visible and host.deal.zodiac_boss.id in ["rat", "tiger"] and not blocked and not details_panel.visible
+	hunt_fx.pause_effects(host.score_overlay.visible)
+	snake_fx.visible = panel.visible and host.deal.zodiac_boss.id == "snake" and not blocked and not details_panel.visible
+	snake_fx.pause_effects(host.score_overlay.visible)
+	hunt_board.visible = panel.visible and host.deal.zodiac_boss.id in ["rat", "tiger"] and not blocked and not details_panel.visible
+	hunt_board.pause_effects(blocked)
 	evening_overlay.visible = panel.visible and not _presence_blocked() and evening_overlay.texture != null
 	if blocked:
-		if _presence_blocked(): dance_guide.clear_effects()
+		if _presence_blocked():
+			dance_guide.clear_effects()
+			fresh_guide.clear_effects()
+			fight_fx.clear_effects()
+			pair_fight_fx.clear_effects()
+			hunt_fx.clear_effects()
+			snake_fx.clear_effects()
+			mechanic_guide.clear_pair_effects()
 		_close_details()
 		feedback_panel.hide()
 		_speech_queue.clear()
@@ -227,6 +301,11 @@ func _process(delta: float) -> void:
 		_start_speech(_speech_queue.pop_front())
 
 func _input(event: InputEvent) -> void:
+	if visible and hunt_board.expanded and not _presence_blocked() and event.is_action_pressed("ui_cancel"):
+		hunt_board.set_expanded(false)
+		hunt_board.expand_button.grab_focus()
+		get_viewport().set_input_as_handled()
+		return
 	if visible and details_panel.visible and event.is_action_pressed("ui_cancel"):
 		_close_details()
 		(_promise_details if promise_panel.visible else detail_button).grab_focus()
@@ -253,7 +332,26 @@ func _close_details() -> void:
 func _layout() -> void:
 	var day_hud: Control = host.get_node("GameLayer/Header/HeaderRow/CampaignStat")
 	panel.position = day_hud.global_position - global_position + Vector2(0, day_hud.size.y + 8)
-	panel.size = Vector2(220, 48)
+	var id: String = host.deal.zodiac_boss.id
+	var panel_width := 340.0
+	if id == "rat": panel_width = 320
+	elif id == "monkey": panel_width = 400 if dance_guide.visible else 300
+	elif id in ["pig", "horse", "goat"]: panel_width = 350
+	elif id == "snake": panel_width = 390
+	elif id == "dragon": panel_width = 400
+	var body_width := panel_width - 20
+	for guide: Control in [mechanic_guide, dance_guide, fresh_guide]:
+		guide.position = Vector2.ZERO
+		guide.fit_width(body_width)
+	var body_height := 0.0
+	if mechanic_guide.active: body_height = mechanic_guide.lane_height
+	elif fresh_guide.active: body_height = fresh_guide.lane_height
+	elif not host.deal.zodiac_boss.data.get("sequence", []).is_empty() and id == "monkey": body_height = dance_guide.lane_height
+	mechanic_slot.custom_minimum_size.y = body_height
+	panel.custom_minimum_size = Vector2(panel_width, 34 + body_height)
+	panel.size = panel.custom_minimum_size
+	hunt_board.position = Vector2.ZERO
+	hunt_board.size = Vector2.ZERO
 	if host.deal.zodiac_boss.id == "dragon":
 		# A portrait cannot safely use the full-table overlay's covered stretch.
 		var relics: Control = host.get_node("GameLayer/UtilityRail/RelicsArea")
@@ -268,19 +366,12 @@ func _layout() -> void:
 	# Reserve the speech lane so scrolled Meld cards never sit underneath it.
 	var meld_parent: Control = host.meld_scroll.get_parent()
 	host.meld_scroll.offset_right = minf(_meld_right_offset, feedback_panel.global_position.x - 8 - meld_parent.global_position.x - meld_parent.size.x) if panel.visible else _meld_right_offset
-	var dancing: bool = panel.visible and host.deal.zodiac_boss.id == "monkey" and host.deal.zodiac_boss.difficulty == ZodiacCatalog.UNPLEASED
-	var guide_height: float = 54 if dancing else mechanic_guide.lane_height + 8 if mechanic_guide.active and panel.visible else 0
-	host.meld_scroll.offset_top = _meld_top_offset + guide_height
-	if mechanic_guide.active and panel.visible:
-		var guide_rect: Rect2 = host.meld_scroll.get_global_rect()
-		var guide_left := maxf(guide_rect.position.x, panel.get_global_rect().end.x + 12)
-		mechanic_guide.position = Vector2(guide_left, meld_parent.global_position.y + _meld_top_offset) - global_position
-		mechanic_guide.fit_width(guide_rect.end.x - guide_left)
-	if dancing:
-		var meld_rect: Rect2 = host.meld_scroll.get_global_rect()
-		var left := maxf(meld_rect.position.x, panel.get_global_rect().end.x + 12)
-		dance_guide.position = Vector2(left, meld_parent.global_position.y + _meld_top_offset) - global_position
-		dance_guide.fit_width(meld_rect.end.x - left)
+	# The optional Rat overview expands beside the compact header; actual melds
+	# remain selectable on the normal table, with the same extension controls.
+	var drawer_left := panel.get_global_rect().end.x + 12
+	hunt_board.fit_drawer(Rect2(Vector2(drawer_left, panel.global_position.y), Vector2(maxf(260, money_rect.position.x - drawer_left - 14), 106)))
+	var occupied_bottom := maxf(panel.get_global_rect().end.y, hunt_board.drawer.get_global_rect().end.y if hunt_board.expanded else 0)
+	host.meld_scroll.offset_top = maxf(_meld_top_offset, occupied_bottom + 8 - meld_parent.global_position.y) if panel.visible else _meld_top_offset
 	var available_height: float = host.discard_pile_visual.global_position.y - feedback_panel.global_position.y - 12
 	var pixels := 16
 	while pixels > 12 and feedback.get_theme_font("font").get_multiline_string_size(feedback.text, HORIZONTAL_ALIGNMENT_LEFT, width - 20, pixels).y + 30 > available_height:
@@ -298,6 +389,12 @@ func refresh() -> void:
 		host.meld_scroll.offset_right = _meld_right_offset
 		host.meld_scroll.offset_top = _meld_top_offset
 		dance_guide.sync({}, "")
+		fresh_guide.sync({}, "")
+		fight_fx.sync({}, "")
+		pair_fight_fx.sync({}, "")
+		hunt_fx.sync({}, "")
+		snake_fx.sync({}, "")
+		hunt_board.sync({})
 		mechanic_guide.sync({})
 		_close_details()
 		feedback_panel.hide()
@@ -319,6 +416,12 @@ func refresh() -> void:
 		promise_panel.visible = not panel.visible
 	if not panel.visible:
 		dance_guide.sync({}, "")
+		fresh_guide.sync({}, "")
+		fight_fx.sync({}, "")
+		pair_fight_fx.sync({}, "")
+		hunt_fx.sync({}, "")
+		snake_fx.sync({}, "")
+		hunt_board.sync({})
 		mechanic_guide.sync({})
 		evening_overlay.hide()
 		full_state.text = ZodiacCatalog.words("PROMISE · ", "CAM KẾT · ") + ZodiacCatalog.display_name(host.campaign.zodiac.active_id())
@@ -334,6 +437,7 @@ func refresh() -> void:
 	var accent: Color = BossView.accent(state.id)
 	if key != _boss_key:
 		_boss_key = key
+		hunt_board.set_expanded(false)
 		_phase_seen = -1
 		_turn_seen = -1
 		_closed_seen = false
@@ -349,15 +453,19 @@ func refresh() -> void:
 		evening_overlay.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT if state.id == "dragon" else Control.PRESET_FULL_RECT)
 		evening_overlay.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED if state.id == "dragon" else TextureRect.STRETCH_KEEP_ASPECT_COVERED
 		# Live counters show the requirement; arrival explanations live in the Handbook.
-	panel.add_theme_stylebox_override("panel", _glass(accent, 0.68))
+	var panel_style := _glass(accent, 0.68)
+	panel_style.content_margin_top = 3
+	panel_style.content_margin_bottom = 3
+	panel.add_theme_stylebox_override("panel", panel_style)
 	feedback_panel.add_theme_stylebox_override("panel", _glass(accent, 0.84))
 	title.add_theme_color_override("font_color", accent)
 	_speaker.add_theme_color_override("font_color", accent)
 	title.text = ZodiacCatalog.display_name(state.id)
+	title.custom_minimum_size.x = ceilf(title.get_theme_font("font").get_string_size(title.text, HORIZONTAL_ALIGNMENT_LEFT, -1, title.get_theme_font_size("font_size")).x)
 	title.set_meta("zodiac_id", String(state.id))
 	_speaker.set_meta("zodiac_id", String(state.id))
 	_speaker.text = ZodiacCatalog.display_name(state.id)
-	skill.text = state.skill
+	skill.hide()
 	full_state.text = state.skill + "\n" + ZodiacCatalog.state_text(state, host.deal)
 	if state.id == "dragon": full_state.text += "\n" + ZodiacCatalog.modifier_text(state, host.deal)
 	state_label.text = BossView.compact(state, host.deal)
@@ -366,7 +474,18 @@ func refresh() -> void:
 	state_label.add_theme_font_size_override("font_size", 13)
 	state_label.add_theme_color_override("font_color", PresentationTheme.INK)
 	dance_guide.sync(state, key + ":%d" % host.deal.current_phase)
-	mechanic_guide.sync(state)
+	fresh_guide.sync(state, key + ":%d" % host.deal.current_phase)
+	mechanic_guide.sync(state, key)
+	fight_fx.sync(state, key + (":%d" % host.deal.current_phase if state.id == "monkey" else ""))
+	pair_fight_fx.sync(state, key + ":%d" % host.deal.current_phase)
+	hunt_board.sync(state)
+	hunt_fx.sync(state, key + ":%d" % host.deal.current_phase)
+	snake_fx.sync(state, key + ":%d" % host.deal.current_phase)
+	var guided: bool = mechanic_guide.active or fresh_guide.active or dance_guide.visible or hunt_board.visible
+	state_label.visible = not guided or state.id == "snake"
+	_header_spacer.visible = not state_label.visible and not hunt_board.receipt.visible
+	guidance.hide()
+	guidance.text = ""
 	if state.id == "monkey":
 		if state.sequence.is_empty():
 			var cap := int(ZodiacCatalog.tuning("monkey", "allowed_repeats", state.difficulty))
@@ -383,10 +502,10 @@ func refresh() -> void:
 	else: state_label.tooltip_text = ZodiacCatalog.words("Handbook", "Sổ tay")
 	if state.id == "rooster" and host.deal.current_phase == 1 and not state.register_closed:
 		var remaining: int = maxi(int(ZodiacCatalog.tuning("rooster", "discard_deadline", state.difficulty)) - host.deal.discard_count, 0)
-		state_label.text = ZodiacCatalog.words("Closes in %d discard(s)", "Đóng sổ sau %d lần bỏ") % remaining
-	# Boss-state summaries fit in full; the complete rule remains in the drawer.
+		state_label.text = ZodiacCatalog.words("Closes in %d", "Đóng sổ sau %d") % remaining
+	# Keep the current requirement readable at the shared presentation width.
 	var badge_pixels := state_label.get_theme_font_size("font_size")
-	while badge_pixels > 10 and state_label.get_theme_font("font").get_string_size(state_label.text, HORIZONTAL_ALIGNMENT_LEFT, -1, badge_pixels).x > 166:
+	while badge_pixels > 12 and state_label.get_theme_font("font").get_string_size(state_label.text, HORIZONTAL_ALIGNMENT_LEFT, -1, badge_pixels).x > PRESENTATION_SIZE.x - 20:
 		badge_pixels -= 1
 	state_label.add_theme_font_size_override("font_size", badge_pixels)
 	panel.tooltip_text = ZodiacCatalog.display_name(state.id) + "\n" + state_label.text
@@ -407,7 +526,7 @@ func _sync_opponent_cards() -> void:
 		var group := VBoxContainer.new()
 		opponent_cards.add_child(group)
 		var caption := _label(11)
-		caption.text = ZodiacCatalog.words("MOUSE #%d", "PHỎM TÝ #%d") % meld.meld_id
+		caption.text = ZodiacCatalog.words("RAT #%d", "PHỎM TÝ #%d") % meld.meld_id
 		group.add_child(caption)
 		var faces := GridContainer.new()
 		faces.name = "StolenCardFaces"
@@ -461,6 +580,9 @@ func _start_speech(item: Dictionary) -> void:
 func present_action(result: Dictionary) -> void:
 	if not visible or not panel.visible: return
 	dance_guide.present_action(result)
+	fresh_guide.present_action(result)
+	fight_fx.present_action(result)
+	pair_fight_fx.present_action(result)
 	var rule: ZodiacBossRule = host.deal.zodiac_boss
 	var phase: int = host.deal.current_phase
 	var locks := ",".join(rule.locked_ids)
@@ -493,6 +615,8 @@ func present_action(result: Dictionary) -> void:
 		elif rule.id == "monkey" and rule.difficulty != ZodiacCatalog.UNPLEASED:
 			if int(rule.data.repeat_count) >= int(ZodiacCatalog.tuning("monkey", "allowed_repeats", rule.difficulty)):
 				_queue_speech(ZodiacCatalog.words("Fresh! Now switch to ", "Fresh! Giờ đổi sang ") + ZodiacCatalog.action_label("extension" if action == "new_meld" else "new_meld") + ".", "fresh:" + action_key, true)
+		elif rule.id == "monkey":
+			_queue_speech(ZodiacCatalog.words("Good. Next: ", "Đúng rồi. Tiếp: ") + ZodiacCatalog.action_label(String(rule.presentation().required_action)) + ".", "dance:" + action_key, true)
 
 func react_locked_card(card: CardData) -> void:
 	if host.deal.zodiac_boss.is_locked(card):
@@ -502,11 +626,16 @@ func present_suppression(context: ScoringContext) -> void:
 	_queue_speech(ZodiacCatalog.feedback(context.suppression_reason) + ZodiacCatalog.words(" · this play pays 0 VNĐ.", " · lần đánh này trả 0 VNĐ."), "payout:%d" % context.get_instance_id(), true)
 
 func present_events(events: Array) -> void:
+	fight_fx.present_events(events, _boss_key + _action_seen)
+	hunt_fx.present_events(events, _boss_key + ":%d:%d" % [host.deal.current_phase, host.deal.zodiac_boss.turn_serial])
+	snake_fx.present_events(events, _boss_key + ":%d:%d" % [host.deal.current_phase, host.deal.zodiac_boss.turn_serial])
 	for event: Dictionary in events:
 		var action: String = event.get("action", "")
+		if action == "boss_discard" and event.get("source", "") == "tiger" and hunt_fx.hand_staging: continue
 		var line := ""
 		match action:
-			"boss_discard": line = ZodiacCatalog.words("Snatched: ", "Ta lấy lá ") + String(event.get("label", ""))
+			"boss_discard":
+				if event.get("source", "") not in ["snake", "snake_charm"]: line = ZodiacCatalog.words("Snatched: ", "Ta lấy lá ") + String(event.get("label", ""))
 			"boss_meld", "boss_extension": line = ZodiacCatalog.words("Mine. That costs you ", "Của ta. Bạn mất ") + VndWallet.format_vnd(absi(int(event.get("amount_vnd", 0))))
 			"pig_siphon": line = ZodiacCatalog.words("I'll hold ", "Ta giữ ") + VndWallet.format_vnd(int(event.amount_vnd))
 			"pig_return": line = ZodiacCatalog.words("Target met. Your pool is back.", "Đủ mục tiêu. Trả lại cả quỹ.")

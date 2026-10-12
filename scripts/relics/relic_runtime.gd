@@ -56,6 +56,11 @@ func reset_run() -> void:
 func phase_started() -> void:
 	extension_counts.clear()
 
+# Future outcome relics resolve here, once for each card in the locked pair.
+# Return one allowed identity; never mutate cards, money, counters or RNG here.
+func modify_shoe_shine_outcome(_card_snapshot: Dictionary, _kind: String, _allowed: Array, rolled: String) -> String:
+	return rolled
+
 func snapshot() -> Dictionary:
 	return {"inventory": inventory.duplicate(), "equipped": equipped.duplicate(), "extensions": extension_counts.duplicate()}
 

@@ -1,6 +1,7 @@
 extends RefCounted
 ## Boss-specific policy. All physical mutations go through the owning DealState.
 func configure(_rule) -> void: pass
+func restored(_rule, _saved: Dictionary) -> void: pass
 func begin_phase(_rule, _deal) -> void: pass
 func before_refill(_rule, _deal) -> void: pass
 func begin_turn(_rule, _phase: int, _hand: Array[CardData], _deal) -> void: pass
@@ -11,6 +12,8 @@ func after_discard(_rule, _deal, _record: DiscardRecord) -> void: pass
 func income(_rule, _deal, _amount: int, _reason: String) -> void: pass
 func deadwood(_rule, _deal, _context: Dictionary) -> void: pass
 func turn_discard(_rule, _deal, requested: CardData) -> CardData: return requested
+func command_discard(_rule, _deal, _requested: CardData) -> Dictionary: return {}
+func command_refusal(_rule, _action: String) -> Dictionary: return {}
 func phase_limit(_rule, _phase: int, ordinary: int) -> int: return ordinary
 func settle(_rule, _deal) -> void: pass
 func presentation(_rule) -> Dictionary: return {}

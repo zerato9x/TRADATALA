@@ -183,6 +183,9 @@ func _create_mix_player(player_name: String, player_index: int) -> AudioStreamPl
 static func display_title_for_theme(theme_id: StringName) -> String:
 	return String(THEME_TITLES.get(theme_id, String(theme_id).to_upper()))
 
+static func theme_label(theme_id: StringName) -> String:
+	return "BUFFALO" if theme_id == &"ox" else "RAT" if theme_id == &"mouse" else String(theme_id).to_upper()
+
 
 static func mix_path_for_theme(theme_id: StringName, variant: int) -> String:
 	return "%s/%s_%d.wav" % [OST_ROOT, theme_id, clampi(variant, 1, 2)]
@@ -192,7 +195,7 @@ func track_label(track_index: int) -> String:
 	if track_index < 0 or track_index >= playlist.size():
 		return ""
 	var track := playlist[track_index]
-	return "%s - SIDE %d" % [String(track["theme_id"]).to_upper(), int(track["variant"])]
+	return "%s - SIDE %d" % [theme_label(track["theme_id"]), int(track["variant"])]
 
 
 func next_mix_request() -> Dictionary:

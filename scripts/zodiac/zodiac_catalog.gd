@@ -4,6 +4,12 @@ extends RefCounted
 const PLEASED := 1
 const NORMAL := 2
 const UNPLEASED := 3
+## Dragon's encounter is deferred until its mechanics and presentation are ready.
+const DRAGON_ENABLED := false
+
+static func boss_available(id: String) -> bool:
+	return id != "dragon" or DRAGON_ENABLED
+
 const TUNING := {
 	"rooster": {"discard_deadline": [3, 2, 1], "dragon_paid_actions": [3, 2, 1]},
 	"cat": {"lock_count": [1, 2, 3]},
@@ -162,7 +168,7 @@ static func skill_name(id: String, level: int = NORMAL) -> String:
 		{"rooster": "CHỐT SỔ!", "cat": "RÌNH MỒI", "dog": "MỘT LÒNG MỘT DẠ", "pig": "ĂN NÊN LÀM RA", "ox": "GÁNH NẶNG", "horse": "PHI NHƯ GIÓ", "goat": "ĐÚNG NHỊP, ĐÚNG PHÁCH", "rat": "CỦA RƠI, CỦA TÔI!", "tiger": "MÃNH THÚ", "snake": "KHẨU PHẬT TÂM XÀ", "dragon": "CHỨNG MINH ĐI."}.get(id, ""))
 
 static func display_name(id: String) -> String:
-	return words({"rooster": "ROOSTER", "cat": "CAT", "dog": "DOG", "monkey": "MONKEY", "pig": "PIG", "ox": "OX", "horse": "HORSE", "goat": "GOAT", "rat": "MOUSE", "tiger": "TIGER", "snake": "SNAKE", "dragon": "DRAGON"}.get(id, id.to_upper()),
+	return words({"rooster": "ROOSTER", "cat": "CAT", "dog": "DOG", "monkey": "MONKEY", "pig": "PIG", "ox": "BUFFALO", "horse": "HORSE", "goat": "GOAT", "rat": "RAT", "tiger": "TIGER", "snake": "SNAKE", "dragon": "DRAGON"}.get(id, id.to_upper()),
 		{"rooster": "DẬU", "cat": "MÃO", "dog": "TUẤT", "monkey": "THÂN", "pig": "HỢI", "ox": "SỬU", "horse": "NGỌ", "goat": "MÙI", "rat": "TÝ", "tiger": "DẦN", "snake": "TỴ", "dragon": "THÌN"}.get(id, id))
 
 static func pair_for_day(day: int) -> Array:
@@ -187,6 +193,7 @@ static func disposition_label(value: String) -> String:
 
 static func rule_text(id: String, severity: Variant) -> String:
 	var level := difficulty_value(severity)
+	var no_exhaustion := words(" Exhaustion still recycles cards, but pays no bonus on any difficulty.", " Cạn bài vẫn tái chế, nhưng không thưởng ở mọi độ khó.")
 	if id == "rooster":
 		return words("Phase 1: register closes after mandatory discard #%d. Closed Melds/Extensions stay legal but pay nothing.", "Hiệp 1: đóng sổ sau lần bỏ bài bắt buộc #%d. Vẫn được tạo/nối Phỏm nhưng không trả thưởng.") % int(tuning(id, "discard_deadline", level)) + " " + (words("Phase 2: Extensions only.", "Hiệp 2: chỉ nối Phỏm.") if level == UNPLEASED else words("Phase 2 scores normally.", "Hiệp 2 tính điểm bình thường."))
 	if id == "cat":
@@ -197,10 +204,10 @@ static func rule_text(id: String, severity: Variant) -> String:
 		"pig": return words("Siphons %d%% of earnings until the visible gross earnings target is met; then returns the whole pool.", "Giữ %d%% thu nhập tới khi đạt mục tiêu tổng thu hiển thị; sau đó hoàn lại cả quỹ.") % int(tuning(id, "siphon_percent", level)) + (words(" Failure costs %d%% of a positive bank.", " Thất bại mất %d%% số tiền dương trong ví.") % int(tuning(id, "bank_loss_percent", level)) if level == UNPLEASED else "")
 		"ox": return words("Each carried loose card's deadwood loss doubles per completed turn. Removing it ends its burden.", "Mỗi lá rác giữ lại bị phạt gấp đôi sau mỗi lượt hoàn tất. Hạ, nối hoặc bỏ lá đó để hết gánh nặng.") + (words(" One grace turn per card.", " Mỗi lá được một lượt ân hạn.") if level == PLEASED else words(" Near-Meld loss: (value + %d) × burden × %d.", "Lá gần Phỏm: (giá trị + %d) × gánh nặng × %d.") % [int(tuning(id, "near_add_points", level)), int(tuning(id, "near_multiplier", level))] if level == UNPLEASED else "")
 		"horse": return words("Complete two matching Meld or Extend actions each turn. An incomplete pair forces a random legal mandatory discard.", "Mỗi lượt hoàn thành hai lần Tạo hoặc hai lần Nối Phỏm. Chưa đủ cặp thì bị chọn ngẫu nhiên lá bỏ bắt buộc.") + (words(" One grace per Phase.", " Một lần ân hạn mỗi Hiệp.") if level == PLEASED else words(" Two turns per Phase.", " Hai lượt mỗi Hiệp.") if level == UNPLEASED else "")
-		"goat": return words("The first paid action sets the starting Rank. Use ascending consecutive committed ranks, wrapping K to A. Old Meld cards do not set the note.", "Lần ghi điểm đầu đặt hạng mở đầu. Theo hạng liên tiếp tăng dần của lá vừa đánh, K quay về A. Không xét lá cũ trong Phỏm.") + (words(" One mistake grace per Phase.", " Một lần sai nhịp được tha mỗi Hiệp.") if level == PLEASED else words(" First committed Rank must match odd/even turn parity.", " Hạng đầu vừa đánh phải khớp chẵn/lẻ của lượt.") if level == UNPLEASED else "")
-		"rat": return words("After each discard, Mouse tries a real Meld or Extension using discards and up to %d borrowed stock cards. Its payout is your loss; unused loans return and reshuffle.", "Sau mỗi lần bỏ, Tý thử Tạo/Nối Phỏm từ bài bỏ và tối đa %d lá mượn từ chồng bốc. Tiền thưởng thành tiền bạn mất; lá mượn thừa được trả và xáo lại.") % int(tuning(id, "borrow_limit", level)) + (words(" Previous-Phase discards are eligible.", " Có thể dùng bài bỏ của Hiệp trước.") if level == UNPLEASED else "")
-		"tiger": return words("Immediately after refill, Tiger snatches one highest-Rank card.", "Ngay sau bốc, Dần vồ một lá hạng cao nhất.") if level == PLEASED else words("Immediately after refill, Tiger snatches all highest-Rank copies.", "Ngay sau bốc, Dần vồ tất cả lá cùng hạng cao nhất.") if level == NORMAL else words("Immediately snatches the most strategically valuable Rank and all copies. Exhaustion still recycles, but pays no bonus.", "Vồ ngay hạng có giá trị chiến thuật cao nhất cùng mọi bản sao. Cạn bài vẫn xáo lại nhưng không có thưởng.")
-		"snake": return words("Issues up to %d explicit commands each turn. Discard commands move cards immediately. Disobedience sabotages a commanded card where possible. Your turn continues; mandatory discards are unchanged.", "Ra tối đa %d lệnh mỗi lượt. Lệnh bỏ bài chuyển lá ngay. Không tuân lệnh thì phá lá được chỉ định nếu có thể. Lượt vẫn tiếp tục; lần bỏ bắt buộc giữ nguyên.") % int(tuning(id, "command_count", level))
+		"goat": return words("Play within the three accepted Ranks. A paid play advances the window by three: 4/5/6 → 7/8/9. The first play chooses the window; K wraps to A. Only added cards count for Extensions.", "Đánh trong ba hạng được nhận. Mỗi lần có thưởng tiến ba hạng: 4/5/6 → 7/8/9. Lần đầu chọn nhóm; K vòng về A. Nối Phỏm chỉ xét lá thêm.") + (words(" One mistake grace per Phase.", " Một lần sai nhịp được tha mỗi Hiệp.") if level == PLEASED else words(" First committed Rank must match odd/even turn parity.", " Hạng đầu vừa đánh phải khớp chẵn/lẻ của lượt.") if level == UNPLEASED else "")
+		"rat": return words("After each discard, Rat tries a real Meld or Extension using discards and up to %d borrowed stock cards. Its payout is your loss; unused loans return and reshuffle.", "Sau mỗi lần bỏ, Tý thử Tạo/Nối Phỏm từ bài bỏ và tối đa %d lá mượn từ chồng bốc. Tiền thưởng thành tiền bạn mất; lá mượn thừa được trả và xáo lại.") % int(tuning(id, "borrow_limit", level)) + (words(" Previous-Phase discards are eligible.", " Có thể dùng bài bỏ của Hiệp trước.") if level == UNPLEASED else "") + words(" You can extend Rat's table Melds for the normal Extension delta and bonuses.", " Bạn có thể nối Phỏm của Tý trên bàn để nhận chênh lệch điểm và thưởng Nối Phỏm như thường.") + no_exhaustion
+		"tiger": return (words("Immediately after refill, Tiger snatches one highest-Rank card.", "Ngay sau bốc, Dần vồ một lá hạng cao nhất.") if level == PLEASED else words("Immediately after refill, Tiger snatches all highest-Rank copies.", "Ngay sau bốc, Dần vồ tất cả lá cùng hạng cao nhất.") if level == NORMAL else words("Immediately snatches the most strategically valuable Rank and all copies.", "Vồ ngay hạng có giá trị chiến thuật cao nhất cùng mọi bản sao.")) + no_exhaustion
+		"snake": return words("Charms up to %d consecutive actions each turn, one target at a time. Follow the displayed action with that target. Disobedience discards the charmed card or its whole Meld. Charmed discards are extra; your mandatory discard still ends the turn.", "Mê hoặc tối đa %d hành động liên tiếp mỗi lượt, từng mục tiêu một. Làm hành động hiển thị với mục tiêu đó. Trái lệnh sẽ bỏ lá bị mê hoặc hoặc cả Phỏm chứa lá đó. Bỏ bài do mê hoặc là bỏ thêm; lần bỏ bắt buộc vẫn kết thúc lượt.") % int(tuning(id, "command_count", level))
 		"dragon": return words("Reproduce your most-used successful tactic and reach its historical earnings target. One rotating Zodiac modifier each turn. Victory: RỒNG RẮN LÊN MÂY.", "Tái hiện chiến thuật thành công dùng nhiều nhất và đạt mục tiêu thu nhập lịch sử. Mỗi lượt có một luật nhỏ Con Giáp luân phiên. Thắng: RỒNG RẮN LÊN MÂY.")
 
 	return ""
@@ -208,12 +215,18 @@ static func rule_text(id: String, severity: Variant) -> String:
 static func action_label(action: String) -> String:
 	return words({"new_meld": "MELD", "extension": "EXTEND", "discard": "DISCARD", "drink": "DRINK"}.get(action, action.to_upper()), {"new_meld": "TẠO PHỎM", "extension": "NỐI PHỎM", "discard": "BỎ BÀI", "drink": "DÙNG NƯỚC"}.get(action, action.to_upper()))
 
+static func rank_window_text(first: int) -> String:
+	if first <= 0: return words("choose the first three ranks", "chọn ba hạng mở đầu")
+	var labels: Array[String] = []
+	for offset in 3: labels.append(DeckManager.RANKS[(first - 1 + offset) % 13])
+	return " / ".join(labels)
+
 static func tactic_label(tactic: String) -> String:
 	return action_label(tactic.get_slice(":", 0)) + " · " + words(tactic.get_slice(":", 1).to_upper(), "BỘ" if tactic.get_slice(":", 1) == "set" else "DÂY")
 
 static func feedback(reason: String) -> String:
 	reason = reason.trim_prefix("dragon_") if reason != "dragon_tactic_required" else reason
-	var names := {"rooster_register_closed": words("REGISTER CLOSED", "ĐÃ ĐÓNG SỔ"), "dog_non_loyal": words("NOT THE LOYAL MELD", "KHÔNG PHẢI PHỎM TRUNG THÀNH"), "monkey_rhythm_miss": words("RHYTHM MISS", "SAI NHỊP"), "goat_rank_miss": words("RANK RHYTHM MISS", "SAI HẠNG NHỊP"), "tiger_exhaustion_bonus_disabled": words("EXHAUSTION BONUS SUPPRESSED", "KHÓA THƯỞNG CẠN BÀI"), "dragon_tactic_required": words("DRAGON REQUIRES YOUR TACTIC", "THÌN YÊU CẦU ĐÚNG CHIẾN THUẬT")}
+	var names := {"rooster_register_closed": words("REGISTER CLOSED", "ĐÃ ĐÓNG SỔ"), "dog_non_loyal": words("NOT THE LOYAL MELD", "KHÔNG PHẢI PHỎM TRUNG THÀNH"), "monkey_rhythm_miss": words("RHYTHM MISS", "SAI NHỊP"), "goat_rank_miss": words("RANK RHYTHM MISS", "SAI HẠNG NHỊP"), "rat_exhaustion_bonus_disabled": words("EXHAUSTION BONUS SUPPRESSED", "KHÓA THƯỞNG CẠN BÀI"), "tiger_exhaustion_bonus_disabled": words("EXHAUSTION BONUS SUPPRESSED", "KHÓA THƯỞNG CẠN BÀI"), "dragon_tactic_required": words("DRAGON REQUIRES YOUR TACTIC", "THÌN YÊU CẦU ĐÚNG CHIẾN THUẬT")}
 	return names.get(reason, words("ZODIAC RULE", "LUẬT CON GIÁP"))
 
 static func state_text(state: Dictionary, deal = null) -> String:
@@ -239,7 +252,7 @@ static func state_text(state: Dictionary, deal = null) -> String:
 					if age > 0: labels.append("%s ×%d" % [card.short_label(), 1 << clampi(age - int(tuning("ox", "grace_turns", state.difficulty)), 0, 30)])
 			return words("CARD BURDEN\n", "GÁNH NẶNG TỪNG LÁ\n") + (", ".join(labels) if not labels.is_empty() else words("No carried burden yet", "Chưa mang gánh nặng"))
 		"horse": return "%s %d/%d" % [action_label(state.required_action) if not String(state.required_action).is_empty() else words("MATCHING ACTIONS", "HÀNH ĐỘNG CÙNG LOẠI"), int(state.pair_count), int(tuning("horse", "matching_actions", state.difficulty))] + (words(" · %d grace", " · %d ân hạn") % int(state.pair_grace) if int(state.pair_grace) > 0 else "")
-		"goat": return words("NEXT RANK: %s", "HẠNG TIẾP: %s") % (DeckManager.RANKS[int(state.expected_rank) - 1] if int(state.expected_rank) > 0 else words("choose the first note", "chọn hạng mở đầu")) + (words(" · turn %d (%s)", " · lượt %d (%s)") % [state.turn_number, words("ODD", "LẺ") if int(state.turn_number) % 2 else words("EVEN", "CHẴN")] if int(state.difficulty) == UNPLEASED else "")
+		"goat": return words("ACCEPTED RANKS: %s", "HẠNG ĐƯỢC NHẬN: %s") % rank_window_text(int(state.expected_rank)) + (words(" · turn %d (%s)", " · lượt %d (%s)") % [state.turn_number, words("ODD", "LẺ") if int(state.turn_number) % 2 else words("EVEN", "CHẴN")] if int(state.difficulty) == UNPLEASED else "")
 		"rat": return words("Own Melds: %d\nLast deduction: %s", "Phỏm của Tý: %d\nVừa trừ: %s") % [deal.boss_melds.size() if deal != null else 0, VndWallet.format_vnd(int(state.get("hostile_result", {}).get("amount_vnd", 0)))]
 		"tiger": return words("SNATCHED %d · act now", "ĐÃ VỒ %d LÁ · đến lượt bạn") % state.get("removed_ids", []).size()
 		"snake":
@@ -265,8 +278,8 @@ static func modifier_text(state: Dictionary, _deal = null) -> String:
 		"pig": return words("Siphoned this turn: ", "Đã giữ lượt này: ") + VndWallet.format_vnd(int(mini.get("siphoned_vnd", 0)))
 		"ox": return words("Deadwood ×%d", "Phạt bài rác ×%d") % int(mini.get("burden_multiplier", 1))
 		"horse": return "%s %d/%d" % [action_label(mini.get("required_action", "")), int(mini.get("pair_count", 0)), int(tuning("horse", "matching_actions", state.difficulty))]
-		"goat": return words("Required Rank: %s", "Yêu cầu hạng: %s") % (DeckManager.RANKS[int(mini.expected_rank) - 1] if int(mini.get("expected_rank", 0)) > 0 else "—")
-		"rat": return words("Mouse may reuse this turn's discard.", "Tý có thể lấy bài bỏ của lượt này.")
+		"goat": return words("Accepted Ranks: %s", "Hạng được nhận: %s") % rank_window_text(int(mini.get("expected_rank", 0)))
+		"rat": return words("Rat may reuse this turn's discard.", "Tý có thể lấy bài bỏ của lượt này.")
 		"tiger": return words("Snatched %d cards", "Đã vồ %d lá") % mini.get("removed_ids", []).size()
 		"snake": return state_text({"id": "snake", "commands": mini.get("commands", [])})
 	return ""

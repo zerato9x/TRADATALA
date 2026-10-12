@@ -4,6 +4,11 @@ const Tactics := preload("res://scripts/zodiac/zodiac_tactics.gd")
 func configure(rule) -> void:
 	rule.data["hostile_result"] = {}
 
+func payout(_rule, context: ScoringContext, _meld_id: int, _commit: bool) -> Dictionary:
+	if context.action_type == ScoringPipeline.ACTION_EXHAUSTION_MELD:
+		return {"percent": 0, "reason": "rat_exhaustion_bonus_disabled"}
+	return {}
+
 func after_discard(rule, deal, record: DiscardRecord) -> void:
 	_respond(rule, deal, record.card, false)
 
@@ -52,6 +57,8 @@ func _respond(rule, deal, current: CardData, current_only: bool) -> void:
 		rule.data.hostile_result = {"action": "mouse_borrow_returned", "borrowed_count": borrowed.size(), "returned_ids": unused.map(func(card: CardData): return card.unique_id)}
 	else:
 		rule.data.hostile_result = deal.boss_commit_meld(best_cards, best_meld, "rat")
+	rule.data.hostile_result["borrowed_count"] = borrowed.size()
+	rule.data.hostile_result["returned_count"] = unused.size()
 	rule.events.append(rule.data.hostile_result.duplicate(true))
 
 func dragon_discard(rule, deal, record: DiscardRecord, state: Dictionary) -> void:

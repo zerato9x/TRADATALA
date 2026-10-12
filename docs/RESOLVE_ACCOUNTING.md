@@ -12,16 +12,16 @@ Completed deals archive their net change, income, losses, opening/closing wallet
 
 Lottery settles on entry to the Afternoon Event, before the Evening Deal. After the Evening Deal, progression pauses for the supplied Doi No portrait and debt receipt. The existing required_vnd schedule is now money owed, not a non-spending threshold. Payment checks affordability again, deducts exactly once, and only then advances or declares seven-day victory. Insufficient funds ends the run without a partial deduction. A guard prevents reentrant collection. Monday debt is VNĐ250,000. New campaigns start with VNĐ25,000, and the Starter collector presents the authoritative weekly ledger.
 
-## Current cost policy — verified 2026-09-29
+## Current cost policy — Đánh Giày updated 2026-10-07
 
-Drinks, paid Gieo casts, and relics derive quotes from the current daily debt target. Polish, tips, and lottery derive quotes from the current wallet and daily purchase count. `CampaignManager` synchronizes the shared wallet and Drink debt targets; `RunSave` restores them from the saved campaign day. Scaling activates in campaigns; standalone fixtures can retain base prices.
+Drinks, paid Gieo casts, and relics derive quotes from the current daily debt target. Đánh Giày pair transformations also derive quotes from daily debt, with independent doubling by service. Lottery derives quotes from the current wallet and daily purchase count. `CampaignManager` synchronizes the shared wallet and Drink debt targets; `RunSave` restores them from the saved campaign day. Scaling activates in campaigns; standalone fixtures can retain base prices.
 
 | Purchase | Quote basis | Base / quote rule |
 | --- | --- | --- |
 | Drinks | 0–8% of debt | `DrinkManager.PRICE_PERCENT`; round up to VNĐ500; Trà Đá is free |
 | Gieo paid casts | 4% of debt | Minimum VNĐ10,000, round up to VNĐ500; each paid cast doubles the next quote; one free cast daily |
-| Shoe polish | 2% of wallet | Round up to VNĐ500, minimum VNĐ10,000, then multiply by today's previous polishes + 1 |
-| Tips | 1% of wallet | Round up to VNĐ500, minimum VNĐ5,000, then multiply by today's previous tips + 1; actual payment contributes to favor |
+| Pair Rank transformation | 10% of debt | Minimum VNĐ25,000; round up to VNĐ500; doubles after each successful pair purchase |
+| Pair Suit transformation | 5% of debt | Minimum VNĐ15,000; round up to VNĐ500; doubles independently after each successful pair purchase |
 | Lottery | 1% of wallet | Round up to VNĐ500, minimum VNĐ10,000, then multiply by today's purchased tickets + 1; re-quote at purchase; Buy All simulates each remaining balance; payouts use committed stake |
 | Relics | 5% of debt | Campaign shop minimum VNĐ500; rerolls start at 2% and scale with visit reroll count; re-equipping is free; four-slot cap |
 

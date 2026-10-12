@@ -11,7 +11,11 @@ var drink_targeting := false
 var drink_meld_id := -1
 var drink_meld_card_id := ""
 var drink_discard_key := ""
-var locked := false
+var _command_locked := false
+var boss_presentation_locked := false
+var locked: bool:
+	get: return _command_locked or boss_presentation_locked
+	set(value): _command_locked = value
 var drag_payload: Variant
 
 func configure(deal: DealState) -> void:
@@ -191,12 +195,12 @@ func drink_swap_opportunities() -> Array[Dictionary]:
 	return _deal().queries.drink_swap_opportunities(cards[0] if cards.size() == 1 else null)
 
 func reconcile_meld_targets() -> void:
-	if _deal().melds.is_empty():
+	if _deal().table_melds().is_empty():
 		selected_meld_id = -1
 		drink_meld_id = -1
 		drink_meld_card_id = ""
 		return
-	if selected_meld_id >= 0 and _deal().get_meld(selected_meld_id) == null: selected_meld_id = -1
+	if selected_meld_id >= 0 and _deal().get_table_meld(selected_meld_id) == null: selected_meld_id = -1
 	if drink_meld_id >= 0 and _deal().get_meld(drink_meld_id) == null:
 		drink_meld_id = -1
 		drink_meld_card_id = ""

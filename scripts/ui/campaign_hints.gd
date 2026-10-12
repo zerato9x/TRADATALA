@@ -8,7 +8,7 @@ static func instruction(campaign: CampaignManager, deal: DealState, event: Event
 	if event != null:
 		match npc:
 			"doi_no": return ["debt_intro", "This is today's target. He collects after the Evening Deal; the ledger shows the week.", "Đây là nợ hôm nay. Anh ta thu sau ván tối; sổ nợ ghi cả tuần."]
-			"danh_giay": return ["shoe_reroll_rank", "Commit one or two cards, then reroll Rank or Suit. Your picks stay locked; each service doubles in price. All card properties stay.", "Chốt một hoặc hai lá rồi đổi số/chất. Lá đã chọn không được thay; mỗi dịch vụ tăng gấp đôi riêng. Giữ mọi thuộc tính."]
+			"danh_giay": return ["shoe_reroll_rank", "Commit both cards, then transform both Ranks or Suits. Each card rolls separately. Your pair stays locked; each service doubles in price.", "Chốt đủ hai lá rồi đổi số/chất cả đôi. Mỗi lá có kết quả riêng. Không được thay lá đã chọn; mỗi dịch vụ tăng gấp đôi riêng."]
 			"tra_da_auntie":
 				if event.slot == EventManager.EventSlot.NOON:
 					return ["noon_drink", "Order the Drink for Afternoon and Evening. Inspect the available new glasses; each explains its own charges and effect.", "Gọi ly dùng cho ván chiều và tối. Xem những ly mới đang mở; mỗi ly ghi rõ lượt dùng và hiệu ứng."]
@@ -20,7 +20,9 @@ static func instruction(campaign: CampaignManager, deal: DealState, event: Event
 					return ["lottery_result", "Compare your tickets with today's draw. Winnings are already paid; next is the Evening Deal.", "So vé với kết quả hôm nay. Thưởng đã vào ví; tiếp theo là ván tối."]
 				return ["lottery_ticket", "Pick tickets or Buy All within your budget. Check prize categories; results arrive this afternoon.", "Chọn vé hoặc MUA TẤT CẢ trong khả năng ví. Xem các giải; chiều nay dò số."]
 		if event.slot == 0:
-			return ["starter", "Meet Đòi Nợ, visit Đánh Giày if you like, then choose a Drink to start your real day.", "Gặp Đòi Nợ, ghé Đánh Giày nếu thích, rồi gọi nước để bắt đầu ngày thật."]
+			if campaign.current_day_index >= ShoeShineConfig.FIRST_DAY_INDEX:
+				return ["starter", "Meet Đòi Nợ, visit Đánh Giày if you like, then choose a Drink to start your real day.", "Gặp Đòi Nợ, ghé Đánh Giày nếu thích, rồi gọi nước để bắt đầu ngày thật."]
+			return ["starter", "Meet Đòi Nợ, then choose a Drink to start your day. Đánh Giày arrives from Tuesday.", "Gặp Đòi Nợ rồi gọi nước để bắt đầu ngày. Đánh Giày đến từ thứ Ba."]
 		return ["event_" + str(event.slot), "Choose a person at the table. Their services change the real cards and earnings in your next Deal.", "Chọn người quanh bàn. Dịch vụ của họ ảnh hưởng bài thật và tiền ở ván tiếp theo."]
 	if deal.state == DealState.STATE_PHASE_CHOICE:
 		return ["phase_choice", "Phase 1 is settled: all loose cards counted as deadwood. Only cards marked with Sâm dứa/Bạc xỉu carry over. Replace the rest and refill. Melds stay.", "Đã chốt hiệp 1: tất cả bài rời tính phạt. Chỉ giữ bài đã đánh dấu với Sâm dứa/Bạc xỉu. Thay phần còn lại rồi bù bài. Phỏm ở lại."]

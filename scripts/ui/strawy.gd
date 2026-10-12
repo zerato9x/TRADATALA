@@ -627,7 +627,7 @@ func _npc_guidance(npc: String) -> String:
 		EventTableController.NPC_DOI_NO:
 			return words("Check today's debt and your wallet, then pay to continue.", "Xem nợ hôm nay và ví rồi trả để tiếp tục.") if host.resolve_mode == "collection" else words("Meet Đòi Nợ to check today's debt. Payment is due after the Evening Deal.", "Gặp Đòi Nợ để xem nợ hôm nay. Trả nợ sau ván tối.")
 		EventTableController.NPC_DANH_GIAY:
-			return words("At Starter, commit one or two cards to Đánh Giày. Reroll their Rank or Suit permanently; each service doubles in price. Your chosen cards stay locked for this visit.", "Ở đầu ngày, chốt một hoặc hai lá với Đánh Giày. Đổi vĩnh viễn số hoặc chất; mỗi dịch vụ tăng gấp đôi riêng. Các lá đã chọn được giữ cho chuyến này.")
+			return words("From Tuesday, commit two cards to Đánh Giày at Starter. One purchase transforms both cards permanently, with separate results. Each service doubles in price from today's debt. Your pair stays locked for this visit.", "Từ thứ Ba, chốt đủ hai lá với Đánh Giày ở đầu ngày. Một lượt trả tiền đổi cả hai lá vĩnh viễn, mỗi lá có kết quả riêng. Giá theo nợ ngày, mỗi dịch vụ tăng gấp đôi riêng. Hai lá đã chọn được giữ cho chuyến này.")
 		EventTableController.NPC_TRA_DA:
 			return words("Choose a glass, read its effect, then Order. This Drink changes how you play the next Deals.", "Chọn ly, đọc hiệu ứng rồi GỌI MÓN. Đồ uống thay đổi cách chơi các ván tiếp theo.")
 		EventTableController.NPC_THAY_BOI:

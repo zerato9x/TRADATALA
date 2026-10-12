@@ -53,7 +53,12 @@ func set_zodiac_hint(hint: Dictionary) -> void:
 	if not hint.is_empty() and _zodiac_cue == null:
 		_zodiac_cue = preload("res://scripts/ui/zodiac_hand_cue.gd").new()
 		add_child(_zodiac_cue)
-	if _zodiac_cue != null: _zodiac_cue.sync(hint)
+	if _zodiac_cue != null:
+		# Snake ink belongs to the moving face, above the card's property shader.
+		# Other Zodiac cues retain their existing card-frame placement.
+		var cue_parent: Control = _texture if hint.get("kind", "") == "snake" else self
+		if _zodiac_cue.get_parent() != cue_parent: _zodiac_cue.reparent(cue_parent, false)
+		_zodiac_cue.sync(hint)
 	_refresh_tooltip()
 
 func set_zodiac_locked(value: bool) -> void:

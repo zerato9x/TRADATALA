@@ -11,8 +11,16 @@ func begin_phase(rule, _deal) -> void:
 func begin_turn(rule, _phase: int, _hand: Array[CardData], deal) -> void:
 	if deal != null: rule.data.turn_number = deal.discard_count + 1
 
-# A Set supplies one rank. A Run supplies the ascending committed ranks only.
-# First paid action establishes the starting note; later notes must be consecutive.
+# Each paid play consumes a three-rank window. Only newly committed cards count.
+static func accepted_ranks(first: int) -> Array[int]:
+	var result: Array[int] = []
+	if first > 0:
+		for offset in 3: result.append((first - 1 + offset) % 13 + 1)
+	return result
+
+func presentation(rule) -> Dictionary:
+	return {"accepted_ranks": accepted_ranks(int(rule.data.expected_rank))}
+
 func _grade(rule, context: ScoringContext, state: Dictionary, commit: bool) -> Dictionary:
 	var committed: Array[CardData] = context.added_cards if context.action_type == "extension" else context.cards
 	var ranks: Array[int] = []
@@ -21,15 +29,15 @@ func _grade(rule, context: ScoringContext, state: Dictionary, commit: bool) -> D
 	ranks.sort()
 	if ranks.is_empty(): return {}
 	var expected := int(state.get("expected_rank", 0))
-	var correct := expected == 0 or ranks[0] == expected
-	for i in range(1, ranks.size()):
-		correct = correct and ranks[i] == ranks[i - 1] + 1
+	var first := ranks[0] if expected == 0 else expected
+	var window := accepted_ranks(first)
+	var correct := ranks.all(func(rank: int): return rank in window)
 	if rule.difficulty == ZodiacCatalog.UNPLEASED and state.get("parity_required", true):
 		correct = correct and ranks[0] % 2 == int(state.turn_number) % 2
 	var grace := not correct and int(state.get("rhythm_grace", 0)) > 0
 	if commit and (correct or grace) and context.final_points > 0:
 		if grace: state.rhythm_grace -= 1
-		state.expected_rank = ranks[-1] % 13 + 1
+		state.expected_rank = ((ranks[0] if grace else first) - 1 + 3) % 13 + 1
 	return {} if correct or grace else {"percent": 0, "reason": "goat_rank_miss"}
 
 func payout(rule, context: ScoringContext, _meld_id: int, commit: bool) -> Dictionary:

@@ -1,74 +1,48 @@
-# Đánh Giày identity overhaul — 2026-10-07
+# Đánh Giày pair transformation overhaul — 2026-10-07
 
-## Audit before implementation
+## Current behavior
 
-- `ShoeShineService` previously selected two random unpolished cards, granted a day-long Shiny scoring property, sold tips, and exposed a lottery Special-number hint. Its prices used `VndWallet.player_service_cost()`, which depended on current wallet balance. This conflicted with the requested identity-only role.
-- `CampaignManager.gieo_que.persistent_deck` owns the run's physical cards. Hàng Rong controls composition. Deals receive `CardData.copy_for_deal()` copies through `DeckManager`; a transformed card must retain its existing `unique_id`.
-- `CardData.apply_rank()` and `apply_suit()` already own permanent identity mutation, revision and notification. Rank changes also update canonical rank index/base value. Negative derives its legal identities from current Rank/Suit; GLITCH derives from Liquid + Negative and remains wildcard.
-- The existing V3 save envelope serializes owner-declared card/service fields and independent RNG states, then rebinds services to the canonical deck. A new card representation or second deck authority was unnecessary.
-- Starter roster eligibility already excluded Đánh Giày from later events. The focused Event Table supported placing the NPC, dialogue, service and common wallet together.
-- The initial worktree contained substantial unrelated WIP. The pre-change core suite passed 371/371. Task-specific copies of touched existing files are under `.godot/shoe-overhaul/baseline/`; unrelated WIP was preserved.
+Đánh Giày appears at Starter from Tuesday onward. Monday has neither his table artwork nor a selection target. Campaign NPC eligibility owns availability; the table consumes the actual participants. The service independently checks day, event slot, campaign phase, and run status, including stale panels and old saves.
 
-## Result
+The player commits exactly two distinct physical cards before paid work becomes available. Each commitment is irreversible for that day's visit. Reopening, saving, and continuing preserve the same pair. A missing or sealed member blocks the entire purchase and never frees a third selection. The next day opens a fresh selection while retaining transformed printing.
 
-Đánh Giày is a Starter-only Rank/Suit transformation service. The campaign phase and day are checked by the service, so stale UI or calls to `begin_event(STARTER)` cannot operate during another phase.
+One Transform Rank or Transform Suit purchase changes BOTH cards. Each physical card receives its own random result from its own legal pool; results may match each other. Each pool excludes that card's current identity. Rank updates canonical rank index and base value; Suit changes only Suit. Other card properties and physical IDs survive. The existing campaign persistent deck remains the owner; future Deal copies inherit the changes.
 
-The player commits one physical card at a time, up to two. Each committed ID is irreversible for that visit. One card is sufficient; the second may be added later. Reopening and restoring do not clear selections, free another slot, reset prices, replay work or consume RNG. Missing cards do not free a committed slot.
+## Prices
 
-Both services exclude the current identity. All 13 standard ranks and all four standard suits remain available over repeated rolls. Rank and Suit are permanent on the canonical physical card, while Fortune, Gold/Black Ink, Liquid, Negative, GLITCH, Shiny legacy metadata, enhancements/modifiers and seals are preserved. Sealed cards refuse selection/work. Deal copies inherit the transformed canonical Rank/Suit and existing permanent properties.
+`ShoeShineConfig.SERVICES` owns tuning. Quotes are fixed for the daily visit, based on debt rather than the current wallet.
 
-The task does not alter CardData, deck composition, Gieo, scoring or Hàng Rong mechanics. Legacy day-polish expiry stays in campaign day setup; the new identity service neither grants nor strips properties.
-
-## Prices and RNG
-
-`scripts/campaign/shoe_shine_config.gd` owns the tuning data:
-
-| Service | Initial price | Monday prices for successive uses |
+| Pair service | Starting quote | Normal Tuesday sequence |
 | --- | --- | --- |
-| Rank | max(5,000 VNĐ, 2% of day target), rounded up to 500 VNĐ | 5,000 / 10,000 / 20,000 / 40,000… |
-| Suit | max(2,500 VNĐ, 1% of day target), rounded up to 500 VNĐ | 2,500 / 5,000 / 10,000 / 20,000… |
+| Transform Rank | 10% of daily debt, minimum 25,000 VNĐ | 50,000 / 100,000 / 200,000… |
+| Transform Suit | 5% of daily debt, minimum 15,000 VNĐ | 25,000 / 50,000 / 100,000… |
 
-Each service doubles independently after a successful use. Both cards share the visit's Rank curve and the visit's Suit curve, preventing cheaper fishing by switching cards. Actual quotes, counters and the tuning dictionary persist. Changing wallet balance never reprices the visit. There is no reroll count limit; prices saturate at 4,000,000,000,000,000 VNĐ to avoid integer overflow. A regression performs 60 paid Rank rerolls.
+Round up to 500 VNĐ. Each service doubles once per successful PAIR purchase, independently of the other. Day and difficulty debt growth automatically increase initial quotes. There is no reroll count limit while the player can pay. Prices saturate at 4,000,000,000,000,000 VNĐ to prevent overflow.
 
-The `shoe_identity` campaign seed stream initializes a dedicated RNG. Selection, reopening, pricing and presentation consume no random results. Saves restore its exact state. Gameplay draw, Gieo, Zodiac, lottery and Hàng Rong RNG are isolated.
+Save pricing version 2 migrates the former 2%/1% curves to these quotes without resetting selected IDs, reroll counters, card printing, receipts, or RNG. Current-version quotes resume exactly. Older Monday saves retain their transformed cards but cannot use the service on Monday.
 
-## Transactions and persistence
+## Outcome relic extension
 
-`VndWallet.try_spend_and_commit()` debits first, runs the synchronous service commit, then journals and notifies observers once. Failed affordability checks and rejected mutations leave balance and journal unchanged. A rejected CardData mutation also restores identity, revision and RNG.
+`ShoeShineService._resolve_outcome()` consumes one dedicated RNG draw per physical card. It then calls `RelicRuntime.modify_shoe_shine_outcome(card_snapshot, kind, allowed, rolled)` separately for each card. The current default returns the rolled identity unchanged; no new relic is granted or implemented.
 
-Card notifications are held until the complete service state is committed. Wallet observers see the new card, counters, prices, RNG and receipt. A reentrancy guard prevents another selection/payment inside a transaction notification. UI code sends card IDs and reroll intent; it never changes money or owns identity mutation.
+Future relic rules belong in this runtime hook. They receive detached card data and a copied candidate pool, and return an allowed identity. They must not mutate money, cards, counters, or RNG. The service validates their result and keeps transaction ownership. Tests cover different forced outcomes for each card, matching outcomes, both attributes, and an invalid second output.
 
-The existing V3 envelope carries:
-- visit-started flag and day/event context;
-- selected physical IDs, with selected count derived from their array;
-- separate Rank/Suit counts, next quotes and price curve;
-- dedicated RNG state;
-- the last committed before/after receipt;
-- canonical card fields through the existing CardData object records.
+## Transactions and saves
 
-Selection-only changes now request autosave through `RunSessionCoordinator`. Successful payments use the existing wallet save path; closing the application flushes it. Legacy polish/tip fields are ignored as identity-reroll counts. Existing card printing/properties remain intact when loading older saves.
+One `VndWallet.try_spend_and_commit()` transaction pays once and commits both mutations, one service counter increment, the next price, and a receipt containing two physical-ID-specific before/after results. If either mutation or relic output is rejected, both card printing/revisions, wallet, and RNG roll back. No payment or card notification is published for a rejected pair.
 
-## Presentation
+Wallet observers see the complete pair. Reentrant purchases/selection are rejected. Each card publishes its own permanent-change signal after the completed transaction; the campaign records one activity with two changes. UI sends only pair-service intent and selected physical IDs.
 
-The two work mats sit beside the existing full NPC and dialogue. Each selected card has actual card art, current Rank with its suit icon, persistent property text, separate Rank/Suit buttons and prices. The visit-wide usage counters and last before → after identity/payment are visible.
+The existing V3 save envelope stores the locked IDs, visit context, counters, quotes, pricing version/curve, receipt, and dedicated RNG. Partial selection saves remain valid; the second card is still required after resuming. Selection autosaves without payment. The service does not consume deal, Gieo, Zodiac, lottery, or vendor RNG.
 
-Paid work lifts and turns only the worked card, sweeps a brush highlight across it, then settles it. The committed new identity is visible immediately. Closing mid-animation leaves the completed authority intact; reopening restores the receipt without replaying the animation or charging again.
+## Presentation and verification
 
-The shared wallet presents the payment flight. Existing bounded Sound-bus feedback is reused. English/Vietnamese strings, the picker confirmation, NPC greeting, Strawy guidance, Handbook pricing/role explanations and transaction ledger names are updated. Lottery hints and polish/tip actions are removed from this NPC.
+The existing two work mats show each physical card and its own before → after result. Shared Transform Rank/Suit controls explicitly act on both cards and display the total pair quote. Both tools remain disabled until both cards are committed, and both cards animate together. English/Vietnamese picker terms, dialogue, Handbook, hints, and Strawy guidance describe the pair and Tuesday gate.
 
-## Validation
+Before this change, the isolated core suite passed 391/391. The final revised core suite passes 392/392, including partial-pair resume, independent outcomes, one-payment accounting, invalid second-result rollback, metadata preservation, price migration, debt/difficulty scaling and 60 paid pair rerolls.
 
-Fresh isolated Godot 4.7.1 processes were used.
+Fresh-process save/quit/resume passes writer 9/9 and reader 19/19, reproducing both cards' exact next results. Rendered English/Vietnamese at 1280×720 and 1920×1080 passes 94/94 checks per run (376 total). Pointer injection covers both deck-picker commitments, the one-card lockout, both pair tools, repeated work, separate result ownership, closing during animation, reopening, and future Deal inheritance. The English 720p and Vietnamese 1080p captures were visually inspected.
 
-- Core: 391/391 tests passed, including 23 new deterministic identity-service tests and existing NPC/card suites.
-- Separate-process save/quit/resume: writer 9/9 and reader 19/19 checks passed; exact next Rank and Suit outcomes reproduced.
-- Rendered English/Vietnamese at 1280×720 and 1920×1080: 89/89 checks in each run (356 total). Synthetic pointer input exercised the existing deck picker, commitment, both paid tools, repeated rerolls, disabled states and Back.
-- Closing during work: committed identity, selection, prices/counts and RNG survived; reopening did not replay/charge.
-- Runtime, tutorial, full/demo campaign, Event Table, miscellaneous NPC and Gieo screen checks passed.
-- Fortune and Hàng Rong separate-process resume checks passed.
-- Final parsing, Strawy and resolve receipt scene checks passed; the final core rerun remained 391/391.
-- `git -c core.safecrlf=false diff --check` passed.
+The final editor import and script parse are clean. Full/demo campaign progression, tutorial, Event Table, miscellaneous NPC, Gieo, and resolve-receipt smokes pass. The final runtime, Drink shop, and Strawy mouse/touch smokes also pass. Their fixtures verify Monday absence, exercise Tuesday services, and retain the curated Monday hands for gameplay checks.
 
-The English 720p and Vietnamese 1080p captures were visually inspected for readability and NPC/dialogue overlap. Captures are under `.godot/shoe-overhaul/shoe-bench-*.png` and `shoe-empty-*.png`.
-
-Input proof is automated viewport pointer injection, not human mouse/touch QA. The checks use Dummy audio; they do not establish audible quality. No release/export/publication, staging, commit or push was performed.
+QA captures are under `.godot/shoe-overhaul/`; process logs and isolated save profiles are under `.godot/validation/`. Input proof is automated pointer/touch injection. Checks use Dummy audio and do not establish audible quality. No export, staging, commit or push was performed. Pre-existing import/audio metadata changes and the two untracked smoke UID files were preserved.

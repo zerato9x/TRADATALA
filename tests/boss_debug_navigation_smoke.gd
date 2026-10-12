@@ -58,6 +58,8 @@ func _run() -> void:
 	await key(KEY_F9)
 	check(scene.menu_layer.visible and scene.front_end.page == "boss_lab", "F9 opens Boss Lab from startup")
 	var choice := scene.front_end.boss_lab_body.find_child("Boss", true, false) as OptionButton
+	check(choice.item_count == 11, "deferred Dragon is absent from the boss selector")
+	for index in choice.item_count: check(String(choice.get_item_metadata(index)) != "dragon", "Dragon is not a selectable encounter")
 	await click(choice)
 	check(choice.get_popup().visible, "pointer opens the actual boss dropdown")
 	# Select through the OptionButton signal; surrounding controls use pointer input.
@@ -65,12 +67,12 @@ func _run() -> void:
 	choice.select(choice.item_count - 1)
 	choice.item_selected.emit(choice.item_count - 1)
 	await process_frame
-	check(scene.front_end.boss_options.boss == "dragon", "dropdown selection sets the requested boss")
+	check(scene.front_end.boss_options.boss == "snake", "dropdown selection sets the requested boss")
 	await capture("boss-lab")
 	await click(scene.front_end.footer.find_child("StartBossTest", true, false))
 	await ready_to_play()
 	check(scene.session.debug_active and scene.interaction_snapshot().can_play, "Start Test from startup reaches a playable encounter")
-	check(scene.deal.zodiac_boss.id == "dragon", "Start Test applies the dropdown selection")
+	check(scene.deal.zodiac_boss.id == "snake", "Start Test applies the dropdown selection")
 	await capture("boss-start")
 	var before_ids: Array = scene.deal.hand.map(func(card): return card.unique_id)
 	var before_boss := scene.deal.zodiac_boss.snapshot()
@@ -123,7 +125,7 @@ func _run() -> void:
 	await scene._close_menu_to_game()
 
 	# A delayed recovery can finish while the lab temporarily owns input.
-	check(scene.start_boss_debug({"boss": "dragon", "drink": DrinkCatalog.NUOC_VOI, "seed": "RECOVERY-TRANSITION"}), "start a recovery-capable boss fixture")
+	check(scene.start_boss_debug({"boss": "rooster", "drink": DrinkCatalog.NUOC_VOI, "seed": "RECOVERY-TRANSITION"}), "start a recovery-capable boss fixture")
 	await ready_to_play()
 	var run_cards: Array[CardData] = []
 	for card in scene.deal.hand:
@@ -167,7 +169,7 @@ func _run() -> void:
 	scene._refresh_actions()
 	check(not scene.settle_button.disabled, "settlement fixture reaches a legal phase end")
 	scene._on_settle_pressed()
-	check(scene.start_boss_debug({"boss": "dragon", "seed": "REPLACEMENT"}), "replace a settling encounter")
+	check(scene.start_boss_debug({"boss": "rooster", "seed": "REPLACEMENT"}), "replace a settling encounter")
 	await ready_to_play()
 	await create_timer(0.3).timeout
 	check(not scene.modal_overlay.visible and scene.deal.current_phase == 1 and scene.interaction_snapshot().can_play, "old settlement completion cannot overlay the replacement boss")

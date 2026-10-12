@@ -556,6 +556,9 @@ func consume_skip(phase: int) -> bool:
 	return true
 
 func prepare_deal(period: String) -> void:
+	if period == "dragon" and not ZodiacCatalog.DRAGON_ENABLED:
+		if deal != null: deal.zodiac_boss.configure()
+		return
 	if deal == null: return
 	if uses_persuasion(): persuasion.start_deal(period)
 	if period == "afternoon" and not uses_persuasion():
@@ -580,7 +583,7 @@ func finish_boss() -> void:
 	var state := negotiation()
 	if not uses_persuasion() and not state.is_empty() and int(state.resolved_demand_count) >= int(state.demand_count) and int(state.failed_responses) == 0: counters.perfect_request_days = 1
 	progress.commit(active_id(), record_key("boss"), counters)
-	if active_id() == "snake": endgame = {"status": "choice", "day": campaign.current_day_index, "difficulty": deal.zodiac_boss.difficulty}
+	if active_id() == "snake" and ZodiacCatalog.DRAGON_ENABLED: endgame = {"status": "choice", "day": campaign.current_day_index, "difficulty": deal.zodiac_boss.difficulty}
 	changed.emit()
 
 func complete_scene() -> bool:

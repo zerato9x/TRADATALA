@@ -60,12 +60,12 @@ func check_layout(bench: ShoeShinePanel) -> void:
 	check(not service.intersects(speech), "speech and workbench stay separate")
 	check(scene.get_global_rect().encloses(service), "entire workbench fits the viewport")
 	check(service.encloses(bench.get_global_rect()), "workbench stays in its service frame")
+	for button in [bench._rank_button, bench._suit_button]:
+		check(bench.get_global_rect().encloses(button.get_global_rect()), "shared pair tool fits the bench")
+		check(button.get_combined_minimum_size().x <= button.size.x, "localized pair price is readable")
 	for slot in bench._slots:
-		for key in ["rank", "suit"]:
-			var button: Button = slot[key]
-			check(slot.mat.get_global_rect().encloses(button.get_global_rect()), "reroll tool fits its physical mat")
-			check(button.get_combined_minimum_size().x <= button.size.x, "localized reroll price is readable")
 		check(slot.mat.get_global_rect().encloses(slot.properties.get_global_rect()), "property line fits its physical mat")
+		check(slot.mat.get_global_rect().encloses(slot.receipt.get_global_rect()), "independent receipt fits its physical mat")
 
 func _run() -> void:
 	var locale_name := "vi" if OS.get_cmdline_user_args().has("--vietnamese") else "en"
@@ -80,6 +80,17 @@ func _run() -> void:
 	scene.drink_manager.progress.save_path = ""
 	scene.run_seed_input = "SHOE-BENCH-RENDER"
 	await scene._on_play_pressed()
+	await pause(0.8)
+	scene.event_table.unfocus_npc()
+	await pause(0.5)
+	var monday_layer: Dictionary = scene.event_table._npc_layers.danh_giay
+	check(not monday_layer.overlay.visible and not monday_layer.sprite.visible and not monday_layer.button.visible, "Monday has no Shoeshiner artwork or selection target")
+	scene.event_table.focus_npc("danh_giay")
+	check(scene.event_table.focused_npc_id.is_empty(), "Monday refuses a programmatic Shoeshiner focus")
+	check(not scene.campaign.shoe_shine.is_active(), "Monday service authority is closed")
+	await capture("shoe-monday-" + locale_name + ("-large" if large else ""))
+	scene.campaign.current_day_index = 1
+	scene.campaign._begin_current_day()
 	await pause(0.8)
 	scene.campaign.wallet.reset(1_000_000)
 	scene._on_event_wallet_committed()
@@ -101,21 +112,26 @@ func _run() -> void:
 	cards[1].fortune = -4
 	cards[1].negative = true
 	await pick(bench, 0, cards[0])
-	check(scene.campaign.shoe_shine.selected_card_ids == [cards[0].unique_id], "one committed card is enough")
+	check(scene.campaign.shoe_shine.selected_card_ids == [cards[0].unique_id], "first card commits but work waits for the pair")
 	scene.session.flush()
 	check(scene.session.run_save.load_run().shoe.selected_card_ids == [cards[0].unique_id], "selection autosaves before any payment")
-	check(not bench._slots[0].rank.disabled, "one-card Rank tool is enabled")
-	check(bench._slots[1].choose.visible, "second card is optional")
+	check(bench._rank_button.disabled and bench._suit_button.disabled, "one card cannot unlock either paid pair tool")
+	check(bench._rank_button.tooltip_text == tr("SHOE_ERROR_PAIR"), "missing pair has a localized explanation")
+	check(bench._slots[1].choose.visible, "second commitment is required")
+	await capture("shoe-one-card-" + locale_name + ("-large" if large else ""))
+	await pick(bench, 1, cards[1])
+	check(not bench._rank_button.disabled and not bench._suit_button.disabled, "both commitments unlock pair work")
 	var previous_rank := cards[0].rank
+	var second_rank := cards[1].rank
 	var before := scene.campaign.wallet.balance_vnd
-	await click(bench._slots[0].rank)
-	check(cards[0].rank != previous_rank, "new canonical Rank appears immediately")
-	check(scene.campaign.wallet.balance_vnd == before - 5_000, "Rank tool charges exact quoted price")
+	await click(bench._rank_button)
+	check(cards[0].rank != previous_rank and cards[1].rank != second_rank, "both canonical Ranks change in one purchase")
+	check(scene.campaign.shoe_shine.last_reroll.results.size() == 2, "pair purchase records separate results")
+	check(scene.campaign.wallet.balance_vnd == before - 50_000, "Rank tool charges exact quoted price")
 	check(scene.campaign_money_hud.last_transfer.reason == "shoe_reroll_rank", "payment uses the shared money flight")
 	check(bench._slots[0].face.texture.resource_path == cards[0].texture_path(), "visible face follows committed identity")
 	await wait_work(bench)
-	check(scene.campaign.shoe_shine.rank_cost() == 10_000 and scene.campaign.shoe_shine.suit_cost() == 2_500, "Rank escalates independently")
-	await pick(bench, 1, cards[1])
+	check(scene.campaign.shoe_shine.rank_cost() == 100_000 and scene.campaign.shoe_shine.suit_cost() == 25_000, "Rank escalates independently")
 	check(scene.campaign.shoe_shine.selected_card_ids.size() == 2, "two physical slots are committed")
 	check(not bench._slots[0].choose.visible and not bench._slots[1].choose.visible, "committed cards expose no replacement action")
 	check(bench._slots[0].properties.text.contains(tr("CARD_GOLD")), "Gold remains visible")
@@ -123,18 +139,19 @@ func _run() -> void:
 	check(bench._slots[1].properties.text.contains(tr("CARD_BLACK_INK")), "Black Ink remains visible")
 	check(bench._slots[1].properties.text.contains(tr("CARD_NEGATIVE")), "Negative remains visible")
 	var previous_suit := cards[1].suit
+	var first_suit := cards[0].suit
 	before = scene.campaign.wallet.balance_vnd
-	await click(bench._slots[1].suit)
-	check(cards[1].suit != previous_suit, "Suit button changes canonical Suit")
-	check(scene.campaign.wallet.balance_vnd == before - 2_500, "Suit tool charges its own quoted price")
+	await click(bench._suit_button)
+	check(cards[1].suit != previous_suit and cards[0].suit != first_suit, "Suit button transforms both cards independently")
+	check(scene.campaign.wallet.balance_vnd == before - 25_000, "Suit tool charges its own quoted price")
 	await wait_work(bench)
-	await click(bench._slots[0].rank)
+	await click(bench._rank_button)
 	await wait_work(bench)
 	check(scene.campaign.shoe_shine.rank_rerolls == 2 and scene.campaign.shoe_shine.suit_rerolls == 1, "repeated service counts stay visible")
 	check(bench._uses.text == tr("SHOE_USES") % [2, 1], "localized counters match committed service state")
 	check_layout(bench)
 	await capture("shoe-bench-" + locale_name + ("-large" if large else ""))
-	await click(bench._slots[1].suit)
+	await click(bench._suit_button)
 	check(bench._working, "close occurs while the card work animation is still running")
 	var state := scene.campaign.shoe_shine.run_snapshot().duplicate(true)
 	var rng := scene.campaign.shoe_shine.run_rng_state()
@@ -148,12 +165,14 @@ func _run() -> void:
 	check(scene.campaign.shoe_shine.run_rng_state() == rng, "reopen does not consume RNG")
 	check(scene.campaign.wallet.balance_vnd == before, "reopen never charges again")
 	check(not bench._working, "reopen does not replay previous card work")
-	check(bench._receipt.visible, "last committed identity remains visible on reopen")
+	for i in 2:
+		check(bench._slots[i].receipt.visible, "each committed result remains visible on reopen")
+		check(bench._slots[i].receipt.get_meta("physical_card_id") == cards[i].unique_id, "receipt belongs to its own physical card")
 	check(not scene.campaign.shoe_shine.choose_card(cards[2].unique_id).ok, "reopen cannot select a third card")
 	scene.campaign.wallet.reset(0)
 	await pause()
-	check(bench._slots[0].rank.disabled and bench._slots[1].suit.disabled, "insufficient wallet disables paid tools")
-	check(bench._slots[0].rank.tooltip_text == tr("SHOE_ERROR_FUNDS"), "localized disabled reason explains the wallet")
+	check(bench._rank_button.disabled and bench._suit_button.disabled, "insufficient wallet disables paid tools")
+	check(bench._rank_button.tooltip_text == tr("SHOE_ERROR_FUNDS"), "localized disabled reason explains the wallet")
 	await click(scene.event_table.back_button)
 	await pause(0.5)
 	scene.event_manager.complete_interaction("choose_drink")

@@ -128,6 +128,12 @@ func _run() -> void:
 		check(scene.zodiac_table.shade.visible and scene.event_table.focused_npc_id.is_empty(),"native touch on the Zodiac visitor cannot select an NPC underneath")
 		scene.zodiac_table.close_conversation()
 	check(not scene.strawy.actor.get_global_rect().intersects(scene.game_layer.get_node("ActionDock").get_global_rect()), "action dock clears Strawy")
+	check(not scene.event_table._npc_layers.danh_giay.button.visible, "Monday touch roster excludes Shoeshiner")
+	# Exercise every service's pointer targets on an eligible day.
+	scene.campaign.current_day_index = 1
+	scene.campaign._begin_current_day()
+	await pause(0.7)
+	await overview()
 	for slot in [0,1,2,3]:
 		if slot > 0:
 			var phases := [CampaignManager.CampaignPhase.MORNING_EVENT,CampaignManager.CampaignPhase.NOON_EVENT,CampaignManager.CampaignPhase.AFTERNOON_EVENT]
@@ -236,7 +242,9 @@ func _run() -> void:
 	await tap(label)
 	check(scene.event_table.focused_npc_id.is_empty(), "Strawy menu blocks NPC selection")
 	scene.strawy.close()
-	scene.campaign._enter_phase(CampaignManager.CampaignPhase.STARTER_EVENT)
+	# The helper-action section uses the curated Monday opening hand.
+	scene.campaign.current_day_index = 0
+	scene.campaign._begin_current_day()
 	await pause()
 	await overview()
 	scene._on_campaign_drink_pressed(0,"choose_drink",DrinkCatalog.TRA_DA)

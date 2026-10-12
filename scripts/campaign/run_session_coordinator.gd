@@ -131,6 +131,7 @@ func resume_debug() -> bool:
 	var checkpoint := RunSave.new(BossDebugSession.SAVE_PATH)
 	var saved := checkpoint.load_run()
 	if saved.is_empty() or not bool(saved.campaign.get("debug_context", {}).get("active", false)): return false
+	if BossDebugSession.normalize(saved.campaign.debug_context.get("options", {})).is_empty(): return false
 	if not enter_debug(): return false
 	run_save = checkpoint
 	debug_options_changed.emit(saved.campaign.debug_context.options.duplicate(true))

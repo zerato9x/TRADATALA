@@ -69,7 +69,7 @@ func test_events_support_empty_multiple_and_mandatory_interactions() -> void:
 		"mandatory": false,
 	})
 	manager.register_npc(visitor)
-	var event := manager.build_event(EventManager.EventSlot.STARTER)
+	var event := manager.build_event(EventManager.EventSlot.STARTER, {"day_index": 1})
 	assert_eq(event.participants.size(), 4)
 	assert_eq(event.interactions.size(), 4)
 	assert_false(event.can_exit)

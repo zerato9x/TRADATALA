@@ -125,9 +125,8 @@ func _record_transformations(changes: Array[Dictionary]) -> void:
 	activities.append({"action": "transformation", "changes": changes.duplicate(true)})
 
 func _record_identity_transformation(receipt: Dictionary) -> void:
-	activities.append({"action": "identity_transformation", "card_id": receipt.card_id,
-		"kind": receipt.kind, "cost_vnd": receipt.cost_vnd,
-		"before": receipt.before.duplicate(true), "after": receipt.after.duplicate(true)})
+	activities.append({"action": "identity_transformation", "kind": receipt.kind,
+		"cost_vnd": receipt.cost_vnd, "changes": receipt.results.duplicate(true)})
 
 func _record_drink(id: String, period: String, price: int) -> void:
 	onboarding.mark("drink")
@@ -208,7 +207,7 @@ func complete_deal(extra_result: Dictionary = {}) -> bool:
 	zodiac.finish_daytime_deal(String(DEAL_PHASE_TO_PERIOD[current_phase]))
 	if current_phase == CampaignPhase.DRAGON_DEAL: zodiac.finish_dragon()
 	deal_finished.emit(result)
-	if current_phase == CampaignPhase.EVENING_DEAL and zodiac.endgame.get("status", "") == "choice":
+	if ZodiacCatalog.DRAGON_ENABLED and current_phase == CampaignPhase.EVENING_DEAL and zodiac.endgame.get("status", "") == "choice":
 		_set_phase(CampaignPhase.ZODIAC_ENDGAME_CHOICE)
 		zodiac_endgame_choice_requested.emit()
 	else:
@@ -251,6 +250,7 @@ func _begin_current_day() -> void:
 
 
 func _enter_phase(phase: int) -> void:
+	if phase == CampaignPhase.DRAGON_DEAL and not ZodiacCatalog.DRAGON_ENABLED: phase = CampaignPhase.DAY_END
 	_set_phase(phase)
 	if EVENT_PHASE_TO_SLOT.has(phase):
 		var slot := int(EVENT_PHASE_TO_SLOT[phase])
@@ -383,12 +383,25 @@ func _append_endless_day() -> void:
 
 
 func choose_zodiac_endgame(face_dragon: bool) -> bool:
+	if face_dragon and not ZodiacCatalog.DRAGON_ENABLED: return false
 	if current_phase != CampaignPhase.ZODIAC_ENDGAME_CHOICE or zodiac.endgame.get("status", "") != "choice" or campaign_complete or run_failed: return false
 	zodiac.endgame.status = "active" if face_dragon else "continued"
 	# Sunday and collection retain the existing seven-day debt/endless progression.
 	_enter_phase(CampaignPhase.DRAGON_DEAL if face_dragon else CampaignPhase.DAY_END)
 	zodiac.changed.emit()
 	return true
+
+
+func skip_disabled_dragon() -> void:
+	if ZodiacCatalog.DRAGON_ENABLED or current_phase not in [CampaignPhase.ZODIAC_ENDGAME_CHOICE, CampaignPhase.DRAGON_DEAL]: return
+	# Old checkpoints continue to the same day's collection, retaining their
+	# wallet and physical cards. No unfinished encounter can grant an ending.
+	zodiac.endgame["status"] = "continued"
+	zodiac.endgame["dragon_deferred"] = true
+	if zodiac.deal != null:
+		if zodiac.deal.zodiac_boss.id == "dragon": zodiac.deal.zodiac_boss.configure()
+		zodiac.deal.state = DealState.STATE_DEAL_OVER
+	_enter_phase(CampaignPhase.DAY_END)
 
 # Stable fields of the existing V3 run envelope. Change this schema explicitly.
 const RUN_SAVE_FIELDS_V3 := ["debug_context", "difficulty", "run_seed", "endless", "_base_day_count", "current_day_index", "current_phase", "campaign_complete", "run_failed", "campaign_days", "active_deal_wallet_before_vnd", "deal_cursor", "day_cursor", "deal_reports", "day_reports", "collection_report", "activities", "day_activity_cursor"]
@@ -402,6 +415,7 @@ func restore_run_snapshot(data: Dictionary) -> void:
 
 ## Only detached, in-memory progression providers can receive a debug fixture.
 func prepare_debug_run(options: Dictionary, day_index: int, phase: int) -> bool:
+	if not ZodiacCatalog.boss_available(String(options.get("boss", ""))) or (phase == CampaignPhase.DRAGON_DEAL and not ZodiacCatalog.DRAGON_ENABLED): return false
 	if drink_manager.progress == null or not drink_manager.progress.save_path.is_empty() or not zodiac.progress.path.is_empty() or not difficulty_progress.path.is_empty(): return false
 	debug_context = {"active": true, "options": options.duplicate(true), "finished": false}
 	run_seed = options.seed

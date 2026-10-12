@@ -83,6 +83,8 @@ func _run() -> void:
 			scene.campaign.lottery.set_seed_value(seed_value)
 			break
 	await scene._on_play_pressed()
+	scene.campaign.current_day_index = 1
+	scene.campaign._begin_current_day()
 	scene.campaign.wallet.reset(2_000_000)
 	scene.event_services.wallet_committed.emit()
 	await create_timer(0.6).timeout
@@ -92,10 +94,11 @@ func _run() -> void:
 	check(bench != null, "identity workbench replaces placeholder")
 	var cards := scene.campaign.gieo_que.persistent_deck
 	bench._choose_card(cards[0].unique_id)
-	check(scene.campaign.shoe_shine.selected_card_ids.size() == 1, "player commits one physical card")
+	bench._choose_card(cards[1].unique_id)
+	check(scene.campaign.shoe_shine.selected_card_ids.size() == 2, "player commits a physical pair")
 	var before_work := scene.campaign.wallet.balance_vnd
 	var rank_quote := scene.campaign.shoe_shine.rank_cost()
-	await click(bench._slots[0].rank)
+	await click(bench._rank_button)
 	await create_timer(0.6).timeout
 	check(scene.campaign.wallet.balance_vnd == before_work - rank_quote, "identity work charges authoritative wallet")
 	check(bench._slots[0].face.texture.resource_path == cards[0].texture_path(), "result shows actual changed identity")

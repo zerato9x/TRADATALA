@@ -85,6 +85,7 @@ var table_state: StringName = TABLE_STATE_DEAL
 var focused_npc_id: String = ""
 var deck_focused: bool = false
 var current_event_slot: int = -1
+var _participant_ids: Array[String] = []
 var day_label: Label
 var period_label: Label
 var money_label: Label
@@ -272,8 +273,11 @@ func configure_deal_nodes(nodes: Array[Control]) -> void:
 		}
 
 
-func enter_event(event_slot: int, day_text: String, period_text: String, money_text: String, deck_count: int = 0) -> void:
-	var already_showing := table_state == TABLE_STATE_EVENT and visible and current_event_slot == event_slot
+func enter_event(event_slot: int, day_text: String, period_text: String, money_text: String, deck_count: int = 0, participants: Array[NPCDefinition] = []) -> void:
+	var ids: Array[String] = []
+	for npc in participants: ids.append(npc.id)
+	var already_showing := table_state == TABLE_STATE_EVENT and visible and current_event_slot == event_slot and ids == _participant_ids
+	_participant_ids = ids
 	current_event_slot = event_slot
 	day_label.text = day_text.to_upper()
 	period_label.text = period_text.to_upper()
@@ -372,6 +376,7 @@ func refresh_localized_ui() -> void:
 
 func focus_npc(npc_id: String) -> void:
 	cancel_pointer()
+	if npc_id == NPC_DANH_GIAY and not _participant_ids.has(npc_id): return
 	if DemoBuild.enabled() and npc_id not in [NPC_TRA_DA, NPC_DOI_NO]:
 		return
 	if table_state != TABLE_STATE_EVENT or not _npc_layers.has(npc_id) or focused_npc_id == npc_id:
@@ -803,6 +808,7 @@ func _show_roster(event_slot: int) -> void:
 	var roster: Array = [NPC_TRA_DA] if DemoBuild.enabled() else EVENT_ROSTERS.get(event_slot, []).duplicate()
 	if _zodiac_present and event_slot in [EventManager.EventSlot.NOON, EventManager.EventSlot.AFTERNOON]: roster.append(NPC_ZODIAC)
 	for npc_id in roster:
+		if npc_id == NPC_DANH_GIAY and not _participant_ids.has(npc_id): continue
 		if DemoBuild.enabled() and npc_id not in [NPC_TRA_DA, NPC_DOI_NO]:
 			continue
 		var layer: Dictionary = _npc_layers[npc_id]

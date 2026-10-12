@@ -125,6 +125,22 @@ func test_post_snake_choice_save_restore_continuation_and_endless_debt() -> void
 	deal.zodiac_boss.configure("snake", 1, 17)
 	deal.state = DealState.STATE_DEAL_OVER
 	assert_true(campaign.complete_deal())
+	if not ZodiacCatalog.DRAGON_ENABLED:
+		assert_eq(campaign.current_phase, CampaignManager.CampaignPhase.MONEY_REQUIREMENT_CHECK)
+		assert_true(campaign.zodiac.endgame.is_empty())
+		assert_false(campaign.choose_zodiac_endgame(true))
+		var owner: CampaignManager = _disk_copy(deal, campaign)[1]
+		assert_eq(owner.current_phase, CampaignManager.CampaignPhase.MONEY_REQUIREMENT_CHECK)
+		campaign.wallet.reset(50_000_000)
+		assert_true(campaign.collect_day_debt())
+		assert_eq(campaign.current_day_index, 6)
+		assert_eq(campaign.zodiac.active_id(), "")
+		campaign._finish_day()
+		assert_true(campaign.collect_day_debt())
+		assert_true(campaign.continue_endless())
+		assert_eq(campaign.current_day_index, 7)
+		assert_gt(campaign.daily_requirement(), 16_000_000)
+		return
 	assert_eq(campaign.current_phase, CampaignManager.CampaignPhase.ZODIAC_ENDGAME_CHOICE)
 	var restored: CampaignManager = _disk_copy(deal, campaign)[1]
 	assert_eq(restored.current_phase, CampaignManager.CampaignPhase.ZODIAC_ENDGAME_CHOICE)
@@ -145,6 +161,32 @@ func test_post_snake_choice_save_restore_continuation_and_endless_debt() -> void
 	assert_eq(campaign.current_day_index, 7)
 	assert_gt(campaign.daily_requirement(), 16_000_000)
 	assert_true(campaign.zodiac.active_id() in ["rooster", "cat"])
+
+func test_disabled_dragon_checkpoints_continue_to_collection_without_an_ending() -> void:
+	assert_false(ZodiacCatalog.DRAGON_ENABLED)
+	for phase in [CampaignManager.CampaignPhase.ZODIAC_ENDGAME_CHOICE, CampaignManager.CampaignPhase.DRAGON_DEAL]:
+		var deal := _deal("snake" if phase == CampaignManager.CampaignPhase.ZODIAC_ENDGAME_CHOICE else "dragon", 2)
+		var campaign := _campaign(deal)
+		campaign.current_day_index = 5
+		campaign.current_phase = phase
+		campaign.zodiac.endgame = {"status": "choice" if phase == CampaignManager.CampaignPhase.ZODIAC_ENDGAME_CHOICE else "active", "day": 5, "difficulty": 2}
+		var codec := RunSave.new()
+		var saved := codec.capture(campaign, deal)
+		var copy := DealState.new()
+		var owner := CampaignManager.new(copy.wallet)
+		owner.zodiac.bind(owner, copy)
+		assert_true(codec.restore(saved, owner, copy))
+		assert_eq(owner.current_phase, CampaignManager.CampaignPhase.MONEY_REQUIREMENT_CHECK)
+		assert_eq(owner.current_day_index, 5)
+		assert_eq(owner.zodiac.endgame.status, "continued")
+		assert_true(owner.zodiac.endgame.dragon_deferred)
+		assert_eq(copy.wallet.balance_vnd, deal.wallet.balance_vnd)
+		assert_eq(copy.hand.map(func(card): return card.unique_id), deal.hand.map(func(card): return card.unique_id))
+		assert_eq(copy.state, DealState.STATE_DEAL_OVER)
+		assert_false(copy.zodiac_boss.id == "dragon")
+		assert_false(owner.collection_report.has("ending"))
+		assert_false(owner.choose_zodiac_endgame(true))
+		assert_true(copy.physical_card_accounting_is_valid())
 
 func test_schedule_all_pairs_snake_only_and_legacy_unfinished_day_preserved() -> void:
 	for seed in 30:

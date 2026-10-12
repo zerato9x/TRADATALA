@@ -95,6 +95,10 @@ try {
     Invoke-Check 'boss-money-presence' 'res://tests/boss_money_presence_smoke.gd'
     Invoke-Check 'drink-presentation' 'res://tests/drink_presentation_smoke.gd'
     Invoke-Check 'boss-dog-monkey' 'res://tests/dog_monkey_presentation_smoke.gd'
+    Invoke-Check 'boss-pig-monkey' 'res://tests/pig_monkey_overhaul_smoke.gd'
+    Invoke-Check 'boss-horse-goat' 'res://tests/horse_goat_overhaul_smoke.gd'
+    Invoke-Check 'boss-rat-tiger' 'res://tests/rat_tiger_overhaul_smoke.gd'
+    Invoke-Check 'boss-snake' 'res://tests/snake_overhaul_smoke.gd'
     Invoke-Check 'music-transport' 'res://tests/music_transport_smoke.gd'
     Invoke-Check 'music-write' 'res://tests/music_resume_scene_smoke.gd'
     Invoke-Check 'music-read' 'res://tests/music_resume_scene_smoke.gd' @('--resume-only')

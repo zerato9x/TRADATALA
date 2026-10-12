@@ -85,6 +85,7 @@ func restore(data: Dictionary, campaign: CampaignManager, deal: DealState) -> bo
 		event.update_can_exit()
 		campaign.event_manager.current_event = event
 	campaign.zodiac.finish_run_restore()
+	campaign.skip_disabled_dragon()
 	return true
 
 func valid_snapshot(data: Dictionary) -> bool:

@@ -79,7 +79,7 @@ func refresh() -> void:
 	var theme_id := controller.current_theme_id
 	cover.texture = load("res://assets/audio/covers/%s.png" % theme_id) as Texture2D
 	track_title.text = ReactiveMusicController.display_title_for_theme(theme_id)
-	variant.text = "%s  ·  %s" % [String(theme_id).to_upper(), tr("MUSIC_PLAYER_SIDE") % controller.current_variant]
+	variant.text = "%s  ·  %s" % [controller.theme_label(theme_id), tr("MUSIC_PLAYER_SIDE") % controller.current_variant]
 	if not playing_tracks:
 		var authored_set: String = conductor.active_set_id if conductor.active else settings.authored_music_set
 		var status := "MUSIC_PLAYER_DJ_ACTIVE" if controller.dj_mode else "MUSIC_PLAYER_DJ_SELECT"
@@ -89,7 +89,7 @@ func refresh() -> void:
 		if next_request.is_empty():
 			up_next.text = tr("MUSIC_PLAYER_UP_NEXT") + ": -"
 		else:
-			up_next.text = "%s: %s · %s" % [tr("MUSIC_PLAYER_UP_NEXT"), String(next_request["theme_id"]).to_upper(),
+			up_next.text = "%s: %s · %s" % [tr("MUSIC_PLAYER_UP_NEXT"), controller.theme_label(next_request["theme_id"]),
 				tr("MUSIC_PLAYER_SIDE") % int(next_request["variant"])]
 	play_pause.text = tr("MUSIC_PLAYER_PLAY") if controller.music_paused else tr("MUSIC_PLAYER_PAUSE")
 	shuffle.text = tr("MUSIC_PLAYER_SHUFFLE_ON") if controller.shuffle_enabled else tr("MUSIC_PLAYER_SHUFFLE_OFF")

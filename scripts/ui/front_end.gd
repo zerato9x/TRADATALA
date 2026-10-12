@@ -677,6 +677,7 @@ func _choose_file(slot: int) -> void:
 
 func show_boss_lab() -> void:
 	if not BossDebugSession.available(): return
+	if not ZodiacCatalog.boss_available(String(boss_options.get("boss", ""))): boss_options = BossDebugSession.normalize({})
 	_clear(boss_lab_body)
 	boss_lab_body.add_child(_label(words("DEBUG SANDBOX · Test victories and unlocks stay separate from your save files. F9 opens this lab.", "THỬ NGHIỆM · Kết quả và vật phẩm thử không ghi vào ô lưu của bạn. F9 mở màn hình này."), 16, GOLD))
 	var panel := _card(boss_lab_body)
@@ -686,7 +687,8 @@ func show_boss_lab() -> void:
 	grid.add_theme_constant_override("v_separation", 8)
 	panel.add_child(grid)
 	var bosses: Array = []
-	for id: String in ZodiacBossRule.RULES: bosses.append([id, ZodiacCatalog.display_name(id), ZodiacCatalog.display_name(id)])
+	for id: String in ZodiacBossRule.RULES:
+		if ZodiacCatalog.boss_available(id): bosses.append([id, ZodiacCatalog.display_name(id), ZodiacCatalog.display_name(id)])
 	_lab_choice(grid, "Boss", words("BOSS", "CON GIÁP"), bosses, boss_options.boss, func(value: String): boss_options.boss = value; show_boss_lab())
 	_lab_choice(grid, "BossDifficulty", words("DIFFICULTY", "ĐỘ KHÓ"), [["1", "PLEASED", "HÀI LÒNG"], ["2", "NORMAL", "BÌNH THƯỜNG"], ["3", "UNPLEASED", "KHÔNG HÀI LÒNG"]], str(boss_options.difficulty), func(value: String): boss_options.difficulty = int(value); _refresh_boss_rule())
 	_lab_choice(grid, "BossPhase", words("STARTING PHASE", "HIỆP BẮT ĐẦU"), [["1", "Phase 1", "Hiệp 1"], ["2", "Phase 2", "Hiệp 2"]], str(boss_options.phase), func(value: String): boss_options.phase = int(value))

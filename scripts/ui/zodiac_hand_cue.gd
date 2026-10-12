@@ -35,4 +35,5 @@ func sync(hint: Dictionary) -> void:
 		surface.material = ink
 	(surface.material as ShaderMaterial).set_shader_parameter("strength", hint.strength)
 	caption.text = hint.caption
+	caption.set_meta("zodiac_id", kind)
 	caption.add_theme_color_override("font_color", preload("res://scripts/ui/zodiac_presentation.gd").accent(kind))

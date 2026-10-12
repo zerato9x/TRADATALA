@@ -12,7 +12,8 @@ var _slots: Array[Dictionary] = []
 var _title: Label
 var _count: Label
 var _uses: Label
-var _receipt: HBoxContainer
+var _rank_button: Button
+var _suit_button: Button
 var _status: Label
 var _working := false
 var _refresh_pending := false
@@ -42,15 +43,11 @@ func _build() -> void:
 	_count.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_uses = _label(self, "", Vector2(0, 34), Vector2(700, 24), 15, PresentationTheme.MUTED)
 	for index in 2: _build_slot(index)
-	_receipt = HBoxContainer.new()
-	_receipt.name = "IdentityReceipt"
-	_receipt.position = Vector2(12, 359)
-	_receipt.size = Vector2(676, 36)
-	_receipt.alignment = BoxContainer.ALIGNMENT_CENTER
-	_receipt.add_theme_constant_override("separation", 12)
-	_receipt.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(_receipt)
-	_status = _label(self, "", Vector2(12, 359), Vector2(676, 36), 17, PresentationTheme.TEA)
+	_rank_button = _button(self, "TransformPairRank", Vector2(0, 333), Vector2(344, 64), "gold")
+	_rank_button.pressed.connect(_reroll.bind("rank"))
+	_suit_button = _button(self, "TransformPairSuit", Vector2(356, 333), Vector2(344, 64), "tea")
+	_suit_button.pressed.connect(_reroll.bind("suit"))
+	_status = _label(self, "", Vector2(0, 34), Vector2(700, 24), 15, PresentationTheme.TEA)
 	_status.name = "BenchStatus"
 	_status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 
@@ -58,7 +55,7 @@ func _build_slot(index: int) -> void:
 	var mat := Panel.new()
 	mat.name = "CardMat_%d" % index
 	mat.position = Vector2(index * 356, 66)
-	mat.size = Vector2(344, 282)
+	mat.size = Vector2(344, 258)
 	mat.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	mat.add_theme_stylebox_override("panel", PresentationTheme.panel_style(Color("#24322fe6"), Color("#a18a59"), 1, 10, 0))
 	add_child(mat)
@@ -102,13 +99,21 @@ func _build_slot(index: int) -> void:
 	badge.alignment = BoxContainer.ALIGNMENT_CENTER
 	badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	mat.add_child(badge)
-	var rank := _button(mat, "RerollRank_%d" % index, Vector2(152, 40), Vector2(177, 68), "gold")
-	rank.pressed.connect(_reroll.bind(index, "rank"))
-	var suit := _button(mat, "RerollSuit_%d" % index, Vector2(152, 120), Vector2(177, 68), "tea")
-	suit.pressed.connect(_reroll.bind(index, "suit"))
+	var result_title := _label(mat, "", Vector2(145, 62), Vector2(190, 24), 13, PresentationTheme.TEA)
+	result_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	var receipt := HBoxContainer.new()
+	receipt.name = "IdentityReceipt_%d" % index
+	receipt.position = Vector2(148, 94)
+	receipt.size = Vector2(182, 44)
+	receipt.alignment = BoxContainer.ALIGNMENT_CENTER
+	receipt.add_theme_constant_override("separation", 8)
+	receipt.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	mat.add_child(receipt)
+	var independent := _label(mat, "", Vector2(145, 150), Vector2(190, 25), 13, PresentationTheme.MUTED)
+	independent.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	var note := _label(mat, tr("SHOE_PERMANENT"), Vector2(145, 201), Vector2(190, 28), 13, PresentationTheme.MUTED)
 	note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	var properties := _label(mat, "", Vector2(14, 237), Vector2(315, 31), 14, PresentationTheme.INK)
+	var properties := _label(mat, "", Vector2(14, 235), Vector2(315, 20), 13, PresentationTheme.INK)
 	properties.name = "CardProperties"
 	properties.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	var choose := _button(mat, "ChooseCard_%d" % index, Vector2(16, 70), Vector2(312, 94), "neutral")
@@ -117,7 +122,7 @@ func _build_slot(index: int) -> void:
 	empty_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	empty_note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_slots.append({"mat": mat, "caption": caption, "art": art, "face": face, "wipe": wipe, "shadow": shadow,
-		"badge": badge, "rank": rank, "suit": suit, "properties": properties,
+		"badge": badge, "receipt": receipt, "result_title": result_title, "independent": independent, "properties": properties,
 		"choose": choose, "empty_note": empty_note, "stamp": stamp, "note": note})
 
 func _label(parent: Node, text: String, point: Vector2, dimensions: Vector2, pixels: int, color: Color) -> Label:
@@ -164,21 +169,15 @@ func _refresh() -> void:
 		var card := shoe.card_for_id(id) if not id.is_empty() else null
 		var committed := not id.is_empty()
 		slot.mat.set_meta("physical_card_id", id)
-		for key in ["art", "badge", "shadow", "properties", "rank", "suit", "stamp", "note"]:
+		for key in ["art", "badge", "shadow", "properties", "stamp", "note", "independent"]:
 			(slot[key] as Control).visible = committed
 		slot.choose.visible = not committed
 		slot.empty_note.visible = not committed
 		slot.choose.text = tr("SHOE_CHOOSE_CARD") if index == 0 else tr("SHOE_ADD_CARD")
 		slot.choose.tooltip_text = tr("SHOE_PICK_TERMS")
 		slot.choose.disabled = _working or index > shoe.selected_card_ids.size() or shoe.eligible_cards().is_empty()
-		slot.empty_note.text = tr("SHOE_PICK_TERMS") if index == 0 else tr("SHOE_SECOND_OPTIONAL")
-		for kind in ["rank", "suit"]:
-			var button: Button = slot[kind]
-			var cost := shoe.rank_cost() if kind == "rank" else shoe.suit_cost()
-			button.text = tr("SHOE_REROLL_" + kind.to_upper()) + "\n" + VndWallet.format_vnd(-cost)
-			button.disabled = _working or not shoe.can_reroll(id, kind)
-			var error := shoe.reroll_error(id, kind)
-			button.tooltip_text = tr(error) if not error.is_empty() else tr("SHOE_PRICE_RULE")
+		slot.empty_note.text = tr("SHOE_PICK_TERMS") if index == 0 else tr("SHOE_SECOND_REQUIRED")
+		slot.independent.text = tr("SHOE_INDEPENDENT")
 		if card == null:
 			if committed: slot.properties.text = tr("SHOE_ERROR_MISSING")
 			continue
@@ -196,27 +195,42 @@ func _refresh() -> void:
 		if card.shiny: labels.append(tr("CARD_SHINY"))
 		slot.properties.text = " · ".join(labels)
 		slot.properties.tooltip_text = card.inspection_text()
-	_refresh_receipt()
+	for kind in ["rank", "suit"]:
+		var button := _rank_button if kind == "rank" else _suit_button
+		var cost := shoe.rank_cost() if kind == "rank" else shoe.suit_cost()
+		button.text = tr("SHOE_REROLL_" + kind.to_upper()) + "\n" + VndWallet.format_vnd(-cost)
+		button.disabled = _working or not shoe.can_reroll(kind)
+		var error := shoe.reroll_error(kind)
+		button.tooltip_text = tr(error) if not error.is_empty() else tr("SHOE_PRICE_RULE")
+	_refresh_receipts()
 	_status.visible = shoe.last_reroll.is_empty()
-	if _status.visible: _status.text = tr("SHOE_READY") if not shoe.selected_card_ids.is_empty() else tr("SHOE_SELECT_FIRST")
+	_uses.visible = not _status.visible
+	if _status.visible:
+		_status.text = tr("SHOE_READY") if shoe.selected_card_ids.size() == ShoeShineConfig.MAX_SELECTED_CARDS else tr("SHOE_SELECT_FIRST" if shoe.selected_card_ids.is_empty() else "SHOE_ERROR_PAIR")
 
-func _refresh_receipt() -> void:
-	for child in _receipt.get_children():
-		_receipt.remove_child(child)
-		child.queue_free()
-	_receipt.visible = not shoe.last_reroll.is_empty()
-	if not _receipt.visible: return
-	var result := shoe.last_reroll
-	_receipt.add_child(CardSymbolArt.create_card_badge(CardData.from_permanent_snapshot(result.before), 25))
-	var arrow := Label.new()
-	arrow.text = "→"
-	PresentationTheme.style_text(arrow, &"body", 25)
-	_receipt.add_child(arrow)
-	_receipt.add_child(CardSymbolArt.create_card_badge(CardData.from_permanent_snapshot(result.after), 25))
-	var paid := Label.new()
-	paid.text = VndWallet.format_vnd(-int(result.cost_vnd))
-	PresentationTheme.style_text(paid, &"cost", 17)
-	_receipt.add_child(paid)
+func _refresh_receipts() -> void:
+	# Each mat shows its own outcome, never the other card's receipt.
+	var results: Array = shoe.last_reroll.get("results", [])
+	if shoe.last_reroll.has("card_id"): results = [shoe.last_reroll] # Older single-card receipts.
+	for slot in _slots:
+		var receipt: HBoxContainer = slot.receipt
+		for child in receipt.get_children():
+			receipt.remove_child(child)
+			child.queue_free()
+		var result: Dictionary = {}
+		for candidate in results:
+			if candidate.card_id == slot.mat.get_meta("physical_card_id"): result = candidate
+		receipt.visible = not result.is_empty()
+		slot.result_title.visible = receipt.visible
+		if not receipt.visible: continue
+		slot.result_title.text = tr("SHOE_RESULT_" + String(shoe.last_reroll.kind).to_upper())
+		receipt.set_meta("physical_card_id", result.card_id)
+		receipt.add_child(CardSymbolArt.create_card_badge(CardData.from_permanent_snapshot(result.before), 25))
+		var arrow := Label.new()
+		arrow.text = "→"
+		PresentationTheme.style_text(arrow, &"body", 25)
+		receipt.add_child(arrow)
+		receipt.add_child(CardSymbolArt.create_card_badge(CardData.from_permanent_snapshot(result.after), 25))
 
 func _pick() -> void:
 	if _working or shoe.eligible_cards().is_empty(): return
@@ -228,45 +242,45 @@ func _choose_card(id: String) -> void:
 	if not result.ok:
 		_status.text = tr(result.error)
 		_status.show()
+		_uses.hide()
 		return
 	feedback_requested.emit(&"transition")
-	dialogue_requested.emit(tr("SHOE_CARD_TAKEN"))
+	dialogue_requested.emit(tr("SHOE_READY" if shoe.selected_card_ids.size() == ShoeShineConfig.MAX_SELECTED_CARDS else "SHOE_CARD_TAKEN"))
 	# A chosen slot is immediately permanent for the visit; no swap/reset UI.
 
-func _reroll(index: int, kind: String) -> void:
-	if _working or index >= shoe.selected_card_ids.size(): return
-	var id := shoe.selected_card_ids[index]
+func _reroll(kind: String) -> void:
+	if _working: return
 	_working = true
-	var result := shoe.reroll_rank(id) if kind == "rank" else shoe.reroll_suit(id)
+	var result := shoe.reroll_rank() if kind == "rank" else shoe.reroll_suit()
 	_refresh()
 	if not result.ok:
 		_working = false
 		_refresh()
 		_status.text = tr(result.error)
 		_status.show()
+		_uses.hide()
 		feedback_requested.emit(&"reject")
 		return
 	wallet_changed.emit()
 	feedback_requested.emit(&"reel_stop")
 	dialogue_requested.emit(tr("SHOE_WALLET_EMPTY") if shoe.wallet.balance_vnd < mini(shoe.rank_cost(), shoe.suit_cost()) else tr("SHOE_ONE_MORE"))
-	_animate_work(index)
+	_animate_work()
 
-func _animate_work(index: int) -> void:
-	var slot: Dictionary = _slots[index]
-	var art: Control = slot.art
-	var wipe: ColorRect = slot.wipe
+func _animate_work() -> void:
 	var origin := Vector2(20, 34)
-	wipe.position.y = 0
-	wipe.show()
 	_work_tween = create_tween()
 	_work_tween.set_parallel(true)
-	_work_tween.tween_property(art, "position", origin + Vector2(-9, -8), 0.10).set_trans(Tween.TRANS_QUAD)
-	_work_tween.tween_property(art, "rotation", -0.07, 0.10)
-	_work_tween.chain().tween_property(wipe, "position:y", 148.0, 0.20)
-	_work_tween.parallel().tween_property(art, "rotation", 0.045, 0.10)
-	_work_tween.chain().tween_callback(wipe.hide)
-	_work_tween.chain().tween_property(art, "position", origin, 0.16).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	_work_tween.parallel().tween_property(art, "rotation", 0.0, 0.16)
+	for slot in _slots:
+		var art: Control = slot.art
+		var wipe: ColorRect = slot.wipe
+		wipe.position.y = 0
+		wipe.show()
+		_work_tween.tween_property(art, "position", origin + Vector2(-9, -8), 0.10).set_trans(Tween.TRANS_QUAD)
+		_work_tween.tween_property(art, "rotation", -0.07, 0.10)
+		_work_tween.tween_property(wipe, "position:y", 148.0, 0.20).set_delay(0.10)
+		_work_tween.tween_callback(wipe.hide).set_delay(0.30)
+		_work_tween.tween_property(art, "position", origin, 0.16).set_delay(0.30).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		_work_tween.tween_property(art, "rotation", 0.0, 0.16).set_delay(0.30)
 	_work_tween.chain().tween_callback(func():
 		_working = false
 		_refresh()

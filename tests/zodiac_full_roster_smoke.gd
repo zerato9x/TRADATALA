@@ -155,34 +155,20 @@ func _run() -> void:
 	scene._show_banner("ZODIAC ACTION")
 	await _frames(18)
 	_check(not hud.panel.get_global_rect().intersects(scene.banner_panel.get_global_rect()), "action banner clears authoritative boss state")
-	# Real post-Snake completion shows choice; save/resume returns to the choice.
+	# Dragon is deferred. Real Snake completion and resume go to daily collection.
 	_fixture("snake", 1, 1)
 	scene.campaign.current_day_index = 5
 	scene.campaign.zodiac.begin_day(5, 1)
 	scene.deal.state = DealState.STATE_DEAL_OVER
 	scene.campaign.complete_deal()
 	await _frames()
-	_check(scene.modal_mode == "zodiac_endgame" and scene.modal_overlay.visible, "post-Snake choice modal visible")
-	_check(scene.modal_primary.text == "ĐỐI MẶT THÌN", "Dragon choice localized")
-	await _capture("post_snake_choice_vi")
+	_check(scene.campaign.current_phase == CampaignManager.CampaignPhase.MONEY_REQUIREMENT_CHECK, "post-Snake completion enters collection")
+	_check(scene.modal_mode != "zodiac_endgame", "deferred Dragon never offers an encounter")
+	await _capture("post_snake_collection_vi")
 	var saved := scene.session.run_save.capture(scene.campaign, scene.deal)
-	_check(scene.session.resume(saved), "choice save resumes")
-	_check(scene.modal_mode == "zodiac_endgame", "resumed choice has same actions")
-	scene.session.restoring = true
-	await _click(scene.modal_primary)
-	await _frames(45)
-	_check(scene.campaign.current_phase == CampaignManager.CampaignPhase.DRAGON_DEAL, "Dragon pointer choice starts encounter")
-	_check(scene.deal.zodiac_boss.id == "dragon", "Dragon configured through real campaign service")
-	_check(scene.zodiac_boss_hud.visible, "Dragon rule HUD appears after choice")
-	await _capture("dragon_started_vi")
-	# Continuing instead routes through debt collection and retains seven-day flow.
-	scene.modal_overlay.hide()
-	scene.campaign.zodiac.endgame.status = "choice"
-	scene.campaign.current_phase = CampaignManager.CampaignPhase.ZODIAC_ENDGAME_CHOICE
-	scene._show_zodiac_endgame_choice()
-	await _frames()
-	await _click(scene.modal_secondary)
-	_check(scene.campaign.current_phase == CampaignManager.CampaignPhase.MONEY_REQUIREMENT_CHECK, "continue choice enters ordinary collection")
+	_check(scene.session.resume(saved), "collection save resumes")
+	_check(scene.campaign.current_phase == CampaignManager.CampaignPhase.MONEY_REQUIREMENT_CHECK, "resumed Snake completion retains collection")
+	_check(not scene.campaign.choose_zodiac_endgame(true), "deferred Dragon start is rejected")
 	_check(scene.deal.physical_card_accounting_is_valid(), "endgame hand remains physically valid")
 	for suffix in ["", ".bak", ".tmp"]: DirAccess.remove_absolute(scene.session.run_save.path + suffix)
 	scene.queue_free()

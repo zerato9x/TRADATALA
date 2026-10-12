@@ -41,6 +41,26 @@ var discard_count_label: Label
 var discard_texture: TextureRect
 var discard_history_row: HBoxContainer
 var discard_history_title: Label
+var staged_hand: Array[CardData] = []
+var hand_staged := false
+
+func stage_hand(cards: Array[CardData]) -> void:
+	staged_hand.assign(cards)
+	hand_staged = true
+	sync_hand(cards)
+	set_hand_interaction_enabled(false)
+	sync_piles()
+
+func finish_staged_hand() -> void:
+	hand_staged = false
+	staged_hand.clear()
+	if not _active: return
+	sync_hand([])
+	set_hand_interaction_enabled(not interactions.locked)
+	sync_piles()
+
+func displayed_hand() -> Array[CardData]:
+	return staged_hand if hand_staged else deal.hand
 
 func configure(owner_deal: DealState, owner_interactions: MatchInteraction, views: Dictionary) -> void:
 	_active = true
@@ -101,7 +121,7 @@ func sync_hand(animated_cards: Array[CardData]) -> void:
 	var animated_ids := {}
 	for card in animated_cards:
 		animated_ids[card.unique_id] = true
-	for card in deal.hand:
+	for card in displayed_hand():
 		active_ids[card.unique_id] = true
 		var view := hand_views.get(card.unique_id) as PlayingCardView
 		var is_new := view == null
@@ -112,6 +132,7 @@ func sync_hand(animated_cards: Array[CardData]) -> void:
 			view.card_drag_started.connect(card_drag_started.emit.bind(view))
 			hand_views[card.unique_id] = view
 		view.set_card(card)
+		if hand_staged: view.set_interaction_enabled(false)
 		view.set_zodiac_locked(deal.zodiac_boss.is_locked(card))
 		view.set_zodiac_hint(preload("res://scripts/ui/zodiac_presentation.gd").hand_hint(deal.zodiac_boss, card, deal.hand))
 		if is_new and animated_ids.has(card.unique_id):
@@ -175,7 +196,8 @@ func layout_hand(animate: bool) -> void:
 	if not _active: return
 	if hand_layer == null or hand_layer.size.x <= 0:
 		return
-	var count := deal.hand.size()
+	var cards := displayed_hand()
+	var count := cards.size()
 	if count == 0:
 		return
 	var spacing := 0.0
@@ -184,21 +206,22 @@ func layout_hand(animate: bool) -> void:
 	var total_width := CARD_SIZE.x + spacing * float(count - 1)
 	var start_x := (hand_layer.size.x - total_width) * 0.5
 	for index in range(count):
-		var card := deal.hand[index]
+		var card := cards[index]
 		var view: PlayingCardView = hand_views[card.unique_id]
 		var normalized := 0.0 if count == 1 else (float(index) / float(count - 1) - 0.5) * 2.0
 		var arc_y := 9.0 + normalized * normalized * 14.0
 		view.set_stack_order(index)
-		view.drag_enabled = true
+		view.drag_enabled = not hand_staged
 		view.layout_in_hand(Vector2(start_x + spacing * index, arc_y), normalized * 0.055,
 			interactions.drink_ids.has(card.unique_id) if interactions.drink_targeting else interactions.selected_ids.has(card.unique_id), animate)
 
 
 func sync_melds() -> void:
 	if not _active: return
-	empty_meld_label.visible = deal.melds.is_empty()
+	var table := deal.table_melds()
+	empty_meld_label.visible = table.is_empty()
 	var active_meld_ids := {}
-	for meld in deal.melds:
+	for meld in table:
 		active_meld_ids[meld.meld_id] = true
 	for existing_id in meld_views.keys():
 		if active_meld_ids.has(existing_id):
@@ -209,10 +232,23 @@ func sync_melds() -> void:
 			stale_view.queue_free()
 		meld_views.erase(existing_id)
 	interactions.reconcile_meld_targets()
-	if deal.melds.is_empty(): return
+	if table.is_empty(): return
 	var selected_cards := interactions.selected_cards()
-	for index in range(deal.melds.size()):
-		var meld := deal.melds[index]
+	# Goat can reject a legal play. Its committed receipt is distinct from value.
+	var goat_receipts: Dictionary = {}
+	var rat_cards: Dictionary = {}
+	for action: Dictionary in deal.action_history:
+		if action.get("action", "") == "exhaustion": rat_cards.clear()
+		if action.get("action", "") == "boss_extension" and action.get("source", "") == "rat":
+			var meld_id := int(action.get("meld_id", -1))
+			if not rat_cards.has(meld_id): rat_cards[meld_id] = []
+			rat_cards[meld_id].append_array(action.get("card_ids", []))
+	if deal.zodiac_boss.id == "goat":
+		for action: Dictionary in deal.action_history:
+			if action.get("action", "") in ["new_meld", "extension"] and action.has("earned_vnd"):
+				goat_receipts[int(action.get("meld_id", -1))] = action
+	for index in range(table.size()):
+		var meld := table[index]
 		var view: MeldView = meld_views.get(meld.meld_id)
 		var is_new := view == null
 		if is_new:
@@ -243,8 +279,16 @@ func sync_melds() -> void:
 			deal.current_drink_id == DrinkCatalog.NAU_DA
 		)
 		view.set_boss_payout_suppressed(deal.zodiac_boss.suppresses(deal.current_phase))
+		view.set_rat_added_cards(rat_cards.get(meld.meld_id, []))
+		if goat_receipts.has(meld.meld_id): view.set_goat_payout_receipt(goat_receipts[meld.meld_id])
 		var boss_effect: Dictionary = preload("res://scripts/ui/zodiac_presentation.gd").effective(deal.zodiac_boss)
 		view.set_dog_loyal(boss_effect.get("id", "") == "dog" and meld.meld_id == int(boss_effect.get("loyal_meld_id", -1)))
+		view.set_rat_owned(deal.boss_melds.has(meld))
+		var snake_command := {}
+		if boss_effect.get("id", "") == "snake":
+			for command: Dictionary in boss_effect.get("commands", []):
+				if command.status == "pending": snake_command = command; break
+		view.set_snake_charm(snake_command)
 		if not is_new:
 			continue
 		view.modulate = Color(1, 1, 1, 0)
@@ -258,18 +302,19 @@ func sync_melds() -> void:
 func sync_piles() -> void:
 	if not _active: return
 	draw_count.text = tr("PILE_COUNT") % deal.deck.draw_pile.size()
-	discard_count_label.text = tr("PILE_COUNT") % deal.deck.discard_pile.size()
-	if deal.deck.discard_pile.is_empty():
+	var shown_discard: Array[CardData] = deal.deck.discard_pile.filter(func(card: CardData): return not hand_staged or not staged_hand.has(card))
+	discard_count_label.text = tr("PILE_COUNT") % shown_discard.size()
+	if shown_discard.is_empty():
 		discard_texture.texture = load("res://cards/red_backing.png") as Texture2D
 		GieoCardFX.apply_state(discard_texture, 0, false, false)
 		discard_texture.modulate = Color(1, 1, 1, 0.12)
 	else:
-		discard_texture.texture = load(deal.deck.discard_pile[-1].texture_path()) as Texture2D
-		GieoCardFX.attach_texture(discard_texture, deal.deck.discard_pile[-1])
+		discard_texture.texture = load(shown_discard[-1].texture_path()) as Texture2D
+		GieoCardFX.attach_texture(discard_texture, shown_discard[-1])
 		discard_texture.modulate = Color.WHITE
 	var claws := discard_texture.get_node_or_null("TigerClaws") as ColorRect
 	var effect: Dictionary = preload("res://scripts/ui/zodiac_presentation.gd").effective(deal.zodiac_boss)
-	var snatched: bool = effect.get("id", "") == "tiger" and not deal.deck.discard_pile.is_empty() and deal.deck.discard_pile[-1].unique_id in effect.get("removed_ids", [])
+	var snatched: bool = effect.get("id", "") == "tiger" and not shown_discard.is_empty() and shown_discard[-1].unique_id in effect.get("removed_ids", [])
 	if snatched and claws == null:
 		claws = ColorRect.new()
 		claws.name = "TigerClaws"
@@ -407,7 +452,7 @@ func sync_reactive_targets() -> void:
 			hand_assignment_index += 1
 
 	var table_meld_ids: Dictionary = targets.get("melds", {})
-	for meld in deal.melds:
+	for meld in deal.table_melds():
 		if not table_meld_ids.has(meld.meld_id) and meld.cards.size() < (13 if meld.meld_type == MeldRules.TYPE_RUN else 12):
 			continue
 		var view := meld_views.get(meld.meld_id) as MeldView
@@ -547,9 +592,9 @@ func drop_target_at(global_position: Vector2, record: DiscardRecord = null) -> D
 		return {"kind": &"drink_discard", "record": record}
 	if discard_pile_visual != null and discard_pile_visual.get_global_rect().has_point(global_position):
 		return {"kind": DROP_TARGET_DISCARD, "meld_id": -1}
-	for meld in deal.melds:
+	for meld in deal.table_melds():
 		var meld_view := meld_views.get(meld.meld_id) as MeldView
-		if meld_view != null and meld_view.get_global_rect().has_point(global_position):
+		if InputHitTest.contains(meld_view, global_position):
 			return {"kind": DROP_TARGET_MELD, "meld_id": meld.meld_id}
 	if hand_layer != null and hand_layer.get_global_rect().grow(28.0).has_point(global_position):
 		return {"kind": DROP_TARGET_HAND, "meld_id": -1}
@@ -567,6 +612,14 @@ func _build_card_drag_preview(payload) -> void:
 	drag_preview.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	drag_preview.z_index = 10
 	particle_layer.add_child(drag_preview)
+	var boss_view := preload("res://scripts/ui/zodiac_presentation.gd")
+	var boss_effect: Dictionary = boss_view.effective(deal.zodiac_boss)
+	var snake_command := {}
+	if boss_effect.get("id", "") == "snake":
+		for command: Dictionary in boss_effect.get("commands", []):
+			if command.status == "pending": snake_command = command; break
+	var source_meld: MeldState = deal.get_table_meld(payload.source_meld_id) if payload.source_zone == CardDragPayload.SOURCE_TABLE_MELD else null
+	var charmed_meld := source_meld != null and not snake_command.is_empty() and source_meld.cards.any(func(card: CardData): return card.unique_id == snake_command.card_id)
 	var shown_count := mini(payload.cards.size(), 4)
 	for index in range(shown_count):
 		var card: CardData = payload.cards[index]
@@ -581,6 +634,13 @@ func _build_card_drag_preview(payload) -> void:
 		texture.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		texture.modulate = Color(1, 1, 1, 0.9)
 		drag_preview.add_child(texture)
+		var hint: Dictionary = boss_view.hand_hint(deal.zodiac_boss, card, deal.hand)
+		if charmed_meld:
+			hint = {"kind": "snake", "caption": ZodiacCatalog.action_label(snake_command.action), "strength": 0.8}
+		if hint.get("kind", "") == "snake":
+			var cue := preload("res://scripts/ui/zodiac_hand_cue.gd").new()
+			texture.add_child(cue)
+			cue.sync(hint)
 	if payload.cards.size() > 1:
 		var count_badge := Label.new()
 		count_badge.position = Vector2(CARD_SIZE.x - 8, -12)
@@ -614,13 +674,14 @@ func _refresh_card_drag_targets(payload) -> void:
 	var discard_target := {"kind": DROP_TARGET_DISCARD, "meld_id": -1}
 	if not interactions.cards_for_drop_target(payload, discard_target).is_empty():
 		add_drag_target_overlay(discard_pile_visual.get_global_rect(), PresentationTheme.RED)
-	for meld in deal.melds:
+	for meld in deal.table_melds():
 		var target := {"kind": DROP_TARGET_MELD, "meld_id": meld.meld_id}
 		if interactions.cards_for_drop_target(payload, target).is_empty():
 			continue
 		var meld_view := meld_views.get(meld.meld_id) as MeldView
 		if meld_view != null:
-			add_drag_target_overlay(meld_view.get_global_rect(), PresentationTheme.GOLD)
+			var target_rect := meld_view.get_global_rect().intersection((meld_row.get_parent() as Control).get_global_rect())
+			if target_rect.has_area(): add_drag_target_overlay(target_rect, PresentationTheme.GOLD)
 
 
 func add_drag_target_overlay(global_rect: Rect2, color: Color) -> void:
@@ -653,6 +714,7 @@ func clear_drag_target_overlays() -> void:
 
 func set_hand_interaction_enabled(enabled: bool) -> void:
 	if not _active: return
+	enabled = enabled and not hand_staged
 	for value in hand_views.values():
 		var view := value as PlayingCardView
 		if view != null:

@@ -11,14 +11,15 @@ func configure(owner: MatchUI) -> void:
 	custom_minimum_size = Vector2(156, 54)
 	add_theme_stylebox_override("panel", PresentationTheme.panel_style(Color("#172334f5"), Color("#f5bf42"), 2, 4, 6))
 	var body := VBoxContainer.new()
+	body.add_theme_constant_override("separation", 2)
 	add_child(body)
 	caption = Label.new()
-	caption.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	caption.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	caption.add_theme_font_size_override("font_size", 10)
 	body.add_child(caption)
 	var buttons := HBoxContainer.new()
 	body.add_child(buttons)
-	for spec in [["Replay", "Chơi lại", host.replay_boss_debug], ["Boss Lab", "Chọn", host.open_boss_lab], ["Exit", "Thoát", host.leave_boss_debug]]:
+	for spec in [["Replay", "Chơi lại", host.replay_boss_debug], ["Lab", "Chọn", host.open_boss_lab], ["Exit", "Thoát", host.leave_boss_debug]]:
 		var button := Button.new()
 		button.text = GameGlossary.words(spec[0], spec[1])
 		button.custom_minimum_size = Vector2(48, 26)
@@ -36,4 +37,10 @@ func _process(_delta: float) -> void:
 	if not visible: return
 	for item: Dictionary in localized_buttons: item.button.text = GameGlossary.words(item.en, item.vi)
 	var options: Dictionary = host.campaign.debug_context.get("options", {})
-	caption.text = GameGlossary.words("DEBUG SANDBOX · %s\nPhase %d · %s", "THỬ NGHIỆM · %s\nHiệp %d · %s") % [ZodiacCatalog.display_name(options.get("boss", "")), host.deal.current_phase, ZodiacCatalog.disposition_label(ZodiacCatalog.difficulty_name(host.deal.zodiac_boss.difficulty))]
+	caption.text = GameGlossary.words("DEBUG · %s · P%d", "THỬ · %s · H%d") % [ZodiacCatalog.display_name(options.get("boss", "")), host.deal.current_phase]
+	tooltip_text = GameGlossary.words("DEBUG SANDBOX · %s · %s", "THỬ NGHIỆM · %s · %s") % [ZodiacCatalog.display_name(options.get("boss", "")), ZodiacCatalog.disposition_label(ZodiacCatalog.difficulty_name(host.deal.zodiac_boss.difficulty))]
+	# Keep the sandbox reminder in the header; a wrapped caption used to extend
+	# downward over the compact boss panel after it moved below DAY.
+	var day: Control = host.get_node("GameLayer/Header/HeaderRow/CampaignStat")
+	position = Vector2(day.get_global_rect().end.x + 8, day.global_position.y) - get_parent().global_position
+	size = get_combined_minimum_size()

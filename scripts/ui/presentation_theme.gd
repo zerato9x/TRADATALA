@@ -37,7 +37,7 @@ const PAPER_SEMANTIC_COLORS := {&"body": PAPER_INK, &"muted": PAPER_MUTED, &"gai
 const SUIT_COLORS := {"Spades": Color("8fcfff"), "Hearts": Color("ff929f"), "Diamonds": Color("ffd477"), "Clubs": Color("8ee0b2")}
 const ZODIAC_COLORS := {"rooster": Color("ff8576"), "cat": Color("c294ff"), "dog": Color("80f5a1"), "monkey": Color("ffe078"),
 	"pig": Color("ffb5ca"), "ox": Color("deb17a"), "horse": Color("81d6ff"), "goat": Color("9ce5d7"),
-	"rat": Color("c4bbef"), "tiger": Color("ff9e55"), "snake": Color("a7ed8e"), "dragon": Color("86e5f0")}
+	"rat": Color("65baff"), "tiger": Color("ff9e55"), "snake": Color("a7ed8e"), "dragon": Color("86e5f0")}
 const SEMANTIC_COLORS := {
 	&"body": INK, &"muted": MUTED, &"gain": MONEY_GAIN,
 	&"cost": MONEY_COST, &"wallet": WALLET, &"debt": DEBT,

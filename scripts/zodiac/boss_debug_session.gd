@@ -11,7 +11,7 @@ static func available() -> bool:
 static func normalize(input: Dictionary) -> Dictionary:
 	var boss := String(input.get("boss", "rooster"))
 	if boss == "mouse": boss = "rat"
-	if not ZodiacBossRule.RULES.has(boss): return {}
+	if not ZodiacBossRule.RULES.has(boss) or not ZodiacCatalog.boss_available(boss): return {}
 	var drink := String(input.get("drink", DrinkCatalog.NONE))
 	if drink != DrinkCatalog.NONE and not DrinkCatalog.is_known(drink): return {}
 	var tactic := String(input.get("dragon_tactic", "history"))

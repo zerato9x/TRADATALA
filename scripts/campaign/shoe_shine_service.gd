@@ -1,6 +1,6 @@
 class_name ShoeShineService
 extends RefCounted
-## Starter-only, permanent identity work on at most two committed physical IDs.
+## Tuesday onward: one paid transaction transforms a locked pair independently.
 signal changed()
 signal transformation_committed(receipt: Dictionary)
 
@@ -9,8 +9,9 @@ var visit_started := false
 var selected_card_ids: Array[String] = []
 var rank_rerolls := 0
 var suit_rerolls := 0
-var next_rank_cost_vnd := 5_000
-var next_suit_cost_vnd := 2_500
+var next_rank_cost_vnd := 25_000
+var next_suit_cost_vnd := 15_000
+var price_version := ShoeShineConfig.PRICE_VERSION
 var price_curve: Dictionary = ShoeShineConfig.SERVICES.duplicate(true)
 var last_reroll: Dictionary = {}
 var _rng := RandomNumberGenerator.new()
@@ -33,6 +34,7 @@ func reset_run() -> void:
 	suit_rerolls = 0
 	last_reroll = {}
 	price_curve = ShoeShineConfig.SERVICES.duplicate(true)
+	price_version = ShoeShineConfig.PRICE_VERSION
 	_day_index = -1
 	_event_slot = -1
 	_deck = []
@@ -53,7 +55,7 @@ func begin_day(index: int, deck: Array[CardData], target_vnd: int = 250_000) -> 
 
 func begin_event(slot: int) -> void:
 	_event_slot = slot
-	if slot == EventManager.EventSlot.STARTER and not visit_started and _day_index >= 0:
+	if slot == EventManager.EventSlot.STARTER and not visit_started and _day_index >= ShoeShineConfig.FIRST_DAY_INDEX:
 		visit_started = true
 		changed.emit()
 
@@ -83,7 +85,7 @@ func selected_cards() -> Array[CardData]:
 	return selected
 
 func is_active() -> bool:
-	if not visit_started or _day_index < 0 or _event_slot != EventManager.EventSlot.STARTER: return false
+	if not visit_started or _day_index < ShoeShineConfig.FIRST_DAY_INDEX or _event_slot != EventManager.EventSlot.STARTER: return false
 	if _campaign_ref == null: return true
 	var campaign: CampaignManager = _campaign_ref.get_ref()
 	return campaign != null and campaign.current_phase == CampaignManager.CampaignPhase.STARTER_EVENT and campaign.current_day_index == _day_index and not campaign.run_failed and not campaign.campaign_complete
@@ -113,71 +115,91 @@ func rank_cost() -> int:
 func suit_cost() -> int:
 	return next_suit_cost_vnd
 
-func reroll_error(id: String, kind: String) -> String:
+func reroll_error(kind: String) -> String:
 	if _mutating or not is_active(): return "SHOE_ERROR_CLOSED"
 	if kind not in ["rank", "suit"]: return "SHOE_ERROR_MUTATION"
-	if not selected_card_ids.has(id): return "SHOE_ERROR_UNSELECTED"
-	var card := card_for_id(id)
-	if card == null: return "SHOE_ERROR_MISSING"
-	if card.transformation_locked: return "SHOE_ERROR_SEALED"
-	if card.rank not in DeckManager.RANKS or card.suit not in DeckManager.SUITS: return "SHOE_ERROR_MUTATION"
+	if selected_card_ids.size() != ShoeShineConfig.MAX_SELECTED_CARDS: return "SHOE_ERROR_PAIR"
+	if selected_card_ids[0] == selected_card_ids[1]: return "SHOE_ERROR_PAIR"
+	for id in selected_card_ids:
+		var card := card_for_id(id)
+		if card == null: return "SHOE_ERROR_MISSING"
+		if card.transformation_locked: return "SHOE_ERROR_SEALED"
+		if card.rank not in DeckManager.RANKS or card.suit not in DeckManager.SUITS: return "SHOE_ERROR_MUTATION"
 	if wallet == null or wallet.balance_vnd < (rank_cost() if kind == "rank" else suit_cost()): return "SHOE_ERROR_FUNDS"
 	return ""
 
-func can_reroll(id: String, kind: String) -> bool:
-	return reroll_error(id, kind).is_empty()
+func can_reroll(kind: String) -> bool:
+	return reroll_error(kind).is_empty()
 
-func reroll_rank(id: String) -> Dictionary:
-	return _reroll(id, "rank")
+func reroll_rank() -> Dictionary:
+	return _reroll("rank")
 
-func reroll_suit(id: String) -> Dictionary:
-	return _reroll(id, "suit")
+func reroll_suit() -> Dictionary:
+	return _reroll("suit")
 
-func _reroll(id: String, kind: String) -> Dictionary:
-	var error := reroll_error(id, kind)
+func _resolve_outcome(card: CardData, kind: String, pool: Array) -> String:
+	# One draw per physical card. A relic may modify only this card's outcome.
+	var rolled: String = pool[_rng.randi_range(0, pool.size() - 1)]
+	var campaign: CampaignManager = _campaign_ref.get_ref() if _campaign_ref != null else null
+	if campaign != null and campaign.relic_shop.runtime != null:
+		return campaign.relic_shop.runtime.modify_shoe_shine_outcome(card.persuasion_fingerprint(), kind, pool.duplicate(), rolled)
+	return rolled
+
+func _reroll(kind: String) -> Dictionary:
+	var error := reroll_error(kind)
 	if not error.is_empty(): return _failure(error)
-	var card := card_for_id(id)
-	var before := card.persuasion_fingerprint()
-	var revision_before := card.mutation_revision
+	var pair := selected_cards()
+	var before: Array[Dictionary] = []
+	var revisions: Array[int] = []
+	var blocked: Array[bool] = []
 	var rng_before := _rng.state
 	var cost := rank_cost() if kind == "rank" else suit_cost()
 	var receipt := {}
 	_mutating = true
-	# Card and wallet observers see one completed transaction, including counts/RNG.
-	var blocked := card.is_blocking_signals()
-	card.set_block_signals(true)
+	# Both cards and the wallet publish only the complete pair transaction.
+	for card in pair:
+		before.append(card.persuasion_fingerprint())
+		revisions.append(card.mutation_revision)
+		blocked.append(card.is_blocking_signals())
+		card.set_block_signals(true)
 	var paid := wallet.try_spend_and_commit(cost, "shoe_reroll_" + kind, func() -> bool:
-		var pool := DeckManager.RANKS.duplicate() if kind == "rank" else DeckManager.SUITS.duplicate()
-		pool.erase(card.rank if kind == "rank" else card.suit)
-		var outcome: String = pool[_rng.randi_range(0, pool.size() - 1)]
-		if kind == "rank":
-			card.apply_rank(outcome, DeckManager.RANKS.find(outcome) + 1)
-			if card.rank != outcome or card.rank_index != DeckManager.RANKS.find(outcome) + 1 or card.base_value != card.rank_index: return false
-		else:
-			card.apply_suit(outcome)
-			if card.suit != outcome: return false
+		var results: Array[Dictionary] = []
+		for index in pair.size():
+			var card := pair[index]
+			var pool := DeckManager.RANKS.duplicate() if kind == "rank" else DeckManager.SUITS.duplicate()
+			pool.erase(card.rank if kind == "rank" else card.suit)
+			var outcome := _resolve_outcome(card, kind, pool)
+			if not pool.has(outcome): return false # Invalid relic output rejects the whole purchase.
+			if kind == "rank":
+				card.apply_rank(outcome, DeckManager.RANKS.find(outcome) + 1)
+				if card.rank != outcome or card.rank_index != DeckManager.RANKS.find(outcome) + 1 or card.base_value != card.rank_index: return false
+			else:
+				card.apply_suit(outcome)
+				if card.suit != outcome: return false
+			results.append({"card_id": card.unique_id, "before": before[index], "after": card.persuasion_fingerprint()})
 		if kind == "rank":
 			rank_rerolls += 1
 			next_rank_cost_vnd = ShoeShineConfig.next_cost(cost, kind, price_curve)
 		else:
 			suit_rerolls += 1
 			next_suit_cost_vnd = ShoeShineConfig.next_cost(cost, kind, price_curve)
-		receipt.merge({"ok": true, "card_id": id, "kind": kind, "cost_vnd": cost,
-			"before": before, "after": card.persuasion_fingerprint(),
+		receipt.merge({"ok": true, "kind": kind, "cost_vnd": cost, "results": results,
 			"rank_rerolls": rank_rerolls, "suit_rerolls": suit_rerolls})
 		last_reroll = receipt.duplicate(true)
 		return true)
 	if not paid:
-		# Defensive rollback for a rejected CardData mutation; no debit is journaled.
+		# A rejected second mutation restores the first too; no debit is journaled.
 		_rng.state = rng_before
-		card.rank = before.rank
-		card.rank_index = before.rank_index
-		card.base_value = before.base_value
-		card.suit = before.suit
-		card.mutation_revision = revision_before
-	card.set_block_signals(blocked)
+		for index in pair.size():
+			pair[index].rank = before[index].rank
+			pair[index].rank_index = before[index].rank_index
+			pair[index].base_value = before[index].base_value
+			pair[index].suit = before[index].suit
+			pair[index].mutation_revision = revisions[index]
+	for index in pair.size(): pair[index].set_block_signals(blocked[index])
 	if paid:
-		if not blocked: card.permanent_changed.emit(id, card.mutation_revision, kind)
+		for index in pair.size():
+			if not blocked[index]: pair[index].permanent_changed.emit(pair[index].unique_id, pair[index].mutation_revision, kind)
 		transformation_committed.emit(receipt.duplicate(true))
 		changed.emit()
 	_mutating = false
@@ -195,7 +217,7 @@ func set_seed_value(value: int) -> void:
 
 # Extends the V3 envelope; all new fields are optional for older saves.
 const RUN_SAVE_FIELDS_V3 := ["visit_started", "selected_card_ids", "rank_rerolls", "suit_rerolls",
-	"next_rank_cost_vnd", "next_suit_cost_vnd", "price_curve", "last_reroll", "_day_index", "_event_slot"]
+	"next_rank_cost_vnd", "next_suit_cost_vnd", "price_curve", "price_version", "last_reroll", "_day_index", "_event_slot"]
 const RUN_SNAPSHOT_FIELDS := preload("res://scripts/campaign/run_snapshot_fields.gd")
 
 func run_snapshot() -> Dictionary:
@@ -206,13 +228,21 @@ func restore_run_snapshot(data: Dictionary) -> void:
 	RUN_SNAPSHOT_FIELDS.apply_fields(self, data, RUN_SAVE_FIELDS_V3)
 	# Legacy polish/tips are not identity rerolls. Keep card state, start at zero.
 	if not data.has("visit_started"):
-		visit_started = _event_slot == EventManager.EventSlot.STARTER and _day_index >= 0
-	if not data.has("next_rank_cost_vnd"):
+		visit_started = _event_slot == EventManager.EventSlot.STARTER and _day_index >= ShoeShineConfig.FIRST_DAY_INDEX
+	var old_prices := int(data.get("price_version", 0)) < ShoeShineConfig.PRICE_VERSION
+	if old_prices:
+		price_curve = ShoeShineConfig.SERVICES.duplicate(true)
+		price_version = ShoeShineConfig.PRICE_VERSION
+	if old_prices or not data.has("next_rank_cost_vnd"):
 		next_rank_cost_vnd = ShoeShineConfig.initial_cost("rank", wallet.day_target_vnd, price_curve)
-		for _i in rank_rerolls: next_rank_cost_vnd = ShoeShineConfig.next_cost(next_rank_cost_vnd, "rank", price_curve)
-	if not data.has("next_suit_cost_vnd"):
+		for _i in rank_rerolls:
+			next_rank_cost_vnd = ShoeShineConfig.next_cost(next_rank_cost_vnd, "rank", price_curve)
+			if next_rank_cost_vnd == ShoeShineConfig.MAX_COST_VND: break
+	if old_prices or not data.has("next_suit_cost_vnd"):
 		next_suit_cost_vnd = ShoeShineConfig.initial_cost("suit", wallet.day_target_vnd, price_curve)
-		for _i in suit_rerolls: next_suit_cost_vnd = ShoeShineConfig.next_cost(next_suit_cost_vnd, "suit", price_curve)
+		for _i in suit_rerolls:
+			next_suit_cost_vnd = ShoeShineConfig.next_cost(next_suit_cost_vnd, "suit", price_curve)
+			if next_suit_cost_vnd == ShoeShineConfig.MAX_COST_VND: break
 
 func run_rng_state() -> int:
 	return _rng.state

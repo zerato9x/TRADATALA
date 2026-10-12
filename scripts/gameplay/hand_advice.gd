@@ -11,7 +11,7 @@ static func signature(deal: DealState) -> int:
 		row.sort_custom(func(a, b): return a[0] < b[0])
 		cards.append(row)
 	var table: Array = []
-	for meld: MeldState in deal.melds:
+	for meld: MeldState in deal.table_melds():
 		table.append([meld.meld_id, meld.meld_type, meld.run_compatibility, meld.scored_points, meld.cards.map(func(c): return [c.unique_id, c.rank_index, c.suit, c.score_value(), c.permanent_snapshot(), c.enhancements])])
 	var locked: Array = deal.zodiac_boss.locked_ids.duplicate()
 	locked.sort()
@@ -126,7 +126,7 @@ static func _outcome(deal: DealState, remaining: Array[CardData], first: CardDat
 	var refill := maxi(10 - remaining.size(), 0) if deal.state == DealState.STATE_ACTIVE and count < deal.phase_discard_limit() else 0
 	var guaranteed: Array[CardData] = []
 	var pool: Array[CardData] = deal.deck.draw_pile.duplicate()
-	var table: Array[MeldState] = deal.melds.duplicate()
+	var table: Array[MeldState] = deal.table_melds()
 	var crosses := refill > pool.size()
 	var draws := refill
 	if crosses:
@@ -140,7 +140,6 @@ static func _outcome(deal: DealState, remaining: Array[CardData], first: CardDat
 			if not locked.has(card.unique_id): pool.append(card)
 		pool.append_array(deal.recyclable_spent_cards)
 		for meld: MeldState in table: pool.append_array(meld.cards)
-		for meld: MeldState in deal.boss_melds: pool.append_array(meld.cards)
 		table.clear() # Exhaustion removes table melds before the new hand is played.
 		if first != null and deal.tra_da_extra_discard_pending: pool.append(first)
 		if second != null: pool.append(second)

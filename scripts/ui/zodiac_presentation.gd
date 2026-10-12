@@ -22,12 +22,13 @@ static func hand_hint(rule: ZodiacBossRule, card: CardData, hand: Array[CardData
 			else:
 				var near := MeldRules.near_meld_ids(hand).has(card.unique_id)
 				points = Ox.new().burden_points(card.score_value(), int(state.get("burden_age", {}).get(card.unique_id, 0)) + 1, near, rule.difficulty)
-			return {"kind": "ox", "caption": "−%d" % points, "detail": ZodiacCatalog.words("OX · next burden: %d points before the turn penalty multiplier. Play or discard this card to remove its burden.", "SỬU · gánh nặng lần tới: %d điểm trước hệ số phạt lượt. Hạ, nối hoặc bỏ lá này để hết gánh nặng.") % points,
+			return {"kind": "ox", "caption": "−%d" % points, "detail": ZodiacCatalog.words("BUFFALO · next burden: %d points before the turn penalty multiplier. Play or discard this card to remove its burden.", "SỬU · gánh nặng lần tới: %d điểm trước hệ số phạt lượt. Hạ, nối hoặc bỏ lá này để hết gánh nặng.") % points,
 				"strength": clampf(float(points) / maxf(card.score_value(), 1) / 8.0, 0.15, 1.0)}
 		"goat":
 			var rank := int(state.get("expected_rank", 0))
 			var parity: bool = rule.difficulty == ZodiacCatalog.UNPLEASED and state.get("parity_required", true)
-			if (rank == 0 or card.rank_index == rank) and (not parity or card.rank_index % 2 == int(state.get("turn_number", 1)) % 2):
+			var window: Array[int] = preload("res://scripts/zodiac/rules/goat.gd").accepted_ranks(rank)
+			if (rank == 0 or card.rank_index in window) and (not parity or card.rank_index % 2 == int(state.get("turn_number", 1)) % 2):
 				return {"kind": "goat", "caption": ZodiacCatalog.words("NOTE", "NHỊP"), "detail": ZodiacCatalog.words("GOAT · this Rank can start the next note. The whole committed play still has to follow the Rank sequence.", "MÙI · hạng này có thể mở nhịp tiếp. Toàn bộ lá vừa đánh vẫn phải theo chuỗi hạng."), "strength": 0.6}
 		"snake":
 			for command: Dictionary in state.get("commands", []):
@@ -47,16 +48,51 @@ static func command_text(command: Dictionary) -> String:
 
 static func compact(state: Dictionary, deal) -> String:
 	match String(state.id):
+		"rooster":
+			if state.register_closed: return ZodiacCatalog.words("CLOSED · 0 VNĐ", "ĐÃ ĐÓNG · 0 VNĐ")
+			if deal.current_phase == 2 and int(state.difficulty) == ZodiacCatalog.UNPLEASED: return ZodiacCatalog.words("EXTEND ONLY", "CHỈ NỐI PHỎM")
+			return ZodiacCatalog.words("OPEN", "ĐANG MỞ")
+		"cat": return ZodiacCatalog.words("Locked %d", "Khóa %d lá") % state.locked_ids.size()
+		"dog": return ZodiacCatalog.words("LOYAL #%d", "TRUNG THÀNH #%d") % int(state.loyal_meld_id) if int(state.loyal_meld_id) >= 0 else ZodiacCatalog.words("LOYAL —", "TRUNG THÀNH —")
 		"pig": return ZodiacCatalog.words("HELD ", "GIỮ ") + VndWallet.format_vnd(int(state.pool_vnd))
-		"ox": return ZodiacCatalog.words("Next loss on each card", "Phạt tới trên từng lá")
+		"ox":
+			var points := 0
+			var near := MeldRules.near_meld_ids(deal.hand)
+			for card: CardData in deal.hand:
+				if card.fortune < 0: continue
+				points += Ox.new().burden_points(card.intrinsic_value(), int(state.burden_age.get(card.unique_id, 0)) + 1, near.has(card.unique_id), state.difficulty)
+			return ZodiacCatalog.words("Burden %d pts", "Gánh nặng %d điểm") % points
 		"horse": return "%s %d/2" % [ZodiacCatalog.action_label(state.required_action) if not String(state.required_action).is_empty() else ZodiacCatalog.words("PAIR", "CẶP"), int(state.pair_count)]
-		"goat": return ZodiacCatalog.words("NEXT: ", "TIẾP: ") + (DeckManager.RANKS[int(state.expected_rank) - 1] if int(state.expected_rank) > 0 else ZodiacCatalog.words("first note", "nhịp đầu"))
-		"rat": return ZodiacCatalog.words("MOUSE MELDS: %d", "PHỎM CỦA TÝ: %d") % deal.boss_melds.size()
+		"goat": return ZodiacCatalog.words("RANKS: ", "HẠNG: ") + (ZodiacCatalog.rank_window_text(int(state.expected_rank)) if int(state.expected_rank) > 0 else ZodiacCatalog.words("first window", "nhóm đầu"))
+		"rat": return ZodiacCatalog.words("RAT MELDS: %d", "PHỎM CỦA TÝ: %d") % deal.boss_melds.size()
 		"tiger": return ZodiacCatalog.words("SNATCHED: %d", "ĐÃ VỒ: %d") % state.get("removed_ids", []).size()
 		"snake":
-			var pending := 0
-			for command: Dictionary in state.get("commands", []):
-				if command.status == "pending": pending += 1
-			return ZodiacCatalog.words("COMMANDS LEFT: %d", "CÒN %d LỆNH") % pending
+			var commands: Array = state.get("commands", [])
+			var limit := int(state.get("command_limit", ZodiacCatalog.tuning("snake", "command_count", state.difficulty)))
+			var pending: bool = commands.any(func(command: Dictionary): return command.status == "pending")
+			return ZodiacCatalog.words("CHARM %d/%d", "MÊ HOẶC %d/%d") % [commands.size(), limit] if pending else ZodiacCatalog.words("COMPLETE ✓", "ĐÃ XONG ✓")
 		"dragon": return ZodiacCatalog.words("THIS TURN: ", "LƯỢT NÀY: ") + ZodiacCatalog.display_name(state.get("modifier_id", ""))
 	return ZodiacCatalog.state_text(state, deal).replace("\n", " · ")
+
+static func guidance(state: Dictionary, deal) -> String:
+	match String(state.id):
+		"rooster":
+			if state.register_closed: return ZodiacCatalog.words("Legal plays pay 0 VNĐ until the next Phase.", "Bài hợp lệ trả 0 VNĐ tới Hiệp sau.")
+			if deal.current_phase == 2 and int(state.difficulty) == ZodiacCatalog.UNPLEASED: return ZodiacCatalog.words("Extensions only this Phase.", "Hiệp này chỉ được nối Phỏm.")
+			return ZodiacCatalog.words("Score before the discard deadline. Phase 2 reopens scoring.", "Ghi điểm trước hạn bỏ bài. Hiệp 2 mở lại trả thưởng.")
+		"cat": return ZodiacCatalog.words("Phase 2: locked cards stay until the next refill.", "Hiệp 2: lá bị khóa phải ở lại tới lần bù bài sau.")
+		"dog":
+			if int(state.difficulty) == ZodiacCatalog.UNPLEASED: return ZodiacCatalog.words("One new Meld per Phase. Extend your LOYAL Meld for full pay.", "Mỗi Hiệp chỉ tạo một Phỏm. Nối Phỏm TRUNG THÀNH để nhận đủ.")
+			return ZodiacCatalog.words("Extend your LOYAL Meld for full pay. Other Melds pay %d%%.", "Nối Phỏm TRUNG THÀNH để nhận đủ. Phỏm khác trả %d%%.") % int(ZodiacCatalog.tuning("dog", "other_payout_percent", state.difficulty))
+	return ""
+
+static func modifier_live(state: Dictionary, deal) -> String:
+	var mini: Dictionary = state.get("modifier", {})
+	match String(state.get("modifier_id", "")):
+		"rat": return ZodiacCatalog.words("Melds %d", "Phỏm %d") % deal.boss_melds.size()
+		"goat": return ZodiacCatalog.words("Ranks ", "Hạng ") + ZodiacCatalog.rank_window_text(int(mini.get("expected_rank", 0)))
+		"snake":
+			for command: Dictionary in mini.get("commands", []):
+				if command.status == "pending": return command_text(command)
+			return ZodiacCatalog.words("Complete ✓", "Đã xong ✓")
+	return ZodiacCatalog.modifier_text(state, deal)

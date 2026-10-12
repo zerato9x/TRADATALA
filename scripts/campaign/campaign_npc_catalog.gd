@@ -50,5 +50,9 @@ static func register_initial_npcs(event_manager: EventManager) -> void:
 		var slots: Array[int] = []
 		slots.assign(spec[2])
 		var npc := NPCDefinition.new(spec[0], spec[1], slots, true)
+		if npc.id == "danh_giay":
+			npc.guaranteed = false
+			npc.appearance_condition = func(context: Dictionary) -> bool:
+				return int(context.get("day_index", -1)) >= ShoeShineConfig.FIRST_DAY_INDEX
 		npc.interaction_specs.append({"id": spec[3], "action_type": spec[3], "mandatory": false})
 		event_manager.register_npc(npc)

@@ -14,6 +14,7 @@ func _fixture() -> Dictionary:
 
 func test_every_boss_tier_and_phase_starts_real_valid_deterministic_card_state() -> void:
 	for boss: String in ZodiacBossRule.RULES:
+		if not ZodiacCatalog.boss_available(boss): continue
 		for tier in [1, 2, 3]:
 			for phase in [1, 2]:
 				var a := _fixture()
@@ -44,6 +45,12 @@ func test_curated_opening_contains_actual_melds_and_extensions_and_drink_charge(
 func test_dragon_history_is_real_unless_an_explicit_debug_override_is_selected() -> void:
 	var a := _fixture()
 	var history := [{"action": "extension", "meld_type": "run", "points": 12, "earned_vnd": 40_000}, {"action": "extension", "meld_type": "run", "points": 6, "earned_vnd": 20_000}]
+	if not ZodiacCatalog.DRAGON_ENABLED:
+		var before: Dictionary = a.deal.snapshot_state()
+		assert_true(BossDebugSession.normalize({"boss": "dragon"}).is_empty())
+		assert_false(BossDebugSession.prepare(a.campaign, a.deal, {"boss": "dragon"}, history))
+		assert_eq(a.deal.snapshot_state(), before)
+		return
 	assert_true(BossDebugSession.prepare(a.campaign, a.deal, {"boss": "dragon", "difficulty": 3}, history))
 	assert_eq(a.deal.zodiac_boss.data.analysis.tactic, "extension:run")
 	assert_eq(a.deal.zodiac_boss.data.analysis.average_vnd, 30_000)
@@ -86,6 +93,12 @@ func test_snake_can_generate_next_turn_commands_with_a_real_meld_on_the_table() 
 			var run: Array[CardData] = deal.hand.filter(func(card: CardData): return card.suit == "Clubs" and card.rank_index in [4, 5, 6])
 			assert_true(deal.create_meld(run).ok)
 			assert_eq(deal.melds.size(), 1)
+			while deal.zodiac_boss.data.commands.any(func(command: Dictionary): return command.status == "pending"):
+				var pending: Dictionary = deal.zodiac_boss.data.commands[-1]
+				var target: CardData
+				for card in deal.hand:
+					if card.unique_id == pending.card_id: target = card; break
+				assert_true(deal.discard_card(target if target != null else deal.hand[-1]).ok)
 			var result := deal.discard_card(deal.hand[-1])
 			assert_true(result.ok)
 			assert_eq(deal.discard_count, 1)

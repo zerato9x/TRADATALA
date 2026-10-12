@@ -45,8 +45,8 @@ func _run() -> void:
 		check(not shoe.choose_card(campaign.gieo_que.persistent_deck[2].unique_id).ok, "fresh process cannot select a third card")
 		shoe.begin_event(EventManager.EventSlot.STARTER)
 		check(shoe.run_rng_state() == expected.rng, "reopen does not reroll a result")
-		check(shoe.reroll_rank(id) == expected.next_rank, "exact next Rank result reproduces")
-		check(shoe.reroll_suit(id) == expected.next_suit, "exact next Suit result reproduces")
+		check(shoe.reroll_rank() == expected.next_rank, "exact next Rank result reproduces")
+		check(shoe.reroll_suit() == expected.next_suit, "exact next Suit result reproduces")
 		check(streams(campaign, deal) == expected.streams, "resumed rerolls consume only their own RNG")
 		check(save.save_run(campaign, deal), "new committed identity persists")
 		deal.start_deal(campaign.seed_for("deal", 8))
@@ -57,6 +57,8 @@ func _run() -> void:
 		check(deal.physical_card_accounting().valid, "physical deck remains complete")
 	else:
 		campaign.start_campaign(true, "SHOE-FRESH-PROCESS")
+		campaign.current_day_index = 1
+		campaign._begin_current_day()
 		deal.start_deal(campaign.seed_for("deal"))
 		deal.wallet.reset(2_000_000)
 		var shoe := campaign.shoe_shine
@@ -68,16 +70,16 @@ func _run() -> void:
 		check(shoe.choose_card(card.unique_id).ok, "first exact physical card commits")
 		check(shoe.choose_card(campaign.gieo_que.persistent_deck[1].unique_id).ok, "second exact physical card commits")
 		var unrelated := streams(campaign, deal)
-		for _i in 3: check(shoe.reroll_rank(card.unique_id).ok, "repeated Rank payment commits")
-		for _i in 2: check(shoe.reroll_suit(card.unique_id).ok, "repeated Suit payment commits")
+		for _i in 3: check(shoe.reroll_rank().ok, "repeated Rank payment commits")
+		for _i in 2: check(shoe.reroll_suit().ok, "repeated Suit payment commits")
 		check(streams(campaign, deal) == unrelated, "writer does not consume unrelated RNG")
 		var expected := {"service": shoe.run_snapshot().duplicate(true), "rng": shoe.run_rng_state(),
 			"wallet": deal.wallet.balance_vnd, "entries": deal.wallet.journal.size(),
 			"cards": campaign.gieo_que.persistent_deck.map(func(c): return c.run_value_snapshot().duplicate(true)),
 			"streams": unrelated}
 		check(save.save_run(campaign, deal), "write saves committed mutations before quit")
-		expected.next_rank = shoe.reroll_rank(card.unique_id)
-		expected.next_suit = shoe.reroll_suit(card.unique_id)
+		expected.next_rank = shoe.reroll_rank()
+		expected.next_suit = shoe.reroll_suit()
 		var file := FileAccess.open("user://shoe-fresh-expected.bin", FileAccess.WRITE)
 		file.store_var(expected, false)
 		file.close()

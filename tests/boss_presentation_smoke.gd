@@ -61,7 +61,10 @@ func layout_contract(label: String) -> void:
 	var canvas := Rect2(Vector2.ZERO, Vector2(root.size))
 	check(canvas.encloses(hud.panel.get_global_rect()), label + " boss badge fits")
 	check(canvas.encloses(strip.get_global_rect()), label + " turn register fits")
-	check(hud.panel.size.x <= 260 and hud.panel.size.y <= 60, label + " badge stays compact")
+	check(hud.panel.size.y <= 112 and not hud.guidance.visible and not hud.skill.visible, label + " boss HUD contains live state without rule prose")
+	if scene.deal.zodiac_boss.id in ["rooster", "cat", "dog", "ox", "rat", "tiger"]:
+		check(hud.panel.size.y <= 36, label + " simple boss uses a single row without empty body space")
+	check(not hud.has_node("BossRuleCard") and hud.panel.name == "BossPresentation", label + " detached status badge is removed")
 	check(hud.panel.get_global_rect().position.x == scene.get_node("GameLayer/Header/HeaderRow/CampaignStat").global_position.x, label + " badge aligns with day HUD")
 	for surface: Control in [scene.draw_pile_visual, scene.discard_pile_visual, scene.hand_layer, scene.meld_scroll]:
 		check(not hud.panel.get_global_rect().intersects(surface.get_global_rect()), label + " badge clears " + surface.name)

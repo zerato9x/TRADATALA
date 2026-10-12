@@ -12,6 +12,13 @@ var _index := 0
 var _pending := -1
 var _effects: Array[Control] = []
 var _tweens: Array[Tween] = []
+var lane_height := 76.0
+var hint: Label
+var _cursor := -1.0
+var _clock := 0.0
+var _notice_time := 0.0
+var _paused := false
+var _action_stamp := 0
 
 func _ready() -> void:
 	name = "MonkeyDanceGuide"
@@ -24,6 +31,11 @@ func _ready() -> void:
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_theme_constant_override("separation", 10)
 	add_child(row)
+	hint = _label(12)
+	hint.name = "DanceFeedback"
+	hint.position.y = 58
+	hint.add_theme_color_override("font_color", PresentationTheme.MUTED)
+	add_child(hint)
 	hide()
 
 func _label(pixels: int) -> Label:
@@ -44,8 +56,13 @@ func clear_effects() -> void:
 		if is_instance_valid(effect): effect.queue_free()
 	_effects.clear()
 	_pending = -1
+	_notice_time = 0
+	if hint != null:
+		hint.text = ""
+		hint.add_theme_color_override("font_color", PresentationTheme.MUTED)
 
 func pause_effects(paused: bool) -> void:
+	_paused = paused
 	# Scoring receipts use the same screen space. Hold the text celebration
 	# through the receipt, then finish it when the player returns to the table.
 	for tween in _tweens:
@@ -64,6 +81,8 @@ func sync(state: Dictionary, identity: String) -> void:
 	if identity != _identity or sequence != _sequence:
 		clear_effects()
 		_identity = identity
+		_action_stamp = 0
+		_cursor = -1
 		_sequence = sequence.duplicate()
 		for child in row.get_children():
 			row.remove_child(child)
@@ -83,7 +102,7 @@ func sync(state: Dictionary, identity: String) -> void:
 	elif index != _index:
 		_pending = _index
 	_index = index
-	caption.text = ZodiacCatalog.words("DANCE BABY! · STEP %d/%d", "DANCE BABY! · BƯỚC %d/%d") % [index + 1, sequence.size()]
+	caption.text = ZodiacCatalog.words("STEP %d/%d", "BƯỚC %d/%d") % [index + 1, sequence.size()]
 	caption.add_theme_color_override("font_color", GOLD)
 	for i in steps.size():
 		var active := i == index
@@ -95,6 +114,7 @@ func sync(state: Dictionary, identity: String) -> void:
 				ink.shader = RHYTHM
 				steps[i].material = ink
 		else: steps[i].material = null
+	queue_redraw()
 
 func fit_width(width: float) -> void:
 	# Preserve every action at smaller widths; never ellipsize the required move.
@@ -107,13 +127,55 @@ func fit_width(width: float) -> void:
 		pixels -= 1
 	for step in steps: step.add_theme_font_size_override("font_size", pixels)
 	row.size = Vector2(width, 28)
-	size = Vector2(width, 48)
+	hint.size.x = width
+	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	hint.add_theme_font_size_override("font_size", 11)
+	hint.hide()
+	lane_height = 55
+	size = Vector2(width, lane_height)
+
+func _process(delta: float) -> void:
+	if not is_visible_in_tree() or _paused or steps.is_empty(): return
+	_clock += delta
+	_notice_time = maxf(_notice_time - delta, 0)
+	if _notice_time <= 0:
+		hint.text = ""
+		hint.add_theme_color_override("font_color", PresentationTheme.MUTED)
+	var target := row.position.x + steps[_index].position.x + steps[_index].size.x * 0.5
+	_cursor = target if _cursor < 0 else lerpf(_cursor, target, 1 - exp(-delta * 12))
+	queue_redraw()
+
+func _draw() -> void:
+	if steps.is_empty() or _cursor < 0: return
+	# An animated conductor under the words, never a timing window.
+	for i in steps.size():
+		var x := row.position.x + steps[i].position.x + steps[i].size.x * 0.5
+		draw_line(Vector2(x - 16, 48), Vector2(x + 16, 48), Color(GOLD, 0.22), 1, true)
+		if i < _index: draw_circle(Vector2(x, 48), 2.5, PresentationTheme.MONEY_GAIN)
+	var bob := sin(_clock * 3) * 1.5
+	draw_colored_polygon(PackedVector2Array([Vector2(_cursor - 4, 53 + bob), Vector2(_cursor, 47 + bob), Vector2(_cursor + 4, 53 + bob)]), GOLD)
+	for beat in 5:
+		var height := 2 + (0.5 + 0.5 * sin(_clock * 4 + beat * 1.4)) * 5
+		draw_line(Vector2(_cursor - 12 + beat * 6, 45), Vector2(_cursor - 12 + beat * 6, 45 - height), Color(GOLD, 0.55), 1, true)
 
 func present_action(result: Dictionary) -> void:
-	if not visible or _pending < 0: return
+	if not visible or not result.get("ok", false): return
+	var context := result.get("context") as ScoringContext
+	if context != null and context.get_instance_id() == _action_stamp: return
+	if context != null:
+		_action_stamp = context.get_instance_id()
+		if context.suppression_reason == "monkey_rhythm_miss":
+			hint.text = ZodiacCatalog.words("0 VNĐ · still need ", "0 VNĐ · vẫn cần ") + ZodiacCatalog.action_label(_sequence[_index])
+			hint.add_theme_color_override("font_color", PresentationTheme.DANGER)
+			_notice_time = 1.6
+			return
+	if _pending < 0: return
 	var completed := _pending
 	_pending = -1
 	if not result.get("ok", false) or result.get("action", "") != _sequence[completed]: return
+	hint.text = ZodiacCatalog.words("LOOP COMPLETE ✓", "ĐỦ CHUỖI ✓") if _index == 0 else ZodiacCatalog.words("STEP %d ✓ · next: ", "BƯỚC %d ✓ · tiếp: ") % (completed + 1) + ZodiacCatalog.action_label(_sequence[_index])
+	hint.add_theme_color_override("font_color", PresentationTheme.MONEY_GAIN)
+	_notice_time = 1.6
 	var source := steps[completed]
 	var ghost := _label(source.get_theme_font_size("font_size"))
 	ghost.name = "CompletedDanceStep"

@@ -45,7 +45,7 @@ func _legal_action_fingerprint() -> int:
 	for card in _state().hand:
 		hand_state.append(_legal_card_identity(card))
 	var table_state: Array = []
-	for meld in _state().melds:
+	for meld in _state().table_melds():
 		var cards: Array = []
 		for card in meld.cards: cards.append(_legal_card_identity(card))
 		table_state.append([meld.meld_id, meld.meld_type, meld.run_compatibility, cards])
@@ -85,7 +85,7 @@ func _ensure_legal_action_options() -> void:
 	for card in _state().hand:
 		if _state().zodiac_boss.is_locked(card): locked_mask |= int(_legal_hand_bits[card.unique_id])
 		else: unlocked_mask |= int(_legal_hand_bits[card.unique_id])
-	for meld in _state().melds:
+	for meld in _state().table_melds():
 		structural_extensions[meld.meld_id] = {}
 		table_ids[meld.meld_id] = {}
 		table_masks[meld.meld_id] = 0
@@ -119,7 +119,7 @@ func _ensure_legal_action_options() -> void:
 			if _state().hand.size() <= 12: meld_mask |= mask
 			else:
 				for card in cards: meld_card_ids[card.unique_id] = true
-		for meld in _state().melds:
+		for meld in _state().table_melds():
 			# Equal represented identities share matching work, while physical IDs,
 			# locked cards, mandatory discards and boss guards remain per selection.
 			if _state().hand.size() <= 12:
@@ -170,7 +170,7 @@ func _legal_action_candidates() -> Array:
 			rank_intersections[mask] = rank_intersections[previous] & shape[1]
 			suit_intersections[mask] = suit_intersections[previous] & shape[2]
 	var tables: Array = []
-	for meld in _state().melds: tables.append([meld, _legal_identity_bounds(meld.cards)])
+	for meld in _state().table_melds(): tables.append([meld, _legal_identity_bounds(meld.cards)])
 	var passive_family := "red" if _state().current_drink_id == DrinkCatalog.MIA_TAC else "black" if _state().current_drink_id == DrinkCatalog.MIA_SAU_RIENG else "same"
 	var candidates: Array = []
 	for mask in range(1, total):
@@ -253,7 +253,7 @@ func legal_action_targets_for_selection(selected_cards: Array[CardData], selecte
 				for card in cards:
 					hand_card_ids[card.unique_id] = true
 	if not selected_cards.is_empty():
-		for meld in _state().melds:
+		for meld in _state().table_melds():
 			if _state().can_extend_meld(meld.meld_id, selected_cards):
 				table_meld_ids[meld.meld_id] = true
 	return {"hand": hand_card_ids, "melds": table_meld_ids}
@@ -321,7 +321,7 @@ func recommend_action() -> Dictionary:
 			if points > int(best["estimated_points"]):
 				best = {"action": HandAdvisor.ACTION_NEW_MELD, "cards": cards, "meld_type": kind, "meld_id": -1, "estimated_points": points, "use_drink": use_drink}
 	if best["action"] != HandAdvisor.ACTION_NONE: return best
-	for meld in _state().melds:
+	for meld in _state().table_melds():
 		for cards: Array[CardData] in candidates:
 			if _state().can_extend_meld(meld.meld_id, cards):
 				var points: int = _state().preview_extension_payout(meld, cards, _state().state == DealState.STATE_FINAL_COMMIT_WINDOW).points
@@ -360,7 +360,7 @@ func drink_swap_opportunities(outgoing: CardData = null) -> Array[Dictionary]:
 					if probe.can_create_meld(cards):
 						play = {"action": HandAdvisor.ACTION_NEW_MELD, "cards": cards, "meld_id": -1}
 					else:
-						for meld in probe.melds:
+						for meld in probe.table_melds():
 							if probe.can_extend_meld(meld.meld_id, cards):
 								play = {"action": HandAdvisor.ACTION_EXTENSION, "cards": cards, "meld_id": meld.meld_id}
 								break

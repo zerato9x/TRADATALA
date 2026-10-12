@@ -1,9 +1,20 @@
 extends "res://scripts/zodiac/zodiac_mechanic.gd"
 const Tactics := preload("res://scripts/zodiac/zodiac_tactics.gd")
-const PLAYER_ACTIONS := ["new_meld", "extension", "discard", "nhan_tran_swap", "den_da_swap", "nau_da_return", "nuoc_voi_return", "sam_dua_selected"]
+const PLAYER_ACTIONS := ["new_meld", "extension", "discard", "nhan_tran_swap", "den_da_swap", "nau_da_return", "nuoc_voi_return", "sam_dua_selected", "snake_refusal"]
 
 func configure(rule) -> void:
-	rule.data["commands"] = []
+	rule.data.merge({"commands": [], "command_limit": int(ZodiacCatalog.tuning("snake", "command_count", rule.difficulty)), "charm_version": 2})
+
+func restored(rule, saved: Dictionary) -> void:
+	if saved.get("data", {}).has("charm_version"): return
+	# Keep old committed losses and the first live charm; future targets must be
+	# chosen from the table after that charm resolves, not from an obsolete hand.
+	var history := []
+	for command: Dictionary in rule.data.commands:
+		history.append(command)
+		if command.get("status", "pending") == "pending": break
+	rule.data.commands = history
+	rule.data.charm_version = 2
 
 func begin_phase(rule, _deal) -> void:
 	rule.data.commands = []
@@ -59,27 +70,47 @@ func _drink_command(deal) -> Dictionary:
 			if deal.can_create_meld(cards, true): return _command("new_meld", cards[0], {"drink_id": drink, "use_drink": true, "suggested_ids": cards.map(func(card: CardData): return card.unique_id)})
 	return {}
 
-func _generate(rule, deal, count: int) -> Array:
-	var commands := []
-	var reserved := {}
-	for i in count:
-		var command := {}
-		if rule.difficulty == ZodiacCatalog.UNPLEASED and i == 0: command = _drink_command(deal)
-		if command.is_empty() and rule.difficulty >= ZodiacCatalog.NORMAL and i % 2 == 1: command = _play_command(deal, reserved)
-		if command.is_empty():
-			for card in Tactics.valuable_cards(deal):
-				if rule.is_locked(card) or reserved.has(card.unique_id) or deal.hand.size() <= 1: continue
-				command = _command("discard", card)
-				if deal.boss_discard_card(card, "snake").get("ok", false): command.status = "fulfilled"
-				break
-		if command.is_empty(): break
-		commands.append(command)
-		reserved[command.card_id] = true
-		for card_id: String in command.get("suggested_ids", []): reserved[card_id] = true
-	return commands
+func _issue_next(rule, deal, state: Dictionary) -> void:
+	var commands: Array = state.commands
+	if commands.any(func(command: Dictionary): return command.status == "pending"): return
+	var index := commands.size()
+	if index >= int(state.command_limit): return
+	var command := {}
+	if rule.difficulty == ZodiacCatalog.UNPLEASED and index == 0: command = _drink_command(deal)
+	if command.is_empty() and rule.difficulty >= ZodiacCatalog.NORMAL and index % 2 == 1: command = _play_command(deal, {})
+	if command.is_empty():
+		for card in Tactics.valuable_cards(deal):
+			if rule.is_locked(card) or deal.hand.size() <= 1: continue
+			command = _command("discard", card)
+			break
+	if command.is_empty():
+		state.command_limit = commands.size()
+		return
+	command["serial"] = rule.turn_serial * 10 + index
+	commands.append(command)
+	rule.events.append({"action": "snake_charmed", "command": command.duplicate(true), "phase": deal.current_phase, "turn_serial": rule.turn_serial})
+
+func _begin_sequence(rule, deal, state: Dictionary, count: int) -> void:
+	state["commands"] = []
+	state["command_limit"] = count
+	_issue_next(rule, deal, state)
 
 func begin_turn(rule, _phase: int, _hand: Array[CardData], deal) -> void:
-	if deal != null: rule.data.commands = _generate(rule, deal, int(ZodiacCatalog.tuning("snake", "command_count", rule.difficulty)))
+	if deal != null: _begin_sequence(rule, deal, rule.data, int(ZodiacCatalog.tuning("snake", "command_count", rule.difficulty)))
+
+func command_discard(rule, deal, requested: CardData) -> Dictionary:
+	if not rule.data.commands.any(func(command: Dictionary): return command.status == "pending"): return {}
+	# A charm is an additional action. Even a refused discard leaves the normal
+	# mandatory discard, Tra Da obligation, refill and deadwood boundary untouched.
+	if not deal.boss_discard_card(requested, "snake_charm").get("ok", false): return {}
+	var result := {"ok": true, "action": "discard", "card": requested, "drawn": [] as Array[CardData],
+		"discard_kind": DiscardRecord.KIND_BOSS_FORCED, "snake_charmed": true, "turn_continues": true}
+	_observe(rule, deal, result, rule.data)
+	return result
+
+func command_refusal(rule, action: String) -> Dictionary:
+	if not rule.data.commands.any(func(command: Dictionary): return command.status == "pending"): return {}
+	return {"ok": true, "action": "snake_refusal", "refused_action": action, "drawn": [] as Array[CardData], "snake_charmed": true, "turn_continues": true}
 
 func _matches(command: Dictionary, result: Dictionary) -> bool:
 	var action: String = result.get("action", "")
@@ -102,24 +133,25 @@ func _matches(command: Dictionary, result: Dictionary) -> bool:
 	var committed: Array[CardData] = context.added_cards if action == "extension" else context.cards
 	return committed.any(func(card: CardData): return card.unique_id == command.card_id)
 
-func _observe(rule, deal, result: Dictionary, commands: Array) -> void:
-	if result.get("action", "") not in PLAYER_ACTIONS: return
-	for command: Dictionary in commands:
+func _observe(rule, deal, result: Dictionary, state: Dictionary) -> void:
+	if not result.get("ok", false) or result.get("action", "") not in PLAYER_ACTIONS: return
+	for command: Dictionary in state.commands:
 		if command.status != "pending": continue
 		if _matches(command, result):
 			command.status = "fulfilled"
-			rule.events.append({"action": "snake_obeyed", "command": command.duplicate(true)})
+			rule.events.append({"action": "snake_obeyed", "command": command.duplicate(true), "turn_continues": true})
 		else:
 			command.status = "violated"
 			var sabotage: Dictionary = deal.boss_discard_target(command.card_id, "snake")
 			rule.events.append({"action": "snake_disobeyed", "command": command.duplicate(true), "sabotage": sabotage, "turn_continues": true})
 		break
+	_issue_next(rule, deal, state)
 
 func after_action(rule, deal, result: Dictionary) -> void:
-	_observe(rule, deal, result, rule.data.commands)
+	_observe(rule, deal, result, rule.data)
 
 func dragon_begin(rule, deal, state: Dictionary) -> void:
-	state["commands"] = _generate(rule, deal, int(ZodiacCatalog.tuning("snake", "dragon_command_count", rule.difficulty)))
+	_begin_sequence(rule, deal, state, int(ZodiacCatalog.tuning("snake", "dragon_command_count", rule.difficulty)))
 
 func dragon_after(rule, deal, result: Dictionary, state: Dictionary) -> void:
-	_observe(rule, deal, result, state.commands)
+	_observe(rule, deal, result, state)
