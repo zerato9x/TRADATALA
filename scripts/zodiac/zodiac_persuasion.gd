@@ -260,8 +260,25 @@ func _terms_valid(offer: Dictionary) -> bool:
 	return not ids.is_empty() and CardTargetQuery.resolve_ids(pool, ids).size() == ids.size()
 
 func _action_terms_valid(offer: Dictionary) -> bool:
+	if offer.get("interaction", "") == "wallet_floor":
+		return offer.get("polarity", "") == "DONT" and offer.get("window", "") == "ZODIAC_RETURN" and int(offer.get("resource_amount", 0)) > 0 and service.campaign != null and service.campaign.wallet.balance_vnd >= int(offer.resource_amount)
+	if offer.get("condition", "") == "no_recovery":
+		return offer.get("interaction", "") == "deal_action" and offer.get("polarity", "") == "DONT" and offer.get("window", "") == "NEXT_DEAL" and int(offer.get("deal_phase", -1)) in [0, 1]
 	if offer.get("interaction", "") != "deal_action" or offer.get("polarity", "") != "DO" or offer.get("window", "") != "NEXT_DEAL": return false
+	if offer.get("condition", "") == "ordered_scoring":
+		var sequence: Array = offer.get("sequence", [])
+		return int(offer.get("deal_phase", -1)) == 0 and sequence.size() in [2, 3] and sequence.all(func(action: Variant): return action in ["new_meld", "extension"])
 	if offer.get("condition", "") == "early_score": return int(offer.get("deal_phase", 0)) == 1
+	if offer.get("condition", "") == "opening_high_rank": return int(offer.get("deal_phase", 0)) == 1
+	if offer.get("condition", "") == "recover_then_play": return int(offer.get("deal_phase", -1)) == 0 and offer.get("recovery_source", "") in ["discard", "meld", "any"]
+	if offer.get("condition", "") == "extension_cards": return int(offer.get("deal_phase", -1)) == 0 and int(offer.get("card_count", 0)) > 0
+	if offer.get("condition", "") == "new_meld_size": return int(offer.get("deal_phase", -1)) == 0 and int(offer.get("card_count", 0)) in range(3, 14)
+	if offer.get("condition", "") == "scoring_income": return int(offer.get("deal_phase", -1)) == 0 and int(offer.get("resource_amount", 0)) > 0
+	if offer.get("condition", "") == "settlement_deadwood": return int(offer.get("deal_phase", 0)) == 1 and int(offer.get("point_limit", -1)) >= 0
+	if offer.get("condition", "") == "action_variety": return int(offer.get("deal_phase", -1)) == 0
+	if offer.get("condition", "") == "same_turn_actions": return int(offer.get("deal_phase", -1)) == 0 and int(offer.get("action_count", 0)) >= 2
+	if offer.get("condition", "") in ["distinct_ranks", "rank_run"]: return int(offer.get("deal_phase", -1)) == 0 and int(offer.get("rank_count", 0)) in range(2, 14)
+	if offer.get("condition", "") == "extend_first_meld": return int(offer.get("deal_phase", 0)) == 1
 	return offer.get("condition", "") == "do_action" and offer.get("action", "") in ["new_meld", "extension"] and int(offer.get("deal_phase", -1)) in [0, 1, 2]
 
 func can_haggle() -> bool:
@@ -380,6 +397,7 @@ func start_deal(period: String) -> void:
 		if promise.get("engine", "") != "persuasion" or promise.get("outcome_applied", false): continue
 		promise.started = true
 		promise["deal_started"] = true
+		promise["observation_ready"] = false
 
 func finish_deal(period: String) -> void:
 	if period != "afternoon": return
@@ -389,34 +407,201 @@ func finish_deal(period: String) -> void:
 func observe_action(result: Dictionary, event_id: String) -> void:
 	if service.is_restoring() or service.campaign == null or service.deal == null or not result.get("ok", false): return
 	if service.campaign.current_phase != CampaignManager.CampaignPhase.AFTERNOON_DEAL: return
+	if result.get("action", "") in ["start_deal", "start_tutorial_deal"]:
+		for pending: Dictionary in service.daily.get("promises", []):
+			if pending.get("engine", "") != "persuasion" or not pending.get("deal_started", false) or pending.get("completed", false): continue
+			pending["observation_ready"] = true
+			if pending.accepted_terms.get("condition", "") == "opening_high_rank" and not pending.get("opening_bound", false):
+				pending["opening_bound"] = true
+				var highest := 0
+				for card: CardData in service.deal.hand: highest = maxi(highest, card.rank_index)
+				var targets: Array[CardData] = service.deal.hand.filter(func(card: CardData): return card.rank_index == highest)
+				pending["opening_rank"] = highest
+				pending["opening_ids"] = CardTargetQuery.physical_ids(targets)
+				var labels: String = ", ".join(targets.map(func(card: CardData): return card.short_label()))
+				pending.memory_details["opening_targets"] = {}
+				for card: CardData in targets: pending.memory_details.opening_targets[card.unique_id] = card.short_label()
+				pending.memory_details["commitment_en"] += "\nOpening targets: " + labels
+				pending.memory_details["commitment_vi"] += "\nLá mở đầu: " + labels
+		return
+	# Setup controls can still refer to Phase 2 of the preceding Deal.
+	if result.get("action", "") not in ["new_meld", "extension", "discard", "phase_settlement", "phase_transition", "empty_turn_end", "tra_da_extra_skipped", "nhan_tran_swap", "den_da_swap", "nuoc_voi_return", "nau_da_return"]: return
 	for promise: Dictionary in service.daily.get("promises", []):
-		if promise.get("engine", "") != "persuasion" or not promise.get("deal_started", false) or promise.get("completed", false) or promise.get("outcome_applied", false): continue
+		if promise.get("engine", "") != "persuasion" or not promise.get("deal_started", false) or not promise.get("observation_ready", true) or promise.get("completed", false) or promise.get("outcome_applied", false): continue
 		var offer: Dictionary = promise.accepted_terms
-		if offer.get("interaction", "") != "deal_action" or promise.observations.has(event_id): continue
+		if offer.get("interaction", "") not in ["deal_action", "card_play"] or promise.observations.has(event_id): continue
 		var action: String = result.get("action", "")
 		var phase: int = service.deal.current_phase
 		var context: ScoringContext = result.get("context")
 		var matches := false
-		if offer.condition == "early_score":
+		var progressed := false
+		if offer.get("condition", "") == "recover_then_play" or offer.get("recover_first", false):
+			var recovered: Array = promise.get("recovered_ids", []).duplicate()
+			for id: String in _recovery_ids(result, offer.get("recovery_source", "any")):
+				if id not in recovered: recovered.append(id); progressed = true
+			promise["recovered_ids"] = recovered
+		if offer.interaction == "card_play":
+			# Only physical cards committed into a Meld count, never swaps/discards.
+			matches = action in ["new_meld", "extension"] and context != null and result.get("committed_card_ids", []).any(func(id: String): return id in promise.target_ids)
+			if int(offer.get("deal_phase", 0)) > 0:
+				matches = matches and phase == int(offer.deal_phase)
+				if not promise.matched and (phase > int(offer.deal_phase) or (action == "phase_settlement" and phase == int(offer.deal_phase))): promise.broken = true
+			if offer.get("require_income", false): matches = matches and int(result.get("earned_vnd", 0)) > 0
+			if matches and offer.get("recover_first", false):
+				matches = result.get("committed_card_ids", []).any(func(id: String): return id in promise.target_ids and id in promise.get("recovered_ids", []))
+			if matches and int(offer.get("minimum_cards", 0)) > 0:
+				matches = (context.added_cards if action == "extension" else context.cards).size() >= int(offer.minimum_cards)
+			if not String(offer.get("action", "")).is_empty(): matches = matches and action == offer.action
+			if matches and offer.get("adjacent_rank", false):
+				var committed: Array[CardData] = context.added_cards if action == "extension" else context.cards
+				matches = committed.any(func(card: CardData): return card.unique_id in promise.target_ids and committed.any(func(neighbor: CardData): return neighbor.unique_id != card.unique_id and absi(neighbor.rank_index - card.rank_index) == 1))
+		elif offer.condition == "ordered_scoring":
+			if not promise.matched and not promise.broken:
+				if action in ["new_meld", "extension"] and context != null:
+					var cursor := int(promise.get("sequence_cursor", 0))
+					var sequence: Array = offer.sequence
+					if cursor < sequence.size() and action == sequence[cursor]:
+						promise["sequence_cursor"] = cursor + 1
+						progressed = true
+						matches = cursor + 1 == sequence.size()
+					else: promise.broken = true
+				elif action == "phase_settlement" and int(result.get("phase_resolution", {}).get("phase", 0)) == 2: promise.broken = true
+		elif offer.condition == "no_recovery":
+			var deadline := 2 if int(offer.deal_phase) == 0 else int(offer.deal_phase)
+			if phase <= deadline and not _recovery_ids(result, "any").is_empty(): promise.broken = true
+			if action == "phase_settlement" and int(result.get("phase_resolution", {}).get("phase", 0)) == deadline:
+				matches = true
+		elif offer.condition == "recover_then_play":
+			matches = action in ["new_meld", "extension"] and context != null and result.get("committed_card_ids", []).any(func(id: String): return id in promise.get("recovered_ids", []))
+		elif offer.condition == "extension_cards":
+			if action == "extension" and context != null:
+				var added: Array = promise.get("extended_ids", []).duplicate()
+				for id: String in result.get("committed_card_ids", []):
+					if id not in added: added.append(id); progressed = true
+				promise["extended_ids"] = added
+				matches = added.size() >= int(offer.card_count)
+		elif offer.condition == "new_meld_size":
+			matches = action == "new_meld" and context != null and context.cards.size() >= int(offer.card_count)
+		elif offer.condition == "opening_high_rank":
+			matches = phase == 1 and action in ["new_meld", "extension"] and context != null and result.get("committed_card_ids", []).any(func(id: String): return id in promise.get("opening_ids", []))
+			if offer.get("before_first_discard", true): matches = matches and service.deal.discard_count == 0
+			if not promise.matched and (phase > 1 or (action == "phase_settlement" and phase == 1) or (offer.get("before_first_discard", true) and action == "discard" and result.get("discard_kind", "") == DiscardRecord.KIND_MANDATORY)): promise.broken = true
+		elif offer.condition == "early_score":
 			matches = phase == 1 and service.deal.discard_count == 0 and action in ["new_meld", "extension"] and context != null and context.final_points > 0
 			if not promise.get("matched", false) and (phase > 1 or (action == "discard" and result.get("discard_kind", "") == DiscardRecord.KIND_MANDATORY)):
 				promise.broken = true
+		elif offer.condition == "same_turn_actions":
+			var turn_key := "%d:%d" % [phase, service.deal.discard_count]
+			if not promise.matched:
+				var boundary: bool = (action == "discard" and result.get("discard_kind", "") == DiscardRecord.KIND_MANDATORY) or action in ["phase_settlement", "phase_transition", "empty_turn_end"]
+				if promise.get("action_turn", "") != turn_key or boundary:
+					progressed = not promise.get("turn_actions", {}).is_empty()
+					promise["action_turn"] = turn_key
+					promise["turn_actions"] = {}
+				if action in ["new_meld", "extension"] and context != null:
+					var counts: Dictionary = promise.get("turn_actions", {}).duplicate()
+					counts[action] = int(counts.get(action, 0)) + 1
+					promise["turn_actions"] = counts
+					progressed = true
+					var count: int = maxi(int(counts.get("new_meld", 0)), int(counts.get("extension", 0))) if offer.get("same_action", true) else int(counts.get("new_meld", 0)) + int(counts.get("extension", 0))
+					matches = count >= int(offer.action_count)
+		elif offer.condition in ["distinct_ranks", "rank_run"]:
+			if action in ["new_meld", "extension"] and context != null:
+				var ranks := _committed_ranks(action, context)
+				if offer.condition == "distinct_ranks" and context.final_points > 0:
+					var heard: Array = promise.get("scored_ranks", []).duplicate()
+					for rank: int in ranks:
+						if rank not in heard: heard.append(rank)
+					heard.sort()
+					progressed = heard != promise.get("scored_ranks", [])
+					promise["scored_ranks"] = heard
+					matches = heard.size() >= int(offer.rank_count)
+				elif offer.condition == "rank_run":
+					matches = ranks.size() >= int(offer.rank_count)
+					for index in range(1, ranks.size()):
+						if ranks[index] != ranks[index - 1] + 1: matches = false
+		elif offer.condition == "scoring_income":
+			if action in ["new_meld", "extension"] and context != null and int(result.get("earned_vnd", 0)) > 0:
+				promise["earned_vnd"] = int(promise.get("earned_vnd", 0)) + int(result.earned_vnd)
+				progressed = true
+				matches = int(promise.earned_vnd) >= int(offer.resource_amount)
+		elif offer.condition == "settlement_deadwood":
+			var settlement: Dictionary = result.get("phase_resolution", {})
+			if action == "phase_settlement" and int(settlement.get("phase", 0)) == int(offer.deal_phase) and settlement.has("deadwood_penalty"):
+				var penalty := int(settlement.deadwood_penalty)
+				if penalty >= 0:
+					promise["settlement_penalty"] = penalty
+					progressed = true
+					matches = penalty <= int(offer.point_limit)
+					if not matches: promise.broken = true
+		elif offer.condition == "action_variety":
+			if action in ["new_meld", "extension"] and context != null and context.final_points > 0:
+				var paid: Array = promise.get("paid_actions", []).duplicate()
+				if action not in paid:
+					paid.append(action)
+					promise["paid_actions"] = paid
+					progressed = true
+				matches = "new_meld" in paid and "extension" in paid
+		elif offer.condition == "extend_first_meld":
+			if phase == 1 and context != null:
+				if action == "new_meld" and int(promise.get("first_meld_id", -1)) < 0:
+					promise["first_meld_id"] = int(result.get("meld_id", -1))
+					promise["first_meld_turn"] = service.deal.discard_count
+					progressed = int(promise.first_meld_id) >= 0
+				elif action == "extension":
+					matches = int(promise.get("first_meld_id", -1)) >= 0 and int(result.get("meld_id", -1)) == int(promise.first_meld_id)
+					if offer.get("same_turn", false): matches = matches and int(promise.get("first_meld_turn", -1)) == service.deal.discard_count
+			if offer.get("same_turn", false) and not promise.matched:
+				if phase > 1 or action == "phase_settlement" or (int(promise.get("first_meld_id", -1)) >= 0 and action == "discard" and result.get("discard_kind", "") == DiscardRecord.KIND_MANDATORY): promise.broken = true
 		elif action == offer.action and context != null:
 			matches = int(offer.deal_phase) == 0 or phase == int(offer.deal_phase)
-		if not matches and not promise.broken: continue
-		promise.observations[event_id] = {"action": action, "phase": phase, "mandatory_discards": service.deal.discard_count, "matched": matches}
+		if not matches and not promise.broken and not progressed: continue
+		promise.observations[event_id] = {"action": action, "phase": phase, "mandatory_discards": service.deal.discard_count, "matched": matches,
+			"meld_id": int(result.get("meld_id", -1)), "card_ids": result.get("committed_card_ids", []).duplicate(),
+			"earned_vnd": int(result.get("earned_vnd", 0)), "settlement_penalty": int(promise.get("settlement_penalty", -1))}
 		if matches and not promise.broken: promise.matched = true
 		service.changed.emit()
+
+func _recovery_ids(result: Dictionary, source: String) -> Array[String]:
+	var ids: Array[String] = []
+	var action: String = result.get("action", "")
+	var returned: Array[CardData] = []
+	if source in ["discard", "any"] and action in ["nhan_tran_swap", "den_da_swap"] and result.get("recovered") is CardData:
+		returned.append(result.recovered)
+	elif source in ["meld", "any"] and action == "nuoc_voi_return" and result.get("card") is CardData:
+		returned.append(result.card)
+	elif source in ["meld", "any"] and action == "nau_da_return":
+		returned.assign(result.get("returned", []))
+	for card: CardData in returned:
+		if card.unique_id not in ids: ids.append(card.unique_id)
+	return ids
+
+func _committed_ranks(action: String, context: ScoringContext) -> Array[int]:
+	var ranks: Array[int] = []
+	# Printed ranks, not hypothetical rank choices or old Extension cards.
+	for card: CardData in (context.added_cards if action == "extension" else context.cards):
+		if card.rank_index not in ranks: ranks.append(card.rank_index)
+	ranks.sort()
+	return ranks
 
 func observe_cards(ids: Array, event_id: String, interaction: String) -> void:
 	if service.is_restoring(): return
 	for promise: Dictionary in service.daily.get("promises", []):
 		if promise.get("engine", "") != "persuasion" or not promise.get("started", false) or promise.get("outcome_applied", false): continue
 		if promise.accepted_terms.interaction != interaction: continue
-		if promise.window == "NEXT_DEAL" and (promise.completed or service.campaign.current_phase != int(promise.phase)): continue
+		if promise.window == "NEXT_DEAL" and (promise.completed or not promise.get("observation_ready", true) or service.campaign.current_phase != int(promise.phase)): continue
 		if not ids.any(func(id: String): return id in promise.target_ids) or promise.observations.has(event_id): continue
 		promise.observations[event_id] = {"interaction": interaction, "target_ids": ids.duplicate()}
 		promise.broken = true
+		service.changed.emit()
+
+func observe_wallet(current: int, event_id: String) -> void:
+	if service.is_restoring() or service.campaign == null: return
+	for promise: Dictionary in service.daily.get("promises", []):
+		if promise.get("engine", "") != "persuasion" or not promise.get("started", false) or promise.get("outcome_applied", false) or promise.get("broken", false): continue
+		if promise.accepted_terms.get("interaction", "") != "wallet_floor" or current >= int(promise.accepted_terms.resource_amount): continue
+		promise.broken = true
+		promise.observations[event_id] = {"interaction": "wallet_floor", "balance_vnd": current}
 		service.changed.emit()
 
 func observe_inventory() -> void:
@@ -432,13 +617,14 @@ func observe_inventory() -> void:
 func judge() -> void:
 	if state().is_empty() or state().get("judged", false): return
 	observe_inventory()
+	observe_wallet(service.campaign.wallet.balance_vnd, service.record_key("wallet:judgement"))
 	for promise: Dictionary in service.daily.get("promises", []).duplicate():
 		if promise.get("engine", "") != "persuasion" or promise.get("outcome_applied", false): continue
 		if not promise.get("completed", false): continue
 		if promise.accepted_terms.interaction == "card_alter":
 			var cards := CardTargetQuery.resolve_ids(service.campaign.gieo_que.persistent_deck, promise.target_ids)
 			if cards.is_empty() or cards[0].persuasion_fingerprint() != promise.baseline: promise.broken = true
-		var success: bool = not bool(promise.broken) and (promise.accepted_terms.get("interaction", "") != "deal_action" or bool(promise.get("matched", false)))
+		var success: bool = not bool(promise.broken) and (promise.accepted_terms.get("interaction", "") not in ["deal_action", "card_play"] or bool(promise.get("matched", false)))
 		var authored: Dictionary = promise.outcomes["FULFILLED" if success else "BROKEN"]
 		# Settle once, before emitting observers or writing permanent history.
 		promise.outcome_applied = true
@@ -469,7 +655,9 @@ func reminder() -> String:
 	for promise: Dictionary in service.daily.get("promises", []):
 		if promise.get("engine", "") != "persuasion" or promise.get("outcome_applied", false): continue
 		var line := describe_terms(promise.accepted_terms)
-		if promise.accepted_terms.get("interaction", "") == "deal_action":
+		if promise.accepted_terms.get("condition", "") == "scoring_income":
+			line += "\n" + VndWallet.format_amount(int(promise.get("earned_vnd", 0))) + " / " + VndWallet.format_vnd(int(promise.accepted_terms.resource_amount))
+		if promise.accepted_terms.get("interaction", "") in ["deal_action", "card_play", "wallet_floor"]:
 			line += "\n" + (ZodiacCatalog.words("Done · judged on return", "Đã làm · xét khi gặp lại") if promise.get("matched", false) else ZodiacCatalog.words("Deadline missed", "Đã quá hạn") if promise.broken else ZodiacCatalog.words("Pending", "Chưa hoàn thành"))
 		lines.append(line)
 	return "\n".join(lines)

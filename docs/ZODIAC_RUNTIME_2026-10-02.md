@@ -40,7 +40,7 @@ All numeric boss tuning lives in `ZodiacCatalog.TUNING`.
 - Goat's unspecified initial note is chosen by the first qualifying paid action; ranks then ascend and wrap K to A. A multi-card action must follow the exact consecutive ranks of the newly committed cards.
 - Legacy history without positive actual payout cannot supply an invented average. Dragon explicitly falls back to `new_meld:set`, reports average zero, and uses a **50,000 VNĐ** fallback basis scaled by difficulty.
 - Dragon mini Ox uses multipliers **2/2/4** rather than retaining the full encounter's growing burden. Mini Goat selects a note compatible with Dragon's required tactic; hard parity is applied when a compatible legal note exists. The mini systems deliberately omit full encounter phase restrictions and accumulated obligations.
-- Daytime demand profiles are currently authored for Rooster and Cat. Other visitors remain inert at Noon/Afternoon and default to NORMAL evening difficulty; their existing evening rules and provisional unlock prerequisites are retained. New favorite-gift identities are empty pending character content.
+- This runtime snapshot originally had daytime profiles for Rooster and Cat. Current authored persuasion also covers [Monkey and Dog](MONKEY_DOG_EXPANSION_2026-10-12.md), [Pig and Buffalo](PIG_OX_EXPANSION_2026-10-12.md), [Horse and Goat](HORSE_GOAT_EXPANSION_2026-10-13.md), [Rat and Tiger](RAT_TIGER_EXPANSION_2026-10-13.md), and [Snake](SNAKE_EXPANSION_2026-10-13.md). All eleven available visitors now have authored Noon/Afternoon persuasion through Kindred. Dragon remains disabled; its dormant evening implementation is retained. New favorite-gift identities are empty pending character content.
 
 ## Save format
 

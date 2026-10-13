@@ -29,7 +29,30 @@ static func drink(id: String) -> String:
 
 static func demand(offer: Dictionary) -> String:
 	if offer.is_empty(): return ""
+	if offer.get("condition", "") == "ordered_scoring": return words("First plays: Meld → Extend", "Hạ đầu: Phỏm → Nối") + (words(" → Meld", " → Phỏm") if offer.sequence.size() == 3 else "")
+	if offer.get("condition", "") == "no_recovery": return words("No Drink recovery · ", "Không lấy bài bằng Nước · ") + (words("P1", "H1") if int(offer.deal_phase) == 1 else words("whole Deal", "cả Ván"))
 	if offer.has("interaction"):
+		if offer.get("condition", "") == "recover_then_play": return words("Next Deal: recover a card, then play it", "Ván tới: lấy lại một lá rồi hạ")
+		if offer.get("condition", "") == "extension_cards": return words("Next Deal: Extend ", "Ván tới: Nối ") + str(offer.card_count) + words(" different cards", " lá khác nhau")
+		if offer.get("condition", "") == "new_meld_size": return words("Next Deal: new Meld ≥", "Ván tới: Phỏm mới ≥") + str(offer.card_count) + words(" cards", " lá")
+		if offer.get("condition", "") == "opening_high_rank": return words("P1: opening high card", "H1: lá cao nhất mở đầu") + (words(" before discard #1", " trước lần bỏ #1") if offer.get("before_first_discard", true) else words(" before settlement", " trước khi chốt"))
+		if offer.interaction == "card_play" and offer.get("recover_first", false): return words("Next Deal: recover chosen card, then play it", "Ván tới: lấy lại lá chọn rồi hạ")
+		if offer.interaction == "card_play" and int(offer.get("minimum_cards", 0)) > 0: return words("Next Deal: chosen card in new Meld ≥", "Ván tới: lá chọn trong Phỏm mới ≥") + str(offer.minimum_cards)
+		if offer.get("condition", "") == "same_turn_actions": return words("One Turn: ", "Một Lượt: ") + (words("2 Melds or 2 Extensions", "2 Phỏm hoặc 2 Nối") if offer.get("same_action", true) else words("2 Meld/Extension actions", "2 nước Phỏm/Nối"))
+		if offer.get("condition", "") == "distinct_ranks": return words("Next Deal: score with ", "Ván tới: ghi điểm bằng ") + str(offer.rank_count) + words(" different ranks", " hạng khác nhau")
+		if offer.get("condition", "") == "rank_run": return words("One play: ", "Một nước: ") + str(offer.rank_count) + words(" consecutive new ranks", " hạng mới liên tiếp")
+		if offer.get("same_turn", false) and offer.get("condition", "") == "extend_first_meld": return words("P1: first Meld + Extension in one Turn", "H1: Phỏm đầu + Nối trong một Lượt")
+		if offer.interaction == "card_play" and offer.get("action", "") == "extension": return words("Next Deal: add chosen card through Extension", "Ván tới: thêm lá chọn bằng Nối")
+		if offer.interaction == "card_play" and offer.get("adjacent_rank", false): return words("Next Deal: chosen card + adjacent new rank", "Ván tới: lá chọn + hạng mới liền kề")
+		if offer.get("condition", "") == "scoring_income": return words("Next Deal: earn ", "Ván tới: kiếm ") + VndWallet.format_vnd(int(offer.resource_amount)) + words(" from Melds/Extensions", " bằng Phỏm/Nối")
+		if offer.get("condition", "") == "settlement_deadwood": return words("P1 final Deadwood ≤ ", "Bài rác cuối H1 ≤ ") + str(offer.point_limit) + " PTS"
+		if offer.interaction == "wallet_floor": return words("Keep wallet ≥ ", "Giữ ví ≥ ") + VndWallet.format_vnd(int(offer.resource_amount)) + words(" until return", " tới lần gặp sau")
+		if offer.interaction == "card_play" and int(offer.get("deal_phase", 0)) == 1: return words("P1: play your chosen card in a Meld", "H1: hạ lá đã chọn vào Phỏm")
+		if offer.interaction == "card_play" and offer.get("require_income", false): return words("Next Deal: chosen card in a paying Meld", "Ván tới: hạ lá chọn vào Phỏm trả tiền")
+		if offer.interaction == "deal_action" and offer.get("condition", "") == "do_action" and int(offer.get("deal_phase", 0)) == 2: return words("P2: Extension ≥1", "H2: Nối ≥1")
+		if offer.get("condition", "") == "action_variety": return words("Next Deal: score with Meld + Extension", "Ván tới: ghi điểm bằng Phỏm + Nối")
+		if offer.get("condition", "") == "extend_first_meld": return words("P1: create and extend your first Meld", "H1: tạo rồi Nối Phỏm đầu tiên")
+		if offer.interaction == "card_play": return words("Next Deal: play your chosen card in a Meld", "Ván tới: hạ lá đã chọn vào Phỏm")
 		if offer.interaction == "deal_action":
 			if offer.get("condition", "") == "early_score":
 				return words("Next Deal: score in Phase 1 before discard #1", "Ván kế: ghi điểm ở Hiệp 1 trước lần bỏ #1")
@@ -56,6 +79,22 @@ static func demand(offer: Dictionary) -> String:
 	return line + "\n" + (words("You choose", "Bạn chọn") if ZodiacDemand.player_controls(offer) else words("Random", "Ngẫu nhiên") if offer.get("authority", "") == "RANDOM" else words("Zodiac chooses", "Con Giáp chọn"))
 
 static func promise(terms: Dictionary, deck: Array[CardData]) -> String:
+	if terms.get("condition", "") == "ordered_scoring": return words("Meld → Extend", "Phỏm → Nối") + (words(" → Meld", " → Phỏm") if terms.sequence.size() == 3 else "")
+	if terms.get("condition", "") == "no_recovery": return words("No recovery · ", "Không lấy lại · ") + (words("P1", "H1") if int(terms.deal_phase) == 1 else words("P1/P2", "H1/H2"))
+	if terms.get("condition", "") == "recover_then_play": return words("Recover → play", "Lấy lại → hạ")
+	if terms.get("condition", "") == "extension_cards": return words("Extend cards ≥", "Lá Nối ≥") + str(terms.card_count)
+	if terms.get("condition", "") == "new_meld_size": return words("New Meld ≥", "Phỏm mới ≥") + str(terms.card_count)
+	if terms.get("condition", "") == "opening_high_rank": return words("Opening high · P1", "Cao nhất mở đầu · H1")
+	if terms.get("condition", "") == "same_turn_actions": return words("One Turn: 2 matching plays", "Một Lượt: 2 nước cùng loại") if terms.get("same_action", true) else words("One Turn: 2 plays", "Một Lượt: 2 nước")
+	if terms.get("condition", "") == "distinct_ranks": return words("Scoring ranks: ", "Hạng ghi điểm: ") + str(terms.rank_count)
+	if terms.get("condition", "") == "rank_run": return words("New ranks in order ≥", "Hạng mới liên tiếp ≥") + str(terms.rank_count)
+	if terms.get("condition", "") == "extend_first_meld" and terms.has("same_turn"): return words("P1: first Meld + Extend", "H1: Phỏm đầu + Nối")
+	if terms.get("condition", "") == "scoring_income": return words("Meld/Extend: ", "Phỏm/Nối: ") + VndWallet.format_vnd(int(terms.resource_amount))
+	if terms.get("condition", "") == "settlement_deadwood": return words("P1 final Deadwood≤", "Bài rác cuối H1≤") + str(terms.point_limit)
+	if terms.get("interaction", "") == "wallet_floor": return words("Wallet ≥ ", "Ví ≥ ") + VndWallet.format_vnd(int(terms.resource_amount))
+	if terms.get("condition", "") == "do_action" and int(terms.get("deal_phase", 0)) == 2: return words("P2: Extension ≥1", "H2: Nối ≥1")
+	if terms.get("condition", "") == "action_variety": return words("Score with Meld + Extension · P1/P2", "Ghi điểm bằng Phỏm + Nối · H1/H2")
+	if terms.get("condition", "") == "extend_first_meld": return words("P1: extend your first new Meld", "H1: Nối Phỏm mới đầu tiên")
 	if terms.get("interaction", "") == "deal_action":
 		if terms.get("condition", "") == "early_score": return words("Score before discard #1", "Điểm trước lần bỏ #1")
 		if terms.get("action", "") == "new_meld": return words("P1: new Meld ≥1", "H1: Phỏm mới ≥1")
@@ -67,4 +106,36 @@ static func promise(terms: Dictionary, deck: Array[CardData]) -> String:
 		return (words("Keep", "Giữ") if negative else words("Lose", "Mất")) + " " + RelicCatalog.display_name(terms.get("relic_id", ""))
 	var labels: Array[String] = []
 	for card in CardTargetQuery.resolve_ids(deck, terms.get("target_ids", [])): labels.append(card.short_label())
+	if terms.get("interaction", "") == "card_play": action = words("Play in a Meld:", "Hạ vào Phỏm:")
+	if terms.get("interaction", "") == "card_play" and int(terms.get("deal_phase", 0)) == 1: action = words("P1: play in Meld:", "H1: hạ vào Phỏm:")
+	if terms.get("interaction", "") == "card_play" and terms.get("require_income", false): action = words("Paying play:", "Nước trả tiền:")
+	if terms.get("interaction", "") == "card_play" and terms.get("action", "") == "extension": action = words("Extend:", "Nối:")
+	if terms.get("interaction", "") == "card_play" and terms.get("adjacent_rank", false): action = words("With neighbor:", "Cùng lá liền kề:")
+	if terms.get("interaction", "") == "card_play" and terms.get("recover_first", false): action = words("Recover/play:", "Lấy lại/hạ:")
+	if terms.get("interaction", "") == "card_play" and int(terms.get("minimum_cards", 0)) > 0: action = words("New ≥", "Mới ≥") + str(terms.minimum_cards) + ":"
 	return action + " " + ", ".join(labels)
+
+static func promise_status(pending: Dictionary, deck: Array[CardData]) -> String:
+	var terms: Dictionary = pending.accepted_terms
+	if terms.get("condition", "") == "ordered_scoring":
+		var cursor := mini(int(pending.get("sequence_cursor", 0)), terms.sequence.size())
+		var progress := "%d/%d" % [cursor, terms.sequence.size()]
+		if cursor >= terms.sequence.size(): return words("Phrase: ", "Câu nhạc: ") + progress
+		return words("Next: ", "Tiếp: ") + (words("Meld", "Phỏm") if terms.sequence[cursor] == "new_meld" else words("Extend", "Nối")) + " · " + progress
+	if terms.get("condition", "") == "recover_then_play":
+		return words("Recovered + played", "Đã lấy lại + hạ") if pending.get("matched", false) else words("Recovered · play next", "Đã lấy lại · chờ hạ") if not pending.get("recovered_ids", []).is_empty() else words("Recover → play", "Lấy lại → hạ")
+	if terms.get("condition", "") == "extension_cards":
+		return words("Added cards: ", "Lá mới: ") + "%d / %d" % [mini(pending.get("extended_ids", []).size(), int(terms.card_count)), int(terms.card_count)]
+	if terms.get("condition", "") == "opening_high_rank":
+		var rank: int = pending.get("opening_rank", 0)
+		var deadline := words("Before discard #1: ", "Trước bỏ #1: ") if terms.get("before_first_discard", true) else words("P1 high: ", "Cao H1: ")
+		return deadline + (DeckManager.RANKS[rank - 1] if rank in range(1, 14) else "?")
+	if terms.get("condition", "") == "same_turn_actions":
+		var counts: Dictionary = pending.get("turn_actions", {})
+		var count := maxi(int(counts.get("new_meld", 0)), int(counts.get("extension", 0))) if terms.get("same_action", true) else int(counts.get("new_meld", 0)) + int(counts.get("extension", 0))
+		return (words("Same type: ", "Cùng loại: ") if terms.get("same_action", true) else words("This Turn: ", "Lượt này: ")) + "%d / %d" % [mini(count, int(terms.action_count)), int(terms.action_count)]
+	if terms.get("condition", "") == "distinct_ranks":
+		return words("Ranks: ", "Hạng: ") + "%d / %d" % [mini(pending.get("scored_ranks", []).size(), int(terms.rank_count)), int(terms.rank_count)]
+	if terms.get("condition", "") == "scoring_income":
+		return VndWallet.format_amount(mini(int(pending.get("earned_vnd", 0)), int(terms.resource_amount))) + " / " + VndWallet.format_vnd(int(terms.resource_amount))
+	return promise(terms, deck)

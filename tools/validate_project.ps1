@@ -144,6 +144,21 @@ try {
         Invoke-Check 'rooster-scene' 'res://tests/rooster_persuasion_scene_smoke.gd'
         Invoke-Check 'rooster-write' 'res://tests/rooster_persuasion_resume_smoke.gd' @('--write')
         Invoke-Check 'rooster-read' 'res://tests/rooster_persuasion_resume_smoke.gd' @('--read')
+        Invoke-Check 'monkey-dog-scene' 'res://tests/monkey_dog_persuasion_scene_smoke.gd'
+        Invoke-Check 'monkey-dog-write' 'res://tests/monkey_dog_persuasion_resume_smoke.gd' @('--write')
+        Invoke-Check 'monkey-dog-read' 'res://tests/monkey_dog_persuasion_resume_smoke.gd' @('--read')
+        Invoke-Check 'pig-ox-scene' 'res://tests/pig_ox_persuasion_scene_smoke.gd'
+        Invoke-Check 'pig-ox-write' 'res://tests/pig_ox_persuasion_resume_smoke.gd' @('--write')
+        Invoke-Check 'pig-ox-read' 'res://tests/pig_ox_persuasion_resume_smoke.gd' @('--read')
+        Invoke-Check 'horse-goat-scene' 'res://tests/horse_goat_persuasion_scene_smoke.gd'
+        Invoke-Check 'horse-goat-write' 'res://tests/horse_goat_persuasion_resume_smoke.gd' @('--write')
+        Invoke-Check 'horse-goat-read' 'res://tests/horse_goat_persuasion_resume_smoke.gd' @('--read')
+        Invoke-Check 'rat-tiger-scene' 'res://tests/rat_tiger_persuasion_scene_smoke.gd'
+        Invoke-Check 'rat-tiger-write' 'res://tests/rat_tiger_persuasion_resume_smoke.gd' @('--write')
+        Invoke-Check 'rat-tiger-read' 'res://tests/rat_tiger_persuasion_resume_smoke.gd' @('--read')
+        Invoke-Check 'snake-scene' 'res://tests/snake_persuasion_scene_smoke.gd'
+        Invoke-Check 'snake-write' 'res://tests/snake_persuasion_resume_smoke.gd' @('--write')
+        Invoke-Check 'snake-read' 'res://tests/snake_persuasion_resume_smoke.gd' @('--read')
         Invoke-Check 'cat-write' 'res://tests/cat_persuasion_resume_smoke.gd' @('--write')
         Invoke-Check 'cat-read' 'res://tests/cat_persuasion_resume_smoke.gd' @('--read')
         Invoke-Check 'negotiation' 'res://tests/zodiac_negotiation_tests.gd'

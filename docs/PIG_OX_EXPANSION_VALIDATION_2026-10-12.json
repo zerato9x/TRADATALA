@@ -1,0 +1,962 @@
+{
+  "date": "2026-10-12",
+  "timezone": "Asia/Bangkok",
+  "godot": "4.7.1.stable.official.a13da4feb",
+  "base_head": "6c183f097d08f47ec762aaac640651ca2fae81f9",
+  "status": "PASS",
+  "provenance": "Collected passing feature and regression logs from fresh Godot processes with isolated user profiles. Final gameplay source passed core and save checks after the new-Deal observation guard; the rendered smoke passed after its live settlement transition was awaited.",
+  "core": {
+    "failed": 0,
+    "passed": 472,
+    "total": 472,
+    "new_pair_tests": 23
+  },
+  "rendered_pair": {
+    "fixtures": "Actual GUI scoring and card promises; published wallet breach/refund; actual GUI SettLe on a controlled Black Ink hand; controlled history and Emblem eligibility for branch coverage",
+    "captures": 28,
+    "viewports": [
+      "1280x720",
+      "1920x1080"
+    ],
+    "input": "Synthetic pointer and keyboard input through real MatchUI controls",
+    "checks": 1982,
+    "renderer": "Compatibility OpenGL",
+    "failures": 0,
+    "locales": [
+      "en",
+      "vi"
+    ]
+  },
+  "save_pairs": {
+    "failures": 0,
+    "states": 40,
+    "write_checks": 81,
+    "separate_processes": true,
+    "permanent_profile_and_file_isolation": true,
+    "read_checks": 153
+  },
+  "editor_import": {
+    "stdout_sha256": "494ab4f8545339b0b10df1ac707208ec01ff49735e529c17c38889cd2f042f5f",
+    "stdout": ".godot/validation/pig-ox-import.log",
+    "stderr": ".godot/validation/pig-ox-import.err.log",
+    "pass": true,
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "registered_checks": [
+    {
+      "name": "parse",
+      "pass": true,
+      "rendered": false,
+      "completion_markers": [],
+      "stdout": ".godot/validation/parse.log",
+      "stderr": ".godot/validation/parse.err.log",
+      "stdout_sha256": "9d581ec5492fe988c9c06ba731f53831e0de994203e89ae19ffcf5b503748acc",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_written_utc": "2026-10-12T09:27:10.6943271Z"
+    },
+    {
+      "name": "core",
+      "pass": true,
+      "rendered": false,
+      "completion_markers": [
+        "TRADATALA_TESTS total=472 passed=472 failed=0"
+      ],
+      "stdout": ".godot/validation/core.log",
+      "stderr": ".godot/validation/core.err.log",
+      "stdout_sha256": "d35b86e5ca21dcbf556ca174c4a0c17e787afdd2ad60e152e8501742650c0852",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_written_utc": "2026-10-12T09:19:44.6722651Z"
+    },
+    {
+      "name": "runtime",
+      "pass": true,
+      "rendered": false,
+      "completion_markers": [
+        "TRADATALA_SCENE_SMOKE passed"
+      ],
+      "stdout": ".godot/validation/runtime.log",
+      "stderr": ".godot/validation/runtime.err.log",
+      "stdout_sha256": "9c8a1b7fc8249b700ca1e88d69157dcbcdd118e52496fd1eb943c5fb909adef0",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_written_utc": "2026-10-12T09:27:31.1452037Z"
+    },
+    {
+      "name": "tutorial_scene",
+      "pass": true,
+      "rendered": false,
+      "completion_markers": [
+        "TUTORIAL_REPLACEMENT_SMOKE: 0 failures"
+      ],
+      "stdout": ".godot/validation/tutorial_scene.log",
+      "stderr": ".godot/validation/tutorial_scene.err.log",
+      "stdout_sha256": "bc2887c5796d6fae0b742aec531560f1a99fbf68bbed231268cade23d17e07eb",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_written_utc": "2026-10-12T09:29:08.2110927Z"
+    },
+    {
+      "name": "campaign",
+      "pass": true,
+      "rendered": false,
+      "completion_markers": [
+        "CAMPAIGN_OVERHAUL_SCENE: 0 failures"
+      ],
+      "stdout": ".godot/validation/campaign.log",
+      "stderr": ".godot/validation/campaign.err.log",
+      "stdout_sha256": "5064b948e3203f9846815f111213a3652c27c489e825915c6e6e741891fa7027",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_written_utc": "2026-10-12T09:29:01.0079335Z"
+    },
+    {
+      "name": "event_table_overhaul",
+      "pass": true,
+      "rendered": false,
+      "completion_markers": [
+        "EVENT_TABLE_OVERHAUL: 116 checks, 0 failures"
+      ],
+      "stdout": ".godot/validation/event_table_overhaul.log",
+      "stderr": ".godot/validation/event_table_overhaul.err.log",
+      "stdout_sha256": "1dd5e83f811c235d86e0dbeef58622d0237d6e139062e10a0a486e9fcf513442",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_written_utc": "2026-10-12T09:29:37.2567959Z"
+    },
+    {
+      "name": "zodiac_scene",
+      "pass": true,
+      "rendered": false,
+      "completion_markers": [
+        "ZODIAC_SCENE_SMOKE checks=106 failures=0"
+      ],
+      "stdout": ".godot/validation/zodiac_scene.log",
+      "stderr": ".godot/validation/zodiac_scene.err.log",
+      "stdout_sha256": "a4eeb588230cbcf19ba9f7263599c8473244be3a3a1841f3db04aa1ab06d00e2",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_written_utc": "2026-10-12T09:29:54.8311140Z"
+    },
+    {
+      "name": "boss-presentation",
+      "pass": true,
+      "rendered": false,
+      "completion_markers": [
+        "BOSS_PRESENTATION_SMOKE checks=647 failures=0"
+      ],
+      "stdout": ".godot/validation/boss-presentation.log",
+      "stderr": ".godot/validation/boss-presentation.err.log",
+      "stdout_sha256": "a2f0051a14b475686549bc50dbf2783016180e349c71cd89a4dfd86e58ca5a10",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_written_utc": "2026-10-12T09:30:26.2269783Z"
+    },
+    {
+      "name": "boss-dog-monkey",
+      "pass": true,
+      "rendered": false,
+      "completion_markers": [
+        "DOG_MONKEY_PRESENTATION_SMOKE checks=717 failures=0"
+      ],
+      "stdout": ".godot/validation/boss-dog-monkey.log",
+      "stderr": ".godot/validation/boss-dog-monkey.err.log",
+      "stdout_sha256": "ccc9a7e0fcb689246e1b3781d380153232f894f783b737986b4ab09ba68b9530",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_written_utc": "2026-10-12T09:27:45.1756735Z"
+    },
+    {
+      "name": "boss-pig-monkey",
+      "pass": true,
+      "rendered": false,
+      "completion_markers": [
+        "PIG_MONKEY_OVERHAUL_SMOKE checks=651 failures=0"
+      ],
+      "stdout": ".godot/validation/boss-pig-monkey.log",
+      "stderr": ".godot/validation/boss-pig-monkey.err.log",
+      "stdout_sha256": "49ca1abb5d09c8d34dea3b5e1b8b4d21749c70e81314954d42b7ef1d7c4578ed",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_written_utc": "2026-10-12T09:28:26.0925721Z"
+    },
+    {
+      "name": "zodiac-full-roster",
+      "pass": true,
+      "rendered": false,
+      "completion_markers": [
+        "ZODIAC_FULL_ROSTER_SMOKE checks=743 failures=0"
+      ],
+      "stdout": ".godot/validation/zodiac-full-roster.log",
+      "stderr": ".godot/validation/zodiac-full-roster.err.log",
+      "stdout_sha256": "54980a537a9301f99b916adb7407763a4ba43e7e7dc48a980420d51550cbe21f",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_written_utc": "2026-10-12T09:30:09.2375369Z"
+    },
+    {
+      "name": "cat-scene",
+      "pass": true,
+      "rendered": false,
+      "completion_markers": [
+        "CAT_PERSUASION_SCENE_SMOKE checks=333 failures=0"
+      ],
+      "stdout": ".godot/validation/cat-scene.log",
+      "stderr": ".godot/validation/cat-scene.err.log",
+      "stdout_sha256": "684947e0487fad7764b4b075436bdfc0f292ab0dead289c4fe531c1970c6359e",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_written_utc": "2026-10-12T09:30:41.1668065Z"
+    },
+    {
+      "name": "cat-expansion",
+      "pass": true,
+      "rendered": false,
+      "completion_markers": [
+        "CAT_EXPANSION_SCENE_SMOKE checks=557 failures=0"
+      ],
+      "stdout": ".godot/validation/cat-expansion.log",
+      "stderr": ".godot/validation/cat-expansion.err.log",
+      "stdout_sha256": "d278528355f45c960a8146ff70f0934c91f2e6f1e30899cd3d5ad58eddba3376",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_written_utc": "2026-10-12T09:30:55.4650101Z"
+    },
+    {
+      "name": "rooster-scene",
+      "pass": true,
+      "rendered": false,
+      "completion_markers": [
+        "ROOSTER_PERSUASION_SCENE_SMOKE checks=809 failures=0"
+      ],
+      "stdout": ".godot/validation/rooster-scene.log",
+      "stderr": ".godot/validation/rooster-scene.err.log",
+      "stdout_sha256": "b4e4620003e8772c86d4cf44ba3c293ce2cbdabb63b7a8118c246a63876cf543",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_written_utc": "2026-10-12T09:31:16.2572350Z"
+    },
+    {
+      "name": "monkey-dog-scene",
+      "pass": true,
+      "rendered": false,
+      "completion_markers": [
+        "MONKEY_DOG_PERSUASION_SCENE_SMOKE checks=1912 failures=0"
+      ],
+      "stdout": ".godot/validation/monkey-dog-scene.log",
+      "stderr": ".godot/validation/monkey-dog-scene.err.log",
+      "stdout_sha256": "6456438af6eb4bd03593a98b5808086e52325d8f02c025495f808276ecb332ad",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_written_utc": "2026-10-12T09:32:24.3623361Z"
+    },
+    {
+      "name": "cat-write",
+      "pass": true,
+      "rendered": false,
+      "completion_markers": [
+        "CAT_PERSUASION_RESUME_WRITE checks=14 failures=0"
+      ],
+      "stdout": ".godot/validation/cat-write.log",
+      "stderr": ".godot/validation/cat-write.err.log",
+      "stdout_sha256": "69689119a07c2f905a4f116f69511c4f05b716156449a4cfb75814602252ca74",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_written_utc": "2026-10-12T09:32:31.2665462Z"
+    },
+    {
+      "name": "cat-read",
+      "pass": true,
+      "rendered": false,
+      "completion_markers": [
+        "CAT_PERSUASION_RESUME_READ checks=44 failures=0"
+      ],
+      "stdout": ".godot/validation/cat-read.log",
+      "stderr": ".godot/validation/cat-read.err.log",
+      "stdout_sha256": "a9972e5203417d3f6d82b35ac6f8cbb3ef9b5f0df380ca644da2485316bab11d",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_written_utc": "2026-10-12T09:32:33.1998569Z"
+    },
+    {
+      "name": "rooster-write",
+      "pass": true,
+      "rendered": false,
+      "completion_markers": [
+        "ROOSTER_PERSUASION_RESUME_WRITE checks=17 failures=0"
+      ],
+      "stdout": ".godot/validation/rooster-write.log",
+      "stderr": ".godot/validation/rooster-write.err.log",
+      "stdout_sha256": "12ed2ef43aae2b0ffa272a9f8bbecd8e762cd2a8392201283c55c4d5c62c96a1",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_written_utc": "2026-10-12T09:31:18.4412516Z"
+    },
+    {
+      "name": "rooster-read",
+      "pass": true,
+      "rendered": false,
+      "completion_markers": [
+        "ROOSTER_PERSUASION_RESUME_READ checks=47 failures=0"
+      ],
+      "stdout": ".godot/validation/rooster-read.log",
+      "stderr": ".godot/validation/rooster-read.err.log",
+      "stdout_sha256": "be0eae33b3efad34fcf3d3a7ed0ab5f995a9bb5c22f5536e48624a4ddcc5c6f3",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_written_utc": "2026-10-12T09:31:20.5026603Z"
+    },
+    {
+      "name": "monkey-dog-write",
+      "pass": true,
+      "rendered": false,
+      "completion_markers": [
+        "MONKEY_DOG_PERSUASION_RESUME_WRITE checks=54 failures=0"
+      ],
+      "stdout": ".godot/validation/monkey-dog-write.log",
+      "stderr": ".godot/validation/monkey-dog-write.err.log",
+      "stdout_sha256": "0a9bd1840a3f66e998087604255ecadfc6f4d3bc014e1b143e4ecf3e7bf50990",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_written_utc": "2026-10-12T09:32:26.9881020Z"
+    },
+    {
+      "name": "monkey-dog-read",
+      "pass": true,
+      "rendered": false,
+      "completion_markers": [
+        "MONKEY_DOG_PERSUASION_RESUME_READ checks=105 failures=0"
+      ],
+      "stdout": ".godot/validation/monkey-dog-read.log",
+      "stderr": ".godot/validation/monkey-dog-read.err.log",
+      "stdout_sha256": "e71766dd04f92975c026cf26ea75e8ac65fd08d9a3aa083440474f1b128ff5ad",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_written_utc": "2026-10-12T09:32:29.2536880Z"
+    },
+    {
+      "name": "negotiation-write",
+      "pass": true,
+      "rendered": false,
+      "completion_markers": [
+        "ZODIAC_NEGOTIATION_RESUME_WRITE checks=5 failures=0"
+      ],
+      "stdout": ".godot/validation/negotiation-write.log",
+      "stderr": ".godot/validation/negotiation-write.err.log",
+      "stdout_sha256": "8ff9b8f915118177c80ab73093a6b1be3cd1136ab885d279798a10e4e7f2d5ab",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_written_utc": "2026-10-12T09:32:35.1256226Z"
+    },
+    {
+      "name": "negotiation-read",
+      "pass": true,
+      "rendered": false,
+      "completion_markers": [
+        "ZODIAC_NEGOTIATION_RESUME_READ checks=10 failures=0"
+      ],
+      "stdout": ".godot/validation/negotiation-read.log",
+      "stderr": ".godot/validation/negotiation-read.err.log",
+      "stdout_sha256": "9fa7804f7429a59cdcaa1f42c2d98effb5c2de68e0d49b04814967a67661e9f6",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_written_utc": "2026-10-12T09:32:37.0679580Z"
+    },
+    {
+      "name": "pig-ox-write",
+      "pass": true,
+      "rendered": false,
+      "completion_markers": [
+        "PIG_OX_PERSUASION_RESUME_WRITE checks=81 failures=0"
+      ],
+      "stdout": ".godot/validation/pig-ox-write.log",
+      "stderr": ".godot/validation/pig-ox-write.err.log",
+      "stdout_sha256": "9fb3c516264f61262e39abf42d413958b7c7172b65ebe90dab4e4b44268c6d79",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_written_utc": "2026-10-12T09:20:57.3052147Z"
+    },
+    {
+      "name": "pig-ox-read",
+      "pass": true,
+      "rendered": false,
+      "completion_markers": [
+        "PIG_OX_PERSUASION_RESUME_READ checks=153 failures=0"
+      ],
+      "stdout": ".godot/validation/pig-ox-read.log",
+      "stderr": ".godot/validation/pig-ox-read.err.log",
+      "stdout_sha256": "59021460af0e3c68095e7608c80d621c691b4dd05efbb81756ac574483c000c7",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_written_utc": "2026-10-12T09:20:59.7324546Z"
+    },
+    {
+      "name": "pig-ox-scene",
+      "pass": true,
+      "rendered": true,
+      "completion_markers": [
+        "PIG_OX_PERSUASION_SCENE_SMOKE checks=1982 failures=0"
+      ],
+      "stdout": ".godot/validation/pig-ox-scene.log",
+      "stderr": ".godot/validation/pig-ox-scene.err.log",
+      "stdout_sha256": "cabe962b6856cf643ff923c022acc8a804e466b6a467af77c8fc9b31ded438a6",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_written_utc": "2026-10-12T09:25:47.8082632Z"
+    }
+  ],
+  "source_hashes": [
+    {
+      "path": "scripts/zodiac/content/pig_persuasion.gd",
+      "sha256": "bff8d9cba197cf676f2fcc2d7bd9b562782b202353cac2491c6c879c2eae0710"
+    },
+    {
+      "path": "scripts/zodiac/content/ox_persuasion.gd",
+      "sha256": "8fc13c3f82e4738f42f858f9941a5e64b2062dfbe7d49923d6dcd125602e1353"
+    },
+    {
+      "path": "scripts/zodiac/zodiac_catalog.gd",
+      "sha256": "088d056d16bba9b2f567d8ab1d691b900b56592e037abec750db400647fcb1ca"
+    },
+    {
+      "path": "scripts/zodiac/zodiac_persuasion.gd",
+      "sha256": "87cda070ce0bc11acdaf9dbd7c222856cdf321a7bf3f291bbacd7fb5172db136"
+    },
+    {
+      "path": "scripts/zodiac/zodiac_service.gd",
+      "sha256": "661d3e9aceab1caf76b67dc33610fecb8b34a6d7e5348f1728d11bacbe09967a"
+    },
+    {
+      "path": "scripts/ui/zodiac_boss_hud.gd",
+      "sha256": "65e393deb7fb5768d14995349d8923cf863bfb2ff32664b1e364d5acaa103253"
+    },
+    {
+      "path": "scripts/ui/quick_info.gd",
+      "sha256": "7807bb22b6ab5a02d36688c3cda33fab2190942ad5c0dc4245d537b9259a7045"
+    },
+    {
+      "path": "tests/pig_ox_test_flow.gd",
+      "sha256": "2e4cec5fdb6fc55368255db307ec20d381efe15d7011dfd7b87db0a5e0f98277"
+    },
+    {
+      "path": "tests/test_pig_ox_persuasion.gd",
+      "sha256": "11194d45bb3d3cf961166b986d2133ac76d6b98129a9b7aefaf806cc3125ddf9"
+    },
+    {
+      "path": "tests/pig_ox_persuasion_scene_smoke.gd",
+      "sha256": "e36b980dc117c250455dd7bc5986e987d8a0dd9b90821b45e1efa5b2bf29079e"
+    },
+    {
+      "path": "tests/pig_ox_persuasion_resume_smoke.gd",
+      "sha256": "2a4340b589fc8105e49bda9a37919ce9a3325ccf19799a1c5fd78d1834026bd4"
+    },
+    {
+      "path": "tests/run_headless.gd",
+      "sha256": "e066850208a7bb2a54ce80fb418ba7321e9a12e98ea5a609998e57e6ab64431e"
+    },
+    {
+      "path": "tests/test_rooster_persuasion.gd",
+      "sha256": "edabbc2537b6b5fc2b915db4dddadf6e48740585f4ef0111a5f9497d1d50fcf4"
+    },
+    {
+      "path": "tests/test_zodiac.gd",
+      "sha256": "5436226251a6074298eaff332eb4035a05442ffd51a21ddc89185755ba35f0f8"
+    },
+    {
+      "path": "tools/validate_project.ps1",
+      "sha256": "aa4ebc7a69d230c985c2a2ea861e1ea2e1dbc309a397a1a7979064c4b8ac1a1a"
+    }
+  ],
+  "preserved_authorities": [
+    {
+      "path": "scripts/zodiac/rules/pig.gd",
+      "unchanged_from_head": true,
+      "sha256": "d24f36b64e82e4191372a301bb1c863eaac50c31f1ca9c501f1e6eeedc3c242a"
+    },
+    {
+      "path": "scripts/zodiac/rules/ox.gd",
+      "unchanged_from_head": true,
+      "sha256": "d894c87534c66206927d233995e3bb19a2d4ce7c23deeee08732f65ee695ed9b"
+    },
+    {
+      "path": "scripts/zodiac/rules/monkey.gd",
+      "unchanged_from_head": true,
+      "sha256": "5669e88b27d49df62fe4a26f33e09ba2ff523c8bde3ddd3f20a7c5c5bfbf37e2"
+    },
+    {
+      "path": "scripts/zodiac/rules/dog.gd",
+      "unchanged_from_head": true,
+      "sha256": "e1765196acf865e1103495184aecf9c921321ee12e03e0c43be0d31cc26a6a16"
+    },
+    {
+      "path": "scripts/zodiac/rules/cat.gd",
+      "unchanged_from_head": true,
+      "sha256": "7bbbb7b056309e1e0ba4af9bab574a424d2fe5e63f19ddbd33fe7b56116342dd"
+    },
+    {
+      "path": "scripts/zodiac/rules/rooster.gd",
+      "unchanged_from_head": true,
+      "sha256": "8845362f6e9f48bb5af74af07fe2a9f7256b8b4a40657d2bb44e8a25ea729fa4"
+    },
+    {
+      "path": "scripts/gameplay/deal_state.gd",
+      "unchanged_from_head": true,
+      "sha256": "684dc688c77f353bacf37ffc61eeba2e31df4064176071f05912aa6592975ae0"
+    },
+    {
+      "path": "scripts/economy/vnd_wallet.gd",
+      "unchanged_from_head": true,
+      "sha256": "fc0bbd16f56471eae8c192b5e90a09deff8195d095f6846479693f28fa9dce4e"
+    },
+    {
+      "path": "scripts/campaign/campaign_manager.gd",
+      "unchanged_from_head": true,
+      "sha256": "997aa8247eda46cbf7c5c27d7ab6844282f2b32722f7a4bf17ba43d27690c6eb"
+    },
+    {
+      "path": "scripts/zodiac/content/cat_tier_1.gd",
+      "unchanged_from_head": true,
+      "sha256": "a52fc1276f649cabe10a98884589e92786b084fed1ff9fce6097ddabae279ea7"
+    },
+    {
+      "path": "scripts/zodiac/content/cat_expansion.gd",
+      "unchanged_from_head": true,
+      "sha256": "f2e26ea5a3c18beb58aa9ba6c8a0ca681de0316e6f2d78e323412bc8e2022ab5"
+    },
+    {
+      "path": "scripts/zodiac/content/rooster_persuasion.gd",
+      "unchanged_from_head": true,
+      "sha256": "93a68601d4b6bd7de3ba9ce7caca9bfaac25fa00e6ce9e5219eacedae567d2fe"
+    },
+    {
+      "path": "docs/authoring/CAT_TIER_1_AUTHORITY.txt",
+      "unchanged_from_head": true,
+      "sha256": "84a401a39732edef2e1ee44a44bc48bad5d4643245c4eab6e69b08a65be7df1d"
+    }
+  ],
+  "preserved_baseline_files": [
+    {
+      "path": "docs/MONKEY_DOG_EXPANSION_2026-10-12.md",
+      "unchanged_since_baseline": true,
+      "sha256": "9e575b6b419ff90ade15756c36455aa5c63e04b16f4aac428648b20be44d1d4e"
+    },
+    {
+      "path": "docs/MONKEY_DOG_EXPANSION_VALIDATION_2026-10-12.json",
+      "unchanged_since_baseline": true,
+      "sha256": "7aae41b3d15a68e2c05c7fa17e08223fac4d1b9ab4ab46a644580c64f5a6f9dd"
+    },
+    {
+      "path": "docs/screenshots/cat-expansion-2026-10-10/cat.t2.card_memory_BROKEN_en_1280.png.import",
+      "unchanged_since_baseline": true,
+      "sha256": "cfc4612bed68f385de88a92fc6c65f5f98678dfd551090a61b26a9b29ab90072"
+    },
+    {
+      "path": "docs/screenshots/cat-expansion-2026-10-10/choice_terms_vi_1280.png.import",
+      "unchanged_since_baseline": true,
+      "sha256": "7c8695b4c542d20487f64ac29fa68e2ff42262e43d649825a5fb8530a89fbdb9"
+    },
+    {
+      "path": "docs/screenshots/cat-expansion-2026-10-10/chosen_card_remembered_en.png.import",
+      "unchanged_since_baseline": true,
+      "sha256": "c010732fb7206de38b8b8367ff20e9dbdb242081b19924ee26e18813cd93af36"
+    },
+    {
+      "path": "docs/screenshots/cat-expansion-2026-10-10/last_chance_en.png.import",
+      "unchanged_since_baseline": true,
+      "sha256": "329e0ab49f1a05035dfcfff1e2ffe8f093ceeac5135a5bd7b8004e8670065509"
+    },
+    {
+      "path": "docs/screenshots/cat-expansion-2026-10-10/last_chance_vi.png.import",
+      "unchanged_since_baseline": true,
+      "sha256": "966f8ed467423265a3c60d0411d14275b9b1add7f4e2f637240d0a74cdb1ef6c"
+    },
+    {
+      "path": "docs/screenshots/horse-goat-overhaul-2026-10-08/goat-en-melody.png.import",
+      "unchanged_since_baseline": true,
+      "sha256": "855ef75de803bc0841da1ca57a19cc08835c5879afca20fa3482e378a1462ffe"
+    },
+    {
+      "path": "docs/screenshots/horse-goat-overhaul-2026-10-08/goat-en-parity-wait.png.import",
+      "unchanged_since_baseline": true,
+      "sha256": "8a6482153665e973ca14a4b7be51747274feddd2dde0f9dfe801b1395c7edd3a"
+    },
+    {
+      "path": "docs/screenshots/horse-goat-overhaul-2026-10-08/goat-vi-small.png.import",
+      "unchanged_since_baseline": true,
+      "sha256": "d8089cef710ba52c357dc126fcac5814bf45d6ca914e3e58be36f4373cc431a5"
+    },
+    {
+      "path": "docs/screenshots/horse-goat-overhaul-2026-10-08/horse-en-complete.png.import",
+      "unchanged_since_baseline": true,
+      "sha256": "cd6ff83d0093037d4542fe69203a9e577d845d64785c8b23f8686608be507af8"
+    },
+    {
+      "path": "docs/screenshots/horse-goat-overhaul-2026-10-08/horse-en-forced.png.import",
+      "unchanged_since_baseline": true,
+      "sha256": "02f403964b53f140fed38cd3d8a58ac24becffbef4b6ceff54e9b77f79a6042f"
+    },
+    {
+      "path": "docs/screenshots/horse-goat-overhaul-2026-10-08/horse-vi-small.png.import",
+      "unchanged_since_baseline": true,
+      "sha256": "525259f6bb3feb85e3bb7de8c0cedec7431bd50501ce4862eff04061aba21367"
+    },
+    {
+      "path": "docs/screenshots/monkey-dog-expansion-2026-10-12/dog_action_done_en.png",
+      "unchanged_since_baseline": true,
+      "sha256": "bc3972dcb0d383c102f6fd0ec4fe99938a1efe8aa946305f197878da67bd5253"
+    },
+    {
+      "path": "docs/screenshots/monkey-dog-expansion-2026-10-12/dog_card_memory_broken_vi.png",
+      "unchanged_since_baseline": true,
+      "sha256": "15865f3afa5bab47f9bfcfc93c2752b9e091f90a36b31ec47557cb827f9b523e"
+    },
+    {
+      "path": "docs/screenshots/monkey-dog-expansion-2026-10-12/dog_chosen_terms_vi.png",
+      "unchanged_since_baseline": true,
+      "sha256": "5f90ff4dcc15353f7d8d36475d981e3be9b39cc82d700dd24e033b49d0d436ec"
+    },
+    {
+      "path": "docs/screenshots/monkey-dog-expansion-2026-10-12/dog_private_moment_en.png",
+      "unchanged_since_baseline": true,
+      "sha256": "5f0a3599a2cae94478544aed8416f99fbdf99edd32ccf2f139c6ca8689c6e13d"
+    },
+    {
+      "path": "docs/screenshots/monkey-dog-expansion-2026-10-12/monkey_action_done_en.png",
+      "unchanged_since_baseline": true,
+      "sha256": "86b675e410d9e3a646de7c02cfd5211255cef2bba4fddf15fbb1106ec70da590"
+    },
+    {
+      "path": "docs/screenshots/monkey-dog-expansion-2026-10-12/monkey_chosen_terms_vi.png",
+      "unchanged_since_baseline": true,
+      "sha256": "4884ab42d1090137292f0aa43cdef09db132700eb5a46eaed38f285ab91a1a83"
+    },
+    {
+      "path": "docs/screenshots/monkey-dog-expansion-2026-10-12/monkey_private_moment_en.png",
+      "unchanged_since_baseline": true,
+      "sha256": "d43d95563e4af32a55b7640a71a28239d48742c0e2d6edc248e1d668e2f2273c"
+    },
+    {
+      "path": "docs/screenshots/monkey-dog-expansion-2026-10-12/monkey_variety_memory_broken_vi.png",
+      "unchanged_since_baseline": true,
+      "sha256": "b1b27ff80010591db216b70ebe1f9040956baf86c3b8b09c160c4e29b3868486"
+    },
+    {
+      "path": "docs/screenshots/pig-monkey-overhaul-2026-10-07/monkey-en-fresh-switch.png.import",
+      "unchanged_since_baseline": true,
+      "sha256": "efd92959d3cbf6028af0354a361a51c896676f3d6c12127a25dec71ff39fd3e5"
+    },
+    {
+      "path": "docs/screenshots/pig-monkey-overhaul-2026-10-07/monkey-vi-small.png.import",
+      "unchanged_since_baseline": true,
+      "sha256": "69d791d6667bf52b9f95412ab857a9a649a33394c9d510411ae025ef0e85b587"
+    },
+    {
+      "path": "docs/screenshots/pig-monkey-overhaul-2026-10-07/pig-en-return.png.import",
+      "unchanged_since_baseline": true,
+      "sha256": "b1025e1f598d7674553e1593505368ea039294a382f0e9ea3b2f9f7b14857f3e"
+    },
+    {
+      "path": "docs/screenshots/pig-monkey-overhaul-2026-10-07/pig-vi-siphon.png.import",
+      "unchanged_since_baseline": true,
+      "sha256": "7a7c69a8e588f612f563b3590716d7179dd0400a895515e90dac7dbf1f1e789e"
+    },
+    {
+      "path": "docs/screenshots/presentation-2026-10-10/en-1280x720-home.png.import",
+      "unchanged_since_baseline": true,
+      "sha256": "192c1c24f1ea8a4944eb1f9f266e9f547170a98b0f975b82370be3c20f9558a7"
+    },
+    {
+      "path": "docs/screenshots/presentation-2026-10-10/en-1280x720-setup.png.import",
+      "unchanged_since_baseline": true,
+      "sha256": "280f036a4e5388cc24adb57c816c9e3df58d41133ce1a15246bd63d061fe3390"
+    },
+    {
+      "path": "docs/screenshots/presentation-2026-10-10/en-1280x720-table.png.import",
+      "unchanged_since_baseline": true,
+      "sha256": "b4c29fd764828d34d2557ae807ffa5e98637683b25c6f9bca7497007b129bdbf"
+    },
+    {
+      "path": "docs/screenshots/presentation-2026-10-10/en-1920x1080-home.png.import",
+      "unchanged_since_baseline": true,
+      "sha256": "509379d69be498bc7b05bd62458c6a52055b53f96ba78edde79a459c8b1ea6d7"
+    },
+    {
+      "path": "docs/screenshots/presentation-2026-10-10/en-1920x1080-setup.png.import",
+      "unchanged_since_baseline": true,
+      "sha256": "6c18842436bf09541e59a6c6f0c9213198cd17f957a78d16c93877cd5beb4879"
+    },
+    {
+      "path": "docs/screenshots/presentation-2026-10-10/en-1920x1080-table.png.import",
+      "unchanged_since_baseline": true,
+      "sha256": "f13540d232bd6e5f007147fb3cd54950580db29be0ce9a94d131b117b9135368"
+    },
+    {
+      "path": "docs/screenshots/presentation-2026-10-10/en-960x620-home.png.import",
+      "unchanged_since_baseline": true,
+      "sha256": "1f1cedfb22e0734e0f3fab18cd02fd7bb8a1d4766e056f55568c000dd70f1ad7"
+    },
+    {
+      "path": "docs/screenshots/presentation-2026-10-10/en-960x620-setup.png.import",
+      "unchanged_since_baseline": true,
+      "sha256": "2db82c4c658cb4580e8894ad95b0e3045799a3de60ada0a16b9af49f73acd751"
+    },
+    {
+      "path": "docs/screenshots/presentation-2026-10-10/en-960x620-table.png.import",
+      "unchanged_since_baseline": true,
+      "sha256": "96b5d392f557aa32db095ea1fd24772fbf4794941f52e127b10591f34aea4638"
+    },
+    {
+      "path": "docs/screenshots/presentation-2026-10-10/vi-1280x720-home.png.import",
+      "unchanged_since_baseline": true,
+      "sha256": "2eb33890c1de04c8244cc13091278b4320caa38faf9dbe23e0def6da9a0f47b2"
+    },
+    {
+      "path": "docs/screenshots/presentation-2026-10-10/vi-1280x720-setup.png.import",
+      "unchanged_since_baseline": true,
+      "sha256": "aed247fa2eb9230b920448065fdf40e0091088ccd369a79ba1c1e5631621e050"
+    },
+    {
+      "path": "docs/screenshots/presentation-2026-10-10/vi-1280x720-table.png.import",
+      "unchanged_since_baseline": true,
+      "sha256": "4e3f59ea82ea935cf4fc055038bca46263a97acab834f3e8116ffd028dfa285b"
+    },
+    {
+      "path": "docs/screenshots/presentation-2026-10-10/vi-1920x1080-home.png.import",
+      "unchanged_since_baseline": true,
+      "sha256": "b0049a3cf9dbffa119263e331a5843f2eba5bf27a1a2ee80bf4fccaa528395f8"
+    },
+    {
+      "path": "docs/screenshots/presentation-2026-10-10/vi-1920x1080-setup.png.import",
+      "unchanged_since_baseline": true,
+      "sha256": "2dc7058a5d411b70397c018041501921636685cc6ef6b5a9eb2cad944d473152"
+    },
+    {
+      "path": "docs/screenshots/presentation-2026-10-10/vi-1920x1080-table.png.import",
+      "unchanged_since_baseline": true,
+      "sha256": "aa2d16d7dbe87ac725e004cc2d114063007e6fb56c808df6d2a98b6ca53da76e"
+    },
+    {
+      "path": "docs/screenshots/presentation-2026-10-10/vi-960x620-home.png.import",
+      "unchanged_since_baseline": true,
+      "sha256": "90f48ae5fe3da9d6981dfe1eb399426d74b9034d796bbf82734c90ecec5d4de2"
+    },
+    {
+      "path": "docs/screenshots/presentation-2026-10-10/vi-960x620-setup.png.import",
+      "unchanged_since_baseline": true,
+      "sha256": "26b11964be5e5ad3293dd2e0ceec368e69663a316937c4303fe4cb54f85f8860"
+    },
+    {
+      "path": "docs/screenshots/presentation-2026-10-10/vi-960x620-table.png.import",
+      "unchanged_since_baseline": true,
+      "sha256": "9d82cd8aa8fe3839cfed10a196b165dda508ba017c11e8613ebd85871cb721d3"
+    },
+    {
+      "path": "docs/screenshots/rat-table-hud-2026-10-08/boss-roster-compact.png.import",
+      "unchanged_since_baseline": true,
+      "sha256": "95ea656f197d7f0380513ff14a5820f0a24146e55aff1f9b7dd2618dc7338862"
+    },
+    {
+      "path": "docs/screenshots/rat-table-hud-2026-10-08/rat-extension-paid.png.import",
+      "unchanged_since_baseline": true,
+      "sha256": "5d0621400f1cebdbfd917180f0aae74109e4c0ef03adb64f7f3337b58dbab182"
+    },
+    {
+      "path": "docs/screenshots/rat-table-hud-2026-10-08/rat-extension-preview.png.import",
+      "unchanged_since_baseline": true,
+      "sha256": "ea3ef3bd915dadc3346203794a13681b3138c509e1a67fb925966f1b74164fdb"
+    },
+    {
+      "path": "docs/screenshots/rat-table-hud-2026-10-08/tiger-compact.png.import",
+      "unchanged_since_baseline": true,
+      "sha256": "524a3ec1d81dfb14b70a5735eb4fcd4f42b02c93f4ac20206dfeb391f198b181"
+    },
+    {
+      "path": "docs/screenshots/rat-tiger-overhaul-2026-10-08/boss-roster-compact.png.import",
+      "unchanged_since_baseline": true,
+      "sha256": "b34a3bcbd9df673c6ebc38ab8e6f7b77a7970488267f5ac7b7e5feebd9ebeb31"
+    },
+    {
+      "path": "docs/screenshots/rat-tiger-overhaul-2026-10-08/rat-en-collection.png.import",
+      "unchanged_since_baseline": true,
+      "sha256": "a5ac12db5a2307afb54be59f76e692652dc01fc3f168f3b7ddec430f8694dddb"
+    },
+    {
+      "path": "docs/screenshots/rat-tiger-overhaul-2026-10-08/rat-en-compact.png.import",
+      "unchanged_since_baseline": true,
+      "sha256": "5297f241a6b6343174d651ee480e63323f583f3897d31b8471d1e5f85ad77299"
+    },
+    {
+      "path": "docs/screenshots/rat-tiger-overhaul-2026-10-08/rat-en-extension.png.import",
+      "unchanged_since_baseline": true,
+      "sha256": "2e7f75d5acc14601e0f0b0a0c8a3edbef851003e3ffdbf6729152a4564240439"
+    },
+    {
+      "path": "docs/screenshots/rat-tiger-overhaul-2026-10-08/rat-en-long-run.png.import",
+      "unchanged_since_baseline": true,
+      "sha256": "0e608d5df46113a0d7145e495e6ecd25d4e28bcce39b4819d3855c125623d215"
+    },
+    {
+      "path": "docs/screenshots/rat-tiger-overhaul-2026-10-08/rat-vi-small.png.import",
+      "unchanged_since_baseline": true,
+      "sha256": "627860b020f6da10f997a0c5002e7a65d5a13542fd3d19eb4f5d4aa98acf23cb"
+    },
+    {
+      "path": "docs/screenshots/rat-tiger-overhaul-2026-10-08/tiger-en-full-hand.png.import",
+      "unchanged_since_baseline": true,
+      "sha256": "999a777db06165b89cc63e9f5ae4041631fd83645c1ea5e22cd9c18367473b3e"
+    },
+    {
+      "path": "docs/screenshots/rat-tiger-overhaul-2026-10-08/tiger-en-snatch.png.import",
+      "unchanged_since_baseline": true,
+      "sha256": "bca1677078e07c24cdf88065edaa4bd2db6f9dea02ba532404c38dbb6362cbdb"
+    },
+    {
+      "path": "docs/screenshots/rooster-expansion-2026-10-10/action-done-en.png.import",
+      "unchanged_since_baseline": true,
+      "sha256": "ec895ada3027eafa3bddfe472b141a41b4d6b5ddd22fce874e411991f9a63f39"
+    },
+    {
+      "path": "docs/screenshots/rooster-expansion-2026-10-10/action-pending-en.png.import",
+      "unchanged_since_baseline": true,
+      "sha256": "0edb608a54b60c5bc6f8ab5f904c33716ff555a05cb9d44ae5932f522bbf0420"
+    },
+    {
+      "path": "docs/screenshots/rooster-expansion-2026-10-10/counteroffer-en.png.import",
+      "unchanged_since_baseline": true,
+      "sha256": "7463e0e810216927174954d63e6ac08abe19b483bd413fd5c6ebb14290077dd7"
+    },
+    {
+      "path": "docs/screenshots/rooster-expansion-2026-10-10/deadline-memory-vi.png.import",
+      "unchanged_since_baseline": true,
+      "sha256": "8951dead64ba44309db958928400113374454e704dcbdc37b49f4f03e2286b28"
+    },
+    {
+      "path": "docs/screenshots/rooster-expansion-2026-10-10/ledger-en.png.import",
+      "unchanged_since_baseline": true,
+      "sha256": "dd0aaeee460aa33062c8b31051fd1510221763eb1a041c57edea5272b8b30500"
+    },
+    {
+      "path": "docs/screenshots/rooster-expansion-2026-10-10/private-moment-en.png.import",
+      "unchanged_since_baseline": true,
+      "sha256": "eb9f68d39d0f751340f710a39b0bbe776f95d5ab8d23ac02e60eb1ee2ac11cf4"
+    },
+    {
+      "path": "docs/screenshots/rooster-expansion-2026-10-10/stranger-en.png.import",
+      "unchanged_since_baseline": true,
+      "sha256": "32a181d048fed1d83ca3f2c4b2a5932e33e5422637e40d496ff5748f39e7ae26"
+    },
+    {
+      "path": "docs/screenshots/snake-overhaul-2026-10-08/snake-en-charmed-hand.png.import",
+      "unchanged_since_baseline": true,
+      "sha256": "539f9bf249915df5e1235e128f02b37da5f01c604bb6552b8b21d31b4a008f86"
+    },
+    {
+      "path": "docs/screenshots/snake-overhaul-2026-10-08/snake-en-charmed-meld.png.import",
+      "unchanged_since_baseline": true,
+      "sha256": "3c62423c6bf74b99339e3eb9c2b2d4e507cfee841568e61faf202c689dc09d22"
+    },
+    {
+      "path": "docs/screenshots/snake-overhaul-2026-10-08/snake-en-table-meld-refusal.png.import",
+      "unchanged_since_baseline": true,
+      "sha256": "5d4fcfb79717ee881b6f93641f3d6a5109fdb8152087d495e146fb687389ce8e"
+    },
+    {
+      "path": "docs/screenshots/snake-overhaul-2026-10-08/snake-vi-table-meld-refusal.png.import",
+      "unchanged_since_baseline": true,
+      "sha256": "dd0290ceaad3985bd5ec882d4b021ff78b30d51a8bc0bf19e3689f6ef212ab6a"
+    },
+    {
+      "path": "scripts/zodiac/content/dog_persuasion.gd",
+      "unchanged_since_baseline": true,
+      "sha256": "2f70f89b9d643744880df96f2e41205853023a69b83ca9d6d9fc7f1a1026dc04"
+    },
+    {
+      "path": "scripts/zodiac/content/dog_persuasion.gd.uid",
+      "unchanged_since_baseline": true,
+      "sha256": "84387bd8a3577c61038e7205f51f719736acecce2a6b49f7ae24c3c8d3ddc7b8"
+    },
+    {
+      "path": "scripts/zodiac/content/monkey_persuasion.gd",
+      "unchanged_since_baseline": true,
+      "sha256": "8d658b8c0794ba454b67f55f20ea6a32571111c2c1567604525f052b0f598abc"
+    },
+    {
+      "path": "scripts/zodiac/content/monkey_persuasion.gd.uid",
+      "unchanged_since_baseline": true,
+      "sha256": "d194e0c5b3e304d44705dbec1bc93331917855a7616559ea93e60ca00e0cea57"
+    },
+    {
+      "path": "tests/monkey_dog_persuasion_resume_smoke.gd",
+      "unchanged_since_baseline": true,
+      "sha256": "6f9dff27b4cde1a37ae2dae45071a2ff8f7c42903c25407a7fb7fb411aceb4b4"
+    },
+    {
+      "path": "tests/monkey_dog_persuasion_resume_smoke.gd.uid",
+      "unchanged_since_baseline": true,
+      "sha256": "cd0de9f0200cbe629d133494308a22b44abeff40e5c7884e3c2924610e9f5bf9"
+    },
+    {
+      "path": "tests/monkey_dog_persuasion_scene_smoke.gd",
+      "unchanged_since_baseline": true,
+      "sha256": "646edca28f32995ef696b3bbc73e924101947653310ae2a2c26078b18f6650f4"
+    },
+    {
+      "path": "tests/monkey_dog_persuasion_scene_smoke.gd.uid",
+      "unchanged_since_baseline": true,
+      "sha256": "20a1343ba928caa40abdaf3289e1eccf36e06c38a69fe9a8b8df997868761fdf"
+    },
+    {
+      "path": "tests/monkey_dog_test_flow.gd",
+      "unchanged_since_baseline": true,
+      "sha256": "5cb9c39fc3108d6f91d777a1492e7ecfa62f5edc54ec16516b0014425454130b"
+    },
+    {
+      "path": "tests/monkey_dog_test_flow.gd.uid",
+      "unchanged_since_baseline": true,
+      "sha256": "0b1554853fe365074473d1e1595fc20baa37dea402057a0db4b621edb2a0dc54"
+    },
+    {
+      "path": "tests/test_monkey_dog_persuasion.gd",
+      "unchanged_since_baseline": true,
+      "sha256": "18c0418bd91b437f599819bb6be79640791c8f51a550276f90b042225b96c856"
+    },
+    {
+      "path": "tests/test_monkey_dog_persuasion.gd.uid",
+      "unchanged_since_baseline": true,
+      "sha256": "26c6dc5f4575384aca48fe816df0616e584b782621ba17f263f9ed7ddea05655"
+    },
+    {
+      "path": "scripts/ui/zodiac_table.gd",
+      "unchanged_since_baseline": true,
+      "sha256": "b981bb14b379d935abf3269c0c127d459a6ace9d7d3679760dcdf42d70cd63e5"
+    }
+  ],
+  "external_work": [
+    {
+      "path": "assets/audio/ost/ost_cues.json",
+      "excluded_from_expansion": true,
+      "unchanged_since_baseline": false
+    }
+  ],
+  "representative_captures": [
+    {
+      "path": "docs/screenshots/pig-ox-expansion-2026-10-12/pig_action_done_en.png",
+      "sha256": "e56bd8768e398519bace8c60cfa65d48defd1a0783c67c71c9d6b0edd3402ad6"
+    },
+    {
+      "path": "docs/screenshots/pig-ox-expansion-2026-10-12/pig_side_memory_en.png",
+      "sha256": "89c08588aef80d7b59a6fca0a713bb98685c27693453bcbeb4dd616490e4cb9c"
+    },
+    {
+      "path": "docs/screenshots/pig-ox-expansion-2026-10-12/ox_chosen_terms_vi.png",
+      "sha256": "259031063ff18d32f475e5d9609bd23ea1c7ecbab07ed052dc8bf13b0fd09d85"
+    },
+    {
+      "path": "docs/screenshots/pig-ox-expansion-2026-10-12/ox_side_evidence_en.png",
+      "sha256": "b53aa9eb81d22a7d25ec10d7872cf29b94cd7d2598e66886834c10254f36222a"
+    },
+    {
+      "path": "docs/screenshots/pig-ox-expansion-2026-10-12/ox_private_moment_en.png",
+      "sha256": "947d5cc1570369cdd1ac08cc4313ffe105c50ed5a2fc3c2591be1e78cf26bbbd"
+    },
+    {
+      "path": "docs/screenshots/pig-ox-expansion-2026-10-12/pig_chosen_terms_vi.png",
+      "sha256": "3d7ed0b33042ce3968fd0d4d4f6cf7c935e05fe8a3b255991fa8aadfe48bc719"
+    },
+    {
+      "path": "docs/screenshots/pig-ox-expansion-2026-10-12/pig_reserve_memory_broken_vi.png",
+      "sha256": "7402fabc8c235c53810494eb41dfa3f564aace3eba14a1e4ccb7c7223a49ee99"
+    },
+    {
+      "path": "docs/screenshots/pig-ox-expansion-2026-10-12/ox_finish_memory_broken_vi.png",
+      "sha256": "3640952265f22e2d2a833f6a171b0998a6b70e85a1e5c2a0a99efac140ad1dbb"
+    }
+  ],
+  "scope": {
+    "zodiac_snapshot_version": 6,
+    "physical_device_input": false,
+    "evening_rules_changed": false,
+    "commit": false,
+    "previous_pair_authored_modules_changed": false,
+    "audio_listening": false,
+    "export": false,
+    "wallet_or_deal_authority_changed": false,
+    "push": false
+  },
+  "diff_check": "PASS"
+}

@@ -81,12 +81,12 @@ func test_noon_afternoon_only_configured_chain_and_safe_inert_profiles() -> void
 	_event(campaign, EventManager.EventSlot.AFTERNOON)
 	assert_true(campaign.zodiac.visitor_available(EventManager.EventSlot.AFTERNOON))
 	assert_false(campaign.zodiac.respond("ACCEPT").ok)
-	campaign.zodiac.daily.id = "dog"
+	campaign.zodiac.daily.id = "dragon"
 	campaign.zodiac.daily.erase("negotiation")
 	_event(campaign, EventManager.EventSlot.NOON)
 	assert_false(campaign.zodiac.has_open_demand())
 	assert_true(campaign.zodiac.quote().demand.is_empty())
-	assert_true(ZodiacCatalog.negotiation_profile("dog").is_empty())
+	assert_true(ZodiacCatalog.negotiation_profile("dragon").is_empty())
 	campaign.zodiac.daily.successes = 0
 	assert_eq(campaign.zodiac.mood(), "NORMAL")
 

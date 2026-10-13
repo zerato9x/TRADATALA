@@ -276,7 +276,8 @@ func _build_persuasion() -> void:
 	# Keep the latest authored spoken line. The entire exchange is readable in the Handbook.
 	dialogue.text = String(quote.speech).strip_edges().get_slice("\n", String(quote.speech).strip_edges().get_slice_count("\n") - 1)
 	dialogue.remove_meta("zodiac_id")
-	contract_label.text = QuickInfo.demand(quote.demand)
+	var recalling: bool = quote.stage == "question" and visit.node.has("bound_memory")
+	contract_label.text = "" if recalling else QuickInfo.demand(quote.demand)
 	contract_label.visible = not contract_label.text.is_empty()
 	mechanics.text = ZodiacCatalog.rule_text(service.active_id(), service.mood())
 	mechanics.hide()
@@ -299,7 +300,8 @@ func _build_persuasion() -> void:
 	targets.hide()
 	alterations.hide()
 	card_select_button.hide()
-	_build_target_preview(quote.demand)
+	# A remembered target and a proposed next target are different physical objects.
+	_build_target_preview({} if recalling else quote.demand)
 	if service.has_open_question() or quote.stage == "last_chance":
 		choices.columns = 1
 		for answer: Dictionary in quote.answers:
@@ -500,7 +502,10 @@ func _show_scene() -> void:
 		ZodiacCatalog.words("“You said no when you meant no. And when you promised, you acted. That's rarer than an early sunrise.”", "“Bạn nói không khi muốn nói không. Đã hứa là làm. Còn hiếm hơn một buổi bình minh sớm.”"),
 		ZodiacCatalog.words("He slides a small brass rooster across the wood. “Next time, put this on the table. I'll find the time.”", "Anh đẩy con gà bằng đồng nhỏ qua mặt bàn. “Lần tới đặt nó ở đây. Tôi sẽ dành thời gian.”"),
 	]
-	if id != "rooster":
+	var authored_pages: Array = ZodiacCatalog.persuasion_config(id).get("private_scene", [])
+	if not authored_pages.is_empty():
+		pages = authored_pages.map(func(page: Dictionary): return ZodiacCatalog.localized(page))
+	elif id != "rooster":
 		pages = [
 			ZodiacCatalog.words("The table grows quiet. %s stays behind after the others leave.", "Bàn đã yên. %s ngồi lại khi những người khác đã về.") % ZodiacCatalog.display_name(id),
 			ZodiacCatalog.words("“You kept your word, and you learned my rule: %s. I will remember this game.”", "“Bạn giữ lời và hiểu luật của tôi: %s. Tôi sẽ nhớ ván này.”") % ZodiacCatalog.skill_name(id),

@@ -87,7 +87,8 @@ func test_authored_roster_bilingual_contracts_and_inherited_kindred_nodes() -> v
 			assert_eq(node.responses.HAGGLE.delta, 0)
 			assert_true(node.outcomes.has("FULFILLED") and node.outcomes.has("BROKEN"))
 	assert_eq(ZodiacCatalog.persuasion_nodes("cat").size(), 12)
-	assert_true(ZodiacCatalog.persuasion_nodes("dog").is_empty())
+	assert_eq(ZodiacCatalog.persuasion_nodes("snake").size(), 12)
+	assert_true(ZodiacCatalog.persuasion_nodes("dragon").is_empty())
 
 func test_fresh_noon_is_seeded_authored_and_blocks_event_completion() -> void:
 	var first := _campaign()

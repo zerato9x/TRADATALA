@@ -125,7 +125,7 @@ func begin_day(day: int, seed_value: int) -> void:
 	_rng.seed = campaign.seed_for("zodiac_negotiation", day) if campaign != null else seed_value
 	if id.is_empty(): return
 	# Prerequisites earned today are evaluated on a subsequent encounter only.
-	if (not uses_persuasion() or id == "rooster") and progress.eligible(id) and not progress.owns(id):
+	if (not uses_persuasion() or id == "rooster" or not ZodiacCatalog.persuasion_config(id).get("private_scene", []).is_empty()) and progress.eligible(id) and not progress.owns(id):
 		progress.commit(id, record_key("scene_available"), {}, ["special_scene_unlocked"])
 	progress.meet(id, record_key("encounter"))
 	rebind_observers()
@@ -458,7 +458,10 @@ func favorite_relics() -> Array[String]:
 	return favorites
 
 func _observe_wallet(_previous: int, current: int, _delta: int, _reason: String) -> void:
-	if uses_persuasion(): return
+	if uses_persuasion():
+		var event_id := record_key("wallet:%d:%d:%s" % [campaign.wallet.journal.size(), current, _reason])
+		persuasion.observe_wallet(current, event_id)
+		return
 	if active_id().is_empty() or campaign == null: return
 	for promise: Dictionary in daily.get("promises", []):
 		if promise.get("completed", false): continue
@@ -594,7 +597,7 @@ func complete_scene() -> bool:
 	return true
 
 func snapshot() -> Dictionary:
-	return {"version": 4, "conversation_history": conversation_history.duplicate(), "daily": daily.duplicate(true), "rng_state": _rng.state, "forced": forced.duplicate(), "run_id": run_id, "endgame": endgame.duplicate(true), "progress": progress.snapshot()}
+	return {"version": 9, "conversation_history": conversation_history.duplicate(), "daily": daily.duplicate(true), "rng_state": _rng.state, "forced": forced.duplicate(), "run_id": run_id, "endgame": endgame.duplicate(true), "progress": progress.snapshot()}
 
 func restore(data: Dictionary) -> void:
 	daily = data.get("daily", {}).duplicate(true)
@@ -602,9 +605,13 @@ func restore(data: Dictionary) -> void:
 	# Finish already-started legacy costs and promises under their original terms.
 	# A pre-Noon old save can enter the new authored engine without replaying anything.
 	var previous_engine: bool = (active_id() == "cat" and int(data.get("version", 1)) < 3) or (active_id() == "rooster" and int(data.get("version", 1)) < 4 and daily.get("persuasion", {}).is_empty())
-	if previous_engine:
+	var introduced: int = {"dog": 5, "monkey": 5, "pig": 6, "ox": 6, "horse": 7, "goat": 7, "rat": 8, "tiger": 8, "snake": 9}.get(active_id(), 0)
+	var previous_pair: bool = introduced > 0 and int(data.get("version", 1)) < introduced and daily.get("persuasion", {}).is_empty()
+	if previous_engine or previous_pair:
 		var legacy_noon_state: Dictionary = daily.get("requests", {}).get(EventManager.EventSlot.NOON, {})
 		if not negotiation().is_empty() or not daily.get("promises", []).is_empty() or legacy_noon_state.get("status", "offered") != "offered": daily["legacy_negotiation"] = true
+		# Their old empty daytime visits also finish unchanged after Noon.
+		if previous_pair and (int(daily.get("slot", -1)) >= EventManager.EventSlot.NOON or daily.get("boss_finished", false)): daily["legacy_negotiation"] = true
 	if negotiation().get("final_disposition", "") == "NEUTRAL": negotiation().final_disposition = "NORMAL"
 	forced = data.get("forced", {}).duplicate()
 	run_id = data.get("run_id", "")

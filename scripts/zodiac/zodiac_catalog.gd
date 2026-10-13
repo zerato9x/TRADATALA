@@ -57,6 +57,15 @@ const LEGACY_CAT_PROFILE := {"demand_range": [2, 3], "thresholds": [1, 2], "refu
 const CAT_PERSUASION := preload("res://scripts/zodiac/content/cat_tier_1.gd")
 const CAT_EXPANSION := preload("res://scripts/zodiac/content/cat_expansion.gd")
 const ROOSTER_PERSUASION := preload("res://scripts/zodiac/content/rooster_persuasion.gd")
+const MONKEY_PERSUASION := preload("res://scripts/zodiac/content/monkey_persuasion.gd")
+const DOG_PERSUASION := preload("res://scripts/zodiac/content/dog_persuasion.gd")
+const PIG_PERSUASION := preload("res://scripts/zodiac/content/pig_persuasion.gd")
+const OX_PERSUASION := preload("res://scripts/zodiac/content/ox_persuasion.gd")
+const HORSE_PERSUASION := preload("res://scripts/zodiac/content/horse_persuasion.gd")
+const GOAT_PERSUASION := preload("res://scripts/zodiac/content/goat_persuasion.gd")
+const RAT_PERSUASION := preload("res://scripts/zodiac/content/rat_persuasion.gd")
+const TIGER_PERSUASION := preload("res://scripts/zodiac/content/tiger_persuasion.gd")
+const SNAKE_PERSUASION := preload("res://scripts/zodiac/content/snake_persuasion.gd")
 const DEFINITIONS := {
 	"rooster": {"thresholds": [1, 2], "deadlines": {"PLEASED": 3, "NORMAL": 2, "NEUTRAL": 2, "UNPLEASED": 1},
 		"favorites": ["toothpicks", "sunflower_seeds"], "favorite_tags": ["practical"],
@@ -90,6 +99,15 @@ static func persuasion_nodes(id: String) -> Array:
 	if id == "cat":
 		sources = CAT_PERSUASION.NODES.duplicate(true) + CAT_EXPANSION.NODES.duplicate(true)
 	elif id == "rooster": sources = ROOSTER_PERSUASION.NODES.duplicate(true)
+	elif id == "monkey": sources = MONKEY_PERSUASION.NODES.duplicate(true)
+	elif id == "dog": sources = DOG_PERSUASION.NODES.duplicate(true)
+	elif id == "pig": sources = PIG_PERSUASION.NODES.duplicate(true)
+	elif id == "ox": sources = OX_PERSUASION.NODES.duplicate(true)
+	elif id == "horse": sources = HORSE_PERSUASION.NODES.duplicate(true)
+	elif id == "goat": sources = GOAT_PERSUASION.NODES.duplicate(true)
+	elif id == "rat": sources = RAT_PERSUASION.NODES.duplicate(true)
+	elif id == "tiger": sources = TIGER_PERSUASION.NODES.duplicate(true)
+	elif id == "snake": sources = SNAKE_PERSUASION.NODES.duplicate(true)
 	var nodes: Array = []
 	for authored: Dictionary in sources:
 		var node := authored.duplicate(true)
@@ -108,6 +126,15 @@ static func persuasion_content_rank(tier: Variant) -> int:
 static func persuasion_config(id: String) -> Dictionary:
 	if id == "cat": return CAT_EXPANSION.CONFIG.duplicate(true)
 	if id == "rooster": return ROOSTER_PERSUASION.CONFIG.duplicate(true)
+	if id == "monkey": return MONKEY_PERSUASION.CONFIG.duplicate(true)
+	if id == "dog": return DOG_PERSUASION.CONFIG.duplicate(true)
+	if id == "pig": return PIG_PERSUASION.CONFIG.duplicate(true)
+	if id == "ox": return OX_PERSUASION.CONFIG.duplicate(true)
+	if id == "horse": return HORSE_PERSUASION.CONFIG.duplicate(true)
+	if id == "goat": return GOAT_PERSUASION.CONFIG.duplicate(true)
+	if id == "rat": return RAT_PERSUASION.CONFIG.duplicate(true)
+	if id == "tiger": return TIGER_PERSUASION.CONFIG.duplicate(true)
+	if id == "snake": return SNAKE_PERSUASION.CONFIG.duplicate(true)
 	return {}
 
 static func persuasion_special(id: String, history: Dictionary) -> Dictionary:

@@ -1,0 +1,1554 @@
+{
+  "date": "2026-10-13",
+  "timezone": "Asia/Bangkok",
+  "godot": "4.7.1.stable.official.a13da4feb",
+  "base_head": "6c183f097d08f47ec762aaac640651ca2fae81f9",
+  "status": "PASS",
+  "provenance": "Fresh isolated Godot processes. Final core and save checks passed after source/HUD changes; full bilingual real-MatchUI matrix rendered successfully. An initial editor-import audio UID diagnostic cleared on an unchanged fresh retry after runtime processes closed.",
+  "core": {
+    "total": 516,
+    "passed": 516,
+    "failed": 0,
+    "new_pair_tests": 23
+  },
+  "rendered_pair": {
+    "checks": 2015,
+    "failures": 0,
+    "captures": 31,
+    "renderer": "Compatibility OpenGL",
+    "locales": [
+      "en",
+      "vi"
+    ],
+    "viewports": [
+      "1280x720",
+      "1920x1080"
+    ],
+    "input": "Synthetic pointer and keyboard input through actual MatchUI controls",
+    "fixtures": "Actual primary and physical-card commitments through complete two-Phase Deals; single controlled native starts; committed Drink recovery APIs and later GUI plays; controlled history/private-scene eligibility"
+  },
+  "save_pairs": {
+    "states": 44,
+    "write_checks": 93,
+    "read_checks": 181,
+    "failures": 0,
+    "separate_processes": true,
+    "permanent_profile_and_file_isolation": true
+  },
+  "editor_import": {
+    "pass": true,
+    "fresh_retry": true,
+    "source_changes_for_retry": false,
+    "stdout": ".godot/validation/rat-tiger-import.log",
+    "stderr": ".godot/validation/rat-tiger-import.err.log",
+    "stdout_sha256": "d673b4f2fd274a36070255a057a22cf1e69f46a3152ab41ffa27139ac8cea2d6",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "registered_checks": [
+    {
+      "name": "parse",
+      "pass": true,
+      "rendered": false,
+      "completion_markers": [],
+      "stdout": ".godot/validation/parse.log",
+      "stderr": ".godot/validation/parse.err.log",
+      "stdout_sha256": "9d581ec5492fe988c9c06ba731f53831e0de994203e89ae19ffcf5b503748acc",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_written_utc": "2026-10-13T08:46:25.8005692Z"
+    },
+    {
+      "name": "core",
+      "pass": true,
+      "rendered": false,
+      "completion_markers": [
+        "TRADATALA_TESTS total=516 passed=516 failed=0 skipped=0"
+      ],
+      "stdout": ".godot/validation/core.log",
+      "stderr": ".godot/validation/core.err.log",
+      "stdout_sha256": "1b75873c083dd4b881904f7455847d8eb17459df70f2bf783757e5f1b9a2906b",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_written_utc": "2026-10-13T08:46:52.6822178Z"
+    },
+    {
+      "name": "runtime",
+      "pass": true,
+      "rendered": false,
+      "completion_markers": [
+        "TRADATALA_SCENE_SMOKE passed"
+      ],
+      "stdout": ".godot/validation/runtime.log",
+      "stderr": ".godot/validation/runtime.err.log",
+      "stdout_sha256": "9c8a1b7fc8249b700ca1e88d69157dcbcdd118e52496fd1eb943c5fb909adef0",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_written_utc": "2026-10-13T08:27:48.2237113Z"
+    },
+    {
+      "name": "tutorial_scene",
+      "pass": true,
+      "rendered": false,
+      "completion_markers": [
+        "TUTORIAL_REPLACEMENT_SMOKE: 0 failures"
+      ],
+      "stdout": ".godot/validation/tutorial_scene.log",
+      "stderr": ".godot/validation/tutorial_scene.err.log",
+      "stdout_sha256": "bc2887c5796d6fae0b742aec531560f1a99fbf68bbed231268cade23d17e07eb",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_written_utc": "2026-10-13T08:31:10.6854083Z"
+    },
+    {
+      "name": "campaign",
+      "pass": true,
+      "rendered": false,
+      "completion_markers": [
+        "CAMPAIGN_OVERHAUL_SCENE: 0 failures"
+      ],
+      "stdout": ".godot/validation/campaign.log",
+      "stderr": ".godot/validation/campaign.err.log",
+      "stdout_sha256": "5064b948e3203f9846815f111213a3652c27c489e825915c6e6e741891fa7027",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_written_utc": "2026-10-13T08:31:03.2485891Z"
+    },
+    {
+      "name": "event_table_overhaul",
+      "pass": true,
+      "rendered": false,
+      "completion_markers": [
+        "EVENT_TABLE_OVERHAUL: 116 checks, 0 failures"
+      ],
+      "stdout": ".godot/validation/event_table_overhaul.log",
+      "stderr": ".godot/validation/event_table_overhaul.err.log",
+      "stdout_sha256": "1dd5e83f811c235d86e0dbeef58622d0237d6e139062e10a0a486e9fcf513442",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_written_utc": "2026-10-13T08:31:39.8226307Z"
+    },
+    {
+      "name": "zodiac_scene",
+      "pass": true,
+      "rendered": false,
+      "completion_markers": [
+        "ZODIAC_SCENE_SMOKE checks=106 failures=0"
+      ],
+      "stdout": ".godot/validation/zodiac_scene.log",
+      "stderr": ".godot/validation/zodiac_scene.err.log",
+      "stdout_sha256": "a4eeb588230cbcf19ba9f7263599c8473244be3a3a1841f3db04aa1ab06d00e2",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_written_utc": "2026-10-13T08:31:57.5048594Z"
+    },
+    {
+      "name": "zodiac-full-roster",
+      "pass": true,
+      "rendered": false,
+      "completion_markers": [
+        "ZODIAC_FULL_ROSTER_SMOKE checks=743 failures=0"
+      ],
+      "stdout": ".godot/validation/zodiac-full-roster.log",
+      "stderr": ".godot/validation/zodiac-full-roster.err.log",
+      "stdout_sha256": "54980a537a9301f99b916adb7407763a4ba43e7e7dc48a980420d51550cbe21f",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_written_utc": "2026-10-13T08:32:11.9030725Z"
+    },
+    {
+      "name": "boss-presentation",
+      "pass": true,
+      "rendered": false,
+      "completion_markers": [
+        "BOSS_PRESENTATION_SMOKE checks=647 failures=0 rendered=false"
+      ],
+      "stdout": ".godot/validation/boss-presentation.log",
+      "stderr": ".godot/validation/boss-presentation.err.log",
+      "stdout_sha256": "a2f0051a14b475686549bc50dbf2783016180e349c71cd89a4dfd86e58ca5a10",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_written_utc": "2026-10-13T08:32:28.8426047Z"
+    },
+    {
+      "name": "boss-dog-monkey",
+      "pass": true,
+      "rendered": false,
+      "completion_markers": [
+        "DOG_MONKEY_PRESENTATION_SMOKE checks=717 failures=0 rendered=false"
+      ],
+      "stdout": ".godot/validation/boss-dog-monkey.log",
+      "stderr": ".godot/validation/boss-dog-monkey.err.log",
+      "stdout_sha256": "ccc9a7e0fcb689246e1b3781d380153232f894f783b737986b4ab09ba68b9530",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_written_utc": "2026-10-13T08:28:02.1624919Z"
+    },
+    {
+      "name": "boss-pig-monkey",
+      "pass": true,
+      "rendered": false,
+      "completion_markers": [
+        "PIG_MONKEY_OVERHAUL_SMOKE checks=651 failures=0 rendered=false"
+      ],
+      "stdout": ".godot/validation/boss-pig-monkey.log",
+      "stderr": ".godot/validation/boss-pig-monkey.err.log",
+      "stdout_sha256": "49ca1abb5d09c8d34dea3b5e1b8b4d21749c70e81314954d42b7ef1d7c4578ed",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_written_utc": "2026-10-13T08:28:43.0470208Z"
+    },
+    {
+      "name": "boss-horse-goat",
+      "pass": true,
+      "rendered": false,
+      "completion_markers": [
+        "HORSE_GOAT_OVERHAUL_SMOKE checks=1548 failures=0 rendered=false"
+      ],
+      "stdout": ".godot/validation/boss-horse-goat.log",
+      "stderr": ".godot/validation/boss-horse-goat.err.log",
+      "stdout_sha256": "fdd6c21da3e458dbfbb93f6a3e45a487b0edda5b1ac7447428295fca506447a2",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_written_utc": "2026-10-13T08:29:18.7637845Z"
+    },
+    {
+      "name": "cat-scene",
+      "pass": true,
+      "rendered": false,
+      "completion_markers": [
+        "CAT_PERSUASION_SCENE_SMOKE checks=333 failures=0 captures=0"
+      ],
+      "stdout": ".godot/validation/cat-scene.log",
+      "stderr": ".godot/validation/cat-scene.err.log",
+      "stdout_sha256": "684947e0487fad7764b4b075436bdfc0f292ab0dead289c4fe531c1970c6359e",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_written_utc": "2026-10-13T08:32:43.6161509Z"
+    },
+    {
+      "name": "cat-expansion",
+      "pass": true,
+      "rendered": false,
+      "completion_markers": [
+        "CAT_EXPANSION_SCENE_SMOKE checks=557 failures=0 captures=0"
+      ],
+      "stdout": ".godot/validation/cat-expansion.log",
+      "stderr": ".godot/validation/cat-expansion.err.log",
+      "stdout_sha256": "d278528355f45c960a8146ff70f0934c91f2e6f1e30899cd3d5ad58eddba3376",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_written_utc": "2026-10-13T08:32:57.8642151Z"
+    },
+    {
+      "name": "rooster-scene",
+      "pass": true,
+      "rendered": false,
+      "completion_markers": [
+        "ROOSTER_PERSUASION_SCENE_SMOKE checks=809 failures=0 captures=0"
+      ],
+      "stdout": ".godot/validation/rooster-scene.log",
+      "stderr": ".godot/validation/rooster-scene.err.log",
+      "stdout_sha256": "b4e4620003e8772c86d4cf44ba3c293ce2cbdabb63b7a8118c246a63876cf543",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_written_utc": "2026-10-13T08:33:18.5141500Z"
+    },
+    {
+      "name": "rooster-write",
+      "pass": true,
+      "rendered": false,
+      "completion_markers": [
+        "ROOSTER_PERSUASION_RESUME_WRITE checks=17 failures=0"
+      ],
+      "stdout": ".godot/validation/rooster-write.log",
+      "stderr": ".godot/validation/rooster-write.err.log",
+      "stdout_sha256": "12ed2ef43aae2b0ffa272a9f8bbecd8e762cd2a8392201283c55c4d5c62c96a1",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_written_utc": "2026-10-13T08:33:20.7401910Z"
+    },
+    {
+      "name": "rooster-read",
+      "pass": true,
+      "rendered": false,
+      "completion_markers": [
+        "ROOSTER_PERSUASION_RESUME_READ checks=47 failures=0"
+      ],
+      "stdout": ".godot/validation/rooster-read.log",
+      "stderr": ".godot/validation/rooster-read.err.log",
+      "stdout_sha256": "be0eae33b3efad34fcf3d3a7ed0ab5f995a9bb5c22f5536e48624a4ddcc5c6f3",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_written_utc": "2026-10-13T08:33:22.9732387Z"
+    },
+    {
+      "name": "monkey-dog-scene",
+      "pass": true,
+      "rendered": false,
+      "completion_markers": [
+        "MONKEY_DOG_PERSUASION_SCENE_SMOKE checks=1912 failures=0 captures=0"
+      ],
+      "stdout": ".godot/validation/monkey-dog-scene.log",
+      "stderr": ".godot/validation/monkey-dog-scene.err.log",
+      "stdout_sha256": "6456438af6eb4bd03593a98b5808086e52325d8f02c025495f808276ecb332ad",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_written_utc": "2026-10-13T08:34:26.8788512Z"
+    },
+    {
+      "name": "monkey-dog-write",
+      "pass": true,
+      "rendered": false,
+      "completion_markers": [
+        "MONKEY_DOG_PERSUASION_RESUME_WRITE checks=54 failures=0"
+      ],
+      "stdout": ".godot/validation/monkey-dog-write.log",
+      "stderr": ".godot/validation/monkey-dog-write.err.log",
+      "stdout_sha256": "0a9bd1840a3f66e998087604255ecadfc6f4d3bc014e1b143e4ecf3e7bf50990",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_written_utc": "2026-10-13T08:34:29.4912465Z"
+    },
+    {
+      "name": "monkey-dog-read",
+      "pass": true,
+      "rendered": false,
+      "completion_markers": [
+        "MONKEY_DOG_PERSUASION_RESUME_READ checks=105 failures=0"
+      ],
+      "stdout": ".godot/validation/monkey-dog-read.log",
+      "stderr": ".godot/validation/monkey-dog-read.err.log",
+      "stdout_sha256": "e71766dd04f92975c026cf26ea75e8ac65fd08d9a3aa083440474f1b128ff5ad",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_written_utc": "2026-10-13T08:34:31.8674253Z"
+    },
+    {
+      "name": "pig-ox-scene",
+      "pass": true,
+      "rendered": false,
+      "completion_markers": [
+        "PIG_OX_PERSUASION_SCENE_SMOKE checks=1954 failures=0 captures=0"
+      ],
+      "stdout": ".godot/validation/pig-ox-scene.log",
+      "stderr": ".godot/validation/pig-ox-scene.err.log",
+      "stdout_sha256": "7f2401137c649036956e7329dc558b8a51b99a4920c04334b5041ed7d730d410",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_written_utc": "2026-10-13T08:35:48.0963291Z"
+    },
+    {
+      "name": "pig-ox-write",
+      "pass": true,
+      "rendered": false,
+      "completion_markers": [
+        "PIG_OX_PERSUASION_RESUME_WRITE checks=81 failures=0"
+      ],
+      "stdout": ".godot/validation/pig-ox-write.log",
+      "stderr": ".godot/validation/pig-ox-write.err.log",
+      "stdout_sha256": "9fb3c516264f61262e39abf42d413958b7c7172b65ebe90dab4e4b44268c6d79",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_written_utc": "2026-10-13T08:35:50.8478441Z"
+    },
+    {
+      "name": "pig-ox-read",
+      "pass": true,
+      "rendered": false,
+      "completion_markers": [
+        "PIG_OX_PERSUASION_RESUME_READ checks=153 failures=0"
+      ],
+      "stdout": ".godot/validation/pig-ox-read.log",
+      "stderr": ".godot/validation/pig-ox-read.err.log",
+      "stdout_sha256": "59021460af0e3c68095e7608c80d621c691b4dd05efbb81756ac574483c000c7",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_written_utc": "2026-10-13T08:35:53.4762545Z"
+    },
+    {
+      "name": "cat-write",
+      "pass": true,
+      "rendered": false,
+      "completion_markers": [
+        "CAT_PERSUASION_RESUME_WRITE checks=14 failures=0"
+      ],
+      "stdout": ".godot/validation/cat-write.log",
+      "stderr": ".godot/validation/cat-write.err.log",
+      "stdout_sha256": "69689119a07c2f905a4f116f69511c4f05b716156449a4cfb75814602252ca74",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_written_utc": "2026-10-13T08:37:19.2318859Z"
+    },
+    {
+      "name": "cat-read",
+      "pass": true,
+      "rendered": false,
+      "completion_markers": [
+        "CAT_PERSUASION_RESUME_READ checks=44 failures=0"
+      ],
+      "stdout": ".godot/validation/cat-read.log",
+      "stderr": ".godot/validation/cat-read.err.log",
+      "stdout_sha256": "a9972e5203417d3f6d82b35ac6f8cbb3ef9b5f0df380ca644da2485316bab11d",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_written_utc": "2026-10-13T08:37:21.2827666Z"
+    },
+    {
+      "name": "negotiation",
+      "pass": true,
+      "rendered": false,
+      "completion_markers": [
+        "ZODIAC_NEGOTIATION_TESTS total=106 passed=106 failed=0"
+      ],
+      "stdout": ".godot/validation/negotiation.log",
+      "stderr": ".godot/validation/negotiation.err.log",
+      "stdout_sha256": "183a8e9d148e5b2d1538821579d743b0b2b5ea1fe7610846516c8cf0f6262c36",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_written_utc": "2026-10-13T08:37:26.3494126Z"
+    },
+    {
+      "name": "negotiation-write",
+      "pass": true,
+      "rendered": false,
+      "completion_markers": [
+        "ZODIAC_NEGOTIATION_RESUME_WRITE checks=5 failures=0"
+      ],
+      "stdout": ".godot/validation/negotiation-write.log",
+      "stderr": ".godot/validation/negotiation-write.err.log",
+      "stdout_sha256": "8ff9b8f915118177c80ab73093a6b1be3cd1136ab885d279798a10e4e7f2d5ab",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_written_utc": "2026-10-13T08:37:28.3922859Z"
+    },
+    {
+      "name": "negotiation-read",
+      "pass": true,
+      "rendered": false,
+      "completion_markers": [
+        "ZODIAC_NEGOTIATION_RESUME_READ checks=10 failures=0"
+      ],
+      "stdout": ".godot/validation/negotiation-read.log",
+      "stderr": ".godot/validation/negotiation-read.err.log",
+      "stdout_sha256": "9fa7804f7429a59cdcaa1f42c2d98effb5c2de68e0d49b04814967a67661e9f6",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_written_utc": "2026-10-13T08:37:30.2850210Z"
+    },
+    {
+      "name": "horse-goat-scene",
+      "pass": true,
+      "rendered": false,
+      "completion_markers": [
+        "HORSE_GOAT_PERSUASION_SCENE_SMOKE checks=1974 failures=0 captures=0"
+      ],
+      "stdout": ".godot/validation/horse-goat-scene.log",
+      "stderr": ".godot/validation/horse-goat-scene.err.log",
+      "stdout_sha256": "cd74a7de277e2c2c18fda7fe37f3dd536d2e221c92345092e5df73332c041a91",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_written_utc": "2026-10-13T08:37:11.8851496Z"
+    },
+    {
+      "name": "horse-goat-write",
+      "pass": true,
+      "rendered": false,
+      "completion_markers": [
+        "HORSE_GOAT_PERSUASION_RESUME_WRITE checks=80 failures=0"
+      ],
+      "stdout": ".godot/validation/horse-goat-write.log",
+      "stderr": ".godot/validation/horse-goat-write.err.log",
+      "stdout_sha256": "8be33b9775f2f0ebd9c17a3783070e6949041e61d2c4d9f2e04409684c849841",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_written_utc": "2026-10-13T08:37:14.6947257Z"
+    },
+    {
+      "name": "horse-goat-read",
+      "pass": true,
+      "rendered": false,
+      "completion_markers": [
+        "HORSE_GOAT_PERSUASION_RESUME_READ checks=153 failures=0"
+      ],
+      "stdout": ".godot/validation/horse-goat-read.log",
+      "stderr": ".godot/validation/horse-goat-read.err.log",
+      "stdout_sha256": "e565d9da5ea2f7e7bc557861171c07cb394cb1cf303e59ee64fcaadd5454d625",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_written_utc": "2026-10-13T08:37:17.1970197Z"
+    },
+    {
+      "name": "boss-rat-tiger",
+      "pass": true,
+      "rendered": false,
+      "completion_markers": [
+        "RAT_TIGER_OVERHAUL_SMOKE checks=882 failures=0 rendered=false"
+      ],
+      "stdout": ".godot/validation/boss-rat-tiger.log",
+      "stderr": ".godot/validation/boss-rat-tiger.err.log",
+      "stdout_sha256": "7c5e026f33d75639871a4cb33bbcfbb3473fd5ffe2ce3fd52dafb5edef12da90",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_written_utc": "2026-10-13T08:30:28.0753382Z"
+    },
+    {
+      "name": "rat-tiger-scene",
+      "pass": true,
+      "rendered": true,
+      "completion_markers": [
+        "RAT_TIGER_PERSUASION_SCENE_SMOKE checks=2015 failures=0 captures=31"
+      ],
+      "stdout": ".godot/validation/rat-tiger-scene.log",
+      "stderr": ".godot/validation/rat-tiger-scene.err.log",
+      "stdout_sha256": "beeb005788562bd9981079d4b7947e872fe20c40206e08606e99f7507c12ae12",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_written_utc": "2026-10-13T08:43:42.9056996Z"
+    },
+    {
+      "name": "rat-tiger-write",
+      "pass": true,
+      "rendered": false,
+      "completion_markers": [
+        "RAT_TIGER_PERSUASION_RESUME_WRITE checks=93 failures=0"
+      ],
+      "stdout": ".godot/validation/rat-tiger-write.log",
+      "stderr": ".godot/validation/rat-tiger-write.err.log",
+      "stdout_sha256": "f23f0bedff093bd991a3ef8ea1ccbebe6f413d744ca580958174077a9cd5b3e3",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_written_utc": "2026-10-13T08:46:55.4957976Z"
+    },
+    {
+      "name": "rat-tiger-read",
+      "pass": true,
+      "rendered": false,
+      "completion_markers": [
+        "RAT_TIGER_PERSUASION_RESUME_READ checks=181 failures=0"
+      ],
+      "stdout": ".godot/validation/rat-tiger-read.log",
+      "stderr": ".godot/validation/rat-tiger-read.err.log",
+      "stdout_sha256": "dac31118b55b6f382de0f5db453d0d8d6e8d0fc16794c56dc08ddead9c979acb",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_written_utc": "2026-10-13T08:46:58.0841711Z"
+    }
+  ],
+  "source_hashes": [
+    {
+      "path": "scripts/zodiac/content/rat_persuasion.gd",
+      "sha256": "243380eaf11e42e73c3d39f81835b94afce2b240dfdd801d709f8caaefd48e6b"
+    },
+    {
+      "path": "scripts/zodiac/content/tiger_persuasion.gd",
+      "sha256": "668902e0baf1a083e4d6d3ace9a6b5fc5cb7b91477ee2b47b4371fdf7d77115c"
+    },
+    {
+      "path": "tests/rat_tiger_test_flow.gd",
+      "sha256": "0cf561f44622be10d94f7c1e4353b10330e66dde04bc2813afd55f607d91c233"
+    },
+    {
+      "path": "tests/test_rat_tiger_persuasion.gd",
+      "sha256": "a31e40057084442d27c8677d572c83b429bcc2232119f6826b3cf3051b10a46e"
+    },
+    {
+      "path": "tests/rat_tiger_persuasion_scene_smoke.gd",
+      "sha256": "212c451f15f5a60d337ca8d13c6c1b5e8b7bba19823bd1a7545698d7ae91d989"
+    },
+    {
+      "path": "tests/rat_tiger_persuasion_resume_smoke.gd",
+      "sha256": "c33a8d161b86d72df4c6a9158c80d77099d170578252f63125ca15d66666bbbd"
+    },
+    {
+      "path": "scripts/zodiac/content/rat_persuasion.gd.uid",
+      "sha256": "31d7ca5c3674a973fcea8f514f3f8405706c4f48d187c54e6e5c5a8b91a75769"
+    },
+    {
+      "path": "scripts/zodiac/content/tiger_persuasion.gd.uid",
+      "sha256": "f36a1f1dbbde6334c37437204d88763182db011787cb4d35e17b7eaa2050ed23"
+    },
+    {
+      "path": "tests/rat_tiger_test_flow.gd.uid",
+      "sha256": "4f48f66805debf2d4e5cfb3a413927aa3c8a623988eb95b76a51711f24e3a91e"
+    },
+    {
+      "path": "tests/test_rat_tiger_persuasion.gd.uid",
+      "sha256": "72c2b84defef99805160181d3a3ba8148a7f4f135b000140a3788b0f8726f8b9"
+    },
+    {
+      "path": "tests/rat_tiger_persuasion_scene_smoke.gd.uid",
+      "sha256": "9dbbcc96e98bf1ac8f8b358bbbaa64d86fc0f263573b4b85ab11b84f48177e5d"
+    },
+    {
+      "path": "tests/rat_tiger_persuasion_resume_smoke.gd.uid",
+      "sha256": "b62ec06f21bd2cd32dff833d3bda4cb5687a95505eb6fdf911541d60606f4d2a"
+    },
+    {
+      "path": "README.md",
+      "sha256": "68be866228846744a237f0b31756efb61198dbaf7b3b51be911b5a35067128de"
+    },
+    {
+      "path": "docs/ZODIAC_NEGOTIATION_2026-10-02.md",
+      "sha256": "d84600e0777b265ff2f557bbf2ad41b568a0e24e6a3006c00bb4875c49a044bb"
+    },
+    {
+      "path": "docs/ZODIAC_RUNTIME_2026-10-02.md",
+      "sha256": "7b03d78509bfd41426b6eb9d0c53478896cb6997672d6e51f0e943471994a525"
+    },
+    {
+      "path": "scripts/ui/quick_info.gd",
+      "sha256": "4d13743694ef8345afe9a1578bbd335312ed724c3ffe3c8b0d334c9b32c24fb8"
+    },
+    {
+      "path": "scripts/zodiac/zodiac_catalog.gd",
+      "sha256": "5dea97957a7bd17f179a746cdcdc9c1fcd92c6c6a92a69b4a93562c1f505a340"
+    },
+    {
+      "path": "scripts/zodiac/zodiac_persuasion.gd",
+      "sha256": "57205bfcb147c7a836f70293eda1883f65528c1acfc90231f67543d9cd1f80f8"
+    },
+    {
+      "path": "scripts/zodiac/zodiac_service.gd",
+      "sha256": "d7232727df016b41833f8c73e6eff8057f584997d38c5b31487b00cb7a80732a"
+    },
+    {
+      "path": "tests/run_headless.gd",
+      "sha256": "921bd9e363ca013ff2ad12982a16b452699b7793655e6e77fe88ea03039dd81c"
+    },
+    {
+      "path": "tests/test_rooster_persuasion.gd",
+      "sha256": "af335535b732136b50e93e6bc5a7068a89b4adf0cf265d4aedef89ac77e926bc"
+    },
+    {
+      "path": "tests/test_zodiac.gd",
+      "sha256": "1dff72864512e5b8a053eb20b9519c4cfd6e5cda71238e67e51fed204a95e9fb"
+    },
+    {
+      "path": "tools/validate_project.ps1",
+      "sha256": "d3357dc9bc633d14a2016505c8a9f4549601bf659fc7bb7ef823a051a4bd235f"
+    },
+    {
+      "path": "docs/RAT_TIGER_EXPANSION_2026-10-13.md",
+      "sha256": "300988d06286352b7ee7e13f98719601872845b1a582f898d8bf5a7e951dad8c"
+    }
+  ],
+  "canonical_authorities": [
+    {
+      "path": "project.godot",
+      "sha256": "b914e13dabdade4ea5edf497f914ec1e8860de001bcc38dfe6ebc8620d05e4fd",
+      "git_blob": "d170d319f22574fae55f31339f217e5b655b08a9",
+      "unchanged_from_head": true
+    },
+    {
+      "path": "default_bus_layout.tres",
+      "sha256": "6a4615ca41ab03d97dd91258bb83b0a67fbb49f7adcebf89d11482aec5e4162a",
+      "git_blob": "38ac0b86ce2568fbb4cd634e27111be5abe9db7c",
+      "unchanged_from_head": true
+    },
+    {
+      "path": "scripts/gameplay/deal_state.gd",
+      "sha256": "684dc688c77f353bacf37ffc61eeba2e31df4064176071f05912aa6592975ae0",
+      "git_blob": "8cedb0a67434c95b059c857fcae980f26ec599ca",
+      "unchanged_from_head": true
+    },
+    {
+      "path": "scripts/economy/vnd_wallet.gd",
+      "sha256": "fc0bbd16f56471eae8c192b5e90a09deff8195d095f6846479693f28fa9dce4e",
+      "git_blob": "0875b05a1871e4199f68e592a259d3d233f3e257",
+      "unchanged_from_head": true
+    },
+    {
+      "path": "scripts/campaign/campaign_manager.gd",
+      "sha256": "997aa8247eda46cbf7c5c27d7ab6844282f2b32722f7a4bf17ba43d27690c6eb",
+      "git_blob": "f855388403f4bc5a9ad13aa56d172726ae75f933",
+      "unchanged_from_head": true
+    },
+    {
+      "path": "scripts/cards/card_data.gd",
+      "sha256": "caf18572b563ac8e5b6ebd12e6af6f0454beb1e968b8d847343ca3683bb1f10f",
+      "git_blob": "0e6e7275f27336f0f7464733798ac73508b567ff",
+      "unchanged_from_head": true
+    },
+    {
+      "path": "scripts/campaign/meta_save_files.gd",
+      "sha256": "4abcac58ee2735ad14a658733da56857a4e7226fa775fa8f6405cd1ea2af037a",
+      "git_blob": "abc3656c53dd7f41d902feee34e3460ad9cda008",
+      "unchanged_from_head": true
+    },
+    {
+      "path": "scripts/campaign/run_save.gd",
+      "sha256": "3528b88df84d5a9363c85b663eba3b7e738cc3e5647cb0228bd59d3bdfb76e1f",
+      "git_blob": "0012ca4626fbf2d326236d8806e2cdfde72e3ae4",
+      "unchanged_from_head": true
+    },
+    {
+      "path": "scripts/zodiac/content/cat_tier_1.gd",
+      "sha256": "a52fc1276f649cabe10a98884589e92786b084fed1ff9fce6097ddabae279ea7",
+      "git_blob": "85e0226f3e8fa8001d0cba77e39856584448ca1f",
+      "unchanged_from_head": true
+    },
+    {
+      "path": "scripts/zodiac/content/cat_expansion.gd",
+      "sha256": "f2e26ea5a3c18beb58aa9ba6c8a0ca681de0316e6f2d78e323412bc8e2022ab5",
+      "git_blob": "e71bc9676ce5712a9d7390f9f0f3d403ab86804e",
+      "unchanged_from_head": true
+    },
+    {
+      "path": "scripts/zodiac/content/rooster_persuasion.gd",
+      "sha256": "93a68601d4b6bd7de3ba9ce7caca9bfaac25fa00e6ce9e5219eacedae567d2fe",
+      "git_blob": "ade3e492d2bcb55adf4374572a704d7d67097ca3",
+      "unchanged_from_head": true
+    },
+    {
+      "path": "docs/authoring/CAT_TIER_1_AUTHORITY.txt",
+      "sha256": "84a401a39732edef2e1ee44a44bc48bad5d4643245c4eab6e69b08a65be7df1d",
+      "git_blob": "79d5a1b8a7afa71ccb94df58f6417b6c634fbd36",
+      "unchanged_from_head": true
+    },
+    {
+      "path": "scripts/zodiac/rules/cat.gd",
+      "sha256": "7bbbb7b056309e1e0ba4af9bab574a424d2fe5e63f19ddbd33fe7b56116342dd",
+      "git_blob": "fdee870319d18b32e018b80374101d32db94fa07",
+      "unchanged_from_head": true
+    },
+    {
+      "path": "scripts/zodiac/rules/dog.gd",
+      "sha256": "e1765196acf865e1103495184aecf9c921321ee12e03e0c43be0d31cc26a6a16",
+      "git_blob": "863d4ae12a10fd8fc7c18fccfe616fdd1db6849c",
+      "unchanged_from_head": true
+    },
+    {
+      "path": "scripts/zodiac/rules/dragon.gd",
+      "sha256": "cfacee622cd50fd3ef6cea7207434bfa1c3503b6e7227e3c36a8193fc7e195b7",
+      "git_blob": "7d65f1c72ca6ab202d18a277206b5e73b2044c53",
+      "unchanged_from_head": true
+    },
+    {
+      "path": "scripts/zodiac/rules/goat.gd",
+      "sha256": "ea394f728bdc4e09a87660d684dd9085239393aac466c22fe6df900a675bad9b",
+      "git_blob": "6053cb3517fc7b45a735a47c2dbe2b5f25620eaf",
+      "unchanged_from_head": true
+    },
+    {
+      "path": "scripts/zodiac/rules/horse.gd",
+      "sha256": "fb11ab9c9d5689dee59c2fbe5dce095e5caead1df068322a60af4139d31ddeee",
+      "git_blob": "2c079ec0d277b4b566ab68ed491de45cb4a9d255",
+      "unchanged_from_head": true
+    },
+    {
+      "path": "scripts/zodiac/rules/monkey.gd",
+      "sha256": "5669e88b27d49df62fe4a26f33e09ba2ff523c8bde3ddd3f20a7c5c5bfbf37e2",
+      "git_blob": "4800b5f831beadad39142fafe48d7d14e117f128",
+      "unchanged_from_head": true
+    },
+    {
+      "path": "scripts/zodiac/rules/ox.gd",
+      "sha256": "d894c87534c66206927d233995e3bb19a2d4ce7c23deeee08732f65ee695ed9b",
+      "git_blob": "e798651d1ecdf1e9d176b2063397884792c6b4a5",
+      "unchanged_from_head": true
+    },
+    {
+      "path": "scripts/zodiac/rules/pig.gd",
+      "sha256": "d24f36b64e82e4191372a301bb1c863eaac50c31f1ca9c501f1e6eeedc3c242a",
+      "git_blob": "44f6504409fd95c00a776b415c148c5526c02b94",
+      "unchanged_from_head": true
+    },
+    {
+      "path": "scripts/zodiac/rules/rat.gd",
+      "sha256": "79c0497660c2d153b450443c78ec101e5cf3bf0e70593f0e48e796b3443e1f5f",
+      "git_blob": "89fa9a5427f425170de7ebd5aa25e5d2eef2a498",
+      "unchanged_from_head": true
+    },
+    {
+      "path": "scripts/zodiac/rules/rooster.gd",
+      "sha256": "8845362f6e9f48bb5af74af07fe2a9f7256b8b4a40657d2bb44e8a25ea729fa4",
+      "git_blob": "0ef9ee7eb06dfa60e2d7ac8f7d86bad4281426a9",
+      "unchanged_from_head": true
+    },
+    {
+      "path": "scripts/zodiac/rules/snake.gd",
+      "sha256": "fa7eef215b6d6854258e87e1ebebecc710ccaa699df6423c487313f941c9f2e0",
+      "git_blob": "ca7df0fa27544dbd09b3f5d1af7ca4d1888c9235",
+      "unchanged_from_head": true
+    },
+    {
+      "path": "scripts/zodiac/rules/tiger.gd",
+      "sha256": "e83208208605603049fe13f6cec9577ad1125573a32fc946faa73b0231f9d55f",
+      "git_blob": "1d5fdb3cf71c6c4ecf48e8c9ea871fc2b543de1f",
+      "unchanged_from_head": true
+    }
+  ],
+  "previous_work": {
+    "baseline_file_count": 160,
+    "preserved_file_count": 148,
+    "unexpected_changes": 0,
+    "files": [
+      {
+        "path": "docs/HORSE_GOAT_EXPANSION_2026-10-13.md",
+        "sha256": "85d6ba6de4d0a9fec76f425072a4ac33c27bb4e082bc72dd52dd06d385ec3cb8",
+        "unchanged": true
+      },
+      {
+        "path": "docs/HORSE_GOAT_EXPANSION_VALIDATION_2026-10-13.json",
+        "sha256": "84bfe5aeee384957e87443d40d56cb8c95924f574ce4b3f52fc3fc50191d9ad3",
+        "unchanged": true
+      },
+      {
+        "path": "docs/MONKEY_DOG_EXPANSION_2026-10-12.md",
+        "sha256": "9e575b6b419ff90ade15756c36455aa5c63e04b16f4aac428648b20be44d1d4e",
+        "unchanged": true
+      },
+      {
+        "path": "docs/MONKEY_DOG_EXPANSION_VALIDATION_2026-10-12.json",
+        "sha256": "7aae41b3d15a68e2c05c7fa17e08223fac4d1b9ab4ab46a644580c64f5a6f9dd",
+        "unchanged": true
+      },
+      {
+        "path": "docs/PIG_OX_EXPANSION_2026-10-12.md",
+        "sha256": "6f49991dd935c84c85ead06343a0d84f05deb41d03be1a43fa02f9085225a6a0",
+        "unchanged": true
+      },
+      {
+        "path": "docs/PIG_OX_EXPANSION_VALIDATION_2026-10-12.json",
+        "sha256": "5db1d7ba9f2248b6c91d164d4c7301a9120bcac6fe28f663a2300c78c648961a",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/cat-expansion-2026-10-10/cat.t2.card_memory_BROKEN_en_1280.png.import",
+        "sha256": "cfc4612bed68f385de88a92fc6c65f5f98678dfd551090a61b26a9b29ab90072",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/cat-expansion-2026-10-10/choice_terms_vi_1280.png.import",
+        "sha256": "7c8695b4c542d20487f64ac29fa68e2ff42262e43d649825a5fb8530a89fbdb9",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/cat-expansion-2026-10-10/chosen_card_remembered_en.png.import",
+        "sha256": "c010732fb7206de38b8b8367ff20e9dbdb242081b19924ee26e18813cd93af36",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/cat-expansion-2026-10-10/last_chance_en.png.import",
+        "sha256": "329e0ab49f1a05035dfcfff1e2ffe8f093ceeac5135a5bd7b8004e8670065509",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/cat-expansion-2026-10-10/last_chance_vi.png.import",
+        "sha256": "966f8ed467423265a3c60d0411d14275b9b1add7f4e2f637240d0a74cdb1ef6c",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/horse-goat-expansion-2026-10-13/goat_action_partial_en.png",
+        "sha256": "55f17a203023403a9e09bd4efe6bcb531dcc4a69dea4c3b2f27843ef648fb142",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/horse-goat-expansion-2026-10-13/goat_action_partial_en.png.import",
+        "sha256": "86d9cf7d4538d44923ba51eaa29b4fbe27f75324dea0006644c25825252e03c8",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/horse-goat-expansion-2026-10-13/goat_chosen_terms_vi.png",
+        "sha256": "0a7199564c3e7ae3136b51519137ba164f312a3e288ab1e88e100d95c336ab4a",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/horse-goat-expansion-2026-10-13/goat_chosen_terms_vi.png.import",
+        "sha256": "7f810d6562a27e555fb4f909e5bcab7f86097ba6f1e0cd1877c87bb6b7ba1214",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/horse-goat-expansion-2026-10-13/goat_private_moment_en.png",
+        "sha256": "47629599d849f5af67ddc77b22ec781458489124e5ee4058274129af0d0119e9",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/horse-goat-expansion-2026-10-13/goat_private_moment_en.png.import",
+        "sha256": "4b76aa88603df1679d44c1d5a790f89d10ada96983e02db8ba4df1987c0dcf9f",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/horse-goat-expansion-2026-10-13/goat_side_evidence_en.png",
+        "sha256": "3bc4d8f406b32aef34677d9c0454ef4c8a5dee03b2486b5254577b66fa31ddc8",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/horse-goat-expansion-2026-10-13/goat_side_evidence_en.png.import",
+        "sha256": "5426d6458c8538c13a2ec7b109cc4c9e7a4c4435aa6a93c1b48a91c652b96f81",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/horse-goat-expansion-2026-10-13/horse_action_done_en.png",
+        "sha256": "ba02f7b9ec5a3dc9a7294ce15d120c8def2e6f86330fd00436d8413c33b18c3b",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/horse-goat-expansion-2026-10-13/horse_action_done_en.png.import",
+        "sha256": "8384d602ec144974753d80731f3af1518b27bf450bc1a0928e9a1a2f6622c135",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/horse-goat-expansion-2026-10-13/horse_chosen_terms_vi.png",
+        "sha256": "4b6e28791a67403a4986dd860f9d3c7599b6117c58049b6c10fada531abff5c2",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/horse-goat-expansion-2026-10-13/horse_chosen_terms_vi.png.import",
+        "sha256": "a96f7f7aecf26022483ad21fed759e387f9e387abbbde9be614805ec8451d6e2",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/horse-goat-expansion-2026-10-13/horse_pair_memory_broken_vi.png",
+        "sha256": "95c18d01c278590e1b29a0483b881a5d861ff08d629743e6ea1e7dd6e7c53d8a",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/horse-goat-expansion-2026-10-13/horse_pair_memory_broken_vi.png.import",
+        "sha256": "fcb85843d867359c574cf817e55009abf0273e65809a013e58124277c306dd6a",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/horse-goat-expansion-2026-10-13/horse_private_moment_en.png",
+        "sha256": "3aff4e2dd5216fabafbc30690af92a772f21f378bcaf265e6ec5684867a42acc",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/horse-goat-expansion-2026-10-13/horse_private_moment_en.png.import",
+        "sha256": "899e7dc4007fe5aa926f884d3be2c9b6fdfa0e700f587771ab14e3df93a76f0e",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/horse-goat-overhaul-2026-10-08/goat-en-melody.png.import",
+        "sha256": "855ef75de803bc0841da1ca57a19cc08835c5879afca20fa3482e378a1462ffe",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/horse-goat-overhaul-2026-10-08/goat-en-parity-wait.png.import",
+        "sha256": "8a6482153665e973ca14a4b7be51747274feddd2dde0f9dfe801b1395c7edd3a",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/horse-goat-overhaul-2026-10-08/goat-vi-small.png.import",
+        "sha256": "d8089cef710ba52c357dc126fcac5814bf45d6ca914e3e58be36f4373cc431a5",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/horse-goat-overhaul-2026-10-08/horse-en-complete.png.import",
+        "sha256": "cd6ff83d0093037d4542fe69203a9e577d845d64785c8b23f8686608be507af8",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/horse-goat-overhaul-2026-10-08/horse-en-forced.png.import",
+        "sha256": "02f403964b53f140fed38cd3d8a58ac24becffbef4b6ceff54e9b77f79a6042f",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/horse-goat-overhaul-2026-10-08/horse-vi-small.png.import",
+        "sha256": "525259f6bb3feb85e3bb7de8c0cedec7431bd50501ce4862eff04061aba21367",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/monkey-dog-expansion-2026-10-12/dog_action_done_en.png",
+        "sha256": "bc3972dcb0d383c102f6fd0ec4fe99938a1efe8aa946305f197878da67bd5253",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/monkey-dog-expansion-2026-10-12/dog_action_done_en.png.import",
+        "sha256": "2c6fa512ad2cb4f127ac02dd58c4be0892c0f26fcffcf78f1207926dc98691d0",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/monkey-dog-expansion-2026-10-12/dog_card_memory_broken_vi.png",
+        "sha256": "15865f3afa5bab47f9bfcfc93c2752b9e091f90a36b31ec47557cb827f9b523e",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/monkey-dog-expansion-2026-10-12/dog_card_memory_broken_vi.png.import",
+        "sha256": "91f325b8d20009bdb4500796beebe5cae60f1c756cce88b7bd5c1fd439f9f48b",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/monkey-dog-expansion-2026-10-12/dog_chosen_terms_vi.png",
+        "sha256": "5f90ff4dcc15353f7d8d36475d981e3be9b39cc82d700dd24e033b49d0d436ec",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/monkey-dog-expansion-2026-10-12/dog_chosen_terms_vi.png.import",
+        "sha256": "60a001214e5c43f3243fca3b0e654b064c2a45e8b51dbdc15194c9ddc6496671",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/monkey-dog-expansion-2026-10-12/dog_private_moment_en.png",
+        "sha256": "5f0a3599a2cae94478544aed8416f99fbdf99edd32ccf2f139c6ca8689c6e13d",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/monkey-dog-expansion-2026-10-12/dog_private_moment_en.png.import",
+        "sha256": "ea704daab84f9ff6eb4b64726d1debd9af01d4d2cf863649a2df044e6c7b1e5d",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/monkey-dog-expansion-2026-10-12/monkey_action_done_en.png",
+        "sha256": "86b675e410d9e3a646de7c02cfd5211255cef2bba4fddf15fbb1106ec70da590",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/monkey-dog-expansion-2026-10-12/monkey_action_done_en.png.import",
+        "sha256": "cb45324c3a99f6bb1db56532cf743031f2aa2822746c328efe84a9bf3255bda8",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/monkey-dog-expansion-2026-10-12/monkey_chosen_terms_vi.png",
+        "sha256": "4884ab42d1090137292f0aa43cdef09db132700eb5a46eaed38f285ab91a1a83",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/monkey-dog-expansion-2026-10-12/monkey_chosen_terms_vi.png.import",
+        "sha256": "542d98895bd060228f5d720ff69f30080f54b473557623010ac691dd3a410299",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/monkey-dog-expansion-2026-10-12/monkey_private_moment_en.png",
+        "sha256": "d43d95563e4af32a55b7640a71a28239d48742c0e2d6edc248e1d668e2f2273c",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/monkey-dog-expansion-2026-10-12/monkey_private_moment_en.png.import",
+        "sha256": "5f25b3985576ae50268507d66ec35e1b9db1b8bad0be169d2e1281a3ef25be37",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/monkey-dog-expansion-2026-10-12/monkey_variety_memory_broken_vi.png",
+        "sha256": "b1b27ff80010591db216b70ebe1f9040956baf86c3b8b09c160c4e29b3868486",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/monkey-dog-expansion-2026-10-12/monkey_variety_memory_broken_vi.png.import",
+        "sha256": "306456e06f8def9373ea07c82772de7ff153c4c70e916a1690d8f1d2780d2d1f",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/pig-monkey-overhaul-2026-10-07/monkey-en-fresh-switch.png.import",
+        "sha256": "efd92959d3cbf6028af0354a361a51c896676f3d6c12127a25dec71ff39fd3e5",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/pig-monkey-overhaul-2026-10-07/monkey-vi-small.png.import",
+        "sha256": "69d791d6667bf52b9f95412ab857a9a649a33394c9d510411ae025ef0e85b587",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/pig-monkey-overhaul-2026-10-07/pig-en-return.png.import",
+        "sha256": "b1025e1f598d7674553e1593505368ea039294a382f0e9ea3b2f9f7b14857f3e",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/pig-monkey-overhaul-2026-10-07/pig-vi-siphon.png.import",
+        "sha256": "7a7c69a8e588f612f563b3590716d7179dd0400a895515e90dac7dbf1f1e789e",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/pig-ox-expansion-2026-10-12/ox_chosen_terms_vi.png",
+        "sha256": "259031063ff18d32f475e5d9609bd23ea1c7ecbab07ed052dc8bf13b0fd09d85",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/pig-ox-expansion-2026-10-12/ox_chosen_terms_vi.png.import",
+        "sha256": "c7c7cedb0ab956aed1bec705d1060c6dc6289cb7b62f60ebe832962a13de986d",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/pig-ox-expansion-2026-10-12/ox_finish_memory_broken_vi.png",
+        "sha256": "3640952265f22e2d2a833f6a171b0998a6b70e85a1e5c2a0a99efac140ad1dbb",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/pig-ox-expansion-2026-10-12/ox_finish_memory_broken_vi.png.import",
+        "sha256": "9e1e7d2856b37f3e5a67d84785ef152f24b94b8b9658f476a47f7455b97d66ab",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/pig-ox-expansion-2026-10-12/ox_private_moment_en.png",
+        "sha256": "947d5cc1570369cdd1ac08cc4313ffe105c50ed5a2fc3c2591be1e78cf26bbbd",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/pig-ox-expansion-2026-10-12/ox_private_moment_en.png.import",
+        "sha256": "a692da9d83d5f0d8c7bc027f2dea51a3e358da3ab21b000ab5ba48d6eb447198",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/pig-ox-expansion-2026-10-12/ox_side_evidence_en.png",
+        "sha256": "b53aa9eb81d22a7d25ec10d7872cf29b94cd7d2598e66886834c10254f36222a",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/pig-ox-expansion-2026-10-12/ox_side_evidence_en.png.import",
+        "sha256": "0bf94c07424548fa9af577b22eab280d7b9bcc72cad33b909d87fc32402cf06d",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/pig-ox-expansion-2026-10-12/pig_action_done_en.png",
+        "sha256": "e56bd8768e398519bace8c60cfa65d48defd1a0783c67c71c9d6b0edd3402ad6",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/pig-ox-expansion-2026-10-12/pig_action_done_en.png.import",
+        "sha256": "82a93b074f7ed215ec7b3c591dc16dce42bebe5df1e80d494ae329cc44c5bc3b",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/pig-ox-expansion-2026-10-12/pig_chosen_terms_vi.png",
+        "sha256": "3d7ed0b33042ce3968fd0d4d4f6cf7c935e05fe8a3b255991fa8aadfe48bc719",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/pig-ox-expansion-2026-10-12/pig_chosen_terms_vi.png.import",
+        "sha256": "23e88151cc13c6555f9ae500ebc5d62a312d94763ce06823823562f1d13634f0",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/pig-ox-expansion-2026-10-12/pig_reserve_memory_broken_vi.png",
+        "sha256": "7402fabc8c235c53810494eb41dfa3f564aace3eba14a1e4ccb7c7223a49ee99",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/pig-ox-expansion-2026-10-12/pig_reserve_memory_broken_vi.png.import",
+        "sha256": "514525313bcf581dbe021e12602de5b8eaed6d44521a1fa5a0589b41c11b9ccb",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/pig-ox-expansion-2026-10-12/pig_side_memory_en.png",
+        "sha256": "89c08588aef80d7b59a6fca0a713bb98685c27693453bcbeb4dd616490e4cb9c",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/pig-ox-expansion-2026-10-12/pig_side_memory_en.png.import",
+        "sha256": "40f9e722af715ef206d517759d36dc062dd34781e3ebd5754b75879ca48cd949",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/presentation-2026-10-10/en-1280x720-home.png.import",
+        "sha256": "192c1c24f1ea8a4944eb1f9f266e9f547170a98b0f975b82370be3c20f9558a7",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/presentation-2026-10-10/en-1280x720-setup.png.import",
+        "sha256": "280f036a4e5388cc24adb57c816c9e3df58d41133ce1a15246bd63d061fe3390",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/presentation-2026-10-10/en-1280x720-table.png.import",
+        "sha256": "b4c29fd764828d34d2557ae807ffa5e98637683b25c6f9bca7497007b129bdbf",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/presentation-2026-10-10/en-1920x1080-home.png.import",
+        "sha256": "509379d69be498bc7b05bd62458c6a52055b53f96ba78edde79a459c8b1ea6d7",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/presentation-2026-10-10/en-1920x1080-setup.png.import",
+        "sha256": "6c18842436bf09541e59a6c6f0c9213198cd17f957a78d16c93877cd5beb4879",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/presentation-2026-10-10/en-1920x1080-table.png.import",
+        "sha256": "f13540d232bd6e5f007147fb3cd54950580db29be0ce9a94d131b117b9135368",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/presentation-2026-10-10/en-960x620-home.png.import",
+        "sha256": "1f1cedfb22e0734e0f3fab18cd02fd7bb8a1d4766e056f55568c000dd70f1ad7",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/presentation-2026-10-10/en-960x620-setup.png.import",
+        "sha256": "2db82c4c658cb4580e8894ad95b0e3045799a3de60ada0a16b9af49f73acd751",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/presentation-2026-10-10/en-960x620-table.png.import",
+        "sha256": "96b5d392f557aa32db095ea1fd24772fbf4794941f52e127b10591f34aea4638",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/presentation-2026-10-10/vi-1280x720-home.png.import",
+        "sha256": "2eb33890c1de04c8244cc13091278b4320caa38faf9dbe23e0def6da9a0f47b2",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/presentation-2026-10-10/vi-1280x720-setup.png.import",
+        "sha256": "aed247fa2eb9230b920448065fdf40e0091088ccd369a79ba1c1e5631621e050",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/presentation-2026-10-10/vi-1280x720-table.png.import",
+        "sha256": "4e3f59ea82ea935cf4fc055038bca46263a97acab834f3e8116ffd028dfa285b",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/presentation-2026-10-10/vi-1920x1080-home.png.import",
+        "sha256": "b0049a3cf9dbffa119263e331a5843f2eba5bf27a1a2ee80bf4fccaa528395f8",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/presentation-2026-10-10/vi-1920x1080-setup.png.import",
+        "sha256": "2dc7058a5d411b70397c018041501921636685cc6ef6b5a9eb2cad944d473152",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/presentation-2026-10-10/vi-1920x1080-table.png.import",
+        "sha256": "aa2d16d7dbe87ac725e004cc2d114063007e6fb56c808df6d2a98b6ca53da76e",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/presentation-2026-10-10/vi-960x620-home.png.import",
+        "sha256": "90f48ae5fe3da9d6981dfe1eb399426d74b9034d796bbf82734c90ecec5d4de2",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/presentation-2026-10-10/vi-960x620-setup.png.import",
+        "sha256": "26b11964be5e5ad3293dd2e0ceec368e69663a316937c4303fe4cb54f85f8860",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/presentation-2026-10-10/vi-960x620-table.png.import",
+        "sha256": "9d82cd8aa8fe3839cfed10a196b165dda508ba017c11e8613ebd85871cb721d3",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/rat-table-hud-2026-10-08/boss-roster-compact.png.import",
+        "sha256": "95ea656f197d7f0380513ff14a5820f0a24146e55aff1f9b7dd2618dc7338862",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/rat-table-hud-2026-10-08/rat-extension-paid.png.import",
+        "sha256": "5d0621400f1cebdbfd917180f0aae74109e4c0ef03adb64f7f3337b58dbab182",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/rat-table-hud-2026-10-08/rat-extension-preview.png.import",
+        "sha256": "ea3ef3bd915dadc3346203794a13681b3138c509e1a67fb925966f1b74164fdb",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/rat-table-hud-2026-10-08/tiger-compact.png.import",
+        "sha256": "524a3ec1d81dfb14b70a5735eb4fcd4f42b02c93f4ac20206dfeb391f198b181",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/rat-tiger-overhaul-2026-10-08/boss-roster-compact.png.import",
+        "sha256": "b34a3bcbd9df673c6ebc38ab8e6f7b77a7970488267f5ac7b7e5feebd9ebeb31",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/rat-tiger-overhaul-2026-10-08/rat-en-collection.png.import",
+        "sha256": "a5ac12db5a2307afb54be59f76e692652dc01fc3f168f3b7ddec430f8694dddb",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/rat-tiger-overhaul-2026-10-08/rat-en-compact.png.import",
+        "sha256": "5297f241a6b6343174d651ee480e63323f583f3897d31b8471d1e5f85ad77299",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/rat-tiger-overhaul-2026-10-08/rat-en-extension.png.import",
+        "sha256": "2e7f75d5acc14601e0f0b0a0c8a3edbef851003e3ffdbf6729152a4564240439",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/rat-tiger-overhaul-2026-10-08/rat-en-long-run.png.import",
+        "sha256": "0e608d5df46113a0d7145e495e6ecd25d4e28bcce39b4819d3855c125623d215",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/rat-tiger-overhaul-2026-10-08/rat-vi-small.png.import",
+        "sha256": "627860b020f6da10f997a0c5002e7a65d5a13542fd3d19eb4f5d4aa98acf23cb",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/rat-tiger-overhaul-2026-10-08/tiger-en-full-hand.png.import",
+        "sha256": "999a777db06165b89cc63e9f5ae4041631fd83645c1ea5e22cd9c18367473b3e",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/rat-tiger-overhaul-2026-10-08/tiger-en-snatch.png.import",
+        "sha256": "bca1677078e07c24cdf88065edaa4bd2db6f9dea02ba532404c38dbb6362cbdb",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/rooster-expansion-2026-10-10/action-done-en.png.import",
+        "sha256": "ec895ada3027eafa3bddfe472b141a41b4d6b5ddd22fce874e411991f9a63f39",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/rooster-expansion-2026-10-10/action-pending-en.png.import",
+        "sha256": "0edb608a54b60c5bc6f8ab5f904c33716ff555a05cb9d44ae5932f522bbf0420",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/rooster-expansion-2026-10-10/counteroffer-en.png.import",
+        "sha256": "7463e0e810216927174954d63e6ac08abe19b483bd413fd5c6ebb14290077dd7",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/rooster-expansion-2026-10-10/deadline-memory-vi.png.import",
+        "sha256": "8951dead64ba44309db958928400113374454e704dcbdc37b49f4f03e2286b28",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/rooster-expansion-2026-10-10/ledger-en.png.import",
+        "sha256": "dd0aaeee460aa33062c8b31051fd1510221763eb1a041c57edea5272b8b30500",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/rooster-expansion-2026-10-10/private-moment-en.png.import",
+        "sha256": "eb9f68d39d0f751340f710a39b0bbe776f95d5ab8d23ac02e60eb1ee2ac11cf4",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/rooster-expansion-2026-10-10/stranger-en.png.import",
+        "sha256": "32a181d048fed1d83ca3f2c4b2a5932e33e5422637e40d496ff5748f39e7ae26",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/snake-overhaul-2026-10-08/snake-en-charmed-hand.png.import",
+        "sha256": "539f9bf249915df5e1235e128f02b37da5f01c604bb6552b8b21d31b4a008f86",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/snake-overhaul-2026-10-08/snake-en-charmed-meld.png.import",
+        "sha256": "3c62423c6bf74b99339e3eb9c2b2d4e507cfee841568e61faf202c689dc09d22",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/snake-overhaul-2026-10-08/snake-en-table-meld-refusal.png.import",
+        "sha256": "5d4fcfb79717ee881b6f93641f3d6a5109fdb8152087d495e146fb687389ce8e",
+        "unchanged": true
+      },
+      {
+        "path": "docs/screenshots/snake-overhaul-2026-10-08/snake-vi-table-meld-refusal.png.import",
+        "sha256": "dd0290ceaad3985bd5ec882d4b021ff78b30d51a8bc0bf19e3689f6ef212ab6a",
+        "unchanged": true
+      },
+      {
+        "path": "scripts/zodiac/content/dog_persuasion.gd",
+        "sha256": "2f70f89b9d643744880df96f2e41205853023a69b83ca9d6d9fc7f1a1026dc04",
+        "unchanged": true
+      },
+      {
+        "path": "scripts/zodiac/content/dog_persuasion.gd.uid",
+        "sha256": "84387bd8a3577c61038e7205f51f719736acecce2a6b49f7ae24c3c8d3ddc7b8",
+        "unchanged": true
+      },
+      {
+        "path": "scripts/zodiac/content/goat_persuasion.gd",
+        "sha256": "1310c323bac7a03b75011687b83971ca716cac839d363405bce538941c6e55e2",
+        "unchanged": true
+      },
+      {
+        "path": "scripts/zodiac/content/goat_persuasion.gd.uid",
+        "sha256": "79ff8f3b970076b27fb1866edaa476281403d30df6879772ce29d740ff1b08d9",
+        "unchanged": true
+      },
+      {
+        "path": "scripts/zodiac/content/horse_persuasion.gd",
+        "sha256": "244c0b226b815fd8dd276e8f4f544365cd79e5c21e6291bdaebe3feb36a6d5ea",
+        "unchanged": true
+      },
+      {
+        "path": "scripts/zodiac/content/horse_persuasion.gd.uid",
+        "sha256": "f08ce66cee4cd379a1232650911d9a54419b3730952fd232459b1c70a7b3eadf",
+        "unchanged": true
+      },
+      {
+        "path": "scripts/zodiac/content/monkey_persuasion.gd",
+        "sha256": "8d658b8c0794ba454b67f55f20ea6a32571111c2c1567604525f052b0f598abc",
+        "unchanged": true
+      },
+      {
+        "path": "scripts/zodiac/content/monkey_persuasion.gd.uid",
+        "sha256": "d194e0c5b3e304d44705dbec1bc93331917855a7616559ea93e60ca00e0cea57",
+        "unchanged": true
+      },
+      {
+        "path": "scripts/zodiac/content/ox_persuasion.gd",
+        "sha256": "8fc13c3f82e4738f42f858f9941a5e64b2062dfbe7d49923d6dcd125602e1353",
+        "unchanged": true
+      },
+      {
+        "path": "scripts/zodiac/content/ox_persuasion.gd.uid",
+        "sha256": "ce332bfce24a152561eeaf27944207f242cf82d45bf9c8850114cc0f588119de",
+        "unchanged": true
+      },
+      {
+        "path": "scripts/zodiac/content/pig_persuasion.gd",
+        "sha256": "bff8d9cba197cf676f2fcc2d7bd9b562782b202353cac2491c6c879c2eae0710",
+        "unchanged": true
+      },
+      {
+        "path": "scripts/zodiac/content/pig_persuasion.gd.uid",
+        "sha256": "062d697846fd1984cb0b9623ef55cc674f3dedfd9f8b1cbf7896fa36ddb7b997",
+        "unchanged": true
+      },
+      {
+        "path": "tests/horse_goat_persuasion_resume_smoke.gd",
+        "sha256": "3f1e1da2ad07a16b88751ab0e658844e529c116718581b52171c35d61c9469bb",
+        "unchanged": true
+      },
+      {
+        "path": "tests/horse_goat_persuasion_resume_smoke.gd.uid",
+        "sha256": "5dd8fa4c1985ddf01e27d21b81953ff50d1c5bceb09f9846b169267cb7eb495e",
+        "unchanged": true
+      },
+      {
+        "path": "tests/horse_goat_persuasion_scene_smoke.gd",
+        "sha256": "c893bf088d9d55df5df71c15d9e7f22e4f7d79f5f1ea3b0d0a79ab41f95c6681",
+        "unchanged": true
+      },
+      {
+        "path": "tests/horse_goat_persuasion_scene_smoke.gd.uid",
+        "sha256": "5b1825163bfdc2dbf696bd39c1a663db98e7094cb1e8bfe21317c6e519f58a06",
+        "unchanged": true
+      },
+      {
+        "path": "tests/horse_goat_test_flow.gd",
+        "sha256": "e504e835cdb01d772eb003046580373275416ac3281da9fa03680880e0ae3ad6",
+        "unchanged": true
+      },
+      {
+        "path": "tests/horse_goat_test_flow.gd.uid",
+        "sha256": "a64d83c118b407e21844b4b68c26214c6cb0e3b3214ea3861bfb52857a159ef6",
+        "unchanged": true
+      },
+      {
+        "path": "tests/monkey_dog_persuasion_resume_smoke.gd",
+        "sha256": "6f9dff27b4cde1a37ae2dae45071a2ff8f7c42903c25407a7fb7fb411aceb4b4",
+        "unchanged": true
+      },
+      {
+        "path": "tests/monkey_dog_persuasion_resume_smoke.gd.uid",
+        "sha256": "cd0de9f0200cbe629d133494308a22b44abeff40e5c7884e3c2924610e9f5bf9",
+        "unchanged": true
+      },
+      {
+        "path": "tests/monkey_dog_persuasion_scene_smoke.gd",
+        "sha256": "646edca28f32995ef696b3bbc73e924101947653310ae2a2c26078b18f6650f4",
+        "unchanged": true
+      },
+      {
+        "path": "tests/monkey_dog_persuasion_scene_smoke.gd.uid",
+        "sha256": "20a1343ba928caa40abdaf3289e1eccf36e06c38a69fe9a8b8df997868761fdf",
+        "unchanged": true
+      },
+      {
+        "path": "tests/monkey_dog_test_flow.gd",
+        "sha256": "5cb9c39fc3108d6f91d777a1492e7ecfa62f5edc54ec16516b0014425454130b",
+        "unchanged": true
+      },
+      {
+        "path": "tests/monkey_dog_test_flow.gd.uid",
+        "sha256": "0b1554853fe365074473d1e1595fc20baa37dea402057a0db4b621edb2a0dc54",
+        "unchanged": true
+      },
+      {
+        "path": "tests/pig_ox_persuasion_resume_smoke.gd",
+        "sha256": "2a4340b589fc8105e49bda9a37919ce9a3325ccf19799a1c5fd78d1834026bd4",
+        "unchanged": true
+      },
+      {
+        "path": "tests/pig_ox_persuasion_resume_smoke.gd.uid",
+        "sha256": "12f01e95769b02a4462c5996b643c8ed836b3886970c72d12c0b0457a15bf525",
+        "unchanged": true
+      },
+      {
+        "path": "tests/pig_ox_persuasion_scene_smoke.gd",
+        "sha256": "e36b980dc117c250455dd7bc5986e987d8a0dd9b90821b45e1efa5b2bf29079e",
+        "unchanged": true
+      },
+      {
+        "path": "tests/pig_ox_persuasion_scene_smoke.gd.uid",
+        "sha256": "ea943dd9e36826ffc2e4074553b6b5b5631a78b9f2da33790652797dad532bb1",
+        "unchanged": true
+      },
+      {
+        "path": "tests/pig_ox_test_flow.gd",
+        "sha256": "2e4cec5fdb6fc55368255db307ec20d381efe15d7011dfd7b87db0a5e0f98277",
+        "unchanged": true
+      },
+      {
+        "path": "tests/pig_ox_test_flow.gd.uid",
+        "sha256": "722426b47a2b886a39905896a0ec624e45c0d7d2e61ac857b6a468d1296b5762",
+        "unchanged": true
+      },
+      {
+        "path": "tests/test_horse_goat_persuasion.gd",
+        "sha256": "7fd49b32d27474b98cc140c4697a97b98e7876fd5f8037be1a03d5eef3040cda",
+        "unchanged": true
+      },
+      {
+        "path": "tests/test_horse_goat_persuasion.gd.uid",
+        "sha256": "42eddaa19011aab65486d912a8e7fc6081563d6d33d83eb12f68bbe621f47249",
+        "unchanged": true
+      },
+      {
+        "path": "tests/test_monkey_dog_persuasion.gd",
+        "sha256": "18c0418bd91b437f599819bb6be79640791c8f51a550276f90b042225b96c856",
+        "unchanged": true
+      },
+      {
+        "path": "tests/test_monkey_dog_persuasion.gd.uid",
+        "sha256": "26c6dc5f4575384aca48fe816df0616e584b782621ba17f263f9ed7ddea05655",
+        "unchanged": true
+      },
+      {
+        "path": "tests/test_pig_ox_persuasion.gd",
+        "sha256": "11194d45bb3d3cf961166b986d2133ac76d6b98129a9b7aefaf806cc3125ddf9",
+        "unchanged": true
+      },
+      {
+        "path": "tests/test_pig_ox_persuasion.gd.uid",
+        "sha256": "0537bf5cda9719755fb8176d8a96e3f4d57ebdf02765bd511bbd54b06e9fe6c8",
+        "unchanged": true
+      },
+      {
+        "path": "scripts/ui/zodiac_boss_hud.gd",
+        "sha256": "65e393deb7fb5768d14995349d8923cf863bfb2ff32664b1e364d5acaa103253",
+        "unchanged": true
+      },
+      {
+        "path": "scripts/ui/zodiac_table.gd",
+        "sha256": "b981bb14b379d935abf3269c0c127d459a6ace9d7d3679760dcdf42d70cd63e5",
+        "unchanged": true
+      }
+    ],
+    "outside_scope_ost": {
+      "path": "assets/audio/ost/ost_cues.json",
+      "baseline_sha256": "5BF8652D02B1C6CFA4FC904D1D1D7D68246AD1FD9488FA6087C9C8753DD88B1B",
+      "current_sha256": "5BF8652D02B1C6CFA4FC904D1D1D7D68246AD1FD9488FA6087C9C8753DD88B1B",
+      "edited_by_this_expansion": false
+    }
+  },
+  "migration": {
+    "zodiac_snapshot_version": 8,
+    "introduced_characters": [
+      "rat",
+      "tiger"
+    ],
+    "preserve_started_legacy_visits": true,
+    "earlier_persuasion_state_compatible": true
+  },
+  "previews": [
+    {
+      "path": "docs/screenshots/rat-tiger-expansion-2026-10-13/rat_action_partial_en.png",
+      "sha256": "aaa7867ef978a16b3374de2e778bbcce376afd25790210dcf08d948f480b78fb"
+    },
+    {
+      "path": "docs/screenshots/rat-tiger-expansion-2026-10-13/rat_chosen_recovered_en.png",
+      "sha256": "c704bacb52dc068c768bfccfcea3aeb959cac6b58883aa8617eebfc775f4f6b4"
+    },
+    {
+      "path": "docs/screenshots/rat-tiger-expansion-2026-10-13/rat_chosen_terms_vi.png",
+      "sha256": "0583e3b8ec01d6536d981711592596c0c2c4508d818b5a5fc448c1ec2f6e3142"
+    },
+    {
+      "path": "docs/screenshots/rat-tiger-expansion-2026-10-13/rat_private_moment_en.png",
+      "sha256": "6a34bb0d120cd94a01cf0b8e15a06389ec3311efa8f73e37f597c10c23a81257"
+    },
+    {
+      "path": "docs/screenshots/rat-tiger-expansion-2026-10-13/tiger_action_done_en.png",
+      "sha256": "18652e147bdb6aa32fe5b2b7a8f981f029dc01a284b275e1444ad515ca5069ca"
+    },
+    {
+      "path": "docs/screenshots/rat-tiger-expansion-2026-10-13/tiger_chosen_terms_vi.png",
+      "sha256": "2da7eb6e172fadcea1bfd8d67168627c907c3593127474a708a715723c314991"
+    },
+    {
+      "path": "docs/screenshots/rat-tiger-expansion-2026-10-13/tiger_high_memory_broken_vi.png",
+      "sha256": "87ba6374f55d2837e7762cff216aea7d3fd86bc280928339e3daf934a683aed1"
+    },
+    {
+      "path": "docs/screenshots/rat-tiger-expansion-2026-10-13/tiger_private_moment_en.png",
+      "sha256": "3214eaa1a9d281f44d6ed546af32547ee63f904d6fb544849003f4afdf7758d4"
+    }
+  ],
+  "limitations": [
+    "Synthetic input, not physical-device testing",
+    "Audio driver Dummy; no listening assessment",
+    "Controlled branch and eligibility histories are fixtures",
+    "No exported build or publication verification"
+  ],
+  "publication": {
+    "staged": false,
+    "committed": false,
+    "pushed": false,
+    "exported": false
+  }
+}

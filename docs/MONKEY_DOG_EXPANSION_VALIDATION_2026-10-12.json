@@ -1,0 +1,490 @@
+{
+  "date": "2026-10-12",
+  "timezone": "Asia/Bangkok",
+  "godot": "4.7.1.stable.official.a13da4feb",
+  "base_head": "6c183f097d08f47ec762aaac640651ca2fae81f9",
+  "status": "PASS",
+  "provenance": "Collected final passing logs from feature and regression invocations using isolated user profiles. All registered checks were verified by validate_project.ps1; affected conversation checks were repeated after the recall presentation fix.",
+  "core": {
+    "new_pair_tests": 18,
+    "passed": 449,
+    "total": 449,
+    "failed": 0
+  },
+  "rendered_pair": {
+    "input": "Synthetic pointer and keyboard input through the real MatchUI; real complete two-Phase Deals for action and chosen-card promises; controlled history/eligibility fixtures for the branch matrix and private scenes",
+    "failures": 0,
+    "viewports": [
+      "1280x720",
+      "1920x1080"
+    ],
+    "locales": [
+      "en",
+      "vi"
+    ],
+    "captures": 22,
+    "renderer": "Compatibility OpenGL",
+    "checks": 1934
+  },
+  "save_pairs": {
+    "write_checks": 54,
+    "read_checks": 105,
+    "failures": 0,
+    "separate_processes": true,
+    "states": 28,
+    "permanent_profile_and_file_isolation": true
+  },
+  "editor_import": {
+    "pass": true,
+    "stdout_sha256": "d673b4f2fd274a36070255a057a22cf1e69f46a3152ab41ffa27139ac8cea2d6",
+    "stdout": ".godot/validation/monkey-dog-import.log",
+    "stderr": ".godot/validation/monkey-dog-import.err.log",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "registered_checks": [
+    {
+      "name": "parse",
+      "pass": true,
+      "rendered": false,
+      "completion_markers": [],
+      "stdout": ".godot/validation/parse.log",
+      "stderr": ".godot/validation/parse.err.log",
+      "stdout_sha256": "9d581ec5492fe988c9c06ba731f53831e0de994203e89ae19ffcf5b503748acc",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_written_utc": "2026-10-12T08:09:22.9412880Z"
+    },
+    {
+      "name": "core",
+      "pass": true,
+      "rendered": false,
+      "completion_markers": [
+        "TRADATALA_TESTS total=449 passed=449 failed=0"
+      ],
+      "stdout": ".godot/validation/core.log",
+      "stderr": ".godot/validation/core.err.log",
+      "stdout_sha256": "f6e1e4fa285ee8b435e478bc78ec885105ac0bab1432d239671079270b4371a2",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_written_utc": "2026-10-12T08:09:49.1575447Z"
+    },
+    {
+      "name": "runtime",
+      "pass": true,
+      "rendered": false,
+      "completion_markers": [
+        "TRADATALA_SCENE_SMOKE passed"
+      ],
+      "stdout": ".godot/validation/runtime.log",
+      "stderr": ".godot/validation/runtime.err.log",
+      "stdout_sha256": "9c8a1b7fc8249b700ca1e88d69157dcbcdd118e52496fd1eb943c5fb909adef0",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_written_utc": "2026-10-12T08:02:53.7491381Z"
+    },
+    {
+      "name": "tutorial_scene",
+      "pass": true,
+      "rendered": false,
+      "completion_markers": [
+        "TUTORIAL_REPLACEMENT_SMOKE: 0 failures"
+      ],
+      "stdout": ".godot/validation/tutorial_scene.log",
+      "stderr": ".godot/validation/tutorial_scene.err.log",
+      "stdout_sha256": "bc2887c5796d6fae0b742aec531560f1a99fbf68bbed231268cade23d17e07eb",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_written_utc": "2026-10-12T08:04:32.7588226Z"
+    },
+    {
+      "name": "campaign",
+      "pass": true,
+      "rendered": false,
+      "completion_markers": [
+        "CAMPAIGN_OVERHAUL_SCENE: 0 failures"
+      ],
+      "stdout": ".godot/validation/campaign.log",
+      "stderr": ".godot/validation/campaign.err.log",
+      "stdout_sha256": "5064b948e3203f9846815f111213a3652c27c489e825915c6e6e741891fa7027",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_written_utc": "2026-10-12T08:04:25.2476080Z"
+    },
+    {
+      "name": "event_table_overhaul",
+      "pass": true,
+      "rendered": false,
+      "completion_markers": [
+        "EVENT_TABLE_OVERHAUL: 116 checks, 0 failures"
+      ],
+      "stdout": ".godot/validation/event_table_overhaul.log",
+      "stderr": ".godot/validation/event_table_overhaul.err.log",
+      "stdout_sha256": "1dd5e83f811c235d86e0dbeef58622d0237d6e139062e10a0a486e9fcf513442",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_written_utc": "2026-10-12T08:05:02.1886736Z"
+    },
+    {
+      "name": "zodiac_scene",
+      "pass": true,
+      "rendered": false,
+      "completion_markers": [
+        "ZODIAC_SCENE_SMOKE checks=106 failures=0"
+      ],
+      "stdout": ".godot/validation/zodiac_scene.log",
+      "stderr": ".godot/validation/zodiac_scene.err.log",
+      "stdout_sha256": "a4eeb588230cbcf19ba9f7263599c8473244be3a3a1841f3db04aa1ab06d00e2",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_written_utc": "2026-10-12T08:05:20.4800292Z"
+    },
+    {
+      "name": "boss-dog-monkey",
+      "pass": true,
+      "rendered": false,
+      "completion_markers": [
+        "DOG_MONKEY_PRESENTATION_SMOKE checks=717 failures=0"
+      ],
+      "stdout": ".godot/validation/boss-dog-monkey.log",
+      "stderr": ".godot/validation/boss-dog-monkey.err.log",
+      "stdout_sha256": "ccc9a7e0fcb689246e1b3781d380153232f894f783b737986b4ab09ba68b9530",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_written_utc": "2026-10-12T08:03:08.1487754Z"
+    },
+    {
+      "name": "boss-pig-monkey",
+      "pass": true,
+      "rendered": false,
+      "completion_markers": [
+        "PIG_MONKEY_OVERHAUL_SMOKE checks=651 failures=0"
+      ],
+      "stdout": ".godot/validation/boss-pig-monkey.log",
+      "stderr": ".godot/validation/boss-pig-monkey.err.log",
+      "stdout_sha256": "49ca1abb5d09c8d34dea3b5e1b8b4d21749c70e81314954d42b7ef1d7c4578ed",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_written_utc": "2026-10-12T08:03:49.6409977Z"
+    },
+    {
+      "name": "zodiac-full-roster",
+      "pass": true,
+      "rendered": false,
+      "completion_markers": [
+        "ZODIAC_FULL_ROSTER_SMOKE checks=743 failures=0"
+      ],
+      "stdout": ".godot/validation/zodiac-full-roster.log",
+      "stderr": ".godot/validation/zodiac-full-roster.err.log",
+      "stdout_sha256": "54980a537a9301f99b916adb7407763a4ba43e7e7dc48a980420d51550cbe21f",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_written_utc": "2026-10-12T08:05:36.5870242Z"
+    },
+    {
+      "name": "cat-scene",
+      "pass": true,
+      "rendered": false,
+      "completion_markers": [
+        "CAT_PERSUASION_SCENE_SMOKE checks=333 failures=0"
+      ],
+      "stdout": ".godot/validation/cat-scene.log",
+      "stderr": ".godot/validation/cat-scene.err.log",
+      "stdout_sha256": "684947e0487fad7764b4b075436bdfc0f292ab0dead289c4fe531c1970c6359e",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_written_utc": "2026-10-12T08:05:52.2099762Z"
+    },
+    {
+      "name": "cat-expansion",
+      "pass": true,
+      "rendered": false,
+      "completion_markers": [
+        "CAT_EXPANSION_SCENE_SMOKE checks=557 failures=0"
+      ],
+      "stdout": ".godot/validation/cat-expansion.log",
+      "stderr": ".godot/validation/cat-expansion.err.log",
+      "stdout_sha256": "d278528355f45c960a8146ff70f0934c91f2e6f1e30899cd3d5ad58eddba3376",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_written_utc": "2026-10-12T08:10:03.4922781Z"
+    },
+    {
+      "name": "rooster-scene",
+      "pass": true,
+      "rendered": false,
+      "completion_markers": [
+        "ROOSTER_PERSUASION_SCENE_SMOKE checks=809 failures=0"
+      ],
+      "stdout": ".godot/validation/rooster-scene.log",
+      "stderr": ".godot/validation/rooster-scene.err.log",
+      "stdout_sha256": "b4e4620003e8772c86d4cf44ba3c293ce2cbdabb63b7a8118c246a63876cf543",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_written_utc": "2026-10-12T08:10:24.1753586Z"
+    },
+    {
+      "name": "cat-write",
+      "pass": true,
+      "rendered": false,
+      "completion_markers": [
+        "CAT_PERSUASION_RESUME_WRITE checks=14 failures=0"
+      ],
+      "stdout": ".godot/validation/cat-write.log",
+      "stderr": ".godot/validation/cat-write.err.log",
+      "stdout_sha256": "69689119a07c2f905a4f116f69511c4f05b716156449a4cfb75814602252ca74",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_written_utc": "2026-10-12T08:06:36.1925051Z"
+    },
+    {
+      "name": "cat-read",
+      "pass": true,
+      "rendered": false,
+      "completion_markers": [
+        "CAT_PERSUASION_RESUME_READ checks=44 failures=0"
+      ],
+      "stdout": ".godot/validation/cat-read.log",
+      "stderr": ".godot/validation/cat-read.err.log",
+      "stdout_sha256": "a9972e5203417d3f6d82b35ac6f8cbb3ef9b5f0df380ca644da2485316bab11d",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_written_utc": "2026-10-12T08:06:38.4879844Z"
+    },
+    {
+      "name": "rooster-write",
+      "pass": true,
+      "rendered": false,
+      "completion_markers": [
+        "ROOSTER_PERSUASION_RESUME_WRITE checks=17 failures=0"
+      ],
+      "stdout": ".godot/validation/rooster-write.log",
+      "stderr": ".godot/validation/rooster-write.err.log",
+      "stdout_sha256": "12ed2ef43aae2b0ffa272a9f8bbecd8e762cd2a8392201283c55c4d5c62c96a1",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_written_utc": "2026-10-12T08:06:31.6055294Z"
+    },
+    {
+      "name": "rooster-read",
+      "pass": true,
+      "rendered": false,
+      "completion_markers": [
+        "ROOSTER_PERSUASION_RESUME_READ checks=47 failures=0"
+      ],
+      "stdout": ".godot/validation/rooster-read.log",
+      "stderr": ".godot/validation/rooster-read.err.log",
+      "stdout_sha256": "be0eae33b3efad34fcf3d3a7ed0ab5f995a9bb5c22f5536e48624a4ddcc5c6f3",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_written_utc": "2026-10-12T08:06:33.7986636Z"
+    },
+    {
+      "name": "negotiation-write",
+      "pass": true,
+      "rendered": false,
+      "completion_markers": [
+        "ZODIAC_NEGOTIATION_RESUME_WRITE checks=5 failures=0"
+      ],
+      "stdout": ".godot/validation/negotiation-write.log",
+      "stderr": ".godot/validation/negotiation-write.err.log",
+      "stdout_sha256": "8ff9b8f915118177c80ab73093a6b1be3cd1136ab885d279798a10e4e7f2d5ab",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_written_utc": "2026-10-12T08:06:40.5071537Z"
+    },
+    {
+      "name": "negotiation-read",
+      "pass": true,
+      "rendered": false,
+      "completion_markers": [
+        "ZODIAC_NEGOTIATION_RESUME_READ checks=10 failures=0"
+      ],
+      "stdout": ".godot/validation/negotiation-read.log",
+      "stderr": ".godot/validation/negotiation-read.err.log",
+      "stdout_sha256": "9fa7804f7429a59cdcaa1f42c2d98effb5c2de68e0d49b04814967a67661e9f6",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_written_utc": "2026-10-12T08:06:42.4474870Z"
+    },
+    {
+      "name": "monkey-dog-write",
+      "pass": true,
+      "rendered": false,
+      "completion_markers": [
+        "MONKEY_DOG_PERSUASION_RESUME_WRITE checks=54 failures=0"
+      ],
+      "stdout": ".godot/validation/monkey-dog-write.log",
+      "stderr": ".godot/validation/monkey-dog-write.err.log",
+      "stdout_sha256": "0a9bd1840a3f66e998087604255ecadfc6f4d3bc014e1b143e4ecf3e7bf50990",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_written_utc": "2026-10-12T07:54:21.0549571Z"
+    },
+    {
+      "name": "monkey-dog-read",
+      "pass": true,
+      "rendered": false,
+      "completion_markers": [
+        "MONKEY_DOG_PERSUASION_RESUME_READ checks=105 failures=0"
+      ],
+      "stdout": ".godot/validation/monkey-dog-read.log",
+      "stderr": ".godot/validation/monkey-dog-read.err.log",
+      "stdout_sha256": "e71766dd04f92975c026cf26ea75e8ac65fd08d9a3aa083440474f1b128ff5ad",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_written_utc": "2026-10-12T07:54:23.4145279Z"
+    },
+    {
+      "name": "monkey-dog-scene",
+      "pass": true,
+      "rendered": true,
+      "completion_markers": [
+        "MONKEY_DOG_PERSUASION_SCENE_SMOKE checks=1934 failures=0"
+      ],
+      "stdout": ".godot/validation/monkey-dog-scene.log",
+      "stderr": ".godot/validation/monkey-dog-scene.err.log",
+      "stdout_sha256": "92f88cb4f5c75e66642cbafa3eede11541fbefd19e6a59ac4e5285def1924fc3",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_written_utc": "2026-10-12T08:11:40.3169362Z"
+    }
+  ],
+  "source_hashes": [
+    {
+      "path": "scripts/zodiac/content/monkey_persuasion.gd",
+      "sha256": "8d658b8c0794ba454b67f55f20ea6a32571111c2c1567604525f052b0f598abc"
+    },
+    {
+      "path": "scripts/zodiac/content/dog_persuasion.gd",
+      "sha256": "2f70f89b9d643744880df96f2e41205853023a69b83ca9d6d9fc7f1a1026dc04"
+    },
+    {
+      "path": "scripts/zodiac/zodiac_catalog.gd",
+      "sha256": "4db66c63468feffc41ff3c6afa8071388f1fca0b53c3a4d7e4e24d8808042000"
+    },
+    {
+      "path": "scripts/zodiac/zodiac_persuasion.gd",
+      "sha256": "74f595327bd50cdd5aaf82cfe36ad239047564b12c7d156dda365caf9ccba8aa"
+    },
+    {
+      "path": "scripts/zodiac/zodiac_service.gd",
+      "sha256": "95343ba0e03aaf8b875d8d87b60d8ed8d3070c335b69be3cf5f05ff13ffd4524"
+    },
+    {
+      "path": "scripts/ui/zodiac_table.gd",
+      "sha256": "b981bb14b379d935abf3269c0c127d459a6ace9d7d3679760dcdf42d70cd63e5"
+    },
+    {
+      "path": "scripts/ui/zodiac_boss_hud.gd",
+      "sha256": "b4e3cb37a62dcdb25c6137e9da433928d2366ab8071e73efabd639dacdd4a60a"
+    },
+    {
+      "path": "scripts/ui/quick_info.gd",
+      "sha256": "e646da22d1847095f1b8ffaabeedbd7696b67e6e0e9d5bba257515f8823e5548"
+    },
+    {
+      "path": "tests/monkey_dog_test_flow.gd",
+      "sha256": "5cb9c39fc3108d6f91d777a1492e7ecfa62f5edc54ec16516b0014425454130b"
+    },
+    {
+      "path": "tests/test_monkey_dog_persuasion.gd",
+      "sha256": "18c0418bd91b437f599819bb6be79640791c8f51a550276f90b042225b96c856"
+    },
+    {
+      "path": "tests/monkey_dog_persuasion_scene_smoke.gd",
+      "sha256": "646edca28f32995ef696b3bbc73e924101947653310ae2a2c26078b18f6650f4"
+    },
+    {
+      "path": "tests/monkey_dog_persuasion_resume_smoke.gd",
+      "sha256": "6f9dff27b4cde1a37ae2dae45071a2ff8f7c42903c25407a7fb7fb411aceb4b4"
+    },
+    {
+      "path": "tests/run_headless.gd",
+      "sha256": "6d3bc8e506da23e546298c3bc250093bbabbd132e6df38d6d736f5277f4e5c02"
+    },
+    {
+      "path": "tests/test_rooster_persuasion.gd",
+      "sha256": "be8cc92357c9705bae3c6ac6bdcc39de916580451c513fe8447df325a8fa91e7"
+    },
+    {
+      "path": "tests/test_zodiac.gd",
+      "sha256": "ca3afc84a54a90f4dea92874fa55f8e6859fd5eae2c5c1744067c39d82eae51f"
+    },
+    {
+      "path": "tools/validate_project.ps1",
+      "sha256": "92881b8cb3f23eb3f400f8a52730b3756d7bc960e056341113d3068d8e834a9d"
+    }
+  ],
+  "preserved_authorities": [
+    {
+      "path": "scripts/zodiac/rules/monkey.gd",
+      "unchanged_from_head": true,
+      "sha256": "5669e88b27d49df62fe4a26f33e09ba2ff523c8bde3ddd3f20a7c5c5bfbf37e2"
+    },
+    {
+      "path": "scripts/zodiac/rules/dog.gd",
+      "unchanged_from_head": true,
+      "sha256": "e1765196acf865e1103495184aecf9c921321ee12e03e0c43be0d31cc26a6a16"
+    },
+    {
+      "path": "scripts/zodiac/rules/cat.gd",
+      "unchanged_from_head": true,
+      "sha256": "7bbbb7b056309e1e0ba4af9bab574a424d2fe5e63f19ddbd33fe7b56116342dd"
+    },
+    {
+      "path": "scripts/zodiac/rules/rooster.gd",
+      "unchanged_from_head": true,
+      "sha256": "8845362f6e9f48bb5af74af07fe2a9f7256b8b4a40657d2bb44e8a25ea729fa4"
+    },
+    {
+      "path": "scripts/gameplay/deal_state.gd",
+      "unchanged_from_head": true,
+      "sha256": "684dc688c77f353bacf37ffc61eeba2e31df4064176071f05912aa6592975ae0"
+    },
+    {
+      "path": "scripts/zodiac/content/cat_tier_1.gd",
+      "unchanged_from_head": true,
+      "sha256": "a52fc1276f649cabe10a98884589e92786b084fed1ff9fce6097ddabae279ea7"
+    },
+    {
+      "path": "scripts/zodiac/content/cat_expansion.gd",
+      "unchanged_from_head": true,
+      "sha256": "f2e26ea5a3c18beb58aa9ba6c8a0ca681de0316e6f2d78e323412bc8e2022ab5"
+    },
+    {
+      "path": "scripts/zodiac/content/rooster_persuasion.gd",
+      "unchanged_from_head": true,
+      "sha256": "93a68601d4b6bd7de3ba9ce7caca9bfaac25fa00e6ce9e5219eacedae567d2fe"
+    },
+    {
+      "path": "docs/authoring/CAT_TIER_1_AUTHORITY.txt",
+      "unchanged_from_head": true,
+      "sha256": "84a401a39732edef2e1ee44a44bc48bad5d4643245c4eab6e69b08a65be7df1d"
+    }
+  ],
+  "representative_captures": [
+    {
+      "path": "docs/screenshots/monkey-dog-expansion-2026-10-12/monkey_chosen_terms_vi.png",
+      "sha256": "4884ab42d1090137292f0aa43cdef09db132700eb5a46eaed38f285ab91a1a83"
+    },
+    {
+      "path": "docs/screenshots/monkey-dog-expansion-2026-10-12/dog_action_done_en.png",
+      "sha256": "bc3972dcb0d383c102f6fd0ec4fe99938a1efe8aa946305f197878da67bd5253"
+    },
+    {
+      "path": "docs/screenshots/monkey-dog-expansion-2026-10-12/dog_card_memory_broken_vi.png",
+      "sha256": "15865f3afa5bab47f9bfcfc93c2752b9e091f90a36b31ec47557cb827f9b523e"
+    },
+    {
+      "path": "docs/screenshots/monkey-dog-expansion-2026-10-12/monkey_private_moment_en.png",
+      "sha256": "d43d95563e4af32a55b7640a71a28239d48742c0e2d6edc248e1d668e2f2273c"
+    },
+    {
+      "path": "docs/screenshots/monkey-dog-expansion-2026-10-12/monkey_action_done_en.png",
+      "sha256": "86b675e410d9e3a646de7c02cfd5211255cef2bba4fddf15fbb1106ec70da590"
+    },
+    {
+      "path": "docs/screenshots/monkey-dog-expansion-2026-10-12/dog_chosen_terms_vi.png",
+      "sha256": "5f90ff4dcc15353f7d8d36475d981e3be9b39cc82d700dd24e033b49d0d436ec"
+    },
+    {
+      "path": "docs/screenshots/monkey-dog-expansion-2026-10-12/monkey_variety_memory_broken_vi.png",
+      "sha256": "b1b27ff80010591db216b70ebe1f9040956baf86c3b8b09c160c4e29b3868486"
+    },
+    {
+      "path": "docs/screenshots/monkey-dog-expansion-2026-10-12/dog_private_moment_en.png",
+      "sha256": "5f0a3599a2cae94478544aed8416f99fbdf99edd32ccf2f139c6ca8689c6e13d"
+    }
+  ],
+  "scope": {
+    "zodiac_snapshot_version": 5,
+    "evening_rules_changed": false,
+    "preexisting_screenshot_imports": "Preserved",
+    "unrelated_ost_cue_work": "Preserved and excluded from this expansion",
+    "physical_device_input": false,
+    "audio_listening": false,
+    "commit": false,
+    "run_save_envelope_changed": false,
+    "export": false,
+    "push": false
+  },
+  "diff_check": "PASS"
+}
