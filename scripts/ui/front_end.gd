@@ -6,6 +6,9 @@ signal resume_requested()
 signal return_requested()
 signal handbook_requested()
 
+const FrontEndControls = preload("res://scripts/ui/front_end_controls.gd")
+const CollectionPresenter = preload("res://scripts/ui/collection_presenter.gd")
+
 const CARD := Color("#142d30f5")
 const GOLD := Color("#f5bf42")
 const CREAM := Color("#f8edcf")
@@ -105,6 +108,7 @@ func _on_size_changed() -> void:
 	_apply_page_layout()
 	var compact := 1 if size.x < 900 else 2
 	if _layout_width != 0 and compact != _layout_width:
+		if page == "settings": _render_settings.call_deferred()
 		refresh.call_deferred()
 	_layout_width = compact
 	for label in logo_words:
@@ -277,6 +281,7 @@ func _render_setup() -> void:
 		var next_days := CampaignConfig.day_definitions(unlocked + 1)
 		challenge.add_child(_label(words("NEXT LOCKED  ·  %d  ·  SUNDAY %s", "MỨC KẾ TIẾP  ·  %d  ·  CHỦ NHẬT %s") % [unlocked + 1, VndWallet.format_vnd(int(next_days[-1].required_vnd))], 15, MUTED))
 	var week := _card(columns, true)
+	week.add_theme_constant_override("separation", 2)
 	week.add_child(_label(words("DAILY DEBT", "NỢ MỖI NGÀY"), 21, GOLD))
 	var days := CampaignConfig.day_definitions(draft.difficulty)
 	for i in days.size():
@@ -291,6 +296,7 @@ func _render_setup() -> void:
 		amount.custom_minimum_size.x = 205
 		amount.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		row.add_child(amount)
+		CollectionPresenter.receipt_row(row, i)
 	PresentationTheme.paper_labels(week)
 	if customizing:
 		_render_customize()
@@ -382,9 +388,12 @@ func _render_collections() -> void:
 	tile_scroll.follow_focus = true
 	tile_scroll.custom_minimum_size.y = clampf(size.y - 300, 220, 480)
 	tiles.add_child(tile_scroll)
-	var tile_list := VBoxContainer.new()
+	var tile_list := GridContainer.new()
+	tile_list.columns = 2 if collection_tab == "drinks" else 3
+	tile_list.add_theme_constant_override("h_separation", 10)
+	tile_list.add_theme_constant_override("v_separation", 10)
 	tile_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	tile_list.add_theme_constant_override("separation", 10)
+	tile_list.name = "CollectionShelf"
 	tile_scroll.add_child(tile_list)
 	var ids: Array[String] = DrinkCatalog.basic_ids() if DemoBuild.enabled() else DrinkCatalog.all_ids()
 	if collection_tab == "zodiac":
@@ -401,6 +410,9 @@ func _render_collections() -> void:
 		var tile := _button(name + "  ·  " + status, func(): selected_collection = id; _render_collections(), "gold" if id == selected_collection else "neutral")
 		tile.name = "Collection_" + id
 		tile_list.add_child(tile)
+		var texture := DrinkPresentation.texture(id) if collection_tab == "drinks" else load(String(ZodiacCatalog.DEFINITIONS[id].sprite)) as Texture2D
+		var tint := DrinkPresentation.tint(id) if collection_tab == "drinks" else Color.WHITE
+		CollectionPresenter.tile(tile, name, status, texture, tint, id == selected_collection)
 	if collection_tab == "drinks":
 		_render_drink_detail(detail)
 	else:
@@ -419,6 +431,7 @@ func _render_drink_detail(detail: VBoxContainer) -> void:
 	sprite.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	detail.add_child(sprite)
+	CollectionPresenter.stage(detail, sprite, GOLD)
 	detail.add_child(_label(host.drink_manager.progress.goal_text(id), 17))
 	detail.add_child(_label(QuickInfo.drink(id), 20))
 	detail.add_child(_label(words("Price: %d%% of today's debt", "Giá: %d%% nợ hôm nay") % int(DrinkManager.PRICE_PERCENT[id]), 16, MUTED))
@@ -434,13 +447,14 @@ func _render_zodiac_detail(detail: VBoxContainer) -> void:
 	sprite.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	sprite.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	detail.add_child(sprite)
+	CollectionPresenter.stage(detail, sprite, PresentationTheme.zodiac_color(id))
 	var progress := host.campaign.zodiac.progress
 	var record := progress.record(id)
 	var metric_labels := {"requests_resolved": words("Requests completed", "Yêu cầu hoàn thành"), "requests_refused_successfully": words("Respected refusals", "Từ chối được tôn trọng"), "pleased_victories": words("Pleased boss victories", "Thắng boss hài lòng"), "restraint_kept": words("Promises kept", "Cam kết đã giữ")}
 	for metric: String in definition.unlock:
 		var required := int(definition.unlock[metric])
 		var current := mini(int(record.get(metric, 0)), required)
-		detail.add_child(_label("%s  ·  %d/%d" % [metric_labels.get(metric, metric.replace("_", " ").capitalize()), current, required], 16))
+		CollectionPresenter.progress_row(detail, _label("%s  ·  %d/%d" % [metric_labels.get(metric, metric.replace("_", " ").capitalize()), current, required], 16), current, required, PresentationTheme.zodiac_color(id))
 	var state := words("EMBLEM OWNED", "ĐÃ CÓ HUY HIỆU") if progress.owns(id) else words("SPECIAL SCENE READY", "ĐÃ MỞ CẢNH ĐẶC BIỆT") if progress.eligible(id) else words("REQUIREMENTS IN PROGRESS", "ĐANG HOÀN THÀNH ĐIỀU KIỆN")
 	detail.add_child(_label(state, 17, GOLD))
 
@@ -448,17 +462,29 @@ func show_music() -> void:
 	_show_page("music")
 
 func show_settings() -> void:
+	_render_settings()
 	_show_page("settings")
 
 func _render_settings() -> void:
 	_clear(settings_page)
-	var panel := _card(settings_page)
+	var columns := GridContainer.new()
+	columns.columns = 1 if size.x < 900 else 2
+	columns.add_theme_constant_override("h_separation", 18)
+	columns.add_theme_constant_override("v_separation", 18)
+	settings_page.add_child(columns)
+	var panel := _card(columns)
+	panel.add_child(_label(words("SOUND & LANGUAGE", "ÂM THANH & NGÔN NGỮ"), 21, GOLD))
+	var table_options := _card(columns)
+	table_options.add_child(_label(words("AT THE TABLE", "TRÊN BÀN CHƠI"), 21, GOLD))
 	for setting in [[words("MUSIC", "NHẠC"), host.settings.music_volume_percent, true], [words("SOUND", "ÂM THANH"), host.settings.sound_volume_percent, false]]:
+		var section := VBoxContainer.new()
+		section.add_theme_constant_override("separation", 2)
+		panel.add_child(section)
 		var row := HBoxContainer.new()
 		row.add_theme_constant_override("separation", 16)
-		panel.add_child(row)
+		section.add_child(row)
 		var caption := _label(String(setting[0]), 17)
-		caption.custom_minimum_size.x = 170
+		caption.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		row.add_child(caption)
 		var slider := HSlider.new()
 		slider.name = "MusicVolume" if bool(setting[2]) else "SoundVolume"
@@ -466,10 +492,10 @@ func _render_settings() -> void:
 		slider.max_value = 100
 		slider.step = 1
 		slider.value = float(setting[1])
-		slider.custom_minimum_size.x = 260
-		slider.custom_minimum_size.y = 40
+		FrontEndControls.slider(slider)
+		slider.accessibility_name = String(setting[0])
 		slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		row.add_child(slider)
+		section.add_child(slider)
 		var amount := _label("%d%%" % int(setting[1]), 16, GOLD)
 		amount.autowrap_mode = TextServer.AUTOWRAP_OFF
 		amount.custom_minimum_size.x = 65
@@ -492,15 +518,15 @@ func _render_settings() -> void:
 		toggle.name = spec[0]
 		toggle.text = spec[1]
 		toggle.button_pressed = spec[2]
-		toggle.custom_minimum_size.y = 48
+		FrontEndControls.toggle(toggle)
 		if spec[0] == "ShowStrawy":
 			toggle.toggled.connect(host.settings.set_strawy_enabled)
 		elif spec[0] == "Tutorial":
 			toggle.toggled.connect(host.settings.set_tutorial_enabled)
 		else:
 			toggle.toggled.connect(host.settings.set_first_seed_enabled)
-		panel.add_child(toggle)
-	panel.add_child(_label(words("Ask Strawy to teach during your real first day. First Seed curates Monday's cards for new runs; switch it off to use your run seed throughout.", "Hỏi Strawy để học trong ngày đầu thật. Bài khởi đầu sắp bài thứ Hai cho ván mới; tắt để dùng hạt giống của bạn xuyên suốt."), 15))
+		table_options.add_child(toggle)
+	table_options.add_child(_label(words("Ask Strawy to teach during your real first day. First Seed curates Monday's cards for new runs; switch it off to use your run seed throughout.", "Hỏi Strawy để học trong ngày đầu thật. Bài khởi đầu sắp bài thứ Hai cho ván mới; tắt để dùng hạt giống của bạn xuyên suốt."), 15))
 
 func _show_page(id: String) -> void:
 	var changed := active_page != id
@@ -629,10 +655,18 @@ func show_save_files() -> void:
 	files_body.add_child(cards)
 	for info: Dictionary in host.session.save_files.summaries():
 		var body := _card(cards)
+		body.name = "SaveFileSummary_%d" % int(info.slot)
+		body.add_theme_constant_override("separation", 6)
+		FrontEndControls.file_card(body, bool(info.active), bool(info.damaged))
 		body.get_parent().get_parent().size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		var name: String = info.name
 		body.add_child(_label(words("FILE %d", "Ô LƯU %d") % int(info.slot), 24, GOLD))
-		body.add_child(_label(name if not name.is_empty() else words("Player %d", "Người chơi %d") % int(info.slot), 18))
+		var player_name := _label(name if not name.is_empty() else words("Player %d", "Người chơi %d") % int(info.slot), 18)
+		player_name.custom_minimum_size.y = 56
+		player_name.max_lines_visible = 2
+		player_name.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+		player_name.tooltip_text = player_name.text
+		body.add_child(player_name)
 		var unlocked_drinks := 0
 		for goal: Array in DrinkProgress.GOALS.values():
 			if int(info.drink_counters.get(goal[0], 0)) >= int(goal[1]): unlocked_drinks += 1
@@ -641,11 +675,17 @@ func show_save_files() -> void:
 		for record: Dictionary in info.zodiac.records.values():
 			if record.get("emblem_unlocked", false): emblems += 1
 			if record.get("ending_rong_ran_len_may", false): endings += 1
-		body.add_child(_label(words("Difficulty %d\nDrinks %d/12\nEmblems %d/12 · endings %d", "Độ khó %d\nNước %d/12\nHuy hiệu %d/12 · kết thúc %d") % [info.difficulty_unlocked, unlocked_drinks, emblems, endings], 16))
+		FrontEndControls.stat(body, _label(words("Difficulty", "Độ khó"), 16), _label("%02d" % int(info.difficulty_unlocked), 16))
+		FrontEndControls.stat(body, _label(words("Drinks", "Nước"), 16), _label("%d/12" % unlocked_drinks, 16))
+		FrontEndControls.stat(body, _label(words("Emblems", "Huy hiệu"), 16), _label("%d/12" % emblems, 16))
+		FrontEndControls.stat(body, _label(words("Endings", "Kết thúc"), 16), _label(str(endings), 16))
 		var summary: Dictionary = info.run_summary
 		body.add_child(_label(words("No run checkpoint", "Chưa có ván đã lưu") if not info.has_run else words("Run checkpoint available", "Có ván đã lưu") if summary.is_empty() else words("Day %d · %s", "Ngày %d · %s") % [summary.get("day", 1), VndWallet.format_vnd(summary.get("wallet_vnd", 0))], 15, MUTED))
 		if info.backup: body.add_child(_label(words("Backup recovered", "Đã khôi phục dự phòng"), 15, GOLD))
 		if info.damaged: body.add_child(_label(words("Damaged file · preserved", "Ô bị lỗi · được giữ nguyên"), 15, GOLD))
+		var spacer := Control.new()
+		spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		body.add_child(spacer)
 		var button := _button(words("ACTIVE FILE", "Ô ĐANG DÙNG") if info.active else words("LOAD FILE", "DÙNG Ô NÀY") if info.exists else words("CREATE FILE", "TẠO Ô LƯU"), _choose_file.bind(int(info.slot)), "tea" if info.active else "neutral")
 		button.name = "SaveFile_%d" % int(info.slot)
 		button.disabled = info.active or info.damaged or host.session.debug_active

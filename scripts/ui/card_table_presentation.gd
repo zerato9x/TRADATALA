@@ -41,6 +41,8 @@ var discard_count_label: Label
 var discard_texture: TextureRect
 var discard_history_row: HBoxContainer
 var discard_history_title: Label
+var draw_stack: Control
+var discard_stack: Control
 var staged_hand: Array[CardData] = []
 var hand_staged := false
 
@@ -79,6 +81,10 @@ func configure(owner_deal: DealState, owner_interactions: MatchInteraction, view
 	table_surface = views.table_surface
 	discard_pile_visual = views.discard_pile_visual
 	drink_table_button = views.drink_table_button
+	draw_stack = preload("res://scripts/ui/pile_stack.gd").new()
+	draw_stack.configure(draw_pile_visual, draw_pile_visual.get_node("TextureRect3"), draw_pile_visual.get_node("OpenDrawArchive"))
+	discard_stack = preload("res://scripts/ui/pile_stack.gd").new()
+	discard_stack.configure(discard_pile_visual, discard_texture, discard_pile_visual.get_node("OpenDiscardArchive"))
 
 func play_beat_pulse(band: int, strength: float, emphasize_drink: bool) -> void:
 	if not _active: return
@@ -325,6 +331,8 @@ func sync_piles() -> void:
 		claws.material = ink
 		discard_texture.add_child(claws)
 	if claws != null: claws.visible = snatched
+	draw_stack.sync(deal.deck.draw_pile.size())
+	discard_stack.sync(shown_discard.size())
 
 
 func sync_discard_history() -> void:

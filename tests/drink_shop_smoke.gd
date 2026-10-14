@@ -196,6 +196,12 @@ func _run() -> void:
 	await _click(voi_view._card_views["voi_2"])
 	await create_timer(0.25).timeout
 	_check(scene.deal.melds[0].cards.size() == 3 and scene.deal.hand.any(func(card: CardData) -> bool: return card.unique_id == "voi_2"), "viewport click returns the legal Nước vối endpoint")
+	# The previous action pays out asynchronously. Its first press intentionally
+	# fast-forwards money, so finish that feedback before testing a new drink.
+	var payout_deadline := Time.get_ticks_msec() + 10_000
+	while scene.money_playback.running and Time.get_ticks_msec() < payout_deadline:
+		await process_frame
+	_check(not scene.money_playback.running, "previous drink payout finishes before the next selection fixture")
 	scene.deal.set_current_drink(DrinkCatalog.BAC_XIU)
 	scene._sync_all()
 	scene.activate_drink()

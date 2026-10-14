@@ -13,6 +13,7 @@ static func glass(accent: Color = Color("94774d"), opacity: float = 0.72) -> Sty
 
 func configure(owner: MatchUI) -> void:
 	host = owner
+	host.campaign.campaign_phase_changed.connect(host.get_node("TableAmbience").sync_phase)
 	name = "TableHUDPresentation"
 	var stat := host.get_node("GameLayer/Header/HeaderRow/CampaignStat") as PanelContainer
 	stat.custom_minimum_size = Vector2(250, 54)
@@ -32,7 +33,7 @@ func configure(owner: MatchUI) -> void:
 	day.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	PresentationTheme.style_text(day, &"body", 14)
 	host.campaign_period_value.reparent(heading)
-	host.campaign_period_value.custom_minimum_size.x = 64
+	host.campaign_period_value.custom_minimum_size.x = 96
 	host.campaign_period_value.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	PresentationTheme.style_text(host.campaign_period_value, &"muted", 12)
 	host.campaign_period_icon.custom_minimum_size = Vector2(36, 36)
@@ -101,6 +102,7 @@ func configure(owner: MatchUI) -> void:
 
 func refresh() -> void:
 	if host.campaign == null: return
+	host.get_node("TableAmbience").sync_phase(host.campaign.current_phase)
 	day.text = CampaignText.day_name(host.campaign) if not host.campaign.current_day().is_empty() else "—"
 	goal.text = ZodiacCatalog.words("Goal ", "Mục tiêu ") + VndWallet.format_vnd(host.campaign.daily_requirement()) if not host.campaign.current_day().is_empty() else "—"
 	progress.value = clampf(float(host.deal.wallet.balance_vnd) / maxf(host.campaign.daily_requirement(), 1) * 100.0, 0, 100)

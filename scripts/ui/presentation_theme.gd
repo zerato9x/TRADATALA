@@ -206,7 +206,7 @@ static func configure_button(button: Button, tone: String = "neutral") -> void:
 	button.add_theme_color_override("font_color", font_color)
 	button.add_theme_color_override("font_hover_color", font_color.lightened(0.12))
 	button.add_theme_color_override("font_pressed_color", font_color)
-	button.add_theme_color_override("font_disabled_color", MUTED)
+	button.add_theme_color_override("font_disabled_color", PAPER_MUTED if tone == "gold" else MUTED)
 	button.add_theme_font_size_override("font_size", 16)
 	button.focus_mode = Control.FOCUS_ALL
 	button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND

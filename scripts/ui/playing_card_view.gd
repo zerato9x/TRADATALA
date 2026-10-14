@@ -497,6 +497,8 @@ func _update_pose(animate: bool) -> void:
 	var target_scale := Vector2.ONE * (1.07 if _hovered else (1.035 if selected else 1.0))
 	var target_rotation := base_rotation if not _hovered else rotation
 	var target_modulate := Color(1, 1, 1, 0.42) if _dragging else Color.WHITE
+	var shadow_offset := Vector2(10, 18) if _hovered else Vector2(8, 14) if selected else Vector2(5, 7)
+	var shadow_alpha := 0.7 if _hovered or selected else 1.0
 	if animate and _pose_initialized and _pose_position.is_equal_approx(target_position) and is_equal_approx(_pose_rotation, target_rotation) and _pose_scale.is_equal_approx(target_scale) and _pose_modulate.is_equal_approx(target_modulate): return
 	_pose_initialized = true
 	_pose_position = target_position
@@ -510,6 +512,8 @@ func _update_pose(animate: bool) -> void:
 		rotation = target_rotation
 		scale = target_scale
 		modulate = target_modulate
+		_shadow.position = shadow_offset
+		_shadow.modulate.a = shadow_alpha
 		return
 	_motion_tween = create_tween().set_parallel(true)
 	_motion_tween.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
@@ -517,3 +521,5 @@ func _update_pose(animate: bool) -> void:
 	_motion_tween.tween_property(self, "rotation", target_rotation, 0.18)
 	_motion_tween.tween_property(self, "scale", target_scale, 0.18)
 	_motion_tween.tween_property(self, "modulate", target_modulate, 0.14)
+	_motion_tween.tween_property(_shadow, "position", shadow_offset, 0.18)
+	_motion_tween.tween_property(_shadow, "modulate:a", shadow_alpha, 0.18)

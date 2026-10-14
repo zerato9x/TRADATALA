@@ -26,9 +26,26 @@ func configure(owner_deal: DealState, owner_interactions: MatchInteraction, surf
 	title_label = overlay.find_child("ArchiveTitle", true, false)
 	count_label = overlay.find_child("ArchiveCount", true, false)
 	close_button = overlay.find_child("CloseArchive", true, false)
+	var tray := overlay.get_node("ArchivePanel") as Panel
+	var rim := PresentationTheme.panel_style(Color("40342a"), Color("9c7f54"), 2, 5, 12)
+	rim.shadow_offset = Vector2(4, 8)
+	tray.add_theme_stylebox_override("panel", rim)
+	var mat := preload("res://scripts/ui/archive_mat.gd").new()
+	mat.name = "SortingMat"
+	tray.add_child(mat)
+	tray.move_child(mat, 0)
+	(overlay.get_node("ArchiveDim") as ColorRect).color = Color("06131b99")
+	PresentationTheme.configure_button(close_button, "tea")
+	count_label.add_theme_font_size_override("font_size", 14)
 	for suit in DeckManager.SUITS:
 		grids[suit] = overlay.find_child(suit + "Cards", true, false)
 		suit_titles[suit] = overlay.find_child(suit + "DiscardArchiveSuitTitles", true, false)
+		(suit_titles[suit].get_node("Title") as Label).set_meta("text_suit", suit)
+		var column := overlay.find_child(suit + "Column", true, false) as PanelContainer
+		var lane := PresentationTheme.panel_style(Color("071e203d"), Color(_discard_suit_color(suit), 0.25), 1, 2)
+		lane.border_width_top = 3
+		column.add_theme_stylebox_override("panel", lane)
+		(suit_titles[suit].get_node("Icon") as TextureRect).custom_minimum_size = Vector2(14, 16)
 	close_button.pressed.connect(close)
 	(overlay.find_child("ArchiveDim", true, false) as Control).gui_input.connect(_on_discard_archive_dim_input)
 
@@ -137,11 +154,18 @@ func _on_drink_archive_card_input(event: InputEvent, record: DiscardRecord) -> v
 
 func _build_discard_archive_card(card: CardData) -> Control:
 	var holder := Control.new()
-	holder.custom_minimum_size = Vector2(54, 75)
+	holder.custom_minimum_size = Vector2(58, 80)
 	holder.tooltip_text = card.inspection_text()
 	var gieo_descriptions := card.fortune_descriptions()
 	if not gieo_descriptions.is_empty():
 		holder.tooltip_text += "\n\nGIEO QUẺ\n" + "\n".join(gieo_descriptions)
+	var shadow := Panel.new()
+	shadow.name = "CardShadow"
+	shadow.position = Vector2(2, 3)
+	shadow.size = holder.custom_minimum_size
+	shadow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	shadow.add_theme_stylebox_override("panel", PresentationTheme.panel_style(Color("020c1470"), Color.TRANSPARENT, 0, 2))
+	holder.add_child(shadow)
 	var texture := TextureRect.new()
 	texture.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	texture.texture = load(card.texture_path()) as Texture2D

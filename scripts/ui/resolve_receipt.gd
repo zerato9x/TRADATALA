@@ -13,6 +13,7 @@ var rows: VBoxContainer
 var title_label: Label
 var net_label: Label
 var portrait: TextureRect
+var _brand: Label
 var _body: VBoxContainer
 var _summary: HBoxContainer
 var _tabs: HBoxContainer
@@ -29,6 +30,7 @@ var _sound: AudioStreamPlayer
 var _collector_arrival: Control
 var _margin: MarginContainer
 var _shade: ColorRect
+var _paper: PanelContainer
 
 func words(en: String, vi: String) -> String:
 	return vi if TranslationServer.get_locale().begins_with("vi") else en
@@ -36,6 +38,7 @@ func words(en: String, vi: String) -> String:
 func _label(text: String, font_size: int = 20, color: Color = INK) -> Label:
 	var label := Label.new()
 	label.text = text
+	label.set_meta("text_surface", &"paper")
 	label.add_theme_font_size_override("font_size", font_size)
 	label.add_theme_color_override("font_color", color)
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -45,11 +48,11 @@ func _label(text: String, font_size: int = 20, color: Color = INK) -> Label:
 func _panel(parent: Node, color: Color = PAPER) -> VBoxContainer:
 	var panel := PanelContainer.new()
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var style := PresentationTheme.panel_style(color, Color("acb6bb"), 1, 5, 4)
-	style.content_margin_left = 20
-	style.content_margin_right = 20
-	style.content_margin_top = 14
-	style.content_margin_bottom = 14
+	var style := PresentationTheme.panel_style(Color(color, 0.35), Color("af96665a"), 1, 2, 0)
+	style.content_margin_left = 12
+	style.content_margin_right = 12
+	style.content_margin_top = 10
+	style.content_margin_bottom = 10
 	panel.add_theme_stylebox_override("panel", style)
 	parent.add_child(panel)
 	var box := VBoxContainer.new()
@@ -63,7 +66,8 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	var shade := ColorRect.new()
 	_shade = shade
-	shade.color = Color("142c50f5")
+	shade.color = Color("06131b99")
+	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(shade)
 	var margin := MarginContainer.new()
@@ -77,8 +81,12 @@ func _ready() -> void:
 	add_child(margin)
 	_body = VBoxContainer.new()
 	_body.add_theme_constant_override("separation", 14)
-	margin.add_child(_body)
+	_paper = preload("res://scripts/ui/receipt_paper.gd").new()
+	_paper.name = "ReceiptPaper"
+	margin.add_child(_paper)
+	_paper.add_child(_body)
 	var brand := _label("TRÀ ĐÁ TÁ LẢ   /   " + words("THE TABLE'S ACCOUNTS", "SỔ THU CHI"), 14, PresentationTheme.MUTED)
+	_brand = brand
 	_body.add_child(brand)
 	title_label = _label("", 28, PresentationTheme.INK)
 	_body.add_child(title_label)
@@ -146,6 +154,7 @@ func suspend_presentation() -> void:
 	_leaving = false
 	primary.disabled = false
 	_body.modulate = Color.WHITE
+	_paper.scale = Vector2.ONE
 	(get_parent() as CanvasLayer).hide()
 
 func resume_presentation() -> void:
@@ -184,19 +193,35 @@ func line(label: String, value: String, color: Color = INK, parent: Node = null)
 func _stat(label: String, amount: int, color: Color) -> Label:
 	var box := _panel(_summary)
 	box.add_child(_label(label, 14, MUTED))
-	var value := _label(VndWallet.format_vnd(amount, true), 32, color)
+	var formatted := VndWallet.format_vnd(amount, true)
+	var value := _label(formatted, 28, color)
 	value.autowrap_mode = TextServer.AUTOWRAP_OFF
+	# Let the sheet set the column width, then fit the complete amount into it.
+	value.clip_text = true
+	value.custom_minimum_size.y = 34
+	value.tooltip_text = formatted
 	box.add_child(value)
+	value.resized.connect(_fit_stat.bind(value, formatted))
+	_fit_stat.call_deferred(value, formatted)
 	return value
+
+func _fit_stat(value: Label, formatted: String) -> void:
+	if not is_instance_valid(value): return
+	var pixels := 28
+	var font := value.get_theme_font("font")
+	while pixels > 12 and font.get_string_size(formatted, HORIZONTAL_ALIGNMENT_LEFT, -1, pixels).x > value.size.x:
+		pixels -= 1
+	value.add_theme_font_size_override("font_size", pixels)
 
 func show_report(report: Dictionary, mode: String, heading: String, button_text: String) -> void:
 	if _animation and _animation.is_running():
 		_animation.kill()
 	_report = report.duplicate(true)
 	_mode = mode
+	_brand.text = "TRÀ ĐÁ TÁ LẢ   /   " + words("THE TABLE'S ACCOUNTS", "SỔ THU CHI")
 	_margin.add_theme_constant_override("margin_right", 430 if mode == "collection" else 38)
-	_margin.add_theme_constant_override("margin_top", 125 if mode == "collection" else 24)
-	_shade.color = Color("142c5099") if mode == "collection" else Color("142c50f5")
+	_margin.add_theme_constant_override("margin_top", 80)
+	_shade.color = Color("06131b66") if mode == "collection" else Color("06131b99")
 	_leaving = false
 	primary.disabled = false
 	# The portrait is reused across collection reports, independently of old panels.
@@ -230,7 +255,10 @@ func show_report(report: Dictionary, mode: String, heading: String, button_text:
 	visible = true
 	primary.grab_focus()
 	_body.modulate.a = 0.0
+	_paper.pivot_offset = _paper.size * 0.5
+	_paper.scale = Vector2(0.975, 0.975)
 	_animation = create_tween().set_parallel(true)
+	_animation.tween_property(_paper, "scale", Vector2.ONE, 0.28).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 	_animation.tween_property(_body, "modulate:a", 1.0, 0.28)
 	_animation.tween_method(func(value: float): net_label.text = VndWallet.format_vnd(roundi(value), true), 0.0, float(report.net_vnd), 0.65).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 	_sound.play()

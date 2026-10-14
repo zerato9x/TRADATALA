@@ -86,6 +86,8 @@ function Invoke-Check([string]$Name, [string]$Script, [string[]]$UserArgs = @(),
 try {
     Invoke-Check 'parse' 'res://scripts/ui/match_ui.gd' -Parse
     Invoke-Check 'core' 'res://tests/run_headless.gd'
+    Invoke-Check 'pile-presentation' 'res://tests/pile_presentation_smoke.gd'
+    Invoke-Check 'street-presentation' 'res://tests/street_presentation_smoke.gd'
     Invoke-Check 'runtime' 'res://tests/runtime_scene_smoke.gd'
     Invoke-Check 'menu-deal' 'res://tests/menu_deal_smoke.gd'
     Invoke-Check 'boss-debug-navigation' 'res://tests/boss_debug_navigation_smoke.gd'
@@ -131,6 +133,9 @@ try {
         Invoke-Check 'fortune-write' 'res://tests/fortune_resume_smoke.gd'
         Invoke-Check 'fortune-read' 'res://tests/fortune_resume_smoke.gd' @('--resume-only')
         Invoke-Check 'readability' 'res://tests/text_readability_smoke.gd'
+        Invoke-Check 'collection-refinement' 'res://tests/collection_refinement_smoke.gd'
+        Invoke-Check 'front-end-forms' 'res://tests/front_end_forms_smoke.gd'
+        Invoke-Check 'ui-polish-layout' 'res://tests/ui_polish_layout_smoke.gd'
         Invoke-Check 'text-reveal' 'res://tests/text_reveal_scene_smoke.gd'
         Invoke-Check 'hang-rong-write' 'res://tests/hang_rong_resume_smoke.gd'
         Invoke-Check 'hang-rong-read' 'res://tests/hang_rong_resume_smoke.gd' @('--read')

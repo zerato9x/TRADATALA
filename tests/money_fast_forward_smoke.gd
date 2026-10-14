@@ -82,6 +82,7 @@ func press(kind: String) -> void:
 
 func capture(label: String) -> void:
 	if DisplayServer.get_name() != "headless":
+		DirAccess.make_dir_recursive_absolute("res://.godot/money-2026-09-29")
 		await RenderingServer.frame_post_draw
 		root.get_texture().get_image().save_png("res://.godot/money-2026-09-29/%s.png" % label)
 
