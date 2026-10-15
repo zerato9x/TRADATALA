@@ -1,6 +1,7 @@
 param(
     [string]$GodotExe = "$env:USERPROFILE\Downloads\Godot_v4.7.1-stable_win64.exe\Godot_v4.7.1-stable_win64_console.exe",
-    [string]$OutputDirectory = ''
+    [string]$OutputDirectory = '',
+    [string]$NodeExe = (Get-Command node -ErrorAction Stop).Source
 )
 $ErrorActionPreference = 'Stop'
 $root = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
@@ -37,6 +38,9 @@ try {
         if ($LASTEXITCODE -ne 0 -or (Select-String -LiteralPath $log -Pattern 'SCRIPT ERROR:|ERROR:')) { throw "Godot $($job.name) failed; inspect $log." }
         Write-Output "$($job.name): PASS"
     }
+    & $NodeExe (Join-Path $PSScriptRoot 'package_web_transport.cjs') $output
+    if ($LASTEXITCODE -ne 0) { throw 'Lossless web transport packaging failed.' }
+    $webTransport = Get-Content -LiteralPath (Join-Path $output 'verification/web-transport.json') -Raw | ConvertFrom-Json
     $artifacts = @()
     foreach ($platform in @('web','windows')) {
         $files = @(Get-ChildItem -LiteralPath (Join-Path $output $platform) -File | Where-Object { $_.Extension -notin @('.log','.import') -and $_.Name -notlike '*.console.exe' })
@@ -55,7 +59,7 @@ try {
         $artifacts += [pscustomobject]@{platform=$platform;file=[IO.Path]::GetFileName($zip);sha256=(Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash;bytes=(Get-Item -LiteralPath $zip).Length;extractedBytes=($files | Measure-Object Length -Sum).Sum;entries=@($files.Name)}
         Write-Output "PACKAGE: PASS $zip"
     }
-    [pscustomobject]@{version=$version;sourceCommit=$sourceCommit;sourceDirty=$sourceDirty;builtAt=(Get-Date -Format o);artifacts=$artifacts} | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $output 'manifest.json') -Encoding utf8
+    [pscustomobject]@{version=$version;sourceCommit=$sourceCommit;sourceDirty=$sourceDirty;builtAt=(Get-Date -Format o);webTransport=$webTransport;artifacts=$artifacts} | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $output 'manifest.json') -Encoding utf8
 } finally {
     $env:APPDATA = $previousAppdata
     $env:LOCALAPPDATA = $previousLocal

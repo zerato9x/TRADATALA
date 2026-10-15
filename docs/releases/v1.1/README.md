@@ -11,6 +11,8 @@ The current release includes the complete seven-day campaign and Endless continu
 - Three boss difficulty tiers, collectible Emblems, permanent history, and three independent save profiles.
 - Updated table presentation, boss effects, pile archives, collection presentation, receipts, Handbook text, and campaign music direction.
 
+The web pack uses lossless Brotli transport encoding to fit itch.io's extracted-file limit. The debug-only full-reference table artwork is excluded from release packages. itch.io serves the .br file with Content-Encoding: br; other hosts must provide the same header. The uncompressed verification copy stays outside the web upload folder.
+
 The release version changes metadata and packaging. Existing game content and gameplay authority are preserved. The validation pass updates older assertions to follow the current authored wording and the single-visitor Monday tour; the headless lighting check compares the home material before and after gameplay instead of requiring an implicit shader default to be loaded.
 
 ## Release files
