@@ -34,3 +34,5 @@ See [DEVLOG.md](DEVLOG.md), [CONTENT-KIT.md](CONTENT-KIT.md), and [contact-sheet
 The complete release gate uses `tools/validate_project.ps1 -Full`. `-LogDirectory` gives separate runs their own evidence and isolated profiles. Focused rendered checks cover the table lighting, boss HUD, Cat conversations, and Snake conversations. The exported-package probe is `tools/release_pack_check.gd`; it checks both exported packs for version, required boss/dialogue/audio resources, absence of development content, new-run startup, Noon encounters, evening boss selection, and save/restore.
 
 The final receipt lists the checks actually completed. Automated tests and rendered checks do not constitute an extended human campaign playthrough or an audio-listening review.
+
+The package probe runs through the Godot console executable with an explicit PCK. Official Windows release templates disable command-line path overrides, so native executable checks use the normal game UI.

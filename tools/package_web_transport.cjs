@@ -9,7 +9,7 @@ const verification = path.join(root, 'verification');
 const packPath = path.join(web, 'index.pck');
 const raw = fs.readFileSync(packPath);
 const compressed = zlib.brotliCompressSync(raw, {
-  params: { [zlib.constants.BROTLI_PARAM_QUALITY]: 11, [zlib.constants.BROTLI_PARAM_SIZE_HINT]: raw.length },
+  params: { [zlib.constants.BROTLI_PARAM_QUALITY]: 9, [zlib.constants.BROTLI_PARAM_SIZE_HINT]: raw.length },
 });
 if (!zlib.brotliDecompressSync(compressed).equals(raw)) throw new Error('Brotli roundtrip mismatch');
 if (compressed.length > 200000000) throw new Error('Compressed web pack still exceeds 200 MB');
