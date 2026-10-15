@@ -694,7 +694,7 @@ func _on_event_deck_inspect_requested() -> void:
 	if current_campaign_event == null or event_table == null or not event_table.visible:
 		return
 	deck_screen.open_deck(campaign.gieo_que.persistent_deck, GameGlossary.words("Your deck", "Bộ bài của bạn"),
-		GameGlossary.words("Your physical campaign cards. Sort, search, and inspect permanent changes.", "Các lá bài thật của chiến dịch. Sắp xếp, tìm kiếm và xem biến đổi vĩnh viễn."))
+		GameGlossary.words("Your deck for this run. Sort, search, and inspect each card's lasting changes.", "Bộ bài của lượt chơi này. Xếp, tìm và xem thay đổi lâu dài trên từng lá."))
 
 
 func _on_deck_screen_closed() -> void:
@@ -728,16 +728,16 @@ func _sync_event_continue(committed: bool = false) -> void:
 		if interaction.completed:
 			continue
 		required_npc = interaction.participant_id
-		reason = ZodiacCatalog.words("Buy a drink from Auntie to continue.", "Mua nước ở quán cô để tiếp tục.") if interaction.action_type == "choose_drink" else ZodiacCatalog.words("Finish the required visit to continue.", "Hoàn thành cuộc gặp bắt buộc để tiếp tục.")
+		reason = ZodiacCatalog.words("Order a Drink from Auntie to continue.", "Gọi một ly từ Cô Trà Đá để tiếp tục.") if interaction.action_type == "choose_drink" else ZodiacCatalog.words("Finish the required visit to continue.", "Hoàn thành cuộc gặp bắt buộc để tiếp tục.")
 		break
 	if committed and reason.is_empty():
 		reason = ZodiacCatalog.words("Finish this reading before continuing.", "Xong lượt gieo quẻ rồi hãy tiếp tục.")
 	var zodiac_pending := current_campaign_event.slot == EventManager.EventSlot.NOON and campaign.zodiac.has_open_interaction()
 	if zodiac_pending:
-		reason = ZodiacCatalog.words("Finish the Zodiac negotiation to continue.", "Xong cuộc thương lượng với Con Giáp rồi hãy tiếp tục.")
+		reason = ZodiacCatalog.words("Finish this Zodiac conversation to continue.", "Nói chuyện xong với Con Giáp để tiếp tục.")
 		required_npc = EventTableController.NPC_ZODIAC
 	if campaign.relic_shop.removal_pending:
-		reason = GameGlossary.words("Finish your paid card removal at Hàng Rong.", "Xong lượt bỏ bài đã trả tiền ở Hàng Rong rồi hãy tiếp tục.")
+		reason = GameGlossary.words("Choose and confirm your paid card removal at Hàng Rong.", "Chọn và xác nhận lá bỏ đã trả tiền ở Hàng Rong.")
 		required_npc = EventTableController.NPC_HANG_RONG
 	event_table.set_continue_enabled(current_campaign_event.can_exit and not committed and not zodiac_pending and not campaign.relic_shop.removal_pending, reason, required_npc)
 
@@ -1851,7 +1851,7 @@ func _present_scoring_suppression(context: ScoringContext) -> void:
 	if zodiac_boss_hud != null and zodiac_boss_hud.visible:
 		zodiac_boss_hud.present_suppression(context)
 	else:
-		_show_banner(ZodiacCatalog.feedback(context.suppression_reason) + ZodiacCatalog.words(" · legal play, 0 VNĐ", " · bài hợp lệ, 0 VNĐ"))
+		_show_banner(ZodiacCatalog.feedback(context.suppression_reason) + ZodiacCatalog.words(" · legal, but pays 0 VNĐ", " · hợp lệ, nhưng trả 0 VNĐ"))
 
 
 func _scoring_card_control(card_id: String) -> Control:
@@ -2585,7 +2585,7 @@ func _on_front_start_requested(draft: RunSetupDraft) -> void:
 func _on_front_resume_requested() -> void:
 	var saved := session.run_save.load_run()
 	if saved.is_empty():
-		front_end.show_error(session.run_save.error if not session.run_save.error.is_empty() else GameGlossary.words("Saved run is unavailable.", "Không tìm thấy ván đã lưu."))
+		front_end.show_error(session.run_save.error if not session.run_save.error.is_empty() else GameGlossary.words("No saved run is available in this slot.", "Ô này chưa có lượt chơi để tiếp tục."))
 		return
 	if not session.resume(saved):
 		front_end.show_error(GameGlossary.words("Could not resume this saved run.", "Không thể tiếp tục ván đã lưu."))

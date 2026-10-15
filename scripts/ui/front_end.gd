@@ -157,7 +157,7 @@ func show_home() -> void:
 	customizing = false
 	busy = false
 	saved = host.session.run_save.load_run()
-	save_message = words("Recovered the backup save.", "Đã khôi phục bản lưu dự phòng.") if host.session.run_save.recovered_backup else host.session.run_save.error
+	save_message = words("Your backup save was recovered.", "Đã khôi phục bản lưu dự phòng.") if host.session.run_save.recovered_backup else host.session.run_save.error
 	if not transient_error.is_empty():
 		save_message = transient_error
 		transient_error = ""
@@ -306,7 +306,7 @@ func _render_setup() -> void:
 		var confirm := _card(setup_body)
 		confirm.add_child(_label(words("REPLACE SAVED RUN?", "THAY VÁN ĐÃ LƯU?"), 23, GOLD))
 		confirm.add_child(_label(_save_summary(), 17))
-		confirm.add_child(_label(words("This starts a new run in the current save slot.", "Ván mới sẽ dùng ô lưu hiện tại."), 15))
+		confirm.add_child(_label(words("Your current run in this slot will be replaced. Collection unlocks stay.", "Lượt chơi hiện tại trong ô này sẽ bị thay. Các mục bộ sưu tập đã mở vẫn giữ."), 15))
 	_show_page("setup")
 
 func _render_customize() -> void:
@@ -323,7 +323,7 @@ func _render_customize() -> void:
 	var modes := OptionButton.new()
 	modes.name = "MusicMode"
 	modes.add_item(words("Play individual tracks", "Phát từng bài"))
-	modes.add_item(words("Authored DJ sets", "Bản phối DJ biên soạn"))
+	modes.add_item(words("Music that follows the game", "Nhạc theo diễn biến ván chơi"))
 	modes.select(0 if draft.music_system == "playing_tracks" else 1)
 	modes.item_selected.connect(func(index: int): draft.music_system = "playing_tracks" if index == 0 else "authored_dj")
 	custom.add_child(modes)
@@ -331,7 +331,7 @@ func _render_customize() -> void:
 		custom.add_child(_label(words("PREFERRED ZODIAC EMBLEM", "HUY HIỆU CON GIÁP ƯU TIÊN"), 16))
 		var emblem := OptionButton.new()
 		emblem.name = "EmblemPreference"
-		emblem.add_item(words("Seeded appearance", "Xuất hiện theo hạt giống"))
+		emblem.add_item(words("Let the day decide", "Để ngày chơi quyết định"))
 		emblem.set_item_metadata(0, "")
 		for id: String in ZodiacCatalog.DEFINITIONS:
 			if host.campaign.zodiac.progress.owns(id):
@@ -455,8 +455,10 @@ func _render_zodiac_detail(detail: VBoxContainer) -> void:
 		var required := int(definition.unlock[metric])
 		var current := mini(int(record.get(metric, 0)), required)
 		CollectionPresenter.progress_row(detail, _label("%s  ·  %d/%d" % [metric_labels.get(metric, metric.replace("_", " ").capitalize()), current, required], 16), current, required, PresentationTheme.zodiac_color(id))
-	var state := words("EMBLEM OWNED", "ĐÃ CÓ HUY HIỆU") if progress.owns(id) else words("SPECIAL SCENE READY", "ĐÃ MỞ CẢNH ĐẶC BIỆT") if progress.eligible(id) else words("REQUIREMENTS IN PROGRESS", "ĐANG HOÀN THÀNH ĐIỀU KIỆN")
+	var state := words("EMBLEM OWNED", "ĐÃ CÓ HUY HIỆU") if progress.owns(id) else words("A PRIVATE MOMENT AWAITS", "MỘT CUỘC GẶP RIÊNG ĐANG CHỜ") if progress.eligible(id) else words("REQUIREMENTS IN PROGRESS", "ĐANG HOÀN THÀNH ĐIỀU KIỆN")
 	detail.add_child(_label(state, 17, GOLD))
+	detail.add_child(_button(words("ABOUT THIS ZODIAC", "VỀ CON GIÁP NÀY"), func():
+		GameGlossary.open_zodiac(host, id)))
 
 func show_music() -> void:
 	_show_page("music")
@@ -513,7 +515,7 @@ func _render_settings() -> void:
 	languages.select(host.settings.locale_index())
 	languages.item_selected.connect(func(index: int): host.settings.set_locale(host.settings.SUPPORTED_LOCALES[index]))
 	panel.add_child(languages)
-	for spec in [["ShowStrawy", words("SHOW STRAWY", "HIỆN STRAWY"), host.settings.strawy_enabled], ["Tutorial", words("TUTORIAL", "HƯỚNG DẪN"), host.settings.tutorial_enabled], ["FirstSeed", words("FIRST SEED", "BÀI KHỞI ĐẦU"), host.settings.first_seed_enabled]]:
+	for spec in [["ShowStrawy", words("SHOW STRAWY", "HIỆN STRAWY"), host.settings.strawy_enabled], ["Tutorial", words("TUTORIAL", "HƯỚNG DẪN"), host.settings.tutorial_enabled], ["FirstSeed", words("GUIDED OPENING", "BÀI MỞ ĐẦU HƯỚNG DẪN"), host.settings.first_seed_enabled]]:
 		var toggle := CheckButton.new()
 		toggle.name = spec[0]
 		toggle.text = spec[1]
@@ -526,7 +528,7 @@ func _render_settings() -> void:
 		else:
 			toggle.toggled.connect(host.settings.set_first_seed_enabled)
 		table_options.add_child(toggle)
-	table_options.add_child(_label(words("Ask Strawy to teach during your real first day. First Seed curates Monday's cards for new runs; switch it off to use your run seed throughout.", "Hỏi Strawy để học trong ngày đầu thật. Bài khởi đầu sắp bài thứ Hai cho ván mới; tắt để dùng hạt giống của bạn xuyên suốt."), 15))
+	table_options.add_child(_label(words("Strawy can teach as you play Monday. Guided Opening gives new runs a prepared Monday deck; turn it off to use your run seed throughout.", "Strawy có thể hướng dẫn khi bạn chơi thứ Hai. Bài mở đầu hướng dẫn chuẩn bị sẵn bài thứ Hai cho lượt mới; tắt để dùng mã hạt giống của lượt chơi suốt hành trình."), 15))
 
 func _show_page(id: String) -> void:
 	var changed := active_page != id
@@ -645,7 +647,7 @@ func _clear(parent: Node) -> void:
 
 func show_save_files() -> void:
 	_clear(files_body)
-	files_body.add_child(_label(words("Each file keeps its own drink unlocks, difficulty levels, Zodiac emblems, and endings across New Run.", "Mỗi ô giữ riêng các món nước, độ khó, huy hiệu Con Giáp và kết thúc đã mở qua các ván mới."), 17))
+	files_body.add_child(_label(words("Each save file keeps its own Drink unlocks, difficulties, Zodiac Emblems, and endings when you start a new run.", "Mỗi ô lưu giữ riêng Nước đã mở, độ khó, Huy hiệu và kết cục khi bắt đầu lượt chơi mới."), 17))
 	if not host.session.save_files.error.is_empty(): files_body.add_child(_label(host.session.save_files.error, 16, GOLD))
 	if host.session.debug_active: files_body.add_child(_label(words("Exit the debug sandbox to change save files.", "Thoát thử nghiệm để đổi ô lưu."), 16, GOLD))
 	var cards := GridContainer.new()
@@ -680,7 +682,7 @@ func show_save_files() -> void:
 		FrontEndControls.stat(body, _label(words("Emblems", "Huy hiệu"), 16), _label("%d/12" % emblems, 16))
 		FrontEndControls.stat(body, _label(words("Endings", "Kết thúc"), 16), _label(str(endings), 16))
 		var summary: Dictionary = info.run_summary
-		body.add_child(_label(words("No run checkpoint", "Chưa có ván đã lưu") if not info.has_run else words("Run checkpoint available", "Có ván đã lưu") if summary.is_empty() else words("Day %d · %s", "Ngày %d · %s") % [summary.get("day", 1), VndWallet.format_vnd(summary.get("wallet_vnd", 0))], 15, MUTED))
+		body.add_child(_label(words("No run to continue", "Chưa có lượt chơi để tiếp tục") if not info.has_run else words("Ready to continue", "Có thể tiếp tục") if summary.is_empty() else words("Day %d · %s", "Ngày %d · %s") % [summary.get("day", 1), VndWallet.format_vnd(summary.get("wallet_vnd", 0))], 15, MUTED))
 		if info.backup: body.add_child(_label(words("Backup recovered", "Đã khôi phục dự phòng"), 15, GOLD))
 		if info.damaged: body.add_child(_label(words("Damaged file · preserved", "Ô bị lỗi · được giữ nguyên"), 15, GOLD))
 		var spacer := Control.new()

@@ -133,6 +133,7 @@ try {
         Invoke-Check 'fortune-write' 'res://tests/fortune_resume_smoke.gd'
         Invoke-Check 'fortune-read' 'res://tests/fortune_resume_smoke.gd' @('--resume-only')
         Invoke-Check 'readability' 'res://tests/text_readability_smoke.gd'
+        Invoke-Check 'text-editorial' 'res://tests/text_editorial_smoke.gd'
         Invoke-Check 'collection-refinement' 'res://tests/collection_refinement_smoke.gd'
         Invoke-Check 'front-end-forms' 'res://tests/front_end_forms_smoke.gd'
         Invoke-Check 'ui-polish-layout' 'res://tests/ui_polish_layout_smoke.gd'

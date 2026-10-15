@@ -13,12 +13,55 @@ func test_bilingual_csv_has_exactly_three_columns() -> void:
 		assert_eq(row.size(), 3, "Malformed localization row: " + row[0])
 
 func test_fortune_teller_greeting_uses_selected_language() -> void:
+	var file := FileAccess.open("res://locale/ui.csv", FileAccess.READ)
+	var expected := {}
+	while not file.eof_reached():
+		var row := file.get_csv_line()
+		if row.size() == 3 and row[0] == "NPC_GREETING_THAY_BOI":
+			expected = {"vi": row[1], "en": row[2]}
+	assert_eq(expected.size(), 2)
+	assert_true(expected.get("en", "") != expected.get("vi", ""))
 	var previous := TranslationServer.get_locale()
-	TranslationServer.set_locale("en")
-	assert_true(TranslationServer.translate("NPC_GREETING_THAY_BOI").begins_with("Want to try a reading?"))
-	TranslationServer.set_locale("vi")
-	assert_true(TranslationServer.translate("NPC_GREETING_THAY_BOI").begins_with("Muốn thử một quẻ không?"))
+	for locale: String in expected:
+		TranslationServer.set_locale(locale)
+		assert_eq(TranslationServer.translate("NPC_GREETING_THAY_BOI"), expected[locale], "Imported greeting matches its language source")
 	TranslationServer.set_locale(previous)
+
+func _copy_tokens(copy: String) -> Array[String]:
+	var pattern := RegEx.new()
+	pattern.compile("\\{[a-z_]+\\}|%(?:[0-9]*\\.?[0-9]*)[sdf]|%%")
+	var tokens: Array[String] = []
+	for found in pattern.search_all(copy): tokens.append(found.get_string())
+	return tokens
+
+func test_localized_copy_preserves_format_arguments() -> void:
+	var file := FileAccess.open("res://locale/ui.csv", FileAccess.READ)
+	var seen := {}
+	file.get_csv_line()
+	while not file.eof_reached():
+		var row := file.get_csv_line()
+		if row.size() != 3: continue
+		assert_false(seen.has(row[0]), "Duplicate translation key: " + row[0])
+		seen[row[0]] = true
+		assert_false(row[1].is_empty() or row[2].is_empty(), "Empty translation: " + row[0])
+		assert_eq(_copy_tokens(row[1]), _copy_tokens(row[2]), "Translation arguments: " + row[0])
+		assert_false(row[1].contains(String.chr(7)) or row[2].contains(String.chr(7)), "No control glyphs in copy")
+
+func _check_bilingual_tree(value: Variant, location: String) -> void:
+	if value is Dictionary:
+		if value.has("en"):
+			assert_true(value.has("vi") and not String(value.en).is_empty() and not String(value.get("vi", "")).is_empty(), location + " has both languages")
+			assert_eq(_copy_tokens(value.en), _copy_tokens(value.get("vi", "")), location + " keeps memory and format tokens")
+		for key: Variant in value: _check_bilingual_tree(value[key], location + "/" + str(key))
+	elif value is Array:
+		for index in value.size(): _check_bilingual_tree(value[index], location + "/" + str(index))
+
+func test_zodiac_copy_has_both_languages_and_bound_memory_tokens() -> void:
+	for id: String in ZodiacCatalog.DEFINITIONS:
+		assert_true(ZodiacCatalog.PORTRAITS.ENTRIES.has(id), "Public portrait: " + id)
+		_check_bilingual_tree(ZodiacCatalog.PORTRAITS.ENTRIES[id], id + "/portrait")
+		_check_bilingual_tree(ZodiacCatalog.persuasion_nodes(id), id + "/nodes")
+		_check_bilingual_tree(ZodiacCatalog.persuasion_config(id), id + "/config")
 
 func test_money_emphasis_preserves_signs_and_prose() -> void:
 	var copy := PresentationTheme.emphasize_money("Reward +250.000 VNĐ / Cost −50.000 VNĐ")

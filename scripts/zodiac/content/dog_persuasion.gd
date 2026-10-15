@@ -26,7 +26,7 @@ const RELIC := {
 }
 const COUNTER_REFUSE := {"delta": 0, "dialogue": [
 	{"speaker": "player", "en": "I can't promise the alternative either.", "vi": "Phương án khác tôi cũng không hứa được."},
-	{"speaker": "dog", "en": "All right. I'd rather hear that now.", "vi": "Được. Tôi muốn nghe điều đó ngay từ đầu."}
+	{"speaker": "dog", "en": "All right. I'll stop setting a place for a promise you haven't made.", "vi": "Được. Tôi thôi chừa chỗ cho một lời hứa bạn chưa nhận."}
 ]}
 const CONFIG := {
 	"visit_limits": {"1": 3, "1+": 1, "2": 1},
@@ -41,44 +41,44 @@ const CONFIG := {
 	},
 	"emblem_unlock": {"relationship_tier": 3, "promises_kept": 3, "promise_kinds": 2, "promises_refused": 1, "pleased_victories": 1},
 	"private_scene": [
-		{"en": "Dog stays while the chairs are stacked. He moves one back to the table and waits for you to choose whether to sit.", "vi": "Tuất ở lại khi ghế đã được xếp lên. Anh kéo một chiếc về bàn, đợi bạn tự quyết có ngồi xuống không."},
-		{"en": "\"I don't need you to agree with me every time. I need to know your answer belongs to you.\"", "vi": "\"Tôi không cần bạn luôn đồng ý với tôi. Tôi cần biết câu trả lời thật sự là của bạn.\""},
-		{"en": "He sets a small dog Emblem beside your glass. \"When our day comes around, bring it. There's a place here for you.\"", "vi": "Anh đặt Huy hiệu con chó nhỏ cạnh ly của bạn. \"Đến ngày của mình thì mang theo. Ở đây có chỗ cho bạn.\""}
+		{"en": "Dog has stacked every chair but yours. When you notice, he puts his own back down too.", "vi": "Tuất xếp hết ghế, chỉ chừa ghế bạn. Thấy bạn nhìn, anh lại hạ ghế mình xuống."},
+		{"en": "\"I used to wait outside after closing. Thought leaving first meant I cared less. Ridiculous, looking back. Didn't feel ridiculous then.\"", "vi": "\"Trước kia đóng cửa rồi tôi vẫn đứng chờ ngoài. Tưởng về trước là mình quý người ta ít hơn. Giờ nghĩ thấy ngớ ngẩn. Lúc đó thì không.\""},
+		{"en": "He sets a dog Emblem by your cup. \"Bring it on our day. Or tell me you can't come. I can keep a place without keeping you.\"", "vi": "Anh đặt Huy hiệu con chó cạnh cốc. \"Đến ngày của mình thì mang nhé. Hoặc báo là không đến được. Tôi giữ chỗ được, đâu cần giữ chân bạn.\""}
 	],
 	"last_chance": {
 		"id": "dog.last_chance.honest",
-		"prompt": [{"speaker": "dog", "en": "One honest answer. Are you staying because you want to?", "vi": "Trả lời thật một lần thôi. Bạn ở lại vì bạn muốn chứ?"}],
+		"prompt": [{"speaker": "dog", "en": "Before you answer again... do you actually want to be here?", "vi": "Trước khi trả lời thêm... bạn có thật sự muốn ở đây không?"}],
 		"answers": [
 			{"id": "A", "en": "Yes. I can disagree and still stay.", "vi": "Có. Tôi có thể không đồng ý mà vẫn ở lại.", "recovery_success": true,
-				"reaction": [{"speaker": "dog", "en": "Then we still have something to talk about.", "vi": "Vậy mình vẫn còn chuyện để nói."}]},
+				"reaction": [{"speaker": "dog", "en": "Good. Move your cup over. We're not finished talking.", "vi": "Được. Xích cốc qua đi. Mình chưa hết chuyện đâu."}]},
 			{"id": "B", "en": "I need space today. That isn't a betrayal.", "vi": "Hôm nay tôi cần khoảng riêng. Đó không phải phản bội.", "recovery_success": true,
-				"reaction": [{"speaker": "dog", "en": "No. It isn't. Thank you for telling me.", "vi": "Không. Không phải đâu. Cảm ơn bạn đã nói."}]},
+				"reaction": [{"speaker": "dog", "en": "No. It isn't. I might miss you. That's mine to deal with.", "vi": "Không. Không phải phản bội. Có thể tôi sẽ nhớ bạn. Đó là phần tôi tự lo."}]},
 			{"id": "C", "en": "I'll say anything if it makes you easier tonight.", "vi": "Tôi nói gì cũng được, miễn tối nay bạn dễ hơn.", "recovery_success": false,
-				"reaction": [{"speaker": "dog", "en": "Then let's leave the words here.", "vi": "Vậy lời nói dừng ở đây thôi."}]}
+				"reaction": [{"speaker": "dog", "en": "I wanted your company. You wanted an easier opponent. Let's stop here.", "vi": "Tôi muốn có bạn ngồi cùng. Bạn muốn đối thủ dễ hơn. Mình dừng nhé."}]}
 		]},
 	"special": []
 }
 const NODES := [
 	{"id": "dog.t1.wait", "zodiac": "dog", "content_tier": "1", "kind": "QUESTION",
-		"prompt": [{"speaker": "dog", "en": "If you couldn't come back, what would you tell me?", "vi": "Nếu không quay lại được, bạn sẽ nói với tôi điều gì?"}],
+		"prompt": [{"speaker": "dog", "en": "Say you're not coming back tomorrow. When would I hear about it?", "vi": "Giả sử mai bạn không quay lại. Bao giờ tôi được biết?"}],
 		"answers": [
-			{"id": "A", "en": "As soon as I knew. You shouldn't have to wait.", "vi": "Nói ngay khi biết. Bạn không nên phải chờ.", "delta": 1, "reaction": [{"speaker": "dog", "en": "That's enough. I can make my own plans.", "vi": "Vậy là đủ. Tôi có thể tự tính việc mình."}]},
-			{"id": "B", "en": "I'd explain when I next saw you.", "vi": "Lần gặp sau tôi sẽ giải thích.", "delta": 0, "reaction": [{"speaker": "dog", "en": "I'd hear you out.", "vi": "Tôi sẽ nghe bạn nói."}]},
-			{"id": "C", "en": "Nothing. You'd work it out.", "vi": "Không nói gì. Bạn tự hiểu thôi.", "delta": -1, "reaction": [{"speaker": "dog", "en": "Waiting isn't the same as knowing.", "vi": "Chờ đợi đâu có nghĩa là biết."}]}
+			{"id": "A", "en": "As soon as I knew. You shouldn't have to wait.", "vi": "Nói ngay khi biết. Bạn không nên phải chờ.", "delta": 1, "reaction": [{"speaker": "dog", "en": "Thank you. I can put the spare cup away.", "vi": "Cảm ơn. Tôi còn biết mà cất cái cốc thừa."}]},
+			{"id": "B", "en": "I'd explain when I next saw you.", "vi": "Lần gặp sau tôi sẽ giải thích.", "delta": 0, "reaction": [{"speaker": "dog", "en": "I'd listen. Might have some cold tea by then.", "vi": "Tôi sẽ nghe. Lúc ấy trà chắc nguội rồi."}]},
+			{"id": "C", "en": "Nothing. You'd work it out.", "vi": "Không nói gì. Bạn tự hiểu thôi.", "delta": -1, "reaction": [{"speaker": "dog", "en": "Eventually. I'd rather hear it from you than from an empty chair.", "vi": "Rồi cũng biết. Nhưng tôi muốn nghe bạn nói, hơn là nhìn ghế trống mà đoán."}]}
 		]},
 	{"id": "dog.t1.loyal", "zodiac": "dog", "content_tier": "1", "kind": "QUESTION",
-		"prompt": [{"speaker": "dog", "en": "Does loyalty mean saying yes?", "vi": "Trung thành có nghĩa là nói có không?"}],
+		"prompt": [{"speaker": "dog", "en": "If I ask you to back me up when I'm wrong, is saying yes loyalty?", "vi": "Nếu tôi sai mà nhờ bạn bênh, đồng ý có phải trung thành không?"}],
 		"answers": [
-			{"id": "A", "en": "It means giving you an answer I can stand by.", "vi": "Nghĩa là cho bạn câu trả lời tôi giữ được.", "delta": 1, "reaction": [{"speaker": "dog", "en": "Even a no. Especially a useful no.", "vi": "Kể cả nói không. Nhất là khi nói không một cách rõ ràng."}]},
-			{"id": "B", "en": "Sometimes it means helping.", "vi": "Đôi khi nghĩa là giúp đỡ.", "delta": 0, "reaction": [{"speaker": "dog", "en": "When you choose to.", "vi": "Khi bạn tự chọn giúp."}]},
-			{"id": "C", "en": "It means doing whatever you ask.", "vi": "Nghĩa là làm mọi điều bạn yêu cầu.", "delta": -1, "reaction": [{"speaker": "dog", "en": "Then I'd never know where you stand.", "vi": "Vậy tôi chẳng biết bạn thật sự nghĩ gì."}]}
+			{"id": "A", "en": "It means giving you an answer I can stand by.", "vi": "Nghĩa là cho bạn câu trả lời tôi giữ được.", "delta": 1, "reaction": [{"speaker": "dog", "en": "Good. I'd rather be corrected by you than cheered into a mistake.", "vi": "Tốt. Tôi thà để bạn sửa còn hơn được cổ vũ làm sai."}]},
+			{"id": "B", "en": "Sometimes it means helping.", "vi": "Đôi khi nghĩa là giúp đỡ.", "delta": 0, "reaction": [{"speaker": "dog", "en": "It does. Help me see the mistake, too.", "vi": "Đúng. Nhớ giúp tôi nhìn ra lỗi nữa."}]},
+			{"id": "C", "en": "It means doing whatever you ask.", "vi": "Nghĩa là làm mọi điều bạn yêu cầu.", "delta": -1, "reaction": [{"speaker": "dog", "en": "Then I'd have two voices and nobody watching my back.", "vi": "Thế tôi có hai giọng nói, mà chẳng ai nhắc lúc tôi sơ suất."}]}
 		]},
 	{"id": "dog.t1.help", "zodiac": "dog", "content_tier": "1", "kind": "QUESTION",
-		"prompt": [{"speaker": "dog", "en": "You notice I'm struggling. What do you do?", "vi": "Bạn thấy tôi đang chật vật. Bạn sẽ làm gì?"}],
+		"prompt": [{"speaker": "dog", "en": "I'm wrestling with a stuck shutter. You could lift it easily. What do you do?", "vi": "Tôi đang vật lộn với cửa cuốn bị kẹt. Bạn nâng dễ thôi. Bạn làm gì?"}],
 		"answers": [
-			{"id": "A", "en": "Ask what help you want.", "vi": "Hỏi bạn muốn được giúp thế nào.", "delta": 1, "reaction": [{"speaker": "dog", "en": "Good. Leave me a say in it.", "vi": "Được. Để tôi có quyền quyết nữa."}]},
-			{"id": "B", "en": "Stay close in case you ask.", "vi": "Ở gần, phòng khi bạn cần.", "delta": 0, "reaction": [{"speaker": "dog", "en": "I might.", "vi": "Có thể tôi sẽ cần."}]},
-			{"id": "C", "en": "Take over. You'll thank me later.", "vi": "Làm thay hết. Rồi bạn sẽ cảm ơn.", "delta": -1, "reaction": [{"speaker": "dog", "en": "I'd like to be asked first.", "vi": "Tôi muốn được hỏi trước."}]}
+			{"id": "A", "en": "Ask what help you want.", "vi": "Hỏi bạn muốn được giúp thế nào.", "delta": 1, "reaction": [{"speaker": "dog", "en": "The left side. If I ask. Let me have one more try first.", "vi": "Bên trái nhé. Nếu tôi nhờ. Để tôi thử thêm lần nữa đã."}]},
+			{"id": "B", "en": "Stay close in case you ask.", "vi": "Ở gần, phòng khi bạn cần.", "delta": 0, "reaction": [{"speaker": "dog", "en": "I will. Probably sooner than I'd like.", "vi": "Tôi sẽ nhờ. Chắc sớm hơn tôi muốn thừa nhận."}]},
+			{"id": "C", "en": "Take over. You'll thank me later.", "vi": "Làm thay hết. Rồi bạn sẽ cảm ơn.", "delta": -1, "reaction": [{"speaker": "dog", "en": "Maybe. I'd still have liked a say before you took it from my hands.", "vi": "Có thể. Tôi vẫn muốn được hỏi trước khi bạn giành khỏi tay."}]}
 		]},
 	{"id": "dog.t1plus.build", "zodiac": "dog", "content_tier": "1+", "relationship_required": 2, "kind": "QUESTION",
 		"prompt": [{"speaker": "dog", "en": "Once you start something, what keeps you with it?", "vi": "Khi đã bắt đầu một việc, điều gì khiến bạn tiếp tục?"}],
@@ -90,14 +90,14 @@ const NODES := [
 		"followup": [{"speaker": "dog", "en": "Next Deal, build on the first Meld you create in Phase 1. Extend that same Meld before the Phase ends. Can you commit?", "vi": "Ván tới, tiếp nối Phỏm đầu bạn tạo trong Hiệp 1 nhé. Nối chính Phỏm đó trước khi Hiệp kết thúc. Bạn hứa được không?"}],
 		"promise": BUILD,
 		"responses": {
-			"ACCEPT": {"delta": 0, "dialogue": [{"speaker": "dog", "en": "I'll wait for what you actually do.", "vi": "Tôi sẽ chờ xem bạn thật sự làm gì."}]},
+			"ACCEPT": {"delta": 0, "dialogue": [{"speaker": "dog", "en": "The first Meld, then its Extension. I'll be looking for the follow-through.", "vi": "Phỏm đầu tiên, rồi nối chính Phỏm đó. Tôi chờ xem bạn làm tiếp."}]},
 			"REFUSE": {"delta": 0, "dialogue": [{"speaker": "dog", "en": "Then no obligation. Thank you for being clear.", "vi": "Vậy không có nghĩa vụ gì. Cảm ơn bạn đã nói rõ."}]},
 			"HAGGLE": {"delta": 0, "strategy": "ALTERNATE_ACTION", "terms": BUILD_ALTERNATE, "dialogue": [{"speaker": "dog", "en": "Any one Extension instead, in either Phase. Read that as a new promise before you answer.", "vi": "Thay bằng một lần Nối bất kỳ, Hiệp nào cũng được. Đọc như lời hứa mới rồi hãy trả lời nhé."}]},
 			"COUNTER_REFUSE": COUNTER_REFUSE
 		},
 		"outcomes": {
-			"FULFILLED": {"delta": 1, "dialogue": [{"speaker": "dog", "en": "You followed through on the work we agreed. I can trust that.", "vi": "Bạn đã làm đến cùng việc mình thống nhất. Tôi tin được điều đó."}]},
-			"BROKEN": {"delta": -1, "dialogue": [{"speaker": "dog", "en": "That wasn't what we agreed. Next time, give me the answer you can keep.", "vi": "Đó chưa phải điều mình thống nhất. Lần tới hãy trả lời bằng điều bạn giữ được."}]}
+			"FULFILLED": {"delta": 1, "dialogue": [{"speaker": "dog", "en": "You came back to what you started. Yes. That means something to me.", "vi": "Bạn quay lại với việc mình bắt đầu. Ừ. Điều ấy có ý nghĩa với tôi."}]},
+			"BROKEN": {"delta": -1, "dialogue": [{"speaker": "dog", "en": "I believed you would do it. I'm disappointed. I don't need you to pretend otherwise.", "vi": "Tôi đã tin bạn sẽ làm. Tôi buồn đấy. Không cần giả vờ là không có gì."}]}
 		}},
 	{"id": "dog.t1plus.card", "zodiac": "dog", "content_tier": "1+", "relationship_required": 2, "kind": "QUESTION",
 		"prompt": [{"speaker": "dog", "en": "Can something stay itself and still be useful?", "vi": "Một thứ giữ nguyên như cũ thì vẫn có ích được chứ?"}],
@@ -109,12 +109,12 @@ const NODES := [
 		"followup": [{"speaker": "dog", "en": "Choose one of these three cards. Keep its permanent state unchanged until I return. You can still play it.", "vi": "Chọn một trong ba lá này. Giữ trạng thái vĩnh viễn của nó đến khi tôi trở lại. Bạn vẫn được dùng nó."}],
 		"promise": CARD, "initial_authority": "OFFER_THREE_PLAYER_CHOOSES",
 		"responses": {
-			"ACCEPT": {"delta": 0, "dialogue": [{"speaker": "dog", "en": "Your choice. I won't ask you to keep it out of the game.", "vi": "Bạn chọn nhé. Tôi không bắt bạn để nó ngoài cuộc chơi."}]},
+			"ACCEPT": {"delta": 0, "dialogue": [{"speaker": "dog", "en": "That card. Let it play; just don't remake it before I return.", "vi": "Lá đó nhé. Cứ đem chơi; chỉ đừng biến đổi nó trước khi tôi về."}]},
 			"REFUSE": {"delta": 0, "dialogue": [{"speaker": "dog", "en": "Then keep the freedom to change it.", "vi": "Vậy cứ giữ quyền thay đổi nó."}]}
 		},
 		"outcomes": {
-			"FULFILLED": {"delta": 1, "dialogue": [{"speaker": "dog", "en": "Still itself. Just as you promised.", "vi": "Vẫn như cũ. Đúng điều bạn hứa."}]},
-			"BROKEN": {"delta": -1, "dialogue": [{"speaker": "dog", "en": "It changed after your promise. I needed your words to mean something.", "vi": "Nó đã đổi sau lời hứa. Tôi cần lời bạn nói có ý nghĩa."}]}
+			"FULFILLED": {"delta": 1, "dialogue": [{"speaker": "dog", "en": "Same card. Same shape. Good to see it again.", "vi": "Vẫn lá ấy. Vẫn như cũ. Gặp lại thật tốt."}]},
+			"BROKEN": {"delta": -1, "dialogue": [{"speaker": "dog", "en": "You changed it. I wish you'd said no when I asked.", "vi": "Bạn đã đổi nó. Giá mà lúc tôi hỏi, bạn từ chối."}]}
 		}},
 	{"id": "dog.t1plus.relic", "zodiac": "dog", "content_tier": "1+", "relationship_required": 2, "kind": "QUESTION",
 		"prompt": [{"speaker": "dog", "en": "What makes you keep something close?", "vi": "Điều gì khiến bạn giữ một thứ bên mình?"}],
@@ -126,70 +126,70 @@ const NODES := [
 		"followup": [{"speaker": "dog", "en": "Will you keep this Relic until I come back? You can refuse. I won't hold it for you.", "vi": "Bạn giữ Di vật này đến khi tôi quay lại được không? Từ chối cũng được. Tôi không giữ hộ bạn đâu."}],
 		"promise": RELIC,
 		"responses": {
-			"ACCEPT": {"delta": 0, "dialogue": [{"speaker": "dog", "en": "Then keep it with you. I'll ask on my return.", "vi": "Vậy giữ bên mình nhé. Khi quay lại tôi sẽ hỏi."}]},
+			"ACCEPT": {"delta": 0, "dialogue": [{"speaker": "dog", "en": "All right. Keep it close until I'm back.", "vi": "Được. Giữ bên mình đến khi tôi về nhé."}]},
 			"REFUSE": {"delta": 0, "dialogue": [{"speaker": "dog", "en": "A clear no is better than a borrowed yes.", "vi": "Nói không rõ ràng còn hơn nói có cho xong."}]},
 			"HAGGLE": {"delta": 0, "strategy": "OTHER_RELIC", "dialogue": [{"speaker": "dog", "en": "A different Relic, then. This one. Does that change your answer?", "vi": "Vậy đổi Di vật khác nhé. Cái này. Bạn có đổi câu trả lời không?"}]},
 			"COUNTER_REFUSE": COUNTER_REFUSE
 		},
 		"outcomes": {
-			"FULFILLED": {"delta": 1, "dialogue": [{"speaker": "dog", "en": "You kept it with you. I remember the choice you made.", "vi": "Bạn đã giữ bên mình. Tôi nhớ lựa chọn của bạn."}]},
-			"BROKEN": {"delta": -1, "dialogue": [{"speaker": "dog", "en": "It left your hands before I returned. That promise wasn't kept.", "vi": "Nó đã rời tay bạn trước khi tôi trở lại. Lời hứa đó chưa được giữ."}]}
+			"FULFILLED": {"delta": 1, "dialogue": [{"speaker": "dog", "en": "You kept it. I know there were other things you could have done.", "vi": "Bạn giữ lại rồi. Tôi biết bạn có thể chọn làm việc khác."}]},
+			"BROKEN": {"delta": -1, "dialogue": [{"speaker": "dog", "en": "It's gone. I remember you saying it would still be here.", "vi": "Mất rồi. Tôi nhớ bạn bảo nó sẽ vẫn ở đây."}]}
 		}},
 	{"id": "dog.t2.build_memory", "zodiac": "dog", "content_tier": "2", "relationship_required": 3, "kind": "QUESTION",
 		"memory_key": "dog.build", "promise_from": "dog.t1plus.build",
 		"prompts": {
-			"FULFILLED": [{"speaker": "dog", "en": "You kept this commitment: {target} What kept you with it?", "vi": "Bạn đã giữ cam kết này: {target} Điều gì giúp bạn làm đến cùng?"}],
-			"BROKEN": [{"speaker": "dog", "en": "This commitment wasn't kept: {target} What would you tell me now?", "vi": "Cam kết này chưa được giữ: {target} Giờ bạn muốn nói gì với tôi?"}],
-			"REFUSED": [{"speaker": "dog", "en": "You said no to this: {target} I'm glad I didn't have to guess.", "vi": "Bạn đã từ chối việc này: {target} Tôi mừng vì không phải đoán."}]
+			"FULFILLED": [{"speaker": "dog", "en": "You did what you said: {target} I noticed. You don't have to make a speech about it.", "vi": "Bạn làm đúng lời: {target} Tôi có để ý. Không cần nói thêm cho hay đâu."}],
+			"BROKEN": [{"speaker": "dog", "en": "This is what I was waiting for: {target} It didn't happen. I'd rather hear from you than make up a reason.", "vi": "Tôi đã chờ điều này: {target} Nó không xảy ra. Tôi muốn nghe bạn kể hơn là tự đoán lý do."}],
+			"REFUSED": [{"speaker": "dog", "en": "You said no: {target} I didn't like it at first. I did know where I stood.", "vi": "Bạn từ chối: {target} Lúc đầu tôi không vui. Nhưng tôi biết rõ để thu xếp."}]
 		},
 		"answers": [
-			{"id": "A", "en": "I need my answer to match what I can do.", "vi": "Tôi cần trả lời đúng với điều mình làm được.", "delta": 1, "reaction": [{"speaker": "dog", "en": "Then we can make plans honestly.", "vi": "Vậy mình có thể tính việc một cách thật lòng."}]},
+			{"id": "A", "en": "I need my answer to match what I can do.", "vi": "Tôi cần trả lời đúng với điều mình làm được.", "delta": 1, "reaction": [{"speaker": "dog", "en": "Then I know when to wait, and when to put the kettle away.", "vi": "Vậy tôi biết lúc nào nên chờ, lúc nào nên cất ấm."}]},
 			{"id": "B", "en": "Some hands are harder than others.", "vi": "Có lúc bài khó hơn lúc khác.", "delta": 0, "reaction": []},
-			{"id": "C", "en": "You should trust me without checking.", "vi": "Bạn nên tin tôi mà không cần kiểm tra.", "delta": -1, "reaction": [{"speaker": "dog", "en": "Trust has to include what happened.", "vi": "Niềm tin phải tính cả điều đã xảy ra."}]}
+			{"id": "C", "en": "You should trust me without checking.", "vi": "Bạn nên tin tôi mà không cần kiểm tra.", "delta": -1, "reaction": [{"speaker": "dog", "en": "I do trust you. That doesn't make me forget what happened.", "vi": "Tôi có tin bạn. Nhưng không vì vậy mà quên chuyện đã xảy ra."}]}
 		]},
 	{"id": "dog.t2.card_memory", "zodiac": "dog", "content_tier": "2", "relationship_required": 3, "kind": "QUESTION",
 		"memory_key": "dog.card", "promise_from": "dog.t1plus.card",
 		"prompts": {
-			"FULFILLED": [{"speaker": "dog", "en": "You left {target} unchanged. Did keeping it feel like your choice?", "vi": "Bạn đã giữ nguyên {target}. Bạn thấy đó là lựa chọn của mình chứ?"}],
-			"BROKEN": [{"speaker": "dog", "en": "{target} changed before I returned. What changed your mind?", "vi": "{target} đã đổi trước khi tôi trở lại. Điều gì khiến bạn đổi ý?"}],
-			"REFUSED": [{"speaker": "dog", "en": "You didn't promise to preserve a card. What freedom did you need?", "vi": "Bạn không hứa giữ nguyên một lá. Bạn cần tự do làm điều gì?"}]
+			"FULFILLED": [{"speaker": "dog", "en": "There's {target}, unchanged. Were you tempted to remake it?", "vi": "{target} đây rồi, vẫn như cũ. Bạn có lúc nào muốn đổi nó không?"}],
+			"BROKEN": [{"speaker": "dog", "en": "I barely recognized {target}. You'd said you'd leave it unchanged. Talk to me.", "vi": "Tôi suýt không nhận ra {target}. Bạn từng bảo giữ nguyên. Kể tôi nghe nhé."}],
+			"REFUSED": [{"speaker": "dog", "en": "You wouldn't promise to preserve a card. I keep reminding myself that wasn't you rejecting me.", "vi": "Bạn không hứa giữ nguyên lá bài. Tôi cứ phải tự nhắc: đâu phải bạn từ chối chính tôi."}]
 		},
 		"answers": [
-			{"id": "A", "en": "To decide honestly, even if you wouldn't like it.", "vi": "Được quyết thật lòng, kể cả khi bạn không thích.", "delta": 1, "reaction": [{"speaker": "dog", "en": "I can hear an answer I don't like.", "vi": "Tôi nghe được cả câu trả lời mình không thích."}]},
+			{"id": "A", "en": "To decide honestly, even if you wouldn't like it.", "vi": "Được quyết thật lòng, kể cả khi bạn không thích.", "delta": 1, "reaction": [{"speaker": "dog", "en": "I won't enjoy it. I can still hear it.", "vi": "Tôi sẽ không vui. Nhưng vẫn nghe được."}]},
 			{"id": "B", "en": "Room to think about the hand.", "vi": "Có thời gian nghĩ về bài.", "delta": 0, "reaction": []},
-			{"id": "C", "en": "To say yes now and change it later.", "vi": "Nói có trước rồi đổi sau.", "delta": -1, "reaction": [{"speaker": "dog", "en": "Then your yes gives me nothing to trust.", "vi": "Vậy lời có chẳng cho tôi điều gì để tin."}]}
+			{"id": "C", "en": "To say yes now and change it later.", "vi": "Nói có trước rồi đổi sau.", "delta": -1, "reaction": [{"speaker": "dog", "en": "Then I'd be waiting for an answer you already took back.", "vi": "Vậy tôi lại chờ một câu trả lời bạn đã rút lại từ lâu."}]}
 		]},
 	{"id": "dog.t2.relic_memory", "zodiac": "dog", "content_tier": "2", "relationship_required": 3, "kind": "QUESTION",
 		"memory_key": "dog.relic", "promise_from": "dog.t1plus.relic",
 		"prompts": {
-			"FULFILLED": [{"speaker": "dog", "en": "You kept {target} until I returned. Was it the object or the word you gave?", "vi": "Bạn đã giữ {target} đến khi tôi trở lại. Vì món đồ, hay vì lời đã hứa?"}],
-			"BROKEN": [{"speaker": "dog", "en": "{target} left before I came back. I remember your promise too.", "vi": "{target} đã rời đi trước khi tôi quay lại. Tôi cũng nhớ lời bạn hứa."}],
-			"REFUSED": [{"speaker": "dog", "en": "You wouldn't promise to keep {target}. Thank you for telling me before I waited.", "vi": "Bạn không hứa giữ {target}. Cảm ơn đã nói trước khi tôi chờ."}]
+			"FULFILLED": [{"speaker": "dog", "en": "Still carrying {target}. Was that easy, or did I ask more than I realized?", "vi": "Vẫn giữ {target}. Dễ không, hay tôi đã nhờ nhiều hơn mình tưởng?"}],
+			"BROKEN": [{"speaker": "dog", "en": "I looked for {target} when I came back. It was gone. You remember what you told me?", "vi": "Lúc quay lại tôi tìm {target}. Không còn nữa. Bạn nhớ đã nói gì với tôi chứ?"}],
+			"REFUSED": [{"speaker": "dog", "en": "You said you couldn't keep {target}. I put that hope away before it became waiting.", "vi": "Bạn nói không giữ {target} được. Tôi gác mong đợi ấy xuống trước khi nó thành chờ đợi."}]
 		},
 		"answers": [
-			{"id": "A", "en": "My word should be something I choose to give.", "vi": "Lời hứa phải là điều tôi tự chọn trao.", "delta": 1, "reaction": [{"speaker": "dog", "en": "And something I can choose to trust.", "vi": "Và là điều tôi có thể tự chọn tin."}]},
+			{"id": "A", "en": "My word should be something I choose to give.", "vi": "Lời hứa phải là điều tôi tự chọn trao.", "delta": 1, "reaction": [{"speaker": "dog", "en": "Yes. I don't want it if I have to drag it out of you.", "vi": "Ừ. Nếu phải ép bạn nói, tôi không muốn nhận."}]},
 			{"id": "B", "en": "I was balancing what I needed.", "vi": "Tôi đang cân nhắc điều mình cần.", "delta": 0, "reaction": []},
-			{"id": "C", "en": "The words were only there to please you.", "vi": "Tôi nói chỉ để bạn vui thôi.", "delta": -1, "reaction": [{"speaker": "dog", "en": "They don't please me when they're empty.", "vi": "Lời rỗng thì không làm tôi vui."}]}
+			{"id": "C", "en": "The words were only there to please you.", "vi": "Tôi nói chỉ để bạn vui thôi.", "delta": -1, "reaction": [{"speaker": "dog", "en": "They don't. They just leave me waiting longer.", "vi": "Không đâu. Chúng chỉ khiến tôi chờ lâu hơn."}]}
 		]},
 	{"id": "dog.t2.space", "zodiac": "dog", "content_tier": "2", "relationship_required": 3, "kind": "QUESTION",
-		"prompt": [{"speaker": "dog", "en": "If you need to leave this table, should I ask you to stay?", "vi": "Nếu bạn cần rời bàn này, tôi có nên xin bạn ở lại không?"}],
+		"prompt": [{"speaker": "dog", "en": "I nearly asked you to stay longer. Is asking all right?", "vi": "Suýt nữa tôi xin bạn ở thêm. Xin như vậy có được không?"}],
 		"answers": [
-			{"id": "A", "en": "You can ask. Let me answer for myself.", "vi": "Bạn có thể hỏi. Để tôi tự trả lời.", "delta": 1, "reaction": [{"speaker": "dog", "en": "I can do that.", "vi": "Tôi làm được điều đó."}]},
+			{"id": "A", "en": "You can ask. Let me answer for myself.", "vi": "Bạn có thể hỏi. Để tôi tự trả lời.", "delta": 1, "reaction": [{"speaker": "dog", "en": "Then... stay a little longer? It's all right if you can't.", "vi": "Vậy... ở thêm chút nhé? Không được cũng không sao."}]},
 			{"id": "B", "en": "Depends why I'm leaving.", "vi": "Còn tùy vì sao tôi đi.", "delta": 0, "reaction": []},
-			{"id": "C", "en": "If you cared, you wouldn't let me go.", "vi": "Nếu quan tâm, bạn sẽ không để tôi đi.", "delta": -1, "reaction": [{"speaker": "dog", "en": "I'd rather leave you a way back.", "vi": "Tôi muốn để bạn có đường quay lại hơn."}]}
+			{"id": "C", "en": "If you cared, you wouldn't let me go.", "vi": "Nếu quan tâm, bạn sẽ không để tôi đi.", "delta": -1, "reaction": [{"speaker": "dog", "en": "I could block the door. You wouldn't be coming back to me then.", "vi": "Tôi chặn cửa được. Nhưng như thế đâu còn là bạn muốn quay về với tôi."}]}
 		]},
 	{"id": "dog.t2.disagree", "zodiac": "dog", "content_tier": "2", "relationship_required": 3, "kind": "QUESTION",
-		"prompt": [{"speaker": "dog", "en": "What do we do when we don't agree?", "vi": "Khi không đồng ý với nhau thì mình làm gì?"}],
+		"prompt": [{"speaker": "dog", "en": "I think you're wrong. You think I'm stubborn. Tea before we try again?", "vi": "Tôi nghĩ bạn sai. Bạn nghĩ tôi bướng. Uống trà rồi nói tiếp nhé?"}],
 		"answers": [
-			{"id": "A", "en": "Say it plainly. Keep listening.", "vi": "Nói thẳng. Rồi vẫn lắng nghe.", "delta": 1, "reaction": [{"speaker": "dog", "en": "I'd stay for that conversation.", "vi": "Cuộc nói chuyện đó thì tôi ở lại."}]},
+			{"id": "A", "en": "Say it plainly. Keep listening.", "vi": "Nói thẳng. Rồi vẫn lắng nghe.", "delta": 1, "reaction": [{"speaker": "dog", "en": "Good. Mine's gone cold. That happens when I start arguing.", "vi": "Được. Trà tôi nguội rồi. Cứ cãi nhau là thế."}]},
 			{"id": "B", "en": "Give it some time.", "vi": "Cho nhau chút thời gian.", "delta": 0, "reaction": []},
-			{"id": "C", "en": "You agree with me. That's loyalty.", "vi": "Bạn phải đồng ý với tôi. Đó mới là trung thành.", "delta": -1, "reaction": [{"speaker": "dog", "en": "That leaves only one of us at the table.", "vi": "Vậy trên bàn chỉ còn một người thôi."}]}
+			{"id": "C", "en": "You agree with me. That's loyalty.", "vi": "Bạn phải đồng ý với tôi. Đó mới là trung thành.", "delta": -1, "reaction": [{"speaker": "dog", "en": "That's a mirror. I'd rather have you.", "vi": "Như vậy là cái gương. Tôi muốn có bạn hơn."}]}
 		]},
 	{"id": "dog.t2.return", "zodiac": "dog", "content_tier": "2", "relationship_required": 3, "kind": "QUESTION",
-		"prompt": [{"speaker": "dog", "en": "Why come back when the game is over?", "vi": "Cuộc chơi đã xong, sao còn quay lại?"}],
+		"prompt": [{"speaker": "dog", "en": "Cards are packed away. You can go, you know. Why are you still here?", "vi": "Bài cất hết rồi. Bạn về được mà. Sao vẫn còn đây?"}],
 		"answers": [
-			{"id": "A", "en": "Because you're still here.", "vi": "Vì bạn vẫn ở đây.", "delta": 1, "reaction": [{"speaker": "dog", "en": "I'll move the glass. Sit down.", "vi": "Tôi dời ly sang nhé. Ngồi xuống đi."}]},
+			{"id": "A", "en": "Because you're still here.", "vi": "Vì bạn vẫn ở đây.", "delta": 1, "reaction": [{"speaker": "dog", "en": "Oh. Right. I'll leave my chair down, then.", "vi": "Ồ. Ừ. Vậy tôi để ghế mình đây nhé."}]},
 			{"id": "B", "en": "I like this corner.", "vi": "Tôi thích góc này.", "delta": 0, "reaction": []},
-			{"id": "C", "en": "You might still owe me something.", "vi": "Có khi bạn vẫn còn nợ tôi gì đó.", "delta": -1, "reaction": [{"speaker": "dog", "en": "I'd rather know what you came for.", "vi": "Tôi muốn biết bạn đến vì điều gì hơn."}]}
+			{"id": "C", "en": "You might still owe me something.", "vi": "Có khi bạn vẫn còn nợ tôi gì đó.", "delta": -1, "reaction": [{"speaker": "dog", "en": "Tell me what it is. I'd rather settle it than mistake it for friendship.", "vi": "Nói tôi biết món gì. Tôi thà trả cho xong còn hơn nhầm nó với tình bạn."}]}
 		]}
 ]

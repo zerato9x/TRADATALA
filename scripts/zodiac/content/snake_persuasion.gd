@@ -50,16 +50,16 @@ const CONFIG := {
 	},
 	"private_scene": [
 		{
-			"en": "Snake rests the instrument against the chair. The green tassels stop moving. For once, the room is quiet without waiting for a command.",
-			"vi": "Tỵ tựa nhạc cụ vào ghế. Những tua xanh ngừng đung đưa. Lần này, căn phòng yên mà không chờ một mệnh lệnh."
+			"en": "Snake lets a sour note trail off. She winces, then lowers her flute without trying again. The green tassels are still.",
+			"vi": "Tỵ để nốt chênh tan đi. Cô nhăn mặt, rồi hạ sáo xuống mà không thổi lại. Những tua xanh đứng yên."
 		},
 		{
-			"en": "\"You heard the words inside the music. You kept some, shortened some, and left some unpromised. I can set the song down with someone who knows their own answer.\"",
-			"vi": "\"Bạn nghe được lời bên trong tiếng nhạc. Có lời bạn giữ, có lời rút ngắn, có lời không hứa. Tôi đặt bài nhạc xuống được bên người biết câu trả lời của mình.\""
+			"en": "\"My teacher could make a demand sound like a compliment. I admired that for years. Sometimes I hear her in my own mouth and have to begin again.\"",
+			"vi": "\"Thầy tôi biến mệnh lệnh thành lời khen rất khéo. Tôi ngưỡng mộ suốt nhiều năm. Đôi khi nghe giọng thầy trong miệng mình, tôi phải nói lại từ đầu.\""
 		},
 		{
-			"en": "A small Snake Emblem settles beside your cup. \"Bring it on our day if you want to sit here again. It is an invitation. You may leave it quiet.\"",
-			"vi": "Huy hiệu con rắn nhỏ nằm bên chén của bạn. \"Đến ngày của mình, muốn ngồi đây nữa thì mang theo nhé. Đây là lời mời. Bạn có thể để nó yên.\""
+			"en": "She places a Snake Emblem beside your cup. \"I'd like you to come back on our day. There. No melody to carry the request for me.\"",
+			"vi": "Cô đặt Huy hiệu con rắn cạnh cốc. \"Tôi muốn bạn quay lại vào ngày của mình. Đấy. Không có giai điệu nói đỡ lời nhờ.\""
 		}
 	],
 	"last_chance": {
@@ -67,8 +67,8 @@ const CONFIG := {
 		"prompt": [
 			{
 				"speaker": "snake",
-				"en": "The phrase has tightened. Before I stop listening, what do you actually want to say?",
-				"vi": "Câu nhạc đã siết lại. Trước khi tôi thôi nghe, bạn thực sự muốn nói gì?"
+				"en": "My voice is making this sound easier than it is. Shall we try the plain words?",
+				"vi": "Giọng tôi khiến việc này nghe dễ hơn thực tế. Mình thử nói thẳng nhé?"
 			}
 		],
 		"answers": [
@@ -80,8 +80,8 @@ const CONFIG := {
 				"reaction": [
 					{
 						"speaker": "snake",
-						"en": "Then say it plainly. I am listening.",
-						"vi": "Vậy nói rõ nhé. Tôi đang nghe."
+						"en": "Then name it. I won't play over you.",
+						"vi": "Vậy nói rõ đi. Tôi không đàn lấn lời bạn."
 					}
 				]
 			},
@@ -93,8 +93,8 @@ const CONFIG := {
 				"reaction": [
 					{
 						"speaker": "snake",
-						"en": "That is a voice I can hear.",
-						"vi": "Đó là giọng tôi nghe được."
+						"en": "Very clear. No accompaniment needed.",
+						"vi": "Rất rõ. Không cần nhạc đệm."
 					}
 				]
 			},
@@ -106,8 +106,8 @@ const CONFIG := {
 				"reaction": [
 					{
 						"speaker": "snake",
-						"en": "Then we will leave the echo here.",
-						"vi": "Vậy mình dừng tiếng vọng ở đây."
+						"en": "How convenient. And how little of you is in it. Enough for today.",
+						"vi": "Tiện thật. Và chẳng có mấy phần là bạn. Hôm nay đủ rồi."
 					}
 				]
 			}
@@ -124,8 +124,8 @@ const NODES := [
 		"prompt": [
 			{
 				"speaker": "snake",
-				"en": "When the tune catches your ear, what makes the next step yours?",
-				"vi": "Khi giai điệu cuốn tai, điều gì khiến bước tiếp theo là của bạn?"
+				"en": "Your foot follows the tune before you notice. What would make the next step yours?",
+				"vi": "Chân bạn theo nhạc trước khi bạn nhận ra. Điều gì khiến bước kế là do bạn chọn?"
 			}
 		],
 		"answers": [
@@ -137,8 +137,8 @@ const NODES := [
 				"reaction": [
 					{
 						"speaker": "snake",
-						"en": "Then you are listening, too.",
-						"vi": "Vậy bạn cũng đang lắng nghe."
+						"en": "Yes. The way out matters as much as the invitation.",
+						"vi": "Ừ. Lối ra cũng quan trọng như lời mời."
 					}
 				]
 			},
@@ -150,8 +150,8 @@ const NODES := [
 				"reaction": [
 					{
 						"speaker": "snake",
-						"en": "A breath can change the whole phrase.",
-						"vi": "Một hơi thở đổi được cả câu nhạc."
+						"en": "A breath. Such a small thing to deny someone, isn't it?",
+						"vi": "Một hơi thở. Tước nó đi nghe nhỏ nhặt quá nhỉ?"
 					}
 				]
 			},
@@ -163,8 +163,8 @@ const NODES := [
 				"reaction": [
 					{
 						"speaker": "snake",
-						"en": "I can hear the hurry in that answer.",
-						"vi": "Tôi nghe được sự vội vàng trong câu đó."
+						"en": "Then stop. I don't want fear keeping time for me.",
+						"vi": "Vậy dừng lại. Tôi không muốn nỗi sợ giữ nhịp hộ mình."
 					}
 				]
 			}
@@ -178,21 +178,21 @@ const NODES := [
 		"prompt": [
 			{
 				"speaker": "snake",
-				"en": "How do you know a sweet word is worth keeping?",
-				"vi": "Làm sao biết một lời ngọt đáng giữ?"
+				"en": "Someone calls you generous just before asking a favor. How do you know the sweetness is sincere?",
+				"vi": "Ai đó khen bạn hào phóng ngay trước khi nhờ vả. Sao biết lời ngọt ấy thật lòng?"
 			}
 		],
 		"answers": [
 			{
 				"id": "A",
-				"en": "It means the same thing after the music stops.",
-				"vi": "Nó vẫn mang nghĩa ấy khi nhạc dừng.",
+				"en": "It still means the same thing if I refuse.",
+				"vi": "Tôi từ chối rồi, lời ấy vẫn giữ nghĩa cũ.",
 				"delta": 1,
 				"reaction": [
 					{
 						"speaker": "snake",
-						"en": "Good. Listen to the quiet version.",
-						"vi": "Tốt. Nghe cả lúc yên nhé."
+						"en": "Good. Take away the sweetness and read it again.",
+						"vi": "Tốt. Bỏ lớp ngọt đi rồi đọc lại."
 					}
 				]
 			},
@@ -211,8 +211,8 @@ const NODES := [
 				"reaction": [
 					{
 						"speaker": "snake",
-						"en": "A soft voice can still name a price.",
-						"vi": "Giọng nhẹ vẫn nói được một cái giá."
+						"en": "Kindness has excellent manners. So does a well-written invoice.",
+						"vi": "Lòng tốt rất lịch thiệp. Hóa đơn viết khéo cũng thế."
 					}
 				]
 			}
@@ -226,8 +226,8 @@ const NODES := [
 		"prompt": [
 			{
 				"speaker": "snake",
-				"en": "There is a pause in the song. Who gets to fill it?",
-				"vi": "Bài nhạc có khoảng nghỉ. Ai được lấp vào?"
+				"en": "I leave a pause in the song. Who gets to fill it?",
+				"vi": "Tôi để một khoảng nghỉ trong bài. Ai được lấp vào?"
 			}
 		],
 		"answers": [
@@ -239,8 +239,8 @@ const NODES := [
 				"reaction": [
 					{
 						"speaker": "snake",
-						"en": "Then leave me room to hear it.",
-						"vi": "Vậy chừa chỗ cho tôi nghe nhé."
+						"en": "Yes. A pause isn't permission to choose somebody else's answer.",
+						"vi": "Ừ. Khoảng lặng không cho phép mình chọn hộ câu trả lời của người khác."
 					}
 				]
 			},
@@ -259,8 +259,8 @@ const NODES := [
 				"reaction": [
 					{
 						"speaker": "snake",
-						"en": "You would miss the note that is waiting.",
-						"vi": "Bạn sẽ bỏ lỡ nốt đang chờ."
+						"en": "Or perhaps the silence was asking nothing at all.",
+						"vi": "Hoặc có khi im lặng chẳng đòi hỏi gì cả."
 					}
 				]
 			}
@@ -275,8 +275,8 @@ const NODES := [
 		"prompt": [
 			{
 				"speaker": "snake",
-				"en": "Can you carry a phrase without changing its middle?",
-				"vi": "Bạn giữ được một câu nhạc mà không đổi phần giữa chứ?"
+				"en": "Three notes. Can you keep the phrase you chose when a different tune starts sounding sweeter?",
+				"vi": "Ba nốt. Bạn giữ được câu đã chọn khi giai điệu khác bắt đầu nghe ngọt hơn không?"
 			}
 		],
 		"answers": [
@@ -302,8 +302,8 @@ const NODES := [
 				"reaction": [
 					{
 						"speaker": "snake",
-						"en": "Then we would be remembering different songs.",
-						"vi": "Vậy mình sẽ nhớ hai bài khác nhau."
+						"en": "Then why agree on a tune? We could simply admit we wanted different things.",
+						"vi": "Vậy sao phải hẹn một giai điệu? Cứ nhận là mình muốn khác nhau cũng được."
 					}
 				]
 			}
@@ -337,8 +337,8 @@ const NODES := [
 				"dialogue": [
 					{
 						"speaker": "snake",
-						"en": "Three notes, in the order you chose. I will not rename a wrong note.",
-						"vi": "Ba nốt, theo thứ tự bạn đã chọn. Tôi không đổi tên nốt sai đâu."
+						"en": "In order, then. The pauses are yours; the sequence is our agreement.",
+						"vi": "Theo thứ tự nhé. Khoảng nghỉ là của bạn; chuỗi nốt là thỏa thuận chung."
 					}
 				]
 			},
@@ -395,8 +395,8 @@ const NODES := [
 				"dialogue": [
 					{
 						"speaker": "snake",
-						"en": "I heard the phrase we agreed on, in order. The pauses belonged to you.",
-						"vi": "Tôi đã nghe đúng câu mình thống nhất, đúng thứ tự. Những khoảng nghỉ thuộc về bạn."
+						"en": "Exactly the phrase you chose. You let the pauses breathe without changing the notes.",
+						"vi": "Đúng câu bạn chọn. Bạn để khoảng nghỉ thở mà không đổi nốt."
 					}
 				]
 			},
@@ -405,8 +405,8 @@ const NODES := [
 				"dialogue": [
 					{
 						"speaker": "snake",
-						"en": "The phrase changed, or ended before the agreed notes. A later beginning did not erase it.",
-						"vi": "Câu nhạc đã đổi, hoặc dừng trước đủ nốt đã hẹn. Khởi đầu sau không xóa được câu ấy."
+						"en": "That wasn't the whole phrase we agreed. A lovely variation is still a different song.",
+						"vi": "Đó chưa phải trọn câu mình hẹn. Biến tấu hay đến đâu vẫn là bài khác."
 					}
 				]
 			}
@@ -448,8 +448,8 @@ const NODES := [
 				"reaction": [
 					{
 						"speaker": "snake",
-						"en": "The quiet has ears, too.",
-						"vi": "Khoảng yên cũng có tai."
+						"en": "You could. I would still hear the card come back.",
+						"vi": "Bạn làm được. Tôi vẫn nghe lá bài quay về."
 					}
 				]
 			}
@@ -478,8 +478,8 @@ const NODES := [
 				"dialogue": [
 					{
 						"speaker": "snake",
-						"en": "Both Phases, then. Choosing a Drink is still yours; actually recovering a card is the boundary.",
-						"vi": "Vậy cả hai Hiệp nhé. Bạn vẫn được chọn Nước; thật sự lấy lại lá bài mới là ranh giới."
+						"en": "Both Phases. You may look at the Drink. Only a completed recovery crosses the line.",
+						"vi": "Cả hai Hiệp. Bạn được xem Nước. Chỉ lấy bài về thành công mới vượt giới hạn."
 					}
 				]
 			},
@@ -532,8 +532,8 @@ const NODES := [
 				"dialogue": [
 					{
 						"speaker": "snake",
-						"en": "The cards rested for the time you named. You kept the quiet without borrowing another note.",
-						"vi": "Bài đã nghỉ đúng thời gian bạn chọn. Bạn giữ khoảng yên mà không mượn thêm nốt."
+						"en": "You left the recoveries alone for the agreed time. Even when the old notes called you back.",
+						"vi": "Bạn không lấy bài về trong đúng thời gian đã hẹn. Kể cả khi nốt cũ gọi lại."
 					}
 				]
 			},
@@ -542,8 +542,8 @@ const NODES := [
 				"dialogue": [
 					{
 						"speaker": "snake",
-						"en": "A card came back before the agreed pause ended. I remember the boundary, not how softly it crossed.",
-						"vi": "Một lá trở lại trước khi hết khoảng nghỉ đã hẹn. Tôi nhớ ranh giới, không nhớ bạn bước qua nhẹ đến đâu."
+						"en": "You recovered a card before the pause ended. Softly done is still done.",
+						"vi": "Bạn lấy một lá về trước khi hết khoảng nghỉ. Làm nhẹ tay vẫn là đã làm."
 					}
 				]
 			}
@@ -585,8 +585,8 @@ const NODES := [
 				"reaction": [
 					{
 						"speaker": "snake",
-						"en": "I listen for the one you chose.",
-						"vi": "Tôi nghe đúng nốt bạn đã chọn."
+						"en": "I would. I was listening to that one.",
+						"vi": "Tôi nghe ra. Tôi đang nghe đúng lá ấy."
 					}
 				]
 			}
@@ -617,8 +617,8 @@ const NODES := [
 				"dialogue": [
 					{
 						"speaker": "snake",
-						"en": "That card, joining a song already playing. I have heard your choice.",
-						"vi": "Lá ấy, nhập vào bài nhạc đang chơi. Tôi nghe lựa chọn của bạn rồi."
+						"en": "That card, through an Extension. A precise entrance; no need to make it grand.",
+						"vi": "Đúng lá ấy, qua Nối Phỏm. Vào đúng chỗ; không cần phô trương."
 					}
 				]
 			},
@@ -639,8 +639,8 @@ const NODES := [
 				"dialogue": [
 					{
 						"speaker": "snake",
-						"en": "Your chosen card joined through an Extension. Its place was small, but it was its own.",
-						"vi": "Lá bạn chọn đã nhập vào bằng Nối Phỏm. Chỗ của nó nhỏ, nhưng đúng là chỗ của nó."
+						"en": "There it is. Your card joined the existing Meld. Quietly exact.",
+						"vi": "Đây rồi. Lá bạn nối vào Phỏm có sẵn. Lặng lẽ mà chính xác."
 					}
 				]
 			},
@@ -649,8 +649,8 @@ const NODES := [
 				"dialogue": [
 					{
 						"speaker": "snake",
-						"en": "That exact card did not join through an Extension. A similar face or a new beginning was not the promise.",
-						"vi": "Đúng lá ấy chưa nhập vào bằng Nối Phỏm. Mặt giống nhau hay khởi đầu mới không phải lời đã hứa."
+						"en": "Your card didn't make that entrance. Another voice can't answer in its place.",
+						"vi": "Lá bạn chưa vào đúng lối ấy. Giọng khác không trả lời thay được."
 					}
 				]
 			}
@@ -665,21 +665,21 @@ const NODES := [
 		"answers": [
 			{
 				"id": "A",
-				"en": "The order I actually agreed to, including a shorter counteroffer.",
-				"vi": "Thứ tự tôi thực sự đồng ý, kể cả câu rút ngắn.",
+				"en": "I'd follow the order I agreed to, even if we shortened it.",
+				"vi": "Tôi theo đúng thứ tự đã nhận, dù mình rút ngắn lại.",
 				"delta": 1,
 				"reaction": [
 					{
 						"speaker": "snake",
-						"en": "Then I can hear your word without guessing.",
-						"vi": "Vậy tôi nghe được lời bạn mà không đoán."
+						"en": "Good. I don't have to guess where the music ends and your answer begins.",
+						"vi": "Tốt. Tôi khỏi phải đoán nhạc hết chỗ nào, lời bạn bắt đầu chỗ nào."
 					}
 				]
 			},
 			{
 				"id": "B",
-				"en": "Check the next note before committing it.",
-				"vi": "Xem nốt tiếp trước khi hạ.",
+				"en": "I'd check the next note before playing it.",
+				"vi": "Tôi xem nốt tiếp theo trước khi chơi.",
 				"delta": 0,
 				"reaction": []
 			},
@@ -691,8 +691,8 @@ const NODES := [
 				"reaction": [
 					{
 						"speaker": "snake",
-						"en": "A second phrase does not silence the first.",
-						"vi": "Câu thứ hai không làm câu đầu im đi."
+						"en": "Play again, by all means. The first attempt doesn't become unheard.",
+						"vi": "Cứ chơi lại. Lần đầu không vì thế mà thành chưa từng được nghe."
 					}
 				]
 			}
@@ -703,22 +703,22 @@ const NODES := [
 			"FULFILLED": [
 				{
 					"speaker": "snake",
-					"en": "You kept this phrase: {target} What let the middle stay where you chose it?",
-					"vi": "Bạn đã giữ câu này: {target} Điều gì giữ phần giữa đúng chỗ bạn chọn?"
+					"en": "The exact phrase: {target} Did choosing the order make it easier to resist another tune?",
+					"vi": "Đúng câu nhạc: {target} Chọn sẵn thứ tự có giúp bạn cưỡng giai điệu khác không?"
 				}
 			],
 			"BROKEN": [
 				{
 					"speaker": "snake",
-					"en": "This phrase changed: {target} What would you name before trying again?",
-					"vi": "Câu này đã đổi: {target} Trước khi thử lại bạn sẽ nói rõ điều gì?"
+					"en": "The phrase didn't hold: {target} Which note sounded more inviting than your promise?",
+					"vi": "Câu nhạc chưa trọn: {target} Nốt nào hấp dẫn hơn lời hứa của bạn?"
 				}
 			],
 			"REFUSED": [
 				{
 					"speaker": "snake",
-					"en": "You left this phrase unpromised: {target} What tune did you need room for?",
-					"vi": "Bạn chưa hứa câu này: {target} Bạn cần chỗ cho giai điệu nào?"
+					"en": "You wouldn't sing this phrase: {target} I wonder what you heard that I didn't.",
+					"vi": "Bạn không nhận câu nhạc này: {target} Tôi tự hỏi bạn nghe ra điều gì tôi chưa nghe."
 				}
 			]
 		}
@@ -732,21 +732,21 @@ const NODES := [
 		"answers": [
 			{
 				"id": "A",
-				"en": "The exact Phase boundary, with room to refuse it.",
-				"vi": "Đúng ranh giới Hiệp, và có quyền từ chối.",
+				"en": "I'd want to know exactly when the pause ends.",
+				"vi": "Tôi muốn biết rõ khoảng nghỉ kết thúc lúc nào.",
 				"delta": 1,
 				"reaction": [
 					{
 						"speaker": "snake",
-						"en": "A chosen silence has a beginning and an end.",
-						"vi": "Khoảng yên tự chọn có đầu có cuối."
+						"en": "Yes. A rest with edges. Otherwise I could keep you silent forever.",
+						"vi": "Ừ. Dấu lặng có giới hạn. Không thì tôi có thể bắt bạn im mãi."
 					}
 				]
 			},
 			{
 				"id": "B",
-				"en": "A shorter pause might suit the hand.",
-				"vi": "Khoảng nghỉ ngắn hơn có thể hợp bài.",
+				"en": "A shorter pause might fit my hand better.",
+				"vi": "Khoảng nghỉ ngắn hơn có thể hợp tay bài tôi.",
 				"delta": 0,
 				"reaction": []
 			},
@@ -758,8 +758,8 @@ const NODES := [
 				"reaction": [
 					{
 						"speaker": "snake",
-						"en": "Quiet hands still move cards.",
-						"vi": "Tay nhẹ vẫn di chuyển bài."
+						"en": "Quietly isn't the same as never.",
+						"vi": "Lặng lẽ không có nghĩa là chưa từng."
 					}
 				]
 			}
@@ -770,22 +770,22 @@ const NODES := [
 			"FULFILLED": [
 				{
 					"speaker": "snake",
-					"en": "You kept this pause: {target} What made leaving the cards alone possible?",
-					"vi": "Bạn đã giữ khoảng nghỉ này: {target} Điều gì giúp bạn để bài yên?"
+					"en": "You kept the pause: {target} Was it quiet, or full of things you nearly did?",
+					"vi": "Bạn giữ khoảng nghỉ: {target} Nó yên lặng, hay đầy những việc bạn suýt làm?"
 				}
 			],
 			"BROKEN": [
 				{
 					"speaker": "snake",
-					"en": "A card crossed this pause: {target} What boundary would you choose now?",
-					"vi": "Một lá đã bước qua khoảng nghỉ này: {target} Giờ bạn chọn ranh giới nào?"
+					"en": "The pause broke: {target} What called the card back before our time was up?",
+					"vi": "Khoảng nghỉ bị phá: {target} Điều gì gọi lá bài về trước giờ mình hẹn?"
 				}
 			],
 			"REFUSED": [
 				{
 					"speaker": "snake",
-					"en": "You did not promise this pause: {target} What needed to stay in reach?",
-					"vi": "Bạn không hứa khoảng nghỉ này: {target} Bạn cần còn với tới điều gì?"
+					"en": "You didn't promise this pause: {target} Perhaps you heard how much I was asking under the gentle voice.",
+					"vi": "Bạn không hứa khoảng nghỉ này: {target} Có lẽ bạn nghe được giọng nhẹ nhàng ấy đòi hỏi nhiều thế nào."
 				}
 			]
 		}
@@ -799,21 +799,21 @@ const NODES := [
 		"answers": [
 			{
 				"id": "A",
-				"en": "A place for that physical card, not a substitute.",
-				"vi": "Chỗ cho đúng lá vật lý ấy, không phải lá thay.",
+				"en": "I'd find a place for that exact card, not one that looks like it.",
+				"vi": "Tôi tìm chỗ cho đúng lá ấy, không phải lá giống nó.",
 				"delta": 1,
 				"reaction": [
 					{
 						"speaker": "snake",
-						"en": "I can remember one voice among its echoes.",
-						"vi": "Tôi nhớ được một giọng giữa những tiếng vọng."
+						"en": "Yes. I remember the voice, not just the pitch.",
+						"vi": "Ừ. Tôi nhớ giọng, không chỉ nhớ cao độ."
 					}
 				]
 			},
 			{
 				"id": "B",
-				"en": "See what existing Meld can receive it.",
-				"vi": "Xem Phỏm có sẵn nào nhận được nó.",
+				"en": "I'd look for a Meld it could join.",
+				"vi": "Tôi tìm Phỏm nó nối vào được.",
 				"delta": 0,
 				"reaction": []
 			},
@@ -825,8 +825,8 @@ const NODES := [
 				"reaction": [
 					{
 						"speaker": "snake",
-						"en": "We chose a card, not a resemblance.",
-						"vi": "Mình chọn một lá, không chọn sự giống nhau."
+						"en": "Same pitch, different voice. I asked for the one you chose.",
+						"vi": "Cùng cao độ, khác giọng. Tôi hỏi đúng lá bạn chọn."
 					}
 				]
 			}
@@ -838,22 +838,22 @@ const NODES := [
 			"FULFILLED": [
 				{
 					"speaker": "snake",
-					"en": "This card found its entrance: {target} Why did you choose that voice?",
-					"vi": "Lá này đã tìm được lối vào: {target} Vì sao bạn chọn giọng ấy?"
+					"en": "{target} made its entrance. I knew which voice to listen for. Did you?",
+					"vi": "{target} vào đúng lối. Tôi biết cần nghe giọng nào. Bạn thì sao?"
 				}
 			],
 			"BROKEN": [
 				{
 					"speaker": "snake",
-					"en": "This card missed the entrance we named: {target} What would help you choose again?",
-					"vi": "Lá này lỡ lối vào đã hẹn: {target} Điều gì giúp bạn chọn lại?"
+					"en": "{target} missed that entrance. Was there another song you wanted it in?",
+					"vi": "{target} lỡ lối vào ấy. Bạn muốn nó ở bài hát khác à?"
 				}
 			],
 			"REFUSED": [
 				{
 					"speaker": "snake",
-					"en": "You left this card unpromised: {target} What place were you looking for?",
-					"vi": "Bạn chưa hứa lá này: {target} Bạn đang tìm chỗ nào?"
+					"en": "No promise for {target}. You let my invitation pass without mistaking it for an order.",
+					"vi": "Không nhận lời hứa cho {target}. Bạn để lời mời của tôi đi qua, không nhầm thành mệnh lệnh."
 				}
 			]
 		}
@@ -867,8 +867,8 @@ const NODES := [
 		"prompt": [
 			{
 				"speaker": "snake",
-				"en": "There is a tune I never play at the table. Would you ask to hear it?",
-				"vi": "Có giai điệu tôi không bao giờ chơi ở bàn. Bạn có xin nghe không?"
+				"en": "There's a song I won't play for a crowd. I can't make it sound effortless. Would you ask for it?",
+				"vi": "Có bài tôi không chơi trước đám đông. Tôi không làm nó nghe nhẹ nhàng được. Bạn có xin nghe không?"
 			}
 		],
 		"answers": [
@@ -880,8 +880,8 @@ const NODES := [
 				"reaction": [
 					{
 						"speaker": "snake",
-						"en": "Then perhaps there is room for it here.",
-						"vi": "Vậy có lẽ ở đây có chỗ cho nó."
+						"en": "Perhaps. I might need you to hear where my hands shake.",
+						"vi": "Có lẽ. Tôi có thể cần bạn nghe cả đoạn tay mình run."
 					}
 				]
 			},
@@ -900,8 +900,8 @@ const NODES := [
 				"reaction": [
 					{
 						"speaker": "snake",
-						"en": "A visit is not a hand around the instrument.",
-						"vi": "Một lần ghé không phải bàn tay nắm nhạc cụ."
+						"en": "You bought no ticket to that part of me.",
+						"vi": "Bạn chưa mua vé vào phần ấy của tôi."
 					}
 				]
 			}
@@ -916,8 +916,8 @@ const NODES := [
 		"prompt": [
 			{
 				"speaker": "snake",
-				"en": "People keep the old skin and say it explains every step. What would you keep?",
-				"vi": "Người ta giữ lớp da cũ rồi bảo nó giải thích mọi bước đi. Bạn giữ gì?"
+				"en": "You know what they say about my tongue and my heart. When I speak kindly, do you search for the trick?",
+				"vi": "Bạn biết người ta nói gì về miệng và lòng tôi. Tôi nói tử tế, bạn có tìm mưu mẹo không?"
 			}
 		],
 		"answers": [
@@ -929,8 +929,8 @@ const NODES := [
 				"reaction": [
 					{
 						"speaker": "snake",
-						"en": "That is lighter to carry.",
-						"vi": "Mang vậy nhẹ hơn."
+						"en": "Keep watching, then. I'd rather earn a new story than demand one.",
+						"vi": "Vậy cứ quan sát. Tôi thà tự tạo chuyện mới còn hơn đòi người ta kể khác."
 					}
 				]
 			},
@@ -949,8 +949,8 @@ const NODES := [
 				"reaction": [
 					{
 						"speaker": "snake",
-						"en": "Then you would never hear the second verse.",
-						"vi": "Vậy bạn chẳng nghe được đoạn thứ hai."
+						"en": "Then every word I say has been sentenced before it leaves my mouth.",
+						"vi": "Vậy lời nào của tôi cũng bị kết án trước khi ra khỏi miệng."
 					}
 				]
 			}
@@ -965,8 +965,8 @@ const NODES := [
 		"prompt": [
 			{
 				"speaker": "snake",
-				"en": "If I set the instrument down, would you still sit here?",
-				"vi": "Nếu tôi đặt nhạc cụ xuống, bạn còn ngồi đây chứ?"
+				"en": "I'm putting the instrument away. I don't quite know what to do with my hands. Stay?",
+				"vi": "Tôi cất đàn đây. Chưa biết để tay đâu cho phải. Ở lại nhé?"
 			}
 		],
 		"answers": [
@@ -978,8 +978,8 @@ const NODES := [
 				"reaction": [
 					{
 						"speaker": "snake",
-						"en": "Then let the room be only a room for a while.",
-						"vi": "Vậy cho căn phòng chỉ là căn phòng một lúc."
+						"en": "All right. Tea first. I'll try asking for the sugar without making it sound like destiny.",
+						"vi": "Được. Uống trà đã. Tôi thử xin đường mà không nói như định mệnh xem."
 					}
 				]
 			},
@@ -998,8 +998,8 @@ const NODES := [
 				"reaction": [
 					{
 						"speaker": "snake",
-						"en": "You have put a price on the quiet already.",
-						"vi": "Bạn đã đặt giá cho khoảng yên rồi."
+						"en": "You do bargain beautifully. I was hoping you wouldn't, just this once.",
+						"vi": "Bạn mặc cả khéo thật. Tôi đã mong chỉ lần này thôi, bạn đừng làm vậy."
 					}
 				]
 			}

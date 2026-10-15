@@ -54,6 +54,7 @@ const LEGACY_CAT_PROFILE := {"demand_range": [2, 3], "thresholds": [1, 2], "refu
 			{"verb": "REMOVE_PROPERTY", "targeting": "HAS_GIEO_PROPERTY", "authority": "OFFER_THREE_PLAYER_CHOOSES", "quantity": 1},
 			{"verb": "PAY", "resource_amount": 5000}],
 		"promises": [{"condition": "wallet_floor", "resource_amount": 5000}, {"condition": "dont_action", "action": "extension"}]}
+const PORTRAITS := preload("res://scripts/zodiac/content/zodiac_portraits.gd")
 const CAT_PERSUASION := preload("res://scripts/zodiac/content/cat_tier_1.gd")
 const CAT_EXPANSION := preload("res://scripts/zodiac/content/cat_expansion.gd")
 const ROOSTER_PERSUASION := preload("res://scripts/zodiac/content/rooster_persuasion.gd")
@@ -162,6 +163,9 @@ static func relationship_label(tier: int) -> String:
 
 static func localized(line: Dictionary) -> String:
 	return words(line.get("en", ""), line.get("vi", line.get("en", "")))
+
+static func portrait_text(id: String) -> String:
+	return localized(PORTRAITS.ENTRIES.get(id, {}))
 
 static func dialogue_text(sequence: Array, zodiac_id: String) -> String:
 	var lines: Array[String] = []

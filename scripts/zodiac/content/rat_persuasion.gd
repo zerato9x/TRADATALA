@@ -50,16 +50,16 @@ const CONFIG := {
 	},
 	"private_scene": [
 		{
-			"en": "Rat closes a pocket he has been checking all evening. He leaves a space beside his glass without finding anything to fill it.",
-			"vi": "Tý đóng chiếc túi anh đã kiểm tra suốt tối. Anh chừa khoảng cạnh ly mà không tìm thứ gì lấp vào."
+			"en": "Rat empties a pocket: string, a bent key, a blue button. He nearly puts them all back, then sets the button where you can see it.",
+			"vi": "Tý dốc túi: sợi dây, chìa khóa cong, chiếc cúc xanh. Anh suýt cất hết lại, rồi để chiếc cúc nơi bạn nhìn thấy."
 		},
 		{
-			"en": "\"You followed the things you used, and you said no without dressing it up. I don't have to count your company like another find.\"",
-			"vi": "\"Bạn đã theo những thứ mình dùng, và nói không mà chẳng tô vẽ. Tôi không phải đếm việc bạn ngồi cùng như món nhặt được nữa.\""
+			"en": "\"From my first good coat. Coat's gone. Kept telling myself the button would be useful. It won't. I just liked that coat.\"",
+			"vi": "\"Của chiếc áo tử tế đầu tiên tôi có. Áo mất rồi. Tôi cứ bảo cúc còn dùng được. Không đâu. Tôi chỉ thích cái áo ấy.\""
 		},
 		{
-			"en": "He puts a small rat Emblem in the empty space. \"Bring it on our day. This one is yours; I'm not calling it a loan.\"",
-			"vi": "Anh đặt Huy hiệu con chuột nhỏ vào khoảng trống. \"Mang theo vào ngày của mình nhé. Cái này là của bạn; tôi không gọi là cho mượn đâu.\""
+			"en": "He adds a rat Emblem to the little pile. \"This one's for you. Bring it on our day. The button stays with me, if that's all right.\"",
+			"vi": "Anh thêm Huy hiệu con chuột vào đống nhỏ. \"Cái này cho bạn. Đến ngày của mình thì mang. Còn chiếc cúc, cho tôi giữ nhé.\""
 		}
 	],
 	"last_chance": {
@@ -67,8 +67,8 @@ const CONFIG := {
 		"prompt": [
 			{
 				"speaker": "rat",
-				"en": "Give me a plain account. What can you actually bring back to this table?",
-				"vi": "Nói thật cho tôi nghe nhé. Bạn thực sự mang lại gì cho bàn này được?"
+				"en": "Empty your pockets of excuses a moment. What are you actually offering?",
+				"vi": "Tạm trút hết lý do khỏi túi đi. Bạn thật sự định cho tôi câu trả lời nào?"
 			}
 		],
 		"answers": [
@@ -80,8 +80,8 @@ const CONFIG := {
 				"reaction": [
 					{
 						"speaker": "rat",
-						"en": "Then there's something honest to work with.",
-						"vi": "Vậy còn điều thật để mình tính tiếp."
+						"en": "Good. That won't fall apart when I pick it up.",
+						"vi": "Được. Câu ấy cầm lên không rã ra."
 					}
 				]
 			},
@@ -93,8 +93,8 @@ const CONFIG := {
 				"reaction": [
 					{
 						"speaker": "rat",
-						"en": "Then leave it open. I won't collect a word you don't have.",
-						"vi": "Vậy cứ để ngỏ. Tôi không thu lời bạn chưa có đâu."
+						"en": "Keep it, then. I don't take things people haven't offered.",
+						"vi": "Vậy cứ giữ. Người ta chưa đưa thì tôi không lấy."
 					}
 				]
 			},
@@ -106,8 +106,8 @@ const CONFIG := {
 				"reaction": [
 					{
 						"speaker": "rat",
-						"en": "Then we'll stop counting your words here.",
-						"vi": "Vậy mình dừng tính lời của bạn ở đây."
+						"en": "Counterfeit. We're done trading words today.",
+						"vi": "Hàng giả. Hôm nay thôi trao đổi lời lẽ nhé."
 					}
 				]
 			}
@@ -124,8 +124,8 @@ const NODES := [
 		"prompt": [
 			{
 				"speaker": "rat",
-				"en": "A little piece is left after everyone clears the table. What do you see?",
-				"vi": "Mọi người dọn bàn rồi còn một mẩu nhỏ. Bạn thấy gì?"
+				"en": "Everyone's gone. There's a bent spoon under the table. Rubbish, or a find?",
+				"vi": "Mọi người về hết. Dưới bàn có cái thìa cong. Rác, hay món đáng nhặt?"
 			}
 		],
 		"answers": [
@@ -137,8 +137,8 @@ const NODES := [
 				"reaction": [
 					{
 						"speaker": "rat",
-						"en": "Good. Small isn't the same as useless.",
-						"vi": "Tốt. Nhỏ không có nghĩa là vô dụng."
+						"en": "Exactly. Bent isn't broken. Usually.",
+						"vi": "Đúng. Cong chưa phải hỏng. Thường là vậy."
 					}
 				]
 			},
@@ -150,8 +150,8 @@ const NODES := [
 				"reaction": [
 					{
 						"speaker": "rat",
-						"en": "Ask before you pocket it.",
-						"vi": "Hỏi trước khi bỏ vào túi nhé."
+						"en": "Then ask. A lost thing isn't automatically a free thing.",
+						"vi": "Vậy hỏi đi. Đồ thất lạc không tự nhiên thành đồ cho không."
 					}
 				]
 			},
@@ -163,8 +163,8 @@ const NODES := [
 				"reaction": [
 					{
 						"speaker": "rat",
-						"en": "Not looking isn't permission.",
-						"vi": "Không nhìn không có nghĩa là cho phép."
+						"en": "Funny. That's what people say about my pockets when I'm asleep.",
+						"vi": "Lạ nhỉ. Người ta cũng nói thế về túi tôi lúc tôi ngủ."
 					}
 				]
 			}
@@ -178,34 +178,34 @@ const NODES := [
 		"prompt": [
 			{
 				"speaker": "rat",
-				"en": "Someone lends you a tool. What comes back with it?",
-				"vi": "Có người cho bạn mượn dụng cụ. Bạn trả lại cùng gì?"
+				"en": "I lend you my good screwdriver. What do I get back?",
+				"vi": "Tôi cho bạn mượn cái tua vít tốt. Tôi nhận lại gì?"
 			}
 		],
 		"answers": [
 			{
 				"id": "A",
-				"en": "The tool, and an honest account of how I used it.",
-				"vi": "Dụng cụ và lời kể thật về cách tôi dùng.",
+				"en": "Your screwdriver. And I'd tell you what I used it for.",
+				"vi": "Tua vít của bạn. Và tôi kể đã dùng nó làm gì.",
 				"delta": 1,
 				"reaction": [
 					{
 						"speaker": "rat",
-						"en": "Then they'll know what they're getting back.",
-						"vi": "Vậy họ biết mình đang nhận lại gì."
+						"en": "And if you chip the handle, tell me. I'll find out anyway.",
+						"vi": "Mẻ cán thì nhớ nói. Đằng nào tôi cũng biết."
 					}
 				]
 			},
 			{
 				"id": "B",
-				"en": "Thanks, when I'm done.",
-				"vi": "Lời cảm ơn, khi tôi xong.",
+				"en": "The screwdriver and a thank-you, when I'm done.",
+				"vi": "Xong việc tôi trả tua vít, rồi cảm ơn.",
 				"delta": 0,
 				"reaction": [
 					{
 						"speaker": "rat",
-						"en": "Let them know when that will be.",
-						"vi": "Cho họ biết khi nào xong nhé."
+						"en": "Before I need it, preferably. I own one good screwdriver.",
+						"vi": "Tốt nhất trước lúc tôi cần. Tôi chỉ có một cái tốt thôi."
 					}
 				]
 			},
@@ -217,8 +217,8 @@ const NODES := [
 				"reaction": [
 					{
 						"speaker": "rat",
-						"en": "Borrowing has an ending.",
-						"vi": "Mượn thì có lúc phải trả."
+						"en": "It's a loan. The clue is the part where it comes back.",
+						"vi": "Là cho mượn. Dấu hiệu nhận biết là phải trả lại."
 					}
 				]
 			}
@@ -232,21 +232,21 @@ const NODES := [
 		"prompt": [
 			{
 				"speaker": "rat",
-				"en": "When is a clever shortcut worth taking?",
-				"vi": "Khi nào lối tắt khéo léo đáng đi?"
+				"en": "You find a shortcut through someone's yard. What makes it worth taking?",
+				"vi": "Bạn tìm lối tắt qua sân người ta. Điều gì khiến nó đáng đi?"
 			}
 		],
 		"answers": [
 			{
 				"id": "A",
-				"en": "When I can show who pays for it.",
-				"vi": "Khi tôi nói rõ được ai chịu cái giá.",
+				"en": "Knowing whose fence I'd have to fix afterward.",
+				"vi": "Biết mình phải sửa rào cho ai sau đó.",
 				"delta": 1,
 				"reaction": [
 					{
 						"speaker": "rat",
-						"en": "Then it's a choice we can inspect.",
-						"vi": "Vậy đó là lựa chọn mình xem rõ được."
+						"en": "Good. Show me the whole bill, even the bit on the back.",
+						"vi": "Tốt. Cho tôi xem đủ hóa đơn, cả phần ghi mặt sau."
 					}
 				]
 			},
@@ -258,8 +258,8 @@ const NODES := [
 				"reaction": [
 					{
 						"speaker": "rat",
-						"en": "Look behind you too.",
-						"vi": "Nhớ nhìn cả phía sau."
+						"en": "And what you leave behind. Loose nails have a way of finding feet.",
+						"vi": "Cả thứ bạn để lại nữa. Đinh rơi giỏi tìm chân người lắm."
 					}
 				]
 			},
@@ -271,8 +271,8 @@ const NODES := [
 				"reaction": [
 					{
 						"speaker": "rat",
-						"en": "That isn't a saving for everyone.",
-						"vi": "Vậy đâu phải ai cũng tiết kiệm."
+						"en": "You've saved yourself a walk and bought them a repair. Clever for whom?",
+						"vi": "Bạn đỡ đi xa, họ tốn sửa rào. Khôn cho ai?"
 					}
 				]
 			}
@@ -339,8 +339,8 @@ const NODES := [
 				"dialogue": [
 					{
 						"speaker": "rat",
-						"en": "The recovered card itself has to enter a play. I'll follow that one.",
-						"vi": "Chính lá được lấy lại phải vào nước hạ. Tôi sẽ theo lá đó."
+						"en": "The same card, recovered then played. I know my finds by their scratches.",
+						"vi": "Đúng lá ấy, lấy lại rồi chơi. Tôi nhận đồ nhặt được qua từng vết xước."
 					}
 				]
 			},
@@ -394,8 +394,8 @@ const NODES := [
 				"dialogue": [
 					{
 						"speaker": "rat",
-						"en": "The card came back and found a new play. You made the second chance useful.",
-						"vi": "Lá bài đã trở về rồi tìm được nước hạ mới. Bạn đã làm cơ hội thứ hai có ích."
+						"en": "Back from the pile and useful again. That's a good find.",
+						"vi": "Từ chồng bài trở lại, rồi có ích lần nữa. Nhặt được món tốt đấy."
 					}
 				]
 			},
@@ -404,8 +404,8 @@ const NODES := [
 				"dialogue": [
 					{
 						"speaker": "rat",
-						"en": "A recovered card didn't reach the promised new play. Bringing something back wasn't the whole job.",
-						"vi": "Chưa có lá được lấy lại vào nước hạ mới đã hứa. Lấy về chưa phải trọn việc."
+						"en": "Recovered, perhaps. Used again, no. I've enough unfinished repairs of my own.",
+						"vi": "Có thể đã lấy lại. Nhưng chưa dùng tiếp. Đồ sửa dở của tôi cũng đủ nhiều rồi."
 					}
 				]
 			}
@@ -472,8 +472,8 @@ const NODES := [
 				"dialogue": [
 					{
 						"speaker": "rat",
-						"en": "Different physical cards. I'll count what you add.",
-						"vi": "Các lá vật lý khác nhau. Tôi tính phần bạn thêm."
+						"en": "Two different cards. Moving the same coin between pockets won't fool me.",
+						"vi": "Hai lá khác nhau. Chuyển một đồng qua hai túi không lừa được tôi."
 					}
 				]
 			},
@@ -527,8 +527,8 @@ const NODES := [
 				"dialogue": [
 					{
 						"speaker": "rat",
-						"en": "You added the different cards we agreed. The old table made room for something new.",
-						"vi": "Bạn đã thêm những lá khác nhau đã thống nhất. Bàn cũ có chỗ cho phần mới."
+						"en": "New pieces on the old work. Better than throwing out a perfectly good beginning.",
+						"vi": "Thêm phần mới vào việc cũ. Hơn là vứt một khởi đầu còn tốt."
 					}
 				]
 			},
@@ -537,8 +537,8 @@ const NODES := [
 				"dialogue": [
 					{
 						"speaker": "rat",
-						"en": "The Extensions didn't add enough different cards. Reusing a card couldn't make it another one.",
-						"vi": "Nối chưa thêm đủ lá khác nhau. Dùng lại một lá không biến nó thành lá khác."
+						"en": "Not enough different additions. I counted the cards, not the trips they made.",
+						"vi": "Chưa đủ lá khác nhau được thêm. Tôi đếm lá, không đếm số chuyến chúng đi."
 					}
 				]
 			}
@@ -605,8 +605,8 @@ const NODES := [
 				"dialogue": [
 					{
 						"speaker": "rat",
-						"en": "Your pick. The return and the later play have to belong to that card.",
-						"vi": "Bạn chọn nhé. Lần lấy lại và nước hạ sau phải thuộc chính lá đó."
+						"en": "That one. I'd recognize it anywhere. Bring it back and use it.",
+						"vi": "Lá đó. Ở đâu tôi cũng nhận ra. Lấy lại rồi dùng nó nhé."
 					}
 				]
 			},
@@ -628,8 +628,8 @@ const NODES := [
 				"dialogue": [
 					{
 						"speaker": "rat",
-						"en": "Your chosen card returned and entered a new play. You kept track of the real thing.",
-						"vi": "Lá bạn chọn đã trở về rồi vào nước hạ mới. Bạn đã theo đúng lá thật."
+						"en": "Same card, second use. See? A little history doesn't make something finished.",
+						"vi": "Đúng lá ấy, dùng lần nữa. Thấy chưa? Đã qua tay không có nghĩa hết giá trị."
 					}
 				]
 			},
@@ -638,8 +638,8 @@ const NODES := [
 				"dialogue": [
 					{
 						"speaker": "rat",
-						"en": "That card didn't complete the return and later play. Another card couldn't stand in for it.",
-						"vi": "Lá đó chưa hoàn thành lần lấy lại rồi hạ sau. Lá khác không thay nó được."
+						"en": "That particular card didn't make the round trip into a new play. Similar isn't the same.",
+						"vi": "Chính lá đó chưa quay về rồi vào nước bài mới. Giống không phải là một."
 					}
 				]
 			}
@@ -657,43 +657,43 @@ const NODES := [
 			"FULFILLED": [
 				{
 					"speaker": "rat",
-					"en": "You made this second chance useful: {target} What changed when the card returned?",
-					"vi": "Bạn đã làm cơ hội thứ hai này có ích: {target} Lá trở về rồi điều gì đổi?"
+					"en": "Recovered and used: {target} Did you know its next job before you brought it back?",
+					"vi": "Lấy lại rồi dùng: {target} Bạn biết việc tiếp theo của nó trước khi lấy về chứ?"
 				}
 			],
 			"BROKEN": [
 				{
 					"speaker": "rat",
-					"en": "This second chance stopped short: {target} What would you leave clearer next time?",
-					"vi": "Cơ hội thứ hai này còn dở: {target} Lần tới bạn sẽ nói rõ thêm gì?"
+					"en": "The second use didn't happen: {target} Another thing saved for later. I know that drawer.",
+					"vi": "Chưa dùng lần nữa: {target} Lại một món để dành sau. Tôi biết cái ngăn kéo ấy."
 				}
 			],
 			"REFUSED": [
 				{
 					"speaker": "rat",
-					"en": "You didn't promise this return: {target} What needed to stay open?",
-					"vi": "Bạn không hứa lần trở về này: {target} Điều gì cần để ngỏ?"
+					"en": "You passed on this return: {target} No sense bringing something home without room for it, eh?",
+					"vi": "Bạn không nhận lần lấy lại này: {target} Mang về mà không có chỗ dùng thì cũng vô ích nhỉ?"
 				}
 			]
 		},
 		"answers": [
 			{
 				"id": "A",
-				"en": "Whether the recovered card actually got a later play.",
-				"vi": "Lá được lấy lại có thực sự được hạ sau đó không.",
+				"en": "What I could play with the card after getting it back.",
+				"vi": "Tôi chơi được gì bằng lá ấy sau khi lấy lại.",
 				"delta": 1,
 				"reaction": [
 					{
 						"speaker": "rat",
-						"en": "Then the second chance has a path we can see.",
-						"vi": "Vậy cơ hội thứ hai có đường mình nhìn được."
+						"en": "Good. A return with somewhere to go. Otherwise it's just another thing in a drawer.",
+						"vi": "Tốt. Lấy lại rồi có chỗ dùng. Không thì lại thêm một món trong ngăn kéo."
 					}
 				]
 			},
 			{
 				"id": "B",
-				"en": "What my hand could make room for.",
-				"vi": "Bài tôi chừa chỗ được cho gì.",
+				"en": "Whether I had room for it in my hand.",
+				"vi": "Tay tôi có chỗ cho nó không.",
 				"delta": 0,
 				"reaction": []
 			},
@@ -705,8 +705,8 @@ const NODES := [
 				"reaction": [
 					{
 						"speaker": "rat",
-						"en": "A new draw wasn't the return we named.",
-						"vi": "Lá rút mới không phải lần lấy lại mình đã nói."
+						"en": "Fresh from the stock isn't back from anywhere.",
+						"vi": "Mới từ chồng bốc ra thì đâu phải quay lại."
 					}
 				]
 			}
@@ -724,43 +724,43 @@ const NODES := [
 			"FULFILLED": [
 				{
 					"speaker": "rat",
-					"en": "You added what we agreed: {target} What did the old table make possible?",
-					"vi": "Bạn đã thêm phần đã thống nhất: {target} Bàn cũ đã mở ra điều gì?"
+					"en": "Fresh additions: {target} Amazing what you can do without throwing the old work away.",
+					"vi": "Thêm phần mới: {target} Không vứt việc cũ mà vẫn làm được bao nhiêu thứ."
 				}
 			],
 			"BROKEN": [
 				{
 					"speaker": "rat",
-					"en": "We didn't add the promised pieces: {target} Which ones were really new?",
-					"vi": "Mình chưa thêm đủ phần đã hứa: {target} Phần nào thực sự mới?"
+					"en": "Not enough new pieces: {target} Show me what you actually added. I can count slowly.",
+					"vi": "Chưa đủ phần mới: {target} Chỉ tôi những lá bạn thật sự thêm. Tôi đếm chậm được."
 				}
 			],
 			"REFUSED": [
 				{
 					"speaker": "rat",
-					"en": "You left this addition unpromised: {target} What did you keep room for?",
-					"vi": "Bạn chưa hứa phần thêm này: {target} Bạn chừa chỗ cho gì?"
+					"en": "You didn't promise these additions: {target} Keeping a piece for another repair?",
+					"vi": "Bạn không hứa thêm các lá này: {target} Để dành cho việc sửa khác à?"
 				}
 			]
 		},
 		"answers": [
 			{
 				"id": "A",
-				"en": "The different cards actually added.",
-				"vi": "Những lá khác nhau thực sự thêm vào.",
+				"en": "I'd count the different cards I really added.",
+				"vi": "Tôi đếm những lá khác nhau mình thật sự thêm.",
 				"delta": 1,
 				"reaction": [
 					{
 						"speaker": "rat",
-						"en": "Then the account fits the table.",
-						"vi": "Vậy lời kể khớp với bàn."
+						"en": "Then we're counting the same pile. Always a relief.",
+						"vi": "Vậy mình đang đếm cùng một đống. Đỡ lo thật."
 					}
 				]
 			},
 			{
 				"id": "B",
-				"en": "The next useful place for each card.",
-				"vi": "Chỗ có ích tiếp theo của từng lá.",
+				"en": "Finding another use for each card.",
+				"vi": "Tìm thêm cách dùng cho từng lá.",
 				"delta": 0,
 				"reaction": []
 			},
@@ -772,8 +772,8 @@ const NODES := [
 				"reaction": [
 					{
 						"speaker": "rat",
-						"en": "Returning it doesn't create another physical card.",
-						"vi": "Lấy lại không tạo ra lá vật lý khác."
+						"en": "Same scratch, same card. I checked.",
+						"vi": "Cùng vết xước, cùng lá bài. Tôi xem rồi."
 					}
 				]
 			}
@@ -791,43 +791,43 @@ const NODES := [
 			"FULFILLED": [
 				{
 					"speaker": "rat",
-					"en": "This was the card you brought back to use: {target} What made you choose it?",
-					"vi": "Đây là lá bạn lấy lại để dùng: {target} Điều gì khiến bạn chọn nó?"
+					"en": "{target}, back and useful. Recognize it by now? I always get attached around the second repair.",
+					"vi": "{target}, trở lại rồi có ích. Giờ quen mặt chưa? Tôi thường quý đồ từ lần sửa thứ hai."
 				}
 			],
 			"BROKEN": [
 				{
 					"speaker": "rat",
-					"en": "This card didn't complete its second use: {target} Where did its path end?",
-					"vi": "Lá này chưa dùng lại được như hứa: {target} Đường của nó dừng ở đâu?"
+					"en": "{target} didn't finish the return and replay. Where did you leave it?",
+					"vi": "{target} chưa lấy lại rồi chơi tiếp xong. Bạn để nó ở đâu?"
 				}
 			],
 			"REFUSED": [
 				{
 					"speaker": "rat",
-					"en": "You didn't bind this card to a return: {target} Did it find another place?",
-					"vi": "Bạn không buộc lá này phải trở về: {target} Nó có tìm được chỗ khác không?"
+					"en": "You didn't promise to bring {target} back. Did you already have another use in mind?",
+					"vi": "Bạn không hứa lấy {target} lại. Đã tính dùng kiểu khác rồi à?"
 				}
 			]
 		},
 		"answers": [
 			{
 				"id": "A",
-				"en": "Its real path, even when another card was easier.",
-				"vi": "Đường thật của nó, kể cả khi lá khác dễ hơn.",
+				"en": "I wanted to follow that card, even if another was easier.",
+				"vi": "Tôi muốn theo đúng lá ấy, dù lá khác dễ hơn.",
 				"delta": 1,
 				"reaction": [
 					{
 						"speaker": "rat",
-						"en": "Then you weren't hiding it behind a substitute.",
-						"vi": "Vậy bạn không giấu nó sau lá thay thế."
+						"en": "Good. Replacements have their uses. Pretending isn't one of them.",
+						"vi": "Tốt. Đồ thay thế có ích. Giả làm đồ gốc thì không."
 					}
 				]
 			},
 			{
 				"id": "B",
-				"en": "I needed to see what could recover it.",
-				"vi": "Tôi cần xem điều gì lấy lại nó được.",
+				"en": "I needed to know how I'd get it back.",
+				"vi": "Tôi cần biết sẽ lấy nó lại bằng cách nào.",
 				"delta": 0,
 				"reaction": []
 			},
@@ -839,8 +839,8 @@ const NODES := [
 				"reaction": [
 					{
 						"speaker": "rat",
-						"en": "The rank wasn't the whole thing you chose.",
-						"vi": "Hạng không phải toàn bộ thứ bạn đã chọn."
+						"en": "I've got two brass keys. Only one opens my door.",
+						"vi": "Tôi có hai chìa đồng. Chỉ một cái mở được cửa nhà."
 					}
 				]
 			}
@@ -855,8 +855,8 @@ const NODES := [
 		"prompt": [
 			{
 				"speaker": "rat",
-				"en": "Is there anything you keep that nobody else would bother with?",
-				"vi": "Bạn có giữ thứ gì mà người khác chẳng buồn giữ không?"
+				"en": "I keep a key to a door that isn't there anymore. Anything like that in your pockets?",
+				"vi": "Tôi giữ chìa của cánh cửa không còn nữa. Trong túi bạn có thứ nào như vậy không?"
 			}
 		],
 		"answers": [
@@ -868,8 +868,8 @@ const NODES := [
 				"reaction": [
 					{
 						"speaker": "rat",
-						"en": "Then it doesn't need a price to stay.",
-						"vi": "Vậy nó không cần giá để ở lại."
+						"en": "Yes. No buyer needed. That's the bit I keep forgetting.",
+						"vi": "Ừ. Không cần người mua. Tôi cứ quên đoạn ấy."
 					}
 				]
 			},
@@ -888,8 +888,8 @@ const NODES := [
 				"reaction": [
 					{
 						"speaker": "rat",
-						"en": "Then you're keeping a market, not a memory.",
-						"vi": "Vậy bạn đang giữ chợ, không giữ kỷ niệm."
+						"en": "Then you never get to unpack, do you?",
+						"vi": "Vậy bạn chẳng bao giờ được dỡ đồ ra nhỉ?"
 					}
 				]
 			}
@@ -904,8 +904,8 @@ const NODES := [
 		"prompt": [
 			{
 				"speaker": "rat",
-				"en": "If I leave my things here, what makes this a place I can trust?",
-				"vi": "Nếu để đồ ở đây, điều gì khiến tôi tin được chỗ này?"
+				"en": "I left my bag here while I fetched tea. Haven't done that in years. Would you move it?",
+				"vi": "Tôi để túi đây đi lấy trà. Bao năm chưa dám thế. Bạn có chuyển nó không?"
 			}
 		],
 		"answers": [
@@ -917,8 +917,8 @@ const NODES := [
 				"reaction": [
 					{
 						"speaker": "rat",
-						"en": "Small things have owners too.",
-						"vi": "Thứ nhỏ cũng có chủ."
+						"en": "Thank you. There's nothing valuable. That's not why I ask.",
+						"vi": "Cảm ơn. Chẳng có gì đắt tiền. Tôi hỏi không phải vì thế."
 					}
 				]
 			},
@@ -937,8 +937,8 @@ const NODES := [
 				"reaction": [
 					{
 						"speaker": "rat",
-						"en": "That's where trust starts getting lost.",
-						"vi": "Niềm tin bắt đầu mất từ chỗ đó."
+						"en": "I notice. I just don't always say so.",
+						"vi": "Tôi có nhận ra. Chỉ không phải lúc nào cũng nói."
 					}
 				]
 			}
@@ -953,8 +953,8 @@ const NODES := [
 		"prompt": [
 			{
 				"speaker": "rat",
-				"en": "Can we leave this evening without trying to get one more thing from it?",
-				"vi": "Mình để tối nay trôi mà không cố lấy thêm gì được không?"
+				"en": "I'm going to leave that bottle cap on the ground. Don't look so surprised. Can we just have tea?",
+				"vi": "Tôi sẽ để nắp chai kia dưới đất. Đừng ngạc nhiên thế. Mình uống trà thôi được không?"
 			}
 		],
 		"answers": [
@@ -966,8 +966,8 @@ const NODES := [
 				"reaction": [
 					{
 						"speaker": "rat",
-						"en": "Then I'll put the pockets away for a while.",
-						"vi": "Vậy tôi thôi nghĩ đến túi một lúc."
+						"en": "Good. If I reach for it, kick my chair. Gently.",
+						"vi": "Được. Tôi mà cúi nhặt thì đá ghế nhắc nhé. Nhẹ thôi."
 					}
 				]
 			},
@@ -986,8 +986,8 @@ const NODES := [
 				"reaction": [
 					{
 						"speaker": "rat",
-						"en": "I was asking you to stay, not to collect.",
-						"vi": "Tôi đang xin bạn ở lại, không xin bạn thu thêm."
+						"en": "There was. An evening. You keep looking past it for something to pocket.",
+						"vi": "Có đấy. Một buổi tối. Bạn cứ nhìn qua nó để tìm thứ bỏ túi."
 					}
 				]
 			}

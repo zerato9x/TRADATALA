@@ -50,16 +50,16 @@ const CONFIG := {
 	},
 	"private_scene": [
 		{
-			"en": "Horse pulls his chair back from the edge of the table. For once, his feet aren't looking for the next road.",
-			"vi": "Ngọ kéo ghế khỏi mép bàn. Lần này chân anh không tìm đường kế tiếp."
+			"en": "Horse draws a road in the condensation on the table. At its end he adds a small square, then a second chair.",
+			"vi": "Ngọ vẽ con đường trên vệt nước đọng trên bàn. Cuối đường, anh vẽ một ô vuông nhỏ, rồi thêm chiếc ghế thứ hai."
 		},
 		{
-			"en": "\"You stayed with a pace, and you told me when you couldn't. I can sit with someone who knows where their word ends.\"",
-			"vi": "\"Bạn đã giữ một nhịp, và nói với tôi lúc không làm được. Tôi ngồi cùng người biết lời mình dừng ở đâu được.\""
+			"en": "\"I tell people I know every way out of town. Never mention how often I take the long way back. This corner's better after sunset.\"",
+			"vi": "\"Tôi hay khoe biết mọi đường ra khỏi phố. Chẳng kể mình hay đi vòng thật xa để quay lại. Góc này sau hoàng hôn đẹp hơn.\""
 		},
 		{
-			"en": "He lays a small horse Emblem beside your hand. \"Bring it on our day. I'll know which road you chose back here.\"",
-			"vi": "Anh đặt Huy hiệu con ngựa nhỏ cạnh tay bạn. \"Mang theo vào ngày của mình nhé. Tôi sẽ biết bạn đã chọn đường về đây.\""
+			"en": "He puts a horse Emblem at the end of the road. \"Our day. Here. No race. I'll try being the one who arrives early and waits.\"",
+			"vi": "Anh đặt Huy hiệu con ngựa ở cuối đường. \"Ngày của mình. Chỗ này. Không đua. Tôi thử làm người đến sớm ngồi chờ.\""
 		}
 	],
 	"last_chance": {
@@ -67,8 +67,8 @@ const CONFIG := {
 		"prompt": [
 			{
 				"speaker": "horse",
-				"en": "Pause here with me. Can you say what you actually mean to do?",
-				"vi": "Dừng đây với tôi nhé. Bạn nói được điều mình thực sự định làm không?"
+				"en": "Hold up. We're running in circles. Where do you actually want to go?",
+				"vi": "Khoan. Mình đang chạy vòng. Bạn thật sự muốn đi đâu?"
 			}
 		],
 		"answers": [
@@ -80,8 +80,8 @@ const CONFIG := {
 				"reaction": [
 					{
 						"speaker": "horse",
-						"en": "Then begin from there.",
-						"vi": "Vậy bắt đầu từ đó."
+						"en": "Good. Your pace. I can match it once you tell me.",
+						"vi": "Được. Nhịp của bạn. Nói rồi tôi mới theo được."
 					}
 				]
 			},
@@ -93,8 +93,8 @@ const CONFIG := {
 				"reaction": [
 					{
 						"speaker": "horse",
-						"en": "A clear stop is a place we can stand.",
-						"vi": "Dừng rõ ràng là chỗ mình đứng được."
+						"en": "Then stop here. A road doesn't vanish because you sit down.",
+						"vi": "Vậy dừng đây. Bạn ngồi xuống thì đường có biến mất đâu."
 					}
 				]
 			},
@@ -106,8 +106,8 @@ const CONFIG := {
 				"reaction": [
 					{
 						"speaker": "horse",
-						"en": "Then we'll leave the road here.",
-						"vi": "Vậy mình dừng đường đi ở đây."
+						"en": "That's an answer looking for the nearest exit. Use it.",
+						"vi": "Câu ấy chỉ tìm cửa gần nhất để thoát. Cứ đi đi."
 					}
 				]
 			}
@@ -124,8 +124,8 @@ const NODES := [
 		"prompt": [
 			{
 				"speaker": "horse",
-				"en": "The road opens in two directions. What makes you choose?",
-				"vi": "Đường mở ra hai hướng. Điều gì khiến bạn chọn?"
+				"en": "Two roads out. One's quick, one's interesting. What gets your feet moving?",
+				"vi": "Hai đường ra. Một nhanh, một hay. Điều gì khiến bạn bước đi?"
 			}
 		],
 		"answers": [
@@ -137,8 +137,8 @@ const NODES := [
 				"reaction": [
 					{
 						"speaker": "horse",
-						"en": "Good. Your feet should know whose choice it is.",
-						"vi": "Tốt. Bước chân nên biết đó là lựa chọn của ai."
+						"en": "Good. Don't blame the signpost halfway there.",
+						"vi": "Được. Đi nửa đường đừng trách biển chỉ lối."
 					}
 				]
 			},
@@ -150,8 +150,8 @@ const NODES := [
 				"reaction": [
 					{
 						"speaker": "horse",
-						"en": "Leave room to learn further down.",
-						"vi": "Chừa chỗ để đi xa hơn rồi hiểu thêm."
+						"en": "Fair. I've followed worse maps than my own eyes.",
+						"vi": "Cũng được. Tôi từng theo những bản đồ còn tệ hơn mắt mình."
 					}
 				]
 			},
@@ -163,8 +163,8 @@ const NODES := [
 				"reaction": [
 					{
 						"speaker": "horse",
-						"en": "A crowd isn't a compass.",
-						"vi": "Đám đông không phải la bàn."
+						"en": "Fastest to where? The crowd won't carry your bags.",
+						"vi": "Nhanh nhất đến đâu? Đám đông đâu có xách đồ hộ bạn."
 					}
 				]
 			}
@@ -178,8 +178,8 @@ const NODES := [
 		"prompt": [
 			{
 				"speaker": "horse",
-				"en": "Someone beside you is falling behind. What do you do?",
-				"vi": "Người đi cạnh bạn đang tụt lại. Bạn làm gì?"
+				"en": "You're flying along. I'm falling behind. What do you do?",
+				"vi": "Bạn đi vùn vụt. Tôi tụt lại. Bạn làm gì?"
 			}
 		],
 		"answers": [
@@ -191,8 +191,8 @@ const NODES := [
 				"reaction": [
 					{
 						"speaker": "horse",
-						"en": "Then we're travelling together.",
-						"vi": "Vậy mới là cùng đi."
+						"en": "Together, then. I'd rather share the road than send you a postcard.",
+						"vi": "Vậy cùng đi. Tôi thà chung đường còn hơn gửi bưu thiếp cho bạn."
 					}
 				]
 			},
@@ -204,8 +204,8 @@ const NODES := [
 				"reaction": [
 					{
 						"speaker": "horse",
-						"en": "Make sure they know which corner.",
-						"vi": "Nhớ cho họ biết góc đường nào."
+						"en": "Which corner? I've waited at the wrong one before.",
+						"vi": "Góc nào? Tôi từng chờ nhầm góc rồi."
 					}
 				]
 			},
@@ -217,8 +217,8 @@ const NODES := [
 				"reaction": [
 					{
 						"speaker": "horse",
-						"en": "Then you were already travelling alone.",
-						"vi": "Vậy bạn vốn đã đi một mình."
+						"en": "Then call it a race next time. I'd like to know before we set off.",
+						"vi": "Vậy lần sau gọi là đua nhé. Tôi muốn biết trước khi khởi hành."
 					}
 				]
 			}
@@ -232,47 +232,47 @@ const NODES := [
 		"prompt": [
 			{
 				"speaker": "horse",
-				"en": "Does stopping mean you've lost your way?",
-				"vi": "Dừng lại có nghĩa là lạc đường không?"
+				"en": "I stopped halfway across a bridge once. Lovely view. Does that count as getting lost?",
+				"vi": "Có lần tôi dừng giữa cầu. Cảnh đẹp lắm. Thế có tính là lạc đường không?"
 			}
 		],
 		"answers": [
 			{
 				"id": "A",
-				"en": "Sometimes it lets me choose the next step.",
-				"vi": "Đôi khi nó giúp tôi chọn bước tiếp theo.",
+				"en": "No. Stopping can help you choose the next step.",
+				"vi": "Không. Dừng lại có thể giúp chọn bước tiếp.",
 				"delta": 1,
 				"reaction": [
 					{
 						"speaker": "horse",
-						"en": "A pause can have a direction.",
-						"vi": "Khoảng dừng cũng có thể có hướng."
+						"en": "Exactly. You can't read a sign at full gallop.",
+						"vi": "Chính xác. Phi hết tốc lực thì đọc biển thế nào."
 					}
 				]
 			},
 			{
 				"id": "B",
-				"en": "It depends on why I stopped.",
-				"vi": "Tùy lý do tôi dừng.",
+				"en": "Depends why you stopped.",
+				"vi": "Còn tùy vì sao bạn dừng.",
 				"delta": 0,
 				"reaction": [
 					{
 						"speaker": "horse",
-						"en": "Then look at the reason.",
-						"vi": "Vậy hãy nhìn vào lý do."
+						"en": "Yes. Resting and being stuck look alike from a distance.",
+						"vi": "Ừ. Nhìn xa thì nghỉ chân với mắc kẹt giống nhau."
 					}
 				]
 			},
 			{
 				"id": "C",
-				"en": "Yes. I need to keep moving, whatever the cost.",
-				"vi": "Có. Giá nào tôi cũng phải đi tiếp.",
+				"en": "Yes. Keep moving, whatever it costs.",
+				"vi": "Có. Cứ đi tiếp, bất kể giá nào.",
 				"delta": -1,
 				"reaction": [
 					{
 						"speaker": "horse",
-						"en": "Speed can carry you past yourself.",
-						"vi": "Đi nhanh có thể khiến bạn bỏ lại chính mình."
+						"en": "I've done that. Arrived miles away from anywhere I wanted to be.",
+						"vi": "Tôi làm rồi. Đến nơi cách xa chỗ mình muốn hàng dặm."
 					}
 				]
 			}
@@ -340,8 +340,8 @@ const NODES := [
 				"dialogue": [
 					{
 						"speaker": "horse",
-						"en": "I'll watch the committed pair, not your hurry.",
-						"vi": "Tôi sẽ xem cặp nước đã thực hiện, không xem bạn vội ra sao."
+						"en": "Two matching actions, one Turn. A stride, not two lonely footsteps.",
+						"vi": "Hai hành động cùng loại trong một Lượt. Một sải bước, không phải hai bước rời."
 					}
 				]
 			},
@@ -396,8 +396,8 @@ const NODES := [
 				"dialogue": [
 					{
 						"speaker": "horse",
-						"en": "You finished the pair we agreed in one Turn. The pace had a shape.",
-						"vi": "Bạn đã hoàn thành cặp đã thống nhất trong một Lượt. Nhịp đi đã có hình."
+						"en": "Both in one Turn. Now that had some pace to it!",
+						"vi": "Cả hai trong một Lượt. Thế mới ra nhịp chứ!"
 					}
 				]
 			},
@@ -406,8 +406,8 @@ const NODES := [
 				"dialogue": [
 					{
 						"speaker": "horse",
-						"en": "The agreed pair didn't arrive within one Turn. Tell me a pace you can keep next time.",
-						"vi": "Cặp đã thống nhất chưa đến trong một Lượt. Lần tới hãy nói nhịp bạn giữ được."
+						"en": "The pair got split across the road. One Turn was the agreement.",
+						"vi": "Cặp bước bị tách giữa đường rồi. Mình đã hẹn trong một Lượt."
 					}
 				]
 			}
@@ -474,8 +474,8 @@ const NODES := [
 				"dialogue": [
 					{
 						"speaker": "horse",
-						"en": "The first Meld, in its own Turn. I'll remember that boundary.",
-						"vi": "Phỏm đầu tiên, ngay trong Lượt của nó. Tôi sẽ nhớ ranh giới đó."
+						"en": "Your first Meld, before that Turn ends. I'll wait at that corner.",
+						"vi": "Phỏm đầu tiên, trước khi hết Lượt ấy. Tôi chờ đúng góc đó."
 					}
 				]
 			},
@@ -529,8 +529,8 @@ const NODES := [
 				"dialogue": [
 					{
 						"speaker": "horse",
-						"en": "You stayed with the first Meld and extended it in time.",
-						"vi": "Bạn đã ở lại với Phỏm đầu tiên và Nối kịp lúc."
+						"en": "Started it, came back to it, finished in time. A route worth knowing.",
+						"vi": "Bắt đầu, quay lại, làm kịp. Đường ấy đáng nhớ."
 					}
 				]
 			},
@@ -539,8 +539,8 @@ const NODES := [
 				"dialogue": [
 					{
 						"speaker": "horse",
-						"en": "The first Meld didn't get its promised Extension in time. A different start doesn't replace it.",
-						"vi": "Phỏm đầu tiên chưa được Nối đúng hạn đã hứa. Bắt đầu việc khác không thay thế được nó."
+						"en": "The first Meld was still waiting when time ran out. Another road doesn't lead back to it.",
+						"vi": "Hết giờ, Phỏm đầu vẫn chờ nối. Đường khác không dẫn ngược về nó được."
 					}
 				]
 			}
@@ -606,8 +606,8 @@ const NODES := [
 				"dialogue": [
 					{
 						"speaker": "horse",
-						"en": "Your chosen card has to be newly added. I'll follow its actual place.",
-						"vi": "Lá bạn chọn phải được thêm mới. Tôi sẽ theo chỗ thực sự của nó."
+						"en": "That card has to join through an Extension. No waving from a passing carriage.",
+						"vi": "Lá đó phải vào bằng Nối Phỏm. Vẫy tay từ xe ngang qua không tính nhé."
 					}
 				]
 			},
@@ -629,8 +629,8 @@ const NODES := [
 				"dialogue": [
 					{
 						"speaker": "horse",
-						"en": "Your chosen card joined an existing Meld through an Extension. You made room for its next step.",
-						"vi": "Lá bạn chọn đã vào Phỏm có sẵn bằng Nối. Bạn đã chừa chỗ cho bước tiếp của nó."
+						"en": "There it goes! Your card joined the Extension. I like seeing a route become real.",
+						"vi": "Đi rồi! Lá bạn vào Phỏm bằng lần nối. Tôi thích thấy đường vẽ thành đường đi."
 					}
 				]
 			},
@@ -639,8 +639,8 @@ const NODES := [
 				"dialogue": [
 					{
 						"speaker": "horse",
-						"en": "That card didn't make the promised Extension. Being in a Meld already wasn't the same step.",
-						"vi": "Lá đó chưa thực hiện lần Nối đã hứa. Vốn nằm trong Phỏm không phải bước ấy."
+						"en": "That card never made the Extension. Standing near the road isn't travelling it.",
+						"vi": "Lá đó chưa được nối vào. Đứng cạnh đường không phải đã đi đường."
 					}
 				]
 			}
@@ -658,43 +658,43 @@ const NODES := [
 			"FULFILLED": [
 				{
 					"speaker": "horse",
-					"en": "I remember this pair: {target} What kept its steps together?",
-					"vi": "Tôi nhớ cặp này: {target} Điều gì giữ hai bước cùng nhau?"
+					"en": "A pair in one Turn: {target} Was that a sprint, or did the second step come naturally?",
+					"vi": "Một cặp trong một Lượt: {target} Phải chạy nước rút, hay bước thứ hai tự đến?"
 				}
 			],
 			"BROKEN": [
 				{
 					"speaker": "horse",
-					"en": "This pair didn't hold: {target} Where did the pace change?",
-					"vi": "Cặp này chưa giữ được: {target} Nhịp đã đổi ở đâu?"
+					"en": "The pair got separated: {target} Where did you have to slow down?",
+					"vi": "Cặp bước bị tách rồi: {target} Bạn phải chậm lại ở đâu?"
 				}
 			],
 			"REFUSED": [
 				{
 					"speaker": "horse",
-					"en": "You left this pair open: {target} What pace did you need instead?",
-					"vi": "Bạn để ngỏ cặp này: {target} Thay vào đó bạn cần nhịp nào?"
+					"en": "You left this route open: {target} Did you find a better one once the cards arrived?",
+					"vi": "Bạn để ngỏ đường này: {target} Có bài rồi, bạn tìm được đường tốt hơn không?"
 				}
 			]
 		},
 		"answers": [
 			{
 				"id": "A",
-				"en": "Naming what I could finish in one Turn.",
-				"vi": "Nói rõ điều tôi hoàn thành được trong một Lượt.",
+				"en": "Knowing what I could finish before ending the Turn.",
+				"vi": "Biết mình làm xong được gì trước khi kết Lượt.",
 				"delta": 1,
 				"reaction": [
 					{
 						"speaker": "horse",
-						"en": "Then we can hear the same pace.",
-						"vi": "Vậy mình nghe cùng một nhịp."
+						"en": "Good. Now I know which corner you mean.",
+						"vi": "Được. Giờ tôi biết bạn nói góc nào."
 					}
 				]
 			},
 			{
 				"id": "B",
-				"en": "Leaving room for the hand I actually had.",
-				"vi": "Chừa chỗ cho bài tôi thực sự có.",
+				"en": "Working with the hand I had, not the one I wanted.",
+				"vi": "Dùng tay bài đang có, không phải tay bài tôi muốn.",
 				"delta": 0,
 				"reaction": []
 			},
@@ -706,8 +706,8 @@ const NODES := [
 				"reaction": [
 					{
 						"speaker": "horse",
-						"en": "That changes the boundary we agreed.",
-						"vi": "Điều đó đổi ranh giới mình đã thống nhất."
+						"en": "Two separate walks. You can't tie their ends together afterward.",
+						"vi": "Hai chuyến riêng. Xong rồi không buộc đầu đuôi lại thành một được."
 					}
 				]
 			}
@@ -725,36 +725,36 @@ const NODES := [
 			"FULFILLED": [
 				{
 					"speaker": "horse",
-					"en": "You followed through here: {target} What made you stay with that first Meld?",
-					"vi": "Bạn đã tiếp nối ở đây: {target} Điều gì khiến bạn ở lại với Phỏm đầu tiên?"
+					"en": "You stayed with your start: {target} I always want to know what's around the next corner. How did you resist?",
+					"vi": "Bạn theo đến cùng khởi đầu: {target} Tôi luôn tò mò góc kế có gì. Sao bạn cưỡng được?"
 				}
 			],
 			"BROKEN": [
 				{
 					"speaker": "horse",
-					"en": "The first Meld waited past this promise: {target} What would you say before starting again?",
-					"vi": "Phỏm đầu tiên đã đợi quá lời hứa này: {target} Trước khi bắt đầu lại bạn sẽ nói gì?"
+					"en": "We missed the meeting point: {target} Don't give me a faster time yet. Tell me what happened.",
+					"vi": "Mình lỡ chỗ hẹn: {target} Khoan hứa giờ nhanh hơn. Kể tôi chuyện đã xảy ra."
 				}
 			],
 			"REFUSED": [
 				{
 					"speaker": "horse",
-					"en": "You didn't bind yourself to this: {target} Did leaving it open help?",
-					"vi": "Bạn không buộc mình vào điều này: {target} Để ngỏ có giúp được không?"
+					"en": "You didn't take this route: {target} Felt good to keep the first turn yours, didn't it?",
+					"vi": "Bạn không nhận đường này: {target} Giữ được lượt đầu cho mình quyết, cũng dễ chịu nhỉ?"
 				}
 			]
 		},
 		"answers": [
 			{
 				"id": "A",
-				"en": "The boundary matters as much as the start.",
-				"vi": "Ranh giới quan trọng như khởi đầu.",
+				"en": "I need to know where I'm going, not just how to start.",
+				"vi": "Tôi cần biết mình đi đâu, không chỉ biết bắt đầu.",
 				"delta": 1,
 				"reaction": [
 					{
 						"speaker": "horse",
-						"en": "Then I'll believe the next step you name.",
-						"vi": "Vậy tôi sẽ tin bước tiếp bạn nói."
+						"en": "Yes. Name the finish before your feet leave the ground.",
+						"vi": "Ừ. Nói rõ đích đến trước khi nhấc chân."
 					}
 				]
 			},
@@ -773,8 +773,8 @@ const NODES := [
 				"reaction": [
 					{
 						"speaker": "horse",
-						"en": "It wasn't the first one we named.",
-						"vi": "Đó không phải Phỏm đầu tiên mình đã nói."
+						"en": "Different start. I was waiting by the first one.",
+						"vi": "Điểm xuất phát khác rồi. Tôi chờ ở cái đầu tiên."
 					}
 				]
 			}
@@ -792,36 +792,36 @@ const NODES := [
 			"FULFILLED": [
 				{
 					"speaker": "horse",
-					"en": "You gave this card its next step: {target} Did its place surprise you?",
-					"vi": "Bạn đã cho lá này bước tiếp: {target} Chỗ của nó có khiến bạn bất ngờ không?"
+					"en": "An Extension for {target}. A little further than it could go alone. Planned, or a lucky turn?",
+					"vi": "{target} được nối vào. Đi xa hơn một chút so với đứng riêng. Bạn tính trước hay may gặp ngã rẽ?"
 				}
 			],
 			"BROKEN": [
 				{
 					"speaker": "horse",
-					"en": "This card didn't take the promised step: {target} What place did you find for it?",
-					"vi": "Lá này chưa bước như đã hứa: {target} Bạn tìm được chỗ nào cho nó?"
+					"en": "No Extension for {target}. Did it end up somewhere you hadn't expected?",
+					"vi": "{target} chưa được nối vào. Nó có đến chỗ bạn không ngờ không?"
 				}
 			],
 			"REFUSED": [
 				{
 					"speaker": "horse",
-					"en": "You kept the choice open for this card: {target} What did that leave possible?",
-					"vi": "Bạn giữ lựa chọn mở cho lá này: {target} Điều đó để lại khả năng gì?"
+					"en": "No promise for {target}. Sometimes I keep a road on the map without taking it.",
+					"vi": "Không nhận lời hứa cho {target}. Có đường tôi vẫn giữ trên bản đồ mà không đi."
 				}
 			]
 		},
 		"answers": [
 			{
 				"id": "A",
-				"en": "A place I can name without pretending I made the Extension.",
-				"vi": "Chỗ tôi nói rõ được mà không giả vờ đã Nối.",
+				"en": "I'd tell you where it went, even if that wasn't the plan.",
+				"vi": "Tôi sẽ nói nó đã đi đâu, dù không đúng kế hoạch.",
 				"delta": 1,
 				"reaction": [
 					{
 						"speaker": "horse",
-						"en": "Good. Let the card's actual path stay visible.",
-						"vi": "Tốt. Giữ đường thực sự của lá bài rõ ràng nhé."
+						"en": "Good. I'd rather hear where it went than where it ought to have gone.",
+						"vi": "Tốt. Tôi muốn nghe nó đã đi đâu, hơn là lẽ ra phải đi đâu."
 					}
 				]
 			},
@@ -840,8 +840,8 @@ const NODES := [
 				"reaction": [
 					{
 						"speaker": "horse",
-						"en": "Old ground doesn't become new because we rename it.",
-						"vi": "Đổi tên không khiến chỗ cũ thành chỗ mới."
+						"en": "Walk the same bridge twice. Lovely. Still the same bridge.",
+						"vi": "Qua cùng cây cầu hai lần. Đẹp đấy. Vẫn là cây cầu đó."
 					}
 				]
 			}
@@ -856,8 +856,8 @@ const NODES := [
 		"prompt": [
 			{
 				"speaker": "horse",
-				"en": "If we arrive together, what do you hope I remember?",
-				"vi": "Nếu mình cùng đến nơi, bạn muốn tôi nhớ điều gì?"
+				"en": "When you tell this journey later, will I be in it, or just the arrival time?",
+				"vi": "Sau này kể chuyến này, bạn nhắc tôi hay chỉ nhắc giờ đến?"
 			}
 		],
 		"answers": [
@@ -869,8 +869,8 @@ const NODES := [
 				"reaction": [
 					{
 						"speaker": "horse",
-						"en": "Then the road was ours for a while.",
-						"vi": "Vậy con đường đã là của mình một lúc."
+						"en": "Then I'll remember the bit where we slowed down. Probably my favorite bit.",
+						"vi": "Vậy tôi sẽ nhớ đoạn mình đi chậm lại. Chắc là đoạn tôi thích nhất."
 					}
 				]
 			},
@@ -889,8 +889,8 @@ const NODES := [
 				"reaction": [
 					{
 						"speaker": "horse",
-						"en": "I asked about arriving together.",
-						"vi": "Tôi hỏi chuyện cùng đến mà."
+						"en": "I know you could. I was asking whether you liked the company.",
+						"vi": "Tôi biết bạn đến trước được. Tôi hỏi có thích người đi cùng không."
 					}
 				]
 			}
@@ -905,8 +905,8 @@ const NODES := [
 		"prompt": [
 			{
 				"speaker": "horse",
-				"en": "Can a promise leave you free?",
-				"vi": "Lời hứa có thể để bạn tự do không?"
+				"en": "Funny thing. I promise to be somewhere and suddenly the whole road feels chosen. Do you get that?",
+				"vi": "Lạ nhỉ. Hứa đến một nơi, tự dưng cả con đường thành điều mình chọn. Bạn hiểu không?"
 			}
 		],
 		"answers": [
@@ -918,8 +918,8 @@ const NODES := [
 				"reaction": [
 					{
 						"speaker": "horse",
-						"en": "Then it's a route, not a leash.",
-						"vi": "Vậy đó là đường đi, không phải dây buộc."
+						"en": "Yes! A destination. I kept mistaking those for fences.",
+						"vi": "Đúng! Một điểm đến. Tôi cứ nhầm nó với hàng rào."
 					}
 				]
 			},
@@ -938,8 +938,8 @@ const NODES := [
 				"reaction": [
 					{
 						"speaker": "horse",
-						"en": "Then I couldn't walk beside it.",
-						"vi": "Vậy tôi không thể đi cùng nó."
+						"en": "Then I'd reach the meeting place and find nobody there.",
+						"vi": "Vậy tôi đến chỗ hẹn mà chẳng thấy ai."
 					}
 				]
 			}
@@ -954,21 +954,21 @@ const NODES := [
 		"prompt": [
 			{
 				"speaker": "horse",
-				"en": "Will you sit here with me for a moment? There isn't a next step yet.",
-				"vi": "Bạn ngồi đây với tôi một lát nhé? Chưa có bước tiếp đâu."
+				"en": "Stay for the sunset? I know a faster road home, but I'd rather take it later.",
+				"vi": "Ở xem hoàng hôn nhé? Tôi biết đường về nhanh hơn, nhưng muốn đi muộn chút."
 			}
 		],
 		"answers": [
 			{
 				"id": "A",
-				"en": "Yes. We can choose it when we're ready.",
-				"vi": "Được. Sẵn sàng rồi mình chọn.",
+				"en": "Yes. The road home can wait a little.",
+				"vi": "Có. Đường về chờ thêm chút được.",
 				"delta": 1,
 				"reaction": [
 					{
 						"speaker": "horse",
-						"en": "Then let the road wait.",
-						"vi": "Vậy để đường đợi nhé."
+						"en": "Good. For once I won't be telling you what the view looked like over my shoulder.",
+						"vi": "Tốt. Lần này tôi khỏi kể cảnh đẹp qua một cái ngoái đầu."
 					}
 				]
 			},
@@ -987,8 +987,8 @@ const NODES := [
 				"reaction": [
 					{
 						"speaker": "horse",
-						"en": "I was asking for your company.",
-						"vi": "Tôi đang xin bạn ngồi cùng."
+						"en": "The sunset, mostly. And an hour with me. I thought that was something.",
+						"vi": "Chủ yếu là hoàng hôn. Với một giờ bên tôi. Tôi tưởng thế cũng đáng."
 					}
 				]
 			}

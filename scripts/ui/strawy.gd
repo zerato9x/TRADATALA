@@ -285,7 +285,7 @@ func preview_action() -> void:
 	close()
 	if plan.is_empty():
 		open_help()
-		_say(words("No legal action is available. Check the locked cards and current phase.", "Chưa có nước đi hợp lệ. Xem bài bị khóa và hiệp hiện tại."))
+		_say(words("No legal move right now. Let's check the locked cards and current Phase.", "Hiện chưa có nước hợp lệ. Xem bài khóa và Hiệp hiện tại nhé."))
 		return
 	host.set_card_selection(plan.cards, int(plan.get("meld_id", -1)))
 	quick_plan = plan
@@ -318,7 +318,7 @@ func _plan_copy(plan: Dictionary) -> String:
 		"play":
 			var verb := words("extend the table Meld", "ghép vào Phỏm trên bàn") if plan.play.action == HandAdvisor.ACTION_EXTENSION else words("make a new Meld", "hạ Phỏm mới")
 			var drink := DrinkCatalog.display_name(host.deal.current_drink_id) + ": " if plan.play.get("use_drink", false) else ""
-			return drink + words("I'll %s with %s. Estimated payout: %d PTS.", "Tôi sẽ %s bằng %s. Dự tính nhận: %d ĐIỂM.") % [verb, cards, plan.play.estimated_points]
+			return drink + words("I'll %s with %s. Estimated score: %d PTS.", "Tôi sẽ %s bằng %s. Điểm dự kiến: %d PTS.") % [verb, cards, plan.play.estimated_points]
 		"swap": return words("I'll use %s to swap %s for %s, which can make a Meld or extend the table. This spends one use.", "Tôi sẽ dùng %s đổi %s lấy %s để có thể hạ hoặc ghép Phỏm. Tốn một lượt dùng.") % [DrinkCatalog.display_name(host.deal.current_drink_id), cards, plan.record.card.short_label()]
 		"recover", "recover_card": return words("I'll use %s to return eligible table cards to your hand so they can score again. This spends one use.", "Tôi sẽ dùng %s lấy bài hợp lệ trên bàn về tay để ghi điểm lại. Tốn một lượt dùng.") % DrinkCatalog.display_name(host.deal.current_drink_id)
 		"discard": return words("I'll discard %s. ", "Tôi sẽ bỏ %s. ") % cards + AdvisoryText.reasoning(host.deal.queries.hand_advice(), host.deal.state == DealState.STATE_FINAL_COMMIT_WINDOW)
@@ -569,7 +569,7 @@ func _context_copy() -> String:
 	return words("Meld / Extend · or Discard", "Hạ / Ghép · hoặc Bỏ bài")
 
 func _context_detail() -> String:
-	if host.get_tree().root.has_node("GameGlossary"): return words("Search a rule or choose a topic to read how it works. Close the Handbook to return to your game.", "Tìm luật hoặc chọn chủ đề để xem cách chơi. Đóng Sổ tay để trở lại ván.")
+	if host.get_tree().root.has_node("GameGlossary"): return words("Pick a topic or search for a rule. Close the Handbook when you're ready to play.", "Chọn chủ đề hoặc tìm luật. Sẵn sàng chơi thì đóng Sổ tay nhé.")
 	if host.zodiac_table.shade.visible: return words("Read this visitor's effect, then choose an available service. Check the cost and affected cards before confirming.", "Đọc hiệu ứng của vị khách rồi chọn dịch vụ đang mở. Xem giá và bài bị ảnh hưởng trước khi xác nhận.")
 	if host.current_campaign_event == null and host.deal.state == DealState.STATE_PHASE_CHOICE: return words("Phase 2 carries only cards marked with Sâm dứa or Bạc xỉu. The rest are replaced; table Melds stay.", "Hiệp 2 chỉ giữ bài đã đánh dấu bằng Sâm dứa hoặc Bạc xỉu. Phần còn lại được thay; Phỏm trên bàn vẫn giữ.")
 	if _receipt_open() or (host.score_overlay.visible and not host.money_presentation.presentation_active): return words("Check your earned points and wallet changes. When you're ready, continue to the next part of the run.", "Xem điểm kiếm được và thay đổi trong ví. Khi sẵn sàng, tiếp tục sang bước kế của ván chơi.")
@@ -585,7 +585,7 @@ func _context_detail() -> String:
 	if host.current_campaign_event != null:
 		var hint: Array[String] = preload("res://scripts/ui/campaign_hints.gd").instruction(host.campaign, host.deal, host.current_campaign_event, host.event_table.focused_npc_id, host.resolve_mode)
 		return words(hint[1], hint[2])
-	return words("Select three matching ranks or a same-suit sequence, then HẠ to score. Otherwise discard one loose card to end the turn and refill.", "Chọn ba lá cùng số hoặc dãy cùng chất rồi HẠ để ghi điểm. Nếu chưa có, bỏ một lá rời để kết thúc lượt và bù bài.")
+	return words("Select three matching ranks or a same-suit sequence, then MELD. Otherwise choose one loose card to DISCARD.", "Chọn ba lá cùng hạng hoặc dãy liền cùng chất, rồi HẠ. Nếu chưa có, chọn một lá rời để BỎ.")
 
 func _explain_cards() -> void:
 	var advice := host.deal.queries.hand_advice()
@@ -627,13 +627,13 @@ func _npc_guidance(npc: String) -> String:
 		EventTableController.NPC_DOI_NO:
 			return words("Check today's debt and your wallet, then pay to continue.", "Xem nợ hôm nay và ví rồi trả để tiếp tục.") if host.resolve_mode == "collection" else words("Meet Đòi Nợ to check today's debt. Payment is due after the Evening Deal.", "Gặp Đòi Nợ để xem nợ hôm nay. Trả nợ sau ván tối.")
 		EventTableController.NPC_DANH_GIAY:
-			return words("From Tuesday, commit two cards to Đánh Giày at Starter. One purchase transforms both cards permanently, with separate results. Each service doubles in price from today's debt. Your pair stays locked for this visit.", "Từ thứ Ba, chốt đủ hai lá với Đánh Giày ở đầu ngày. Một lượt trả tiền đổi cả hai lá vĩnh viễn, mỗi lá có kết quả riêng. Giá theo nợ ngày, mỗi dịch vụ tăng gấp đôi riêng. Hai lá đã chọn được giữ cho chuyến này.")
+			return words("From Tuesday, choose two cards at the Shoe Shiner's morning bench. One payment changes both. Rank and Suit prices double separately after use; your chosen pair stays for the visit.", "Từ thứ Ba, chọn hai lá ở bàn Đánh Giày đầu ngày. Trả một lần đổi cả hai. Giá số và chất tăng gấp đôi riêng sau mỗi lượt dùng; cặp đã chọn giữ suốt chuyến.")
 		EventTableController.NPC_TRA_DA:
 			return words("Choose a glass, read its effect, then Order. This Drink changes how you play the next Deals.", "Chọn ly, đọc hiệu ứng rồi GỌI MÓN. Đồ uống thay đổi cách chơi các ván tiếp theo.")
 		EventTableController.NPC_THAY_BOI:
 			return words("Pull the lever to reveal a card change. Check the effect and target, then Accept to apply it or Refuse to leave your cards unchanged.", "Kéo cần để xem biến đổi bài. Xem hiệu ứng và mục tiêu rồi Nhận để áp dụng, hoặc Từ chối để giữ bài.")
 		EventTableController.NPC_HANG_RONG:
-			return words("Inspect a relic's effect and price, then buy one you want. Equipped relics add bonuses to your Deals.", "Xem hiệu ứng và giá di vật rồi mua món bạn muốn. Di vật đang đeo thêm thưởng cho các ván.")
+			return words("Inspect a relic and its price. Every relic you own is active; there's no equipment limit.", "Xem Bảo vật và giá. Sở hữu là có tác dụng; không giới hạn số món.")
 		EventTableController.NPC_LOTTO:
 			return words("Compare your tickets with today's draw. Winnings are already in your wallet.", "So vé với kết quả hôm nay. Thưởng đã vào ví.") if host.current_campaign_event != null and host.current_campaign_event.slot == EventManager.EventSlot.AFTERNOON else words("Choose tickets within your budget. Return this afternoon to check the draw and collect any winnings.", "Chọn vé trong khả năng ví. Quay lại chiều nay để dò số và nhận thưởng nếu trúng.")
 	return words("Choose this visitor to inspect their services before spending.", "Chọn vị khách này để xem dịch vụ trước khi chi tiền.")
@@ -689,20 +689,20 @@ func start_tour() -> void:
 			var extending: bool = play["action"] == HandAdvisor.ACTION_EXTENSION
 			var labels: Array[String] = []
 			for card: CardData in play["cards"]: labels.append(card.short_label())
-			var instruction := words("Select %s, then HẠ to make a scoring Meld.", "Chọn %s rồi HẠ để tạo Phỏm ghi điểm.") % ", ".join(labels)
-			if extending: instruction = words("Select %s and the destination Meld, then GHÉP to add these cards and score.", "Chọn %s và Phỏm muốn ghép rồi GHÉP để thêm bài và ghi điểm.") % ", ".join(labels)
+			var instruction := words("Select %s, then MELD to play these cards.", "Chọn %s, rồi HẠ để chơi các lá này.") % ", ".join(labels)
+			if extending: instruction = words("Select %s and the table Meld, then EXTEND to add them.", "Chọn %s và Phỏm trên bàn, rồi GHÉP để thêm bài.") % ", ".join(labels)
 			for card: CardData in play["cards"]:
 				_add_target(host.card_table.hand_views.get(card.unique_id), "%s · %s" % [card.short_label(), instruction])
 				if tour.size() >= 2: break
-			if extending: _add_target(host.card_table.meld_views.get(play.get("meld_id", -1)), words("Choose this table Meld as the destination for the selected card, then GHÉP.", "Chọn Phỏm này làm nơi ghép lá đã chọn rồi GHÉP."))
+			if extending: _add_target(host.card_table.meld_views.get(play.get("meld_id", -1)), words("Choose this Meld as the destination, then EXTEND.", "Chọn Phỏm này làm đích, rồi GHÉP."))
 			_add_target(host.extend_button if extending else host.ha_button, instruction)
 		else:
 			if host.deal.state == DealState.STATE_FINAL_COMMIT_WINDOW:
-				_add_target(host.settle_button, words("Use CHỐT to settle the remaining loose cards as deadwood. Last Call gives no refill, so play any ready Melds first.", "Dùng CHỐT để tính bài rời còn lại thành điểm phạt. Chốt Hạ không bù bài, nên Hạ/Ghép bài sẵn trước."))
+				_add_target(host.settle_button, words("Play any ready Melds or Extensions, then SETTLE the remaining deadwood. Last Call has no refill.", "Hạ hoặc Ghép bài sẵn có, rồi CHỐT bài rác còn lại. Chốt Hạ không bù bài."))
 			elif host.deal.tra_da_extra_discard_pending and advice["extra_action"] == "skip":
 				_add_target(host.settle_button, words("Skip the optional extra discard to keep these cards. Your hand then refills for the next turn.", "Bỏ qua lần bỏ thêm để giữ các lá này. Tay bài sẽ được bù cho lượt tiếp theo."))
 			else:
-				_add_target(host.card_table.hand_views.get(advice["discard_id"]), words("This is the suggested discard after comparing your next refill. Select it, then BỎ BÀI to end the turn.", "Đây là lá gợi ý bỏ sau khi so lần bù tiếp theo. Chọn lá rồi BỎ BÀI để kết thúc lượt."))
+				_add_target(host.card_table.hand_views.get(advice["discard_id"]), words("This is my suggested discard for the next refill. Select it, then DISCARD to end the turn.", "Tôi gợi ý bỏ lá này để đón lần bù tiếp. Chọn nó, rồi BỎ BÀI để kết thúc Lượt."))
 				_add_target(host.discard_button, words("Discard the selected loose card to end your turn. Your hand refills afterward; Trà Đá can offer one extra discard first.", "Bỏ lá rời đã chọn để kết thúc lượt. Tay bài được bù sau đó; Trà Đá có thể cho bỏ thêm một lá trước."))
 	if tour.is_empty(): open_help(); return
 	box.show()

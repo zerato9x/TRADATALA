@@ -11,23 +11,23 @@ MUSIC_PLAYER_REPEAT_OFF,"LAP: TAT","REPEAT: OFF"
 MUSIC_PLAYER_REPEAT_ALL,"LAP: TAT CA","REPEAT: ALL"
 MUSIC_PLAYER_REPEAT_ONE,"LAP: MOT","REPEAT: ONE"
 MUSIC_PLAYER_SYSTEM,"HE THONG NHAC","MUSIC SYSTEM"
-MUSIC_PLAYER_AUTHORED_SET,"BO NHAC DJ","AUTHORED SET"
+MUSIC_PLAYER_AUTHORED_SET,BỘ NHẠC DJ,DJ SET
 MUSIC_SYSTEM_PLAYING_TRACKS,"DANH SÁCH","PLAYLIST"
-MUSIC_SYSTEM_AUTHORED_DJ,"DJ THEO VAN CHOI","AUTHORED DJ"
+MUSIC_SYSTEM_AUTHORED_DJ,DJ BÀN TRÀ,TABLE DJ
 MUSIC_AUTHORED_SET_DOG,"CHO","DOG"
 MUSIC_AUTHORED_SET_CAT,"MEO","CAT"
-MUSIC_PLAYER_AUTHORED_READY,"DJ CHO VAN MOI","DJ FOR NEW GAME"
+MUSIC_PLAYER_AUTHORED_READY,DJ SẴN SÀNG CHO LƯỢT MỚI,DJ READY FOR NEW RUN
 MUSIC_PLAYER_DJ_ACTIVE,"DJ ĐANG PHÁT","DJ ACTIVE"
 MUSIC_PLAYER_DJ_SELECT,"CHỌN DJ SET","CHOOSE DJ SET"
 MENU_NEW_GAME,"VÁN MỚI","NEW GAME"
 MENU_HOW_TO_PLAY,"SỔ TAY","HANDBOOK"
-MENU_TUTORIAL,"SỔ TAY HÀNH TRÌNH","CAMPAIGN HANDBOOK"
+MENU_TUTORIAL,HƯỚNG DẪN HÀNH TRÌNH,CAMPAIGN GUIDE
 MENU_OPTIONS,"TÙY CHỌN","OPTIONS"
 MENU_BACK,"QUAY LẠI","BACK"
 MENU_MUSIC,"NHẠC","MUSIC"
 MENU_SOUND,"ÂM THANH","SOUND"
 MENU_LANGUAGE,"NGÔN NGỮ","LANGUAGE"
-HUD_CAMPAIGN,"NGÀY • MỤC TIÊU","DAY • GOAL"
+HUD_CAMPAIGN,NGÀY · NỢ,DAY · DEBT
 DAY_MONDAY,"THỨ HAI","MONDAY"
 DAY_TUESDAY,"THỨ BA","TUESDAY"
 DAY_WEDNESDAY,"THỨ TƯ","WEDNESDAY"
@@ -35,26 +35,26 @@ DAY_THURSDAY,"THỨ NĂM","THURSDAY"
 DAY_FRIDAY,"THỨ SÁU","FRIDAY"
 DAY_SATURDAY,"THỨ BẢY","SATURDAY"
 DAY_SUNDAY,"CHỦ NHẬT","SUNDAY"
-EVENT_STARTER,"SỰ KIỆN ĐẦU NGÀY","STARTER EVENT"
+EVENT_STARTER,ĐẦU NGÀY,START OF DAY
 EVENT_MORNING,"SỰ KIỆN BUỔI SÁNG","MORNING EVENT"
 EVENT_NOON,"SỰ KIỆN BUỔI TRƯA","NOON EVENT"
 EVENT_AFTERNOON,"SỰ KIỆN BUỔI CHIỀU","AFTERNOON EVENT"
 EVENT_UNKNOWN,"SỰ KIỆN","EVENT"
 EVENT_CONTINUE,"TIẾP TỤC","CONTINUE"
 EVENT_BACK,"← TRỞ LẠI","← BACK"
-EVENT_INTERACT,"TƯƠNG TÁC","INTERACT"
+EVENT_INTERACT,TRÒ CHUYỆN,TALK
 EVENT_INTERACT_DONE,"ĐÃ XONG","COMPLETED"
-EVENT_CHOOSE_DRINK,"Chọn đồ uống cho %s.","Choose a Drink for %s."
-EVENT_DRINK_SELECTED,"Đã chọn: %s","Selected: %s"
+EVENT_CHOOSE_DRINK,Chọn Nước cho %s.,Choose your Drink for %s.
+EVENT_DRINK_SELECTED,Nước đã chọn: %s,Your Drink: %s
 EVENT_NOT_ENOUGH_VND,"KHÔNG ĐỦ VNĐ","NOT ENOUGH VNĐ"
 EVENT_PLACEHOLDER_THAY_BOI,"GIEO QUẺ / ĐỔI VẬN BÀI","GIEO QUẺ / CARD FORTUNE"
-EVENT_PLACEHOLDER_HANG_RONG,"BẢO VẬT HÀNG RONG","HIDDEN HÀNG RONG RELIC"
-EVENT_PLACEHOLDER_DANH_GIAY,"LỘC ĐẦU NGÀY / HỘP TIỀN BO","MORNING LUCK / TIP BOX"
+EVENT_PLACEHOLDER_HANG_RONG,HÀNG RONG,STREET VENDOR
+EVENT_PLACEHOLDER_DANH_GIAY,BÀN ĐỔI BÀI,CARD WORKBENCH
 EVENT_PLACEHOLDER_LOTTO_RESULT,"KẾT QUẢ VÉ SỐ","LOTTERY RESULT"
 EVENT_PLACEHOLDER_LOTTO_CHOICE,"CHỌN VÉ SỐ 2 CHỮ SỐ","CHOOSE A 2-DIGIT LOTTERY TICKET"
-EVENT_PLACEHOLDER_GENERIC,"NỘI DUNG SỰ KIỆN","EVENT CONTENT"
-EVENT_PLACEHOLDER_NOTE,"Khung trình bày đã sẵn sàng. Cơ chế của nhân vật sẽ được nối vào đây mà không mở màn hình riêng.","The presentation frame is ready. This character's mechanic will connect here without opening a separate screen."
-EVENT_PLACEHOLDER_READY,"%s · SẴN SÀNG KẾT NỐI CƠ CHẾ","%s · READY TO CONNECT THE MECHANIC"
+EVENT_PLACEHOLDER_GENERIC,BÊN BÀN TRÀ,AT THE TABLE
+EVENT_PLACEHOLDER_NOTE,Chuyến này chưa có dịch vụ tại đây.,No service is available here this visit.
+EVENT_PLACEHOLDER_READY,%s · CHƯA CÓ TRONG CHUYẾN NÀY,%s · UNAVAILABLE THIS VISIT
 NPC_DANH_GIAY,"ĐÁNH GIÀY","SHOE SHINER"
 NPC_TRA_DA_AUNTIE,"CÔ TRÀ ĐÁ","ICED TEA AUNTIE"
 NPC_THAY_BOI,"THẦY BÓI","FORTUNE TELLER"
@@ -67,10 +67,10 @@ GIEO_FIRST_THREE,"3 HÀO ĐẦU","FIRST 3 LINES"
 GIEO_LAST_THREE,"3 HÀO SAU","LAST 3 LINES"
 GIEO_PULL_LEVER,"KÉO CẦN GIEO QUẺ","PULL TO CAST"
 GIEO_RESULT_TITLE,"KẾT QUẢ GIẢI QUẺ","ORACLE READING"
-GIEO_RESULT_EXPLANATION,"Nếu nhận quẻ: %s sẽ áp dụng cho %s.","If accepted: %s will apply to %s."
+GIEO_RESULT_EXPLANATION,Đồng ý để áp dụng %s lên %s.,Accept to apply %s to %s.
 GIEO_CHOOSE_TARGET,"CHỌN LÁ MỤC TIÊU","CHOOSE THE TARGET CARD"
-GIEO_PRESENT_TARGETS,"GHI NHỚ NHỮNG LÁ ĐƯỢC QUẺ CHỌN","REMEMBER THE CARDS CHOSEN BY THE ORACLE"
-GIEO_READY_RULE,"Mỗi ngày miễn phí một lần. Mỗi lần trả phí trong ngày sẽ đắt hơn lần trước.","One free cast each day. Paid pulls rise with every rejection and completed cast."
+GIEO_PRESENT_TARGETS,ĐÂY LÀ NHỮNG LÁ QUẺ ĐÃ CHỌN,THESE ARE THE ORACLE'S CHOSEN CARDS
+GIEO_READY_RULE,Mỗi ngày một lần gieo miễn phí. Giá gieo trả phí tăng dần; từ chối không trả lại lượt miễn phí.,One free cast each day. Paid casts get dearer; refusing does not restore a free cast.
 GIEO_TODAY_CAST,"LẦN GIEO HÔM NAY\n%s","TODAY'S CAST\n%s"
 GIEO_FREE,"MIỄN PHÍ","FREE"
 GIEO_CAST_BUTTON,"GIEO QUẺ","CAST"
@@ -80,13 +80,13 @@ GIEO_REROLL,"GIEO LẠI · %s","REROLL · %s"
 GIEO_REFUSE,"TỪ CHỐI","REFUSE"
 GIEO_TARGETS_HIDDEN,"CHỈ HIỆN LÁ MỤC TIÊU SAU KHI NHẬN QUẺ • KHÔNG THỂ QUAY LẠI","TARGET CARDS STAY HIDDEN UNTIL ACCEPT • ACCEPTANCE CANNOT BE UNDONE"
 GIEO_CHOOSE_OFFER,"CHỌN MỘT LÁ","CHOOSE A CARD"
-GIEO_CHOOSE_DECK_CARD,"CHỌN MỘT LÁ THẬT TRONG BỘ BÀI CHIẾN DỊCH","CHOOSE ONE PHYSICAL CARD FROM YOUR CAMPAIGN DECK"
-GIEO_COMMITTED_LOCK,"ĐÃ NHẬN QUẺ • KHÓA GIEO LẠI VÀ TỪ CHỐI","CAST ACCEPTED • REROLL AND REFUSE ARE NOW LOCKED"
+GIEO_CHOOSE_DECK_CARD,CHỌN 1 LÁ TRONG BỘ BÀI,CHOOSE 1 CARD FROM YOUR DECK
+GIEO_COMMITTED_LOCK,ĐÃ NHẬN · HOÀN TẤT QUẺ NÀY,ACCEPTED · FINISH THIS READING
 GIEO_TARGETS_REVEALED,"LÁ MỤC TIÊU ĐÃ LỘ","TARGETS REVEALED"
 GIEO_SEALING,"ĐANG KHẮC BIẾN ĐỔI…","SEALING THE TRANSFORMATION…"
 GIEO_FATE_REWRITTEN,"✦  MỆNH BÀI ĐÃ ĐỔI  ✦","✦  FATE REWRITTEN  ✦"
 GIEO_FATE_SEALED,"QUẺ ĐÃ KHẮC","FATE SEALED"
-GIEO_COMPLETE_SUMMARY,"ĐÃ ĐỔI VẬN %d LÁ THẬT","FORTUNE CHANGED ON %d PHYSICAL CARDS"
+GIEO_COMPLETE_SUMMARY,ĐÃ ĐỔI VẬN CHO %d LÁ,FORTUNE CHANGED ON %d CARDS
 GIEO_CAST_AGAIN,"GIEO TIẾP • %s","CAST AGAIN • %s"
 GIEO_BEFORE,"TRƯỚC","BEFORE"
 GIEO_PERMANENT,"VĨNH VIỄN","PERMANENT"
@@ -110,8 +110,8 @@ CAMPAIGN_ENDED,"CUỘC CHƠI KẾT THÚC","RUN ENDED"
 CAMPAIGN_VICTORY,"CHIẾN THẮNG","VICTORY"
 CAMPAIGN_FAILURE,"CHƯA ĐỦ TIỀN","GOAL MISSED"
 CAMPAIGN_FINAL_WALLET,"Ví cuối: %s","Final wallet: %s"
-CAMPAIGN_VICTORY_BODY,"Bạn đã trả nợ đủ cả bảy ngày.","You paid the debt for all seven days."
-CAMPAIGN_FAILURE_BODY,"Bạn cần ít nhất %s để qua ngày này.","You needed at least %s to pass this day."
+CAMPAIGN_VICTORY_BODY,"Bảy ngày trả đủ nợ. Tối nay, sổ được khép lại.","Seven debts paid. For tonight, the ledger is closed."
+CAMPAIGN_FAILURE_BODY,Nợ tối nay là %s. Ví của bạn chưa đủ trả.,Tonight's debt was %s. Your wallet could not cover it.
 CAMPAIGN_NEW_RUN,"CHƠI LẠI","NEW RUN"
 PERIOD_MORNING,"SÁNG","MORNING"
 PERIOD_NOON,"TRƯA","NOON"
@@ -123,23 +123,23 @@ HOW_TITLE,"CÁCH CHƠI","HOW TO PLAY"
 HOW_TAB_CARDS,"BÀI & PHỎM","CARDS & MELDS"
 HOW_TAB_PHASES,"GIAI ĐOẠN & LƯỢT","PHASES & TURNS"
 HOW_TAB_SCORING,"TÍNH ĐIỂM","SCORING"
-HOW_INTRO,"Chọn bài. Hạ Phỏm hoặc Ghép. Rồi bỏ 1 lá.","Pick cards. Meld or Extend. Then discard 1."
+HOW_INTRO,Tạo Phỏm. Nối Phỏm. Bỏ 1 lá để kết thúc Lượt.,Make Melds. Extend them. Discard 1 to end your turn.
 HOW_RUN_TITLE,"SẢNH","RUN"
 HOW_RUN_BODY,"3+ lá liền số.\nCùng chất.","3+ cards in order.\nSame suit."
 HOW_SET_TITLE,"BỘ","SET"
-HOW_SET_BODY,"3–4 lá cùng số.","3–4 cards of one rank."
+HOW_SET_BODY,Từ 3 lá cùng hạng.,3+ cards of the same rank.
 HOW_EXTEND_TITLE,"GHÉP","EXTEND"
-HOW_EXTEND_BODY,"Thêm lá hợp lệ\nvào Phỏm đã hạ.","Add a matching card\nto a played Meld."
+HOW_EXTEND_BODY,Thêm lá phù hợp\nvào Phỏm trên bàn.,Add matching cards\nto a Meld on the table.
 HOW_DISCARD_TITLE,"BỎ BÀI","DISCARD"
 HOW_DISCARD_BODY,"Kết thúc lượt:\nbỏ 1 lá bài rời.","End your turn:\ndiscard 1 loose card."
-HOW_PHASES_INTRO,"Một ván có 2 Giai đoạn. Mỗi Giai đoạn kết thúc sau 4 lần bỏ bài.","A Deal has 2 Phases. Each Phase ends after 4 discards."
+HOW_PHASES_INTRO,"Ván thường có 2 Hiệp, mỗi Hiệp 4 lần bỏ bắt buộc. Luật Con Giáp có thể thay đổi điều này.","A normal Deal has 2 Phases, each with 4 mandatory discards. Zodiac rules can change this."
 HOW_TURN_TITLE,"MỘT LƯỢT","ONE TURN"
 HOW_TURN_BODY,"1. Rút đủ 10 lá\n2. Hạ/Ghép nếu muốn\n3. Bỏ đúng 1 lá","1. Refill to 10\n2. Meld/Extend if useful\n3. Discard exactly 1"
 HOW_PHASE_END_TITLE,"KẾT THÚC GIAI ĐOẠN","END THE PHASE"
-HOW_PHASE_END_BODY,"Lần bỏ thứ 4 mở Last Call.\nHạ/Ghép lần cuối, rồi nhấn CHỐT.","Discard #4 opens Last Call.\nMeld/Extend once more, then SETTLE."
+HOW_PHASE_END_BODY,"Sau lần bỏ thứ 4: Chốt Hạ.\nTạo hoặc Nối Phỏm, rồi CHỐT.","After discard #4: Last Call.\nMeld or Extend, then SETTLE."
 HOW_PHASE_CHOICE_TITLE,"SANG GIAI ĐOẠN 2","ENTER PHASE 2"
 HOW_PHASE_CHOICE_BODY,"Sau khi chốt Hiệp 1, chỉ bài đã đánh dấu bằng Sâm dứa/Bạc xỉu được giữ. Thay bài rời còn lại rồi bù lên 10.\nPhỏm trên bàn vẫn giữ; Hiệp 2 cần ít nhất 1 Phỏm MỚI.","After Phase 1 settlement, carry only cards marked with Sâm dứa/Bạc xỉu. Replace the other loose cards and refill toward 10.\nTable Melds stay; Phase 2 needs at least 1 NEW Meld."
-HOW_SCORING_INTRO,"Hạ và Ghép trả điểm ngay. Khi Chốt, bài rời bị trừ khỏi tổng Giai đoạn.","Meld and Extend pay immediately. At Settle, loose cards are deducted from the Phase total."
+HOW_SCORING_INTRO,Tạo và Nối Phỏm trả tiền ngay. Bài rác bị tính phạt sau mỗi Lượt và khi Chốt.,Melds and Extensions pay immediately. Deadwood is charged after each turn and at settlement.
 HOW_SCORE_TOPIC_BASIC,"ĐIỂM CƠ BẢN","BASIC SCORING"
 HOW_SCORE_TOPIC_SPECIAL,"MÓM • Ù • Ù KHAN","SPECIAL OUTCOMES"
 HOW_SCORE_MELD_TITLE,"ĐIỂM HẠ PHỎM","MELD SCORE"
@@ -147,7 +147,7 @@ HOW_SCORE_MELD_BODY,"Tổng lá × số lá\n(4+5+6) × 3 = 45\n45 điểm = 45.
 HOW_SCORE_EXTEND_TITLE,"ĐIỂM GHÉP","EXTEND SCORE"
 HOW_SCORE_EXTEND_BODY,"Điểm mới 88 − cũ 45\n= +43 điểm\n= +43.000 VNĐ","New score 88 − old 45\n= +43 points\n= +43.000 VNĐ"
 HOW_SCORE_PHASE_TITLE,"ĐIỂM GIAI ĐOẠN","PHASE SCORE"
-HOW_SCORE_PHASE_BODY,"Gross − bài rời = Net\nBài rời bị trừ sau mỗi lượt\nQ = 12, K = 13\nÍt bài rời hơn = tốt hơn","Gross − deadwood = Net\nDeadwood deducts after every turn\nQ = 12, K = 13\nFewer loose cards is better"
+HOW_SCORE_PHASE_BODY,Thu nhập − bài rác = thực nhận\nBài rời bị phạt mỗi Lượt\nQ = 12 · K = 13\nĐem chơi hoặc chọn lá để bỏ,Earnings − deadwood = net\nLoose cards cost you each turn\nQ = 12 · K = 13\nPlay them or choose what to discard
 HOW_MOM_TITLE,"MÓM","MÓM"
 HOW_MOM_BODY,"0 Phỏm MỚI = Móm\nBài rời cuối = Tổng × Số lá\nTrừ bài rời mỗi lượt; Móm chốt mỗi Giai đoạn","0 NEW Melds = Móm\nFinal-turn deadwood = Sum × Card Count\nDeadwood deducts every turn; Móm settles each Phase"
 HOW_U_TITLE,"Ù","Ù"
@@ -162,25 +162,25 @@ TUTORIAL_CONTEXT,"GĐ %d • LƯỢT %d","PHASE %d • TURN %d"
 TUTORIAL_SPECIAL_PROGRESS,"LUẬT ĐẶC BIỆT\n%d / %d","SPECIAL RULES\n%d / %d"
 TUTORIAL_SPECIAL_COMPLETE,"HOÀN TẤT\n10 / 10","COMPLETE\n10 / 10"
 TUTORIAL_SELECT_RUN_TITLE,"Chọn một Sảnh","Select a Run"
-TUTORIAL_SELECT_RUN_BODY,"Nhấn 4 Cơ, 5 Cơ và 6 Cơ trong tay.","Click 4 Hearts, 5 Hearts, and 6 Hearts in your hand."
+TUTORIAL_SELECT_RUN_BODY,"Chọn 4♥, 5♥ và 6♥ trên tay.","Select 4♥, 5♥, and 6♥ in your hand."
 TUTORIAL_PLAY_RUN_TITLE,"Hạ Sảnh","Play the Run"
 TUTORIAL_PLAY_RUN_BODY,"Ba lá sáng lên màu xanh. Nhấn HẠ.","The three cards glow green. Press MELD."
 TUTORIAL_MELD_SCORE_TITLE,"Điểm Hạ Phỏm","Scoring a Meld"
 TUTORIAL_MELD_SCORE_BODY,"Tổng giá trị lá × số lá. Mỗi điểm trả 1.000 VNĐ.","Card-value sum × card count. Each point pays 1.000 VNĐ."
 TUTORIAL_SELECT_DISCARD_TITLE,"Chọn lá bỏ","Choose a discard"
-TUTORIAL_SELECT_DISCARD_BODY,"Nhấn Q Rô. Đây là lá bài rời không dùng trong Phỏm.","Click the Queen of Diamonds. It is a loose card you do not need."
+TUTORIAL_SELECT_DISCARD_BODY,"Chọn Q♦, lá rời bạn không cần.","Select Q♦, the loose card you do not need."
 TUTORIAL_DISCARD_TITLE,"Kết thúc lượt","End the turn"
 TUTORIAL_DISCARD_BODY,"Nhấn BỎ BÀI. Sau đó tay bài được rút đầy lại.","Press DISCARD. Your hand then refills."
-TUTORIAL_SELECT_EXTEND_TITLE,"Tìm lá Ghép","Find an Extend card"
-TUTORIAL_SELECT_EXTEND_BODY,"Bạn vừa rút 7 Cơ. Nhấn vào lá đó.","You just drew the 7 of Hearts. Click it."
+TUTORIAL_SELECT_EXTEND_TITLE,Tìm lá Nối Phỏm,Find a card to Extend
+TUTORIAL_SELECT_EXTEND_BODY,Bạn vừa bốc 7♥. Chọn lá đó.,You drew 7♥. Select it.
 TUTORIAL_SELECT_MELD_TITLE,"Chọn Phỏm trên bàn","Choose the table Meld"
-TUTORIAL_SELECT_MELD_BODY,"Nhấn vào Sảnh 4 Cơ–6 Cơ đã hạ trên bàn.","Click the played 4 Hearts–6 Hearts Run on the table."
-TUTORIAL_EXTEND_TITLE,"Ghép 7 Cơ","Extend with the 7 of Hearts"
-TUTORIAL_EXTEND_BODY,"Nhấn GHÉP để thêm 7 Cơ và nhận phần điểm tăng.","Press EXTEND to add the 7 of Hearts and score the increase."
+TUTORIAL_SELECT_MELD_BODY,Chọn Sảnh 4♥–6♥ trên bàn.,Select the 4♥–6♥ Run on the table.
+TUTORIAL_EXTEND_TITLE,Nối bằng 7♥,Extend with 7♥
+TUTORIAL_EXTEND_BODY,Bấm NỐI PHỎM để thêm 7♥ và nhận phần điểm tăng.,Press EXTEND to add 7♥ and earn the increase.
 TUTORIAL_EXTEND_SCORE_TITLE,"Điểm Ghép","Scoring an Extend"
 TUTORIAL_EXTEND_SCORE_BODY,"Chỉ phần tăng được trả: điểm Phỏm mới − điểm Phỏm cũ.","Only the increase pays: new Meld score − old Meld score."
 TUTORIAL_SELECT_FINAL_DISCARD_TITLE,"Chọn lá bỏ tiếp theo","Choose the next discard"
-TUTORIAL_SELECT_FINAL_DISCARD_BODY,"Nhấn K Bích trong tay.","Click the King of Spades in your hand."
+TUTORIAL_SELECT_FINAL_DISCARD_BODY,Chọn K♠ trên tay.,Select K♠ in your hand.
 TUTORIAL_FINAL_DISCARD_TITLE,"Kết thúc lượt thứ hai","Finish the second turn"
 TUTORIAL_FINAL_DISCARD_BODY,"Nhấn BỎ BÀI một lần nữa.","Press DISCARD one more time."
 TUTORIAL_MOM_TITLE,"Móm","Móm"
@@ -196,13 +196,13 @@ TUTORIAL_MOM_PANEL_RESULT,"TRỪ NGAY KHI CHỐT GIAI ĐOẠN","CHARGED AT PHASE
 TUTORIAL_U_PANEL_TITLE,"Ù","Ù"
 TUTORIAL_U_PANEL_LINE_A,"10 LÁ  →  DÙNG ĐÚNG 9","10 CARDS  →  COMMIT EXACTLY 9"
 TUTORIAL_U_PANEL_LINE_B,"BỎ LÁ CUỐI  →  Ù","DISCARD THE LAST  →  Ù"
-TUTORIAL_U_PANEL_RESULT,"GROSS GIAI ĐOẠN ×2","PHASE GROSS ×2"
+TUTORIAL_U_PANEL_RESULT,THU NHẬP VÁN HIỆN TẠI ×2,CURRENT DEAL EARNINGS ×2
 TUTORIAL_U_KHAN_PANEL_TITLE,"Ù KHAN","Ù KHAN"
 TUTORIAL_U_KHAN_PANEL_LINE_A,"KHÔNG ĐÔI / KHÔNG CẶP GẦN","NO PAIR / NO NEAR-RUN PAIR"
 TUTORIAL_U_KHAN_PANEL_LINE_B,"TỔNG GIÁ TRỊ TAY ×10","HAND VALUE ×10"
 TUTORIAL_U_KHAN_PANEL_RESULT,"NHẬN ĐIỂM • ĐỔI CẢ TAY","SCORE • REPLACE THE WHOLE HAND"
-TUTORIAL_COMPLETE_TITLE,"Bạn đã nắm luật chính","You know the main rules"
-TUTORIAL_COMPLETE_BODY,"Bạn đã học Lượt, Giai đoạn, tính điểm, Móm, Ù và Ù Khan. Bây giờ hãy chơi một ván thật.","You learned Turns, Phases, scoring, Móm, Ù, and Ù Khan. Now play a real Deal."
+TUTORIAL_COMPLETE_TITLE,Sẵn sàng vào bàn,Ready for the table
+TUTORIAL_COMPLETE_BODY,"Bạn đã biết lượt chơi, tính điểm và các kiểu bài đặc biệt. Thử Ván thật nhé; Sổ tay luôn ở đây.","You know the turns, scoring, and special hands. Try a real Deal; the Handbook is always here."
 HUD_MENU,"MENU","MENU"
 HUD_MENU_TOOLTIP,"Mở menu.","Open menu."
 HUD_DISCARD_HISTORY,"LÁ ĐÃ BỎ","DISCARDS"
@@ -212,14 +212,14 @@ HUD_WALLET,"VÍ CỦA BẠN","YOUR WALLET"
 HUD_RELICS,"BẢO VẬT","RELICS"
 HUD_CURRENT_DRINK,"Đồ uống hiện tại: %s","Current drink: %s"
 DRINK_TRA_DA_TOOLTIP,"Sau lần bỏ bắt buộc, bạn có thể bỏ thêm 1 lá hoặc kết thúc lượt. Lá thêm không tính vào 4 lần bỏ bắt buộc của Giai đoạn.","After the mandatory discard, you may discard 1 extra card or end the turn. The extra card does not advance the Phase's four mandatory discards."
-DRINK_NHAN_TRAN_TOOLTIP,"Mỗi Giai đoạn một lần: nhấn Đồ uống trước rồi chọn 1 lá bài rời và 1 lá bỏ bắt buộc của Giai đoạn này để đổi. Không tạo thêm lần bỏ bài.","Once per Phase: click the Drink first then choose 1 loose card and 1 mandatory discard from this Phase to swap. It never creates an extra discard."
+DRINK_NHAN_TRAN_TOOLTIP,Mỗi Lượt một lần: đổi 1 lá rời với 1 lá bỏ bắt buộc trong Hiệp này. Chốt Hạ dùng chung lượt Nước còn lại của Lượt cuối.,Once per Turn: choose 1 loose card and 1 mandatory discard from this Phase to swap. Last Call shares the final Turn's unused charge.
 DRINK_NUOC_VOI_TOOLTIP,"Mỗi Giai đoạn một lần: nhấn Đồ uống trước, rồi chọn trực tiếp 1 lá trong Phỏm. Sảnh chỉ tháo đầu thấp/cao; Bộ tháo lá bất kỳ; phải còn ít nhất 3 lá hợp lệ.","Once per Phase: click the Drink first, then choose a card inside a Meld. Runs allow only the low/high endpoint; Sets allow any card; at least 3 valid cards must remain."
 DRINK_SAM_DUA_TOOLTIP,Trong Hiệp 1: chọn tối đa 3 lá bài rời rồi nhấn hoặc kéo vào Đồ uống để giữ sang Hiệp 2. Có thể sửa bài đánh dấu trước khi chốt.,"During Phase 1, select up to 3 loose cards and click or drop on the Drink to carry them into Phase 2. Edit the marks before settlement."
-DRINK_NO_CHARGE,"Đồ uống không còn lượt dùng lúc này.","This Drink has no charge available right now."
-DRINK_NUOC_VOI_NO_TARGET,"Không có Phỏm nào có thể tháo hợp lệ bằng Nước vối.","No Meld currently has a legal Nước vối removal target."
+DRINK_NO_CHARGE,Hiện không còn lượt dùng.,No uses left right now.
+DRINK_NUOC_VOI_NO_TARGET,Chưa có lá nào lấy lại được mà vẫn giữ Phỏm hợp lệ.,No card can be taken back while keeping its Meld valid.
 DRINK_SAM_DUA_WRONG_TIME,Chỉ đánh dấu bài giữ trong Hiệp 1.,Mark cards to carry over during Phase 1 only.
-DRINK_NO_BASIC_EFFECT,"Đồ uống này không có hiệu ứng cơ bản khả dụng.","This Drink has no available basic effect."
-DRINK_USE_FAILED,"Không thể dùng Đồ uống lúc này.","The Drink cannot be used right now."
+DRINK_NO_BASIC_EFFECT,Nước này hiện không có thao tác để dùng.,This Drink has no action to use right now.
+DRINK_USE_FAILED,Không thể dùng Nước với lựa chọn hiện tại.,This Drink cannot be used with the current selection.
 STATUS_TRA_DA_EXTRA_DISCARD,"BỎ THÊM / BỎ QUA","EXTRA DISCARD / SKIP"
 BANNER_TRA_DA_EXTRA_DISCARD,"KENG! TRÀ ĐÁ  •  +1 LÁ TÙY CHỌN","CLINK! TRÀ ĐÁ  •  OPTIONAL +1 DISCARD"
 DRINK_USED_THIS_PHASE,"Đã dùng trong Giai đoạn này.","Already used this Phase."
@@ -236,7 +236,7 @@ PILE_DRAW_TOOLTIP,"Xem toàn bộ bài còn lại, phân loại theo chất.","V
 PILE_DISCARD_TOOLTIP,"Xem toàn bộ chồng bài bỏ, phân loại theo chất.","View the full discard pile, grouped by suit."
 PILE_COUNT,"%d LÁ","%d CARDS"
 ACTION_HINT,"GỢI Ý  [G]","HINT  [G]"
-ACTION_HINT_TOOLTIP,Chọn nhanh bài có thể Hạ hoặc Ghép. Không tự thực hiện nước đi.,Quickly select cards for a Meld or Extend without playing them.
+ACTION_HINT_TOOLTIP,Chọn sẵn một gợi ý Tạo hoặc Nối Phỏm. Bạn quyết định có chơi không.,Select a suggested Meld or Extension. You decide whether to play it.
 ACTION_SORT_RANK,"SẮP: SỐ  [S]","SORT: RANK  [S]"
 ACTION_SORT_SUIT,"SẮP: CHẤT  [S]","SORT: SUIT  [S]"
 ACTION_SORT_TOOLTIP,"Đổi cách xếp bài giữa số và chất.","Switch the hand order between rank and suit."
@@ -247,7 +247,7 @@ ACTION_EXTEND_TOOLTIP,"Ghép các lá đã chọn vào Phỏm đang nhắm tới
 ACTION_DISCARD,"BỎ BÀI  [D]","DISCARD  [D]"
 ACTION_DISCARD_TOOLTIP,Bỏ một lá để kết thúc lượt.,Discard one card to end the turn.
 ACTION_SETTLE,"CHỐT  [C]","SETTLE  [C]"
-ACTION_SETTLE_TOOLTIP,Chốt hiệp và tính phạt bài rời. Bài đã đánh dấu sẽ giữ sang Hiệp 2.,Settle the phase and count loose cards as deadwood. Marked cards carry into Phase 2.
+ACTION_SETTLE_TOOLTIP,Kết thúc Hiệp và chốt bài rác còn lại. Chỉ lá đã đánh dấu được giữ sang Hiệp 2.,Finish the Phase and settle its remaining deadwood. Only marked cards carry into Phase 2.
 ARCHIVE_DRAW_TITLE,"BỘ BÀI CÒN LẠI","REMAINING DECK"
 ARCHIVE_DISCARD_TITLE,"CHỒNG BÀI BỎ","DISCARD PILE"
 ARCHIVE_COUNT,"%d LÁ","%d CARDS"
@@ -265,7 +265,7 @@ PROBABILITY_EXTEND_SET,"GHÉP #%02d  BỘ %s","EXTEND #%02d  SET %s"
 PROBABILITY_EXTEND_CARD,"GHÉP #%02d  %s","EXTEND #%02d  %s"
 PROBABILITY_READY,"Sẵn sàng Hạ: %s","Ready to Meld: %s"
 PROBABILITY_DRAW,"%s: %.3f%% trong %d lá refill kế tiếp\nCần: %s","%s: %.3f%% in the next %d refill cards\nNeed: %s"
-PROBABILITY_NO_TARGET,"Không có mục tiêu Phỏm","No Meld target"
+PROBABILITY_NO_TARGET,Không có Phỏm phù hợp,No matching Meld
 MELD_RUN,"SẢNH","RUN"
 MELD_SET,"BỘ","SET"
 MELD_ACTION,"HẠ","MELD"
@@ -285,9 +285,9 @@ STATUS_CHOOSE,"CHỌN BÀI","SELECT CARDS"
 STATUS_VALID_MELD,"%s · +%d PTS · %s","%s · +%d PTS · %s"
 STATUS_VALID_EXTEND,"GHÉP #%02d · +%d PTS · %s","EXTEND #%02d · +%d PTS · %s"
 STATUS_ONE_SELECTED,"1 LÁ · BỎ / CHỌN THÊM","1 CARD · DISCARD / SELECT MORE"
-STATUS_INVALID_MELD,"CHƯA HỢP LỆ","INVALID SELECTION"
-BANNER_NEW_DEAL,"VÁN MỚI  •  CHỌN BÀI, HẠ PHỎM, RỒI BỎ 1 LÁ","NEW DEAL  •  SELECT CARDS, PLAY MELDS, THEN DISCARD 1 CARD"
-BANNER_LAST_CALL,"LAST CALL  •  HẠ / GHÉP LẦN CUỐI  •  NHẤN CHỐT KHI XONG","LAST CALL  •  FINAL MELD / EXTEND  •  PRESS SETTLE WHEN DONE"
+STATUS_INVALID_MELD,CÁC LÁ NÀY CHƯA THÀNH PHỎM,THESE CARDS DON'T FORM A MELD
+BANNER_NEW_DEAL,"VÁN MỚI · TẠO, NỐI PHỎM, RỒI BỎ 1 LÁ","NEW DEAL · MELD, EXTEND, THEN DISCARD 1"
+BANNER_LAST_CALL,"CHỐT HẠ · CHƠI BÀI CÒN DÙNG ĐƯỢC, RỒI CHỐT","LAST CALL · PLAY WHAT YOU CAN, THEN SETTLE"
 BANNER_DRAW,"RÚT %d LÁ  •  ĐÃ BỎ %d / %d","DREW %d CARDS  •  DISCARDED %d / %d"
 BANNER_NO_HINT,"CHƯA CÓ PHỎM HỢP LỆ  •  CHỌN 1 LÁ ĐỂ BỎ","NO VALID MELD YET  •  SELECT 1 CARD TO DISCARD"
 BANNER_HINT,"GỢI Ý %s  •  +%d ĐIỂM DỰ KIẾN","HINT: %s  •  +%d EXPECTED POINTS"
@@ -301,7 +301,7 @@ BANNER_DRINK_USED,"ĐÃ DÙNG ĐỒ UỐNG","DRINK USED"
 BANNER_DRINK_TARGET_ONE,"ĐỒ UỐNG ĐÃ SẴN SÀNG  •  CHỌN 1 LÁ","DRINK ARMED  •  CHOOSE 1 CARD"
 BANNER_DRINK_TARGET_SAM_DUA,"CHỌN TỐI ĐA 3 LÁ • KÉO VÀO CỐC HOẶC NHẤN H","CHOOSE UP TO 3 CARDS • DROP ON CUP OR PRESS H"
 BANNER_DRINK_SAM_DUA_LIMIT,"SÂM DỨA CHỈ GIỮ TỐI ĐA 3 LÁ","SÂM DỨA PRESERVES AT MOST 3 CARDS"
-BANNER_NEW_DEAL_WALLET,"VÁN MỚI  •  VÍ VNĐ ĐƯỢC GIỮ NGUYÊN","NEW DEAL  •  VNĐ WALLET PRESERVED"
+BANNER_NEW_DEAL_WALLET,VÁN MỚI · GIỮ NGUYÊN VÍ,NEW DEAL · WALLET CARRIED OVER
 MOM,"MÓM","MÓM"
 SAFE,"AN TOÀN","SAFE"
 MODAL_PHASE1_KICKER,"GIAI ĐOẠN 1 HOÀN TẤT  •  %s","PHASE 1 COMPLETE  •  %s"
@@ -330,23 +330,23 @@ STATUS_DRINK_TARGETING_NHAN_TRAN,"1 LÁ RỜI ↔ 1 LÁ BỎ BẮT BUỘC","1 LO
 STATUS_DRINK_TARGETING_NHAN_TRAN_HAND,"CHỌN 1 LÁ RỜI","CHOOSE 1 LOOSE CARD"
 STATUS_DRINK_TARGETING_NHAN_TRAN_DISCARD,"CHỌN 1 LÁ BỎ BẮT BUỘC","CHOOSE 1 MANDATORY DISCARD"
 BANNER_DRINK_TARGET_NHAN_TRAN,"NHÂN TRẦN  •  CHỌN 1 LÁ RỜI VÀ 1 LÁ BỎ BẮT BUỘC","NHÂN TRẦN  •  CHOOSE 1 LOOSE CARD AND 1 MANDATORY DISCARD"
-STATUS_TRUE_EXHAUSTION,"C?N KI?T    DI?M B?T TH??NG TR?N L? B? B?NG GIA TR? HI?N T?I","TRUE EXHAUSTION ACTIVE    DISCARDS SCORE THEIR CURRENT VALUE"
-BANNER_FIRST_EXHAUSTION,"H?T STOCK    XAO LAI M?T L?N","FIRST EXHAUSTION    STOCK RESHUFFLED ONCE"
-BANNER_TRUE_EXHAUSTION,"TRUE EXHAUSTION    KH�NG C�N L?N XAO LAI","TRUE EXHAUSTION    NO MORE RESHUFFLES"
-BANNER_TRUE_EXHAUSTION_DISCARD,"TRUE EXHAUSTION    B? L? +%d DI?M","TRUE EXHAUSTION    DISCARD +%d POINTS"
+STATUS_TRUE_EXHAUSTION,"C?N KI?T  ·  DI?M B?T TH??NG TR?N L? B? B?NG GIA TR? HI?N T?I","TRUE EXHAUSTION ACTIVE  ·  DISCARDS SCORE THEIR CURRENT VALUE"
+BANNER_FIRST_EXHAUSTION,"H?T STOCK  ·  XAO LAI M?T L?N","FIRST EXHAUSTION  ·  STOCK RESHUFFLED ONCE"
+BANNER_TRUE_EXHAUSTION,"TRUE EXHAUSTION  ·  KH�NG C�N L?N XAO LAI","TRUE EXHAUSTION  ·  NO MORE RESHUFFLES"
+BANNER_TRUE_EXHAUSTION_DISCARD,"TRUE EXHAUSTION  ·  B? L? +%d DI?M","TRUE EXHAUSTION  ·  DISCARD +%d POINTS"
 ACTION_END_TURN,"KẾT THÚC LƯỢT  [C]","END TURN  [C]"
 ACTION_END_TURN_TOOLTIP,"Bỏ qua lượt bỏ thêm tùy chọn của Trà đá và sang lượt kế.","Skip Trà đá's optional extra discard and continue to the next turn."
 BANNER_EXHAUSTION,"CẠN KIỆT  •  KÍCH HOẠT PHỎM  •  XÁO LẠI TOÀN BỘ","EXHAUSTION  •  MELDS TRIGGERED  •  FULL DECK RESHUFFLED"
 DRINK_ORDER,Cho cháu món này,I'll have this one
-DRINK_TEST_PRICE,Thử món: miễn phí (tạm thời),Tasting: free (temporary test price)
+DRINK_TEST_PRICE,Thực đơn thử · miễn phí trong bản thử,Tasting menu · free in this test
 DRINK_EXPLAIN,%s à? %s,%s? %s
-DRINK_RECEIPT,%s của cháu đây. Cứ thong thả chơi nhé. Muốn đổi món thì ghé cô buổi sau.,Here’s your %s. Take your time at the table. Come back next service to try something else.
+DRINK_RECEIPT,%s của cháu đây; coi chừng vệt nước trước khi đặt bài nhé.,"Your %s, dear; mind the wet ring before you put your cards down."
 DRINK_CONFIRM_HINT,Chọn bài rồi bấm DÙNG NƯỚC để xác nhận. Esc để hủy.,"Choose cards, then click the glass again to confirm. Esc cancels."
-NPC_GREETING_TRA_DA_AUNTIE,"Ngồi đi cháu. Hôm nay muốn uống gì? Cứ chỉ, cô kể từng món cho nghe.","Sit down, dear. What would you like today? Point to a drink and I'll tell you about it."
-NPC_GREETING_DANH_GIAY,"Đưa em đủ hai lá rồi chọn đổi số hoặc chất. Đã chốt là giữ đến hết chuyến nhé!","Give me two cards, then choose Rank or Suit. Your pair stays on my bench this visit!"
-NPC_GREETING_HANG_RONG,"Mới gánh đến, còn mấy món hay lắm. Cứ xem thoải mái, ưng gì thì bảo tôi.","Just got here with a few good things. Have a look; tell me if anything catches your eye."
-NPC_GREETING_LOTTO,"Có vé mới đây! Chọn một tờ lấy hên đi, chiều quay lại tôi dò cùng.","Fresh tickets! Pick one for luck and come back this afternoon. We'll check it together."
-NPC_GREETING_THAY_BOI,"Muốn thử một quẻ không? Kéo cần cho sáu hào quay. Bài vẫn là bài; vận mới đổi. Cháu quyết có nhận quẻ không.","Want to try a reading? Pull the lever and let the six lines spin. The card stays itself; its fortune changes. You decide whether to accept."
+NPC_GREETING_TRA_DA_AUNTIE,Ngồi chỗ mát đi cháu; chỉ ly nào cô kể công dụng ly ấy.,"Sit in the shade, dear; point to a glass and I'll tell you what it does."
+NPC_GREETING_DANH_GIAY,"Đưa em hai lá lên bàn nhé chú; đổi số hay chất đều được, nhưng chọn rồi giữ cặp này suốt chuyến đấy!","Two cards on the bench, boss; I'll change their Rank or Suit, but this pair stays with me for the visit!"
+NPC_GREETING_HANG_RONG,Coi chừng quai thúng; đồ ở đây món nào cũng qua một buổi sáng dài hơn cô rồi.,Mind the basket strap; everything here has survived a longer morning than I have.
+NPC_GREETING_LOTTO,"Thích thì chọn một vé; giữ khô nhé, chiều chú cháu mình dò số.",Pick a ticket if you fancy it; keep it dry and we'll check the numbers this afternoon.
+NPC_GREETING_THAY_BOI,"Sáu hào, một quẻ; kéo cần rồi tự quyết có để bài nhận vận ấy không.","Six lines, one reading; pull the lever, then decide whether your cards should keep the fortune it offers."
 DRINK_EFFECT_TRA_DA,Miễn phí. Mỗi lượt có thể bỏ thêm một lá sau lá bắt buộc. Bấm Kết lượt nếu không muốn dùng.,"Free. After each mandatory discard, you may discard one extra card. Choose End Turn to skip the extra discard."
 DRINK_EFFECT_NHAN_TRAN,"Mỗi lượt đổi một lá rác trên tay với một lá bỏ bắt buộc của hiệp này. Last Call dùng lượt còn lại, không thêm lượt.","Once per Turn, swap a loose card with a mandatory discard from this Phase. Last Call shares your final Turn’s unused charge."
 DRINK_EFFECT_NUOC_VOI,"Mỗi hiệp lấy lại một lá từ Phỏm, miễn phần còn lại vẫn hợp lệ và có ít nhất ba lá. Tiền đã ăn vẫn giữ.","Once per Phase, take one card back from a Meld if at least three cards remain legal. Your earned score stays banked."
@@ -361,10 +361,10 @@ DRINK_EFFECT_MIA_TAC,"Dây được trộn Cơ với Rô, kể cả khi gửi. H
 DRINK_EFFECT_MIA_SAU_RIENG,"Dây được trộn Bích với Tép, kể cả khi gửi. Hạng vẫn liền nhau, Át thấp, không vòng. Không trộn hai chất đỏ.","Runs may mix Spades and Clubs, including extensions. Ranks stay unique and consecutive, Ace low, no wrap. Red suits gain no compatibility."
 NPC_ASK_BUSINESS,Hôm nay có gì vui?,How's your day going?
 NPC_LEAVE,Tạm biệt nhé.,I'll let you work.
-NPC_CHAT_DANH_GIAY,"Sáng nay em suýt bắt trượt quả bóng xuống mương. May còn đôi giày này để chạy theo!","I nearly lost my ball down the drain this morning. Good thing these shoes can still run!"
-NPC_CHAT_HANG_RONG,"Sáng gánh đi nặng trĩu. Chiều mà nhẹ vai thì tôi về sớm ăn cơm với nhà.","The baskets were heavy this morning. If they're lighter by evening, I might get home for dinner."
-NPC_CHAT_LOTTO,"Có ông khách mua đúng một tờ mỗi tuần. Ổng bảo thích cái lúc mở vé hơn cả chuyện trúng.","One regular buys a single ticket every week. Says he likes the moment before checking it best."
-NPC_CHAT_THAY_BOI,"Tôi xem quẻ cho người ta bao năm rồi. Có lúc điều họ cần nhất chỉ là ngồi nghĩ thêm một chút.","I've read fortunes for years. Sometimes people just need a moment to think before they choose."
+NPC_CHAT_DANH_GIAY,"Sáng bóng em lăn xuống gầm xe buýt; em chờ xe đi, chứ hai chân cứ muốn chạy theo.","My ball rolled under a bus this morning; I waited for it to leave, though my legs wanted to race it."
+NPC_CHAT_HANG_RONG,"Hôm qua con gái chừa cô một chỗ ăn cơm; cô cố bán thêm cái lược, về thì cơm nguội mất rồi.",My daughter saved me a seat at dinner yesterday; I sold one more comb and got home to cold rice.
+NPC_CHAT_LOTTO,"Có người tuần nào cũng mua một vé, chẳng hỏi số may; bảo tiền bỏ ra là để tự mình chọn.",A regular buys one ticket a week and never asks for lucky numbers; says choosing is the part he pays for.
+NPC_CHAT_THAY_BOI,"Quẻ khó nhất tôi từng xem là cho người đã biết câu trả lời, chỉ mong được phép lờ nó đi.",The hardest reading I ever gave was to someone who already knew the answer and wanted permission to ignore it.
 DRINK_TARGET_ANY_DISCARD,"Kéo lá trên tay vào lá bỏ để đổi. Hoặc chọn một lá rồi nhấn cốc.","Drop a hand card onto a discard to swap. Or select a card and click the cup."
 DRINK_TARGET_WHOLE_MELD,"Kéo phỏm về tay hoặc kéo cốc vào phỏm.","Drag a meld back to your hand, or drop the cup onto it."
 DRINK_TARGET_PAIR,"Chọn hai lá đồng hạng: tự hạ. Hoặc kéo cả đôi ra bàn / vào cốc.","Choose two matching cards to lay the pair. Or drag the pair to the table / cup."
@@ -419,17 +419,17 @@ DRINK_UNLOCK_HINT,"Chọn đồ uống để xem cách mở khóa.","Select a dr
 DRINK_QUICK_HINT,"Chọn bài rồi nhấn cốc một lần, hoặc kéo thả bài / cốc.","Select cards and click the cup once, or drag and drop cards / cup."
 DRINK_SHOP_QUICK_HINT,"Nhấn để xem / chọn • Nhấn GỌI NƯỚC để mua","Click to inspect / select • Press Order to buy"
 GIEO_PROPERTY_LIQUID,"LƯU QUANG","LIQUID"
-GIEO_PROPERTY_LIQUID_DESC,"+1 Dư âm. Mỗi lá cho thêm một lượt đủ điểm Phỏm hợp lệ; không đệ quy. Ghép Bộ giữa các mốc chỉ trả chênh lệch.","+1 Echo. Each card adds one complete qualifying meld pass; never recursive. Set extensions between milestones stay delta-only."
+GIEO_PROPERTY_LIQUID_DESC,Mỗi lá Lưu Quang thêm 1 Dư Âm khi Phỏm được trả đủ điểm. Dư Âm không tự kích hoạt thêm. Nối Bộ giữa các mốc chỉ trả phần tăng.,+1 Echo per Liquid card on a qualifying full-Meld payout. Echoes do not trigger more Echoes. Set Extensions between milestones pay only the increase.
 SCORE_LIQUID_ECHO,"DƯ ÂM %d","ECHO %d"
 SCORE_GOLD_AGAIN,"GIÁ TRỊ LÁ THÊM MỘT LẦN","THIS CARD AGAIN"
 "CARD_SHINY","SẠCH BÓNG","SHINY / CLEAN"
-"CARD_SHINY_DESC","Lá sạch bóng ghi thêm một lần phần điểm riêng mỗi khi ghi điểm. Hết hiệu lực vào ngày mai.","A polished card repeats its own scoring contribution once whenever it scores. Wears off tomorrow."
+CARD_SHINY_DESC,"Mỗi lần tính điểm, lá này lặp lại phần điểm của chính nó một lần. Lớp bóng hết vào ngày mai.",This card repeats its own scoring contribution once whenever it scores. The polish wears off tomorrow.
 "LOTTO_CHOOSE","VÉ SỐ","LOTTERY"
-"LOTTO_RULES","Vé hôm nay · Mua bằng cách chọn vé. Dò và trả thưởng ở Sự kiện chiều, trước ván tối.","Today's tickets · Tap a ticket to buy. Results and payouts at the Afternoon Event, before the Evening Deal."
+LOTTO_RULES,"Chạm vé để mua. Chiều quay lại dò số, trước Ván tối.","Tap a ticket to buy. Come back this afternoon for the draw, before the Evening Deal."
 "LOTTO_BOUGHT","ĐÃ MUA","BOUGHT"
 "LOTTO_OWNED","Vé của chú: %s","Your tickets: %s"
 "LOTTO_HIERARCHY","Đặc biệt ×80 · Nhất ×20 · Nhì ×5 · Ba ×2,5","Special ×80 · 1st ×20 · 2nd ×5 · 3rd ×2.5"
-"LOTTO_PURCHASED","Vé %02d của chú đây. Chiều nay mình dò nhé!","Here's your %02d ticket. Let's check it this afternoon!"
+LOTTO_PURCHASED,Số %02d của bạn; cất chỗ khô đến chiều nhé.,"Number %02d, yours; tuck it somewhere dry until this afternoon."
 "LOTTO_PREVIOUS","Xem chi tiết kết quả","View results"
 "LOTTO_RESULTS","KẾT QUẢ VÉ SỐ · NGÀY %d","LOTTERY RESULTS · DAY %d"
 "LOTTO_SPECIAL","ĐẶC BIỆT","SPECIAL"
@@ -448,10 +448,10 @@ RELIC_EFFECT_HARD_CANDY,"Phỏm mới từ 4 lá: +%d%% VNĐ/PTS cho lần hạ 
 RELIC_EFFECT_SUNGLASSES,"Phỏm mới toàn lá đen: +%d%% VNĐ/PTS cho lần hạ này.","New all-black meld: +%d%% VNĐ/PTS for this action."
 RELIC_EFFECT_LIPSTICK,"Phỏm mới toàn lá đỏ: +%d%% VNĐ/PTS cho lần hạ này.","New all-red meld: +%d%% VNĐ/PTS for this action."
 RELIC_EFFECT_BUTTONS,"SET mới đúng 4 lá: +%d%% VNĐ/PTS cho lần hạ này.","New SET with exactly 4 cards: +%d%% VNĐ/PTS for this action."
-RELIC_SELECTOR_NOTE,"Mua di vật cho chuyến đi • mang tối đa 4 món.","Buy relics for this run • carry up to 4."
+RELIC_SELECTOR_NOTE,Bảo vật theo lượt chơi này · sở hữu là có hiệu lực.,Relics last this run · all owned relics are active.
 RELIC_REMOVE,"Tháo","Remove"
 RELIC_EQUIP,"Mang","Equip"
-RELIC_FULL,"Tháo một bảo vật trước.","Remove a relic first."
+RELIC_FULL,Ở đây không còn chỗ cho bảo vật này.,No room for this relic here.
 RELIC_RATE_TITLE,"%s · %d ĐIỂM","%s · %d POINTS"
 RELIC_BONUS_RECEIPT,"%s + %s = %s VNĐ/PTS","%s + %s = %s VNĐ/PTS"
 
@@ -469,26 +469,26 @@ DRINK_GOAL_RED_RUNS,"Hạ 15 sảnh đỏ","Create 15 red runs"
 DRINK_GOAL_BLACK_RUNS,"Hạ 15 sảnh đen","Create 15 black runs"
 
 NPC_DOI_NO,"ĐÒI NỢ","ĐÒI NỢ"
-NPC_GREETING_DOI_NO,"Anh ghi khoản hôm nay vào sổ rồi. Tối anh ghé lại, mình tính cho xong nhé.","I've put today's amount in the ledger. I'll come by tonight and we'll settle it."
-NPC_CHAT_DOI_NO,"Cứ lo ván bài của em đi. Tối gặp lại, anh mang sổ theo.","Take care of your game. I'll bring the ledger when I return tonight."
+NPC_GREETING_DOI_NO,"Nợ hôm nay ghi trong sổ rồi; sau Ván tối tôi quay lại, mình cùng đếm.","Today's amount is in the ledger; I'll return after the Evening Deal, and we'll count it together."
+NPC_CHAT_DOI_NO,Cha tôi giữ sổ này trước tôi; ông dạy đếm hai lần để khỏi phải cãi nhau một lần.,"My father kept this ledger before me; he taught me to count twice, so nobody has to argue once."
 
 DEBT_INTRO_REQUIRED,"NỢ PHẢI TRẢ TỐI NAY","DUE AFTER THE EVENING DEAL"
-DEBT_INTRO_ACKNOWLEDGE,"ĐÃ HIỂU · HẸN ANH TỐI NAY","UNDERSTOOD · SEE YOU TONIGHT"
-DEBT_INTRO_EXPLANATION,"Anh quay lại sau ván %s. Kiếm đủ tiền để trả nợ. Ví phía trên là tiền của chú. Xem hành trình để biết nợ các ngày sau.","I return after the %s Deal. Earn enough to pay. Your wallet is at the top. The journey shows future daily debts."
+DEBT_INTRO_ACKNOWLEDGE,TỐI GẶP LẠI,I'LL SEE YOU TONIGHT
+DEBT_INTRO_EXPLANATION,Tôi quay lại sau Ván %s. Giữ đủ tiền trong ví để trả; hành trình ghi các khoản nợ sắp tới.,I return after the %s Deal. Keep enough in your wallet to pay; the journey shows the debts still ahead.
 DEBT_INTRO_SHORTFALL,"CÒN THIẾU ĐỂ TRẢ NỢ  %s","STILL NEEDED FOR PAYMENT  %s"
 CARD_FORTUNE,"Vận","Fortune"
 CARD_GOLD,"VÀNG","GOLD"
-CARD_GOLD_DESC,"Vận dương: tính giá trị lá bài từ 1 đến 6 lần theo độ lớn của Vận mỗi khi tính điểm. Bài rời tính phạt thường.","Positive Fortune: count this card's value 1 to 6 times according to its magnitude whenever scored. Deadwood uses normal value."
+CARD_GOLD_DESC,"Vận dương: mỗi lần tính điểm, giá trị lá nhân với Vận từ 1 đến 6. Khi là bài rác, tính giá trị thường.","Positive Fortune: each score counts this card's value × its Fortune, from 1 to 6. As Deadwood, it uses normal value."
 CARD_BLACK_INK,"MỰC ĐEN","BLACK INK"
 CARD_BLACK_INK_DESC,"Vận âm: hạ Phỏm tính giá trị thường. Khi còn rời, sinh lời bằng giá trị lá × độ lớn của Vận.","Negative Fortune: normal value when Melded. As Deadwood, earn this card's value × its Fortune magnitude."
 CARD_NEGATIVE,"ÂM BẢN","NEGATIVE"
 CARD_NEGATIVE_DESC,"Định danh Phỏm: số thật -1 / số thật / số thật +1 và hai chất cùng màu. A không vòng sang K. Số, chất và giá trị thật vẫn giữ nguyên.","Meld identity: actual rank -1 / actual rank / actual rank +1, and either suit of its color. Ace does not wrap to King. Actual rank, suit and value stay unchanged."
 CARD_GLITCH,"GLITCH","GLITCH"
-CARD_GLITCH_DESC,"Lưu Quang + Âm Bản trên cùng một lá: mọi số, mọi chất, +1 Dư âm. Vận giữ riêng.","Liquid + Negative on one physical card: any rank, any suit, +1 Echo. Fortune stays independent."
-GIEO_TARGET_RANDOM_ONE,"1 lá ngẫu nhiên","1 random physical card"
+CARD_GLITCH_DESC,"Lưu Quang + Âm Bản trên cùng lá: mọi hạng, mọi chất, +1 Dư Âm. Vận tính riêng.","Liquid + Negative on the same card: any rank, any suit, +1 Echo. Fortune is separate."
+GIEO_TARGET_RANDOM_ONE,1 lá ngẫu nhiên,1 random card
 BLACK_INK_PROFIT,"MỰC ĐEN · SINH LỜI","BLACK INK · PROFIT"
 SHOE_BENCH,"BÀN ĐỔI BÀI","CARD WORKBENCH"
-SHOE_SELECTED,"Đã chốt %d / 2 lá","Committed %d / 2 cards"
+SHOE_SELECTED,Đã chọn %d / 2 lá,Chosen %d / 2 cards
 SHOE_USES,"Lượt đổi: Số %d · Chất %d   |   Giá tăng riêng cho mỗi dịch vụ","Rerolls: Rank %d · Suit %d   |   Each service has its own rising price"
 SHOE_SLOT,"LÁ %d","CARD %d"
 SHOE_COMMITTED,"ĐÃ CHỐT","COMMITTED"
@@ -500,22 +500,22 @@ SHOE_PICK_TERMS,"Chốt đủ 2 lá trước khi đổi. Mỗi lá đã chốt k
 SHOE_SECOND_REQUIRED,"Chốt lá thứ hai để bắt đầu đổi số hoặc chất.","Commit your second card to unlock Rank and Suit rerolls."
 SHOE_REROLL_RANK,"ĐỔI SỐ · CẢ HAI LÁ","TRANSFORM RANK · BOTH CARDS"
 SHOE_REROLL_SUIT,"ĐỔI CHẤT · CẢ HAI LÁ","TRANSFORM SUIT · BOTH CARDS"
-SHOE_INDEPENDENT,"Kết quả riêng từng lá","Independent card outcome"
+SHOE_INDEPENDENT,Mỗi lá có kết quả riêng,Each card rolls separately
 SHOE_RESULT_RANK,"KẾT QUẢ ĐỔI SỐ","RANK RESULT"
 SHOE_RESULT_SUIT,"KẾT QUẢ ĐỔI CHẤT","SUIT RESULT"
 SHOE_PERMANENT,"Giữ suốt lượt chơi","Permanent for this run"
-SHOE_SELECT_FIRST,"Đưa em lá đầu tiên nhé.","Put your first card on the bench."
-SHOE_READY,"Chọn đổi số hoặc chất cho cả hai lá. Mỗi lá có kết quả riêng.","Choose Rank or Suit for both cards. Each card rolls its own result."
-SHOE_CARD_TAKEN,"Em giữ lá này nhé. Đưa thêm lá thứ hai rồi mình đổi!","This one stays with me. Give me the second card, then we can start!"
-SHOE_ONE_MORE,"Xong rồi! Thêm một lượt nữa không chú?","There it is. One more?"
-SHOE_WALLET_EMPTY,"Xong rồi… ví cũng hết đường đổi luôn rồi chú!","There it is… and the wallet is done!"
+SHOE_SELECT_FIRST,Đưa em lá đầu tiên nhé chú; em giữ cẩn thận.,"First card on the bench, boss; I'll mind it."
+SHOE_READY,"Đổi số hay chất đây chú? Trả một lần đổi cả hai, mỗi lá ra kết quả riêng.","Rank or Suit, boss? One payment changes both; each card gets its own result."
+SHOE_CARD_TAKEN,Lá này ở lại trên bàn nhé; đưa em lá đi cùng nào!,This one's staying on the bench; hand me its partner!
+SHOE_ONE_MORE,"Xong rồi nhé; làm lượt nữa, hay ngắm thành quả thôi?","There we are; another go, or shall we admire the work?"
+SHOE_WALLET_EMPTY,Xong rồi; cho cái ví nghỉ chút nhé chú.,Job done; let's give that wallet a rest.
 SHOE_PRICE_RULE,"Một lần trả tiền đổi cả hai lá, mỗi lá có kết quả riêng. Giá đầu theo nợ ngày: số 10% (tối thiểu 25.000 VNĐ), chất 5% (tối thiểu 15.000 VNĐ). Làm tròn lên 500 VNĐ. Mỗi dịch vụ tăng gấp đôi riêng.","One payment transforms both cards, each with its own result. Starting prices use today's debt: Rank 10% (minimum 25.000 VNĐ), Suit 5% (minimum 15.000 VNĐ). Round up to 500 VNĐ. Each service doubles independently."
 SHOE_ERROR_CLOSED,"Chỉ đổi bài ở đầu ngày, từ thứ Ba trở đi.","Card work is available at Starter, from Tuesday onward."
 SHOE_ERROR_PAIR,"Chốt đủ hai lá trước khi đổi số hoặc chất.","Commit both cards before rerolling Rank or Suit."
 SHOE_ERROR_SELECTED,"Lá này đã được chốt rồi.","This card is already committed."
 SHOE_ERROR_FULL,"Đã chốt đủ 2 lá cho chuyến này.","Both cards are already committed for this visit."
-SHOE_ERROR_MISSING,"Không còn lá này trong bộ bài.","This physical card is unavailable."
+SHOE_ERROR_MISSING,Lá ấy không còn để chọn.,That card is no longer available.
 SHOE_ERROR_SEALED,"Lá này đã bị khóa biến đổi.","This card is sealed against transformations."
 SHOE_ERROR_UNSELECTED,"Hãy chốt lá này trước khi đổi.","Commit this card before rerolling it."
-SHOE_ERROR_FUNDS,"Ví không đủ cho lượt tiếp theo.","Not enough money for the next reroll."
+SHOE_ERROR_FUNDS,Ví chưa đủ tiền để đổi thêm lượt nữa.,Not enough in your wallet for another reroll.
 SHOE_ERROR_MUTATION,"Không đổi được lá này. Không mất tiền.","This card could not be changed. No money was spent."

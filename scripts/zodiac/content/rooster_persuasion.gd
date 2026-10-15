@@ -20,7 +20,7 @@ const EXTENSION := {
 }
 const COUNTER_REFUSE := {"delta": 0, "dialogue": [
 	{"speaker": "player", "en": "No. I can't commit to that either.", "vi": "Không. Việc đó tôi cũng không cam kết được."},
-	{"speaker": "rooster", "en": "Then that's settled. No promise to collect.", "vi": "Vậy đã rõ. Không có lời hứa nào để đòi."}
+	{"speaker": "rooster", "en": "Good. An empty line is better than a false entry.", "vi": "Được. Để trống một dòng còn hơn ghi sai."}
 ]}
 const CONFIG := {
 	"visit_limits": {"1": 3, "1+": 1, "2": 1},
@@ -37,14 +37,14 @@ const CONFIG := {
 	"emblem_unlock": {"relationship_tier": 3, "promises_kept": 3, "promise_kinds": 2, "promises_refused": 1, "pleased_victories": 1},
 	"last_chance": {
 		"id": "rooster.last_chance.plain_answer",
-		"prompt": [{"speaker": "rooster", "en": "One last answer. Can I plan around your word?", "vi": "Trả lời lần cuối. Tôi có thể trông vào lời bạn không?"}],
+		"prompt": [{"speaker": "rooster", "en": "Last question. When you say you'll come, should I put the kettle on?", "vi": "Câu cuối. Khi bạn bảo sẽ đến, tôi có nên đun nước chờ không?"}],
 		"answers": [
 			{"id": "A", "en": "Only when I actually promise. Ask me plainly.", "vi": "Chỉ khi tôi thật sự hứa. Cứ hỏi thẳng đi.", "recovery_success": true,
-				"reaction": [{"speaker": "rooster", "en": "Then stop answering a question I didn't ask.", "vi": "Vậy đừng trả lời câu tôi không hỏi nữa."}]},
+				"reaction": [{"speaker": "rooster", "en": "Good. I can work with that. I can't work with guessing.", "vi": "Được. Biết rõ thì tôi thu xếp được. Đoán mò thì chịu."}]},
 			{"id": "B", "en": "Of course. Whatever gets this over with.", "vi": "Dĩ nhiên. Sao cho xong chuyện là được.", "recovery_success": false,
 				"reaction": [{"speaker": "rooster", "en": "We're finished, then.", "vi": "Vậy xong rồi đấy."}]},
 			{"id": "C", "en": "No. I can't commit to anything today.", "vi": "Không. Hôm nay tôi không thể cam kết gì cả.", "recovery_success": true,
-				"reaction": [{"speaker": "rooster", "en": "Good. That's an answer I can use.", "vi": "Tốt. Câu đó còn giúp tôi tính được việc."}]}
+				"reaction": [{"speaker": "rooster", "en": "Right. I'll put the kettle away.", "vi": "Rồi. Tôi cất ấm đây."}]}
 		]},
 	"special": []
 }
@@ -54,31 +54,31 @@ const NODES := [
 		"prompt": [{"speaker": "rooster", "en": "You're late. Should I have kept the chair?", "vi": "Bạn đến muộn. Tôi có nên giữ ghế không?"}],
 		"answers": [
 			{"id": "A", "en": "No. I didn't ask you to wait.", "vi": "Không. Tôi đâu có nhờ bạn đợi.", "delta": 1,
-				"reaction": [{"speaker": "rooster", "en": "Fine. Sit down. It's still empty.", "vi": "Được. Ngồi đi. Ghế vẫn trống."}]},
+				"reaction": [{"speaker": "rooster", "en": "No, you didn't. Sit. I kept it anyway.", "vi": "Ừ, bạn không nhờ. Ngồi đi. Tôi vẫn giữ đấy."}]},
 			{"id": "B", "en": "I hoped you would.", "vi": "Tôi đã mong bạn giữ.", "delta": 0,
-				"reaction": [{"speaker": "rooster", "en": "Hope doesn't reserve a chair.", "vi": "Mong thôi thì không giữ được ghế."}]},
+				"reaction": [{"speaker": "rooster", "en": "Next time, ask. I don't charge for the chair.", "vi": "Lần sau cứ hỏi. Tôi có thu tiền ghế đâu."}]},
 			{"id": "C", "en": "Obviously. You knew I was coming.", "vi": "Dĩ nhiên. Bạn biết tôi sẽ đến mà.", "delta": -1,
-				"reaction": [{"speaker": "rooster", "en": "I knew you said you were coming.", "vi": "Tôi biết bạn đã nói sẽ đến."}]}
+				"reaction": [{"speaker": "rooster", "en": "I knew what you said. That's what I had to go on.", "vi": "Tôi chỉ biết lời bạn nói. Tôi dựa vào đó mà chờ."}]}
 		]},
 	{"id": "rooster.t1.no", "zodiac": "rooster", "content_tier": "1", "kind": "QUESTION", "topic": "boundaries",
-		"prompt": [{"speaker": "rooster", "en": "Someone asks for a favor you can't do. What do you tell them?", "vi": "Có người nhờ việc bạn không làm được. Bạn nói sao?"}],
+		"prompt": [{"speaker": "rooster", "en": "A neighbor needs a hand before dawn. You can't go. When do you tell them?", "vi": "Hàng xóm nhờ phụ trước lúc trời sáng. Bạn không đi được. Bao giờ bạn báo?"}],
 		"answers": [
 			{"id": "A", "en": "No. While they still have time to ask someone else.", "vi": "Không. Khi họ vẫn còn thời gian nhờ người khác.", "delta": 1,
-				"reaction": [{"speaker": "rooster", "en": "Exactly. A no can be useful.", "vi": "Đúng vậy. Nói không cũng có ích."}]},
+				"reaction": [{"speaker": "rooster", "en": "Before they've hauled everything outside. Yes.", "vi": "Trước khi người ta khuân hết đồ ra ngoài. Đúng."}]},
 			{"id": "B", "en": "I'll see what I can do.", "vi": "Để tôi xem làm được gì.", "delta": 0,
-				"reaction": [{"speaker": "rooster", "en": "And when do they stop waiting?", "vi": "Vậy đến lúc nào họ mới hết phải đợi?"}]},
+				"reaction": [{"speaker": "rooster", "en": "Lovely. Shall they wait until lunch to find out?", "vi": "Hay thật. Để họ chờ đến trưa mới biết nhé?"}]},
 			{"id": "C", "en": "Yes. I'll work something out later.", "vi": "Có. Rồi tính cách sau.", "delta": -1,
-				"reaction": [{"speaker": "rooster", "en": "You've just made your problem theirs.", "vi": "Bạn vừa biến rắc rối của mình thành của họ."}]}
+				"reaction": [{"speaker": "rooster", "en": "And now they'll set out two cups instead of asking someone else.", "vi": "Thế là họ bày hai cái cốc, thay vì tìm người khác giúp."}]}
 		]},
 	{"id": "rooster.t1.finished", "zodiac": "rooster", "content_tier": "1", "kind": "QUESTION", "topic": "work",
-		"prompt": [{"speaker": "rooster", "en": "First to start, or first to finish?", "vi": "Bắt đầu trước, hay xong trước?"}],
+		"prompt": [{"speaker": "rooster", "en": "Everyone wants credit for opening the stall. Who stays to sweep?", "vi": "Ai cũng muốn được khen vì mở hàng sớm. Còn ai ở lại quét dọn?"}],
 		"answers": [
-			{"id": "A", "en": "Finished when I said it would be.", "vi": "Xong đúng lúc tôi đã nói.", "delta": 1,
-				"reaction": [{"speaker": "rooster", "en": "Good. Nobody eats a head start.", "vi": "Tốt. Bắt đầu sớm đâu có làm ai no."}]},
-			{"id": "B", "en": "First to start. It gives me room.", "vi": "Bắt đầu trước. Như vậy có dư thời gian.", "delta": 0,
-				"reaction": [{"speaker": "rooster", "en": "Use the room, then.", "vi": "Vậy dùng thời gian đó đi."}]},
+			{"id": "A", "en": "Me, if closing up was my job.", "vi": "Tôi, nếu việc đóng hàng là phần của tôi.", "delta": 1,
+				"reaction": [{"speaker": "rooster", "en": "Good. A broom won't applaud you. Do it anyway.", "vi": "Được. Cái chổi chẳng vỗ tay khen đâu. Vẫn phải làm."}]},
+			{"id": "B", "en": "I'll open. Someone else can close.", "vi": "Tôi mở hàng. Người khác lo đóng cửa.", "delta": 0,
+				"reaction": [{"speaker": "rooster", "en": "As long as that someone knows.", "vi": "Miễn người đó biết phần của mình."}]},
 			{"id": "C", "en": "Depends who's watching.", "vi": "Còn tùy ai đang nhìn.", "delta": -1,
-				"reaction": [{"speaker": "rooster", "en": "The work's still there when they leave.", "vi": "Họ đi rồi thì việc vẫn còn đó."}]}
+				"reaction": [{"speaker": "rooster", "en": "Dust doesn't leave with the audience.", "vi": "Khách về rồi bụi vẫn còn đấy."}]}
 		]},
 	{"id": "rooster.t1plus.before_bell", "zodiac": "rooster", "content_tier": "1+", "kind": "QUESTION", "topic": "time",
 		"prompt": [{"speaker": "rooster", "en": "You keep saying there's time. What will you do before the first discard?", "vi": "Bạn cứ nói còn thời gian. Trước lần bỏ đầu tiên, bạn sẽ làm gì?"}],
@@ -90,16 +90,16 @@ const NODES := [
 		"followup": [{"speaker": "rooster", "en": "Then say what you're committing to.", "vi": "Vậy nói rõ bạn cam kết điều gì."}],
 		"promise": EARLY_SCORE,
 		"responses": {
-			"ACCEPT": {"delta": 0, "dialogue": [{"speaker": "player", "en": "Before the first discard. I promise.", "vi": "Trước lần bỏ đầu tiên. Tôi hứa."}, {"speaker": "rooster", "en": "I'll remember the deadline.", "vi": "Tôi sẽ nhớ hạn đó."}]},
-			"REFUSE": {"delta": 0, "dialogue": [{"speaker": "player", "en": "I can't promise that opening.", "vi": "Tôi không hứa được nước mở đầu đó."}, {"speaker": "rooster", "en": "Then don't. The cards haven't been dealt.", "vi": "Vậy đừng hứa. Bài còn chưa chia."}]},
+			"ACCEPT": {"delta": 0, "dialogue": [{"speaker": "player", "en": "Before the first discard. I promise.", "vi": "Trước lần bỏ đầu tiên. Tôi hứa."}, {"speaker": "rooster", "en": "Before the first discard. I'll keep that line open.", "vi": "Trước lần bỏ bắt buộc đầu tiên. Tôi để dòng này chờ bạn."}]},
+			"REFUSE": {"delta": 0, "dialogue": [{"speaker": "player", "en": "I can't promise that opening.", "vi": "Tôi không hứa được nước mở đầu đó."}, {"speaker": "rooster", "en": "Sensible. Even I can't put tomorrow's cards in order tonight.", "vi": "Biết vậy là tốt. Tôi cũng chẳng xếp được bài ngày mai từ tối nay."}]},
 			"HAGGLE": {"delta": 0, "strategy": "ALTERNATE_ACTION", "terms": FIRST_MELD,
 				"dialogue": [{"speaker": "player", "en": "Give me Phase 1 to make a Meld.", "vi": "Cho tôi cả Hiệp 1 để hạ Phỏm."}, {"speaker": "rooster", "en": "One new Meld by the end of Phase 1. Is that your word?", "vi": "Một Phỏm mới trước khi Hiệp 1 kết thúc. Bạn hứa vậy chứ?"}]},
 			"COUNTER_ACCEPT": {"delta": 0, "dialogue": [{"speaker": "player", "en": "Yes. One new Meld in Phase 1.", "vi": "Ừ. Một Phỏm mới trong Hiệp 1."}, {"speaker": "rooster", "en": "Different deadline. Same responsibility.", "vi": "Hạn khác. Trách nhiệm vẫn vậy."}]},
 			"COUNTER_REFUSE": COUNTER_REFUSE
 		},
 		"outcomes": {
-			"FULFILLED": {"delta": 1, "dialogue": [{"speaker": "rooster", "en": "You did what we agreed. I can plan around that.", "vi": "Bạn làm đúng điều mình đã thống nhất. Vậy tôi còn tính được việc."}]},
-			"BROKEN": {"delta": -1, "dialogue": [{"speaker": "rooster", "en": "The deadline passed. Next time, give me the answer you can keep.", "vi": "Quá hạn rồi. Lần sau, hãy trả lời điều bạn làm được."}]}
+			"FULFILLED": {"delta": 1, "dialogue": [{"speaker": "rooster", "en": "On time. Tea's still hot.", "vi": "Đúng hẹn. Trà vẫn còn nóng."}]},
+			"BROKEN": {"delta": -1, "dialogue": [{"speaker": "rooster", "en": "I waited for the play you promised. Next time, tell me no while I can still use it.", "vi": "Tôi đã chờ nước đi bạn hứa. Lần sau, cứ từ chối khi tôi còn kịp thu xếp."}]}
 		}},
 	{"id": "rooster.t1plus.first_job", "zodiac": "rooster", "content_tier": "1+", "kind": "QUESTION", "topic": "work",
 		"prompt": [{"speaker": "rooster", "en": "The first job is yours. Are you waiting for someone else to start it?", "vi": "Việc đầu tiên là của bạn. Bạn còn đợi ai bắt đầu hộ à?"}],
@@ -119,8 +119,8 @@ const NODES := [
 			"COUNTER_REFUSE": COUNTER_REFUSE
 		},
 		"outcomes": {
-			"FULFILLED": {"delta": 1, "dialogue": [{"speaker": "rooster", "en": "Work finished. Better than an explanation.", "vi": "Việc xong rồi. Còn hơn lời giải thích."}]},
-			"BROKEN": {"delta": -1, "dialogue": [{"speaker": "rooster", "en": "I kept time for it. You didn't do it.", "vi": "Tôi đã dành thời gian cho việc đó. Bạn không làm."}]}
+			"FULFILLED": {"delta": 1, "dialogue": [{"speaker": "rooster", "en": "Done. Put the pencil down and have a drink.", "vi": "Xong. Đặt bút xuống, uống nước đi."}]},
+			"BROKEN": {"delta": -1, "dialogue": [{"speaker": "rooster", "en": "I left a line for that job. It's still empty.", "vi": "Tôi chừa một dòng cho việc ấy. Giờ vẫn trống."}]}
 		}},
 	{"id": "rooster.t1plus.finish_work", "zodiac": "rooster", "content_tier": "1+", "kind": "QUESTION", "topic": "follow_through",
 		"prompt": [{"speaker": "rooster", "en": "A Meld is on the table. Do you leave the next piece for somebody else?", "vi": "Phỏm đã nằm trên bàn. Bạn để phần tiếp theo cho người khác à?"}],
@@ -140,22 +140,22 @@ const NODES := [
 			"COUNTER_REFUSE": COUNTER_REFUSE
 		},
 		"outcomes": {
-			"FULFILLED": {"delta": 1, "dialogue": [{"speaker": "rooster", "en": "You followed through. I didn't have to chase you.", "vi": "Bạn đã làm tới nơi tới chốn. Tôi không phải thúc."}]},
-			"BROKEN": {"delta": -1, "dialogue": [{"speaker": "rooster", "en": "Still waiting. The Deal isn't.", "vi": "Tôi vẫn đợi. Ván thì đã hết."}]}
+			"FULFILLED": {"delta": 1, "dialogue": [{"speaker": "rooster", "en": "Finished without a reminder. You've saved me a whole speech.", "vi": "Xong mà không cần nhắc. Bạn giúp tôi khỏi phải nói cả bài rồi."}]},
+			"BROKEN": {"delta": -1, "dialogue": [{"speaker": "rooster", "en": "I can move a chair. I can't move the end of a Deal.", "vi": "Tôi dời ghế được. Không dời được lúc hết Ván."}]}
 		}},
 	{"id": "rooster.t2.bell_memory", "zodiac": "rooster", "content_tier": "2", "relationship_required": 3, "kind": "QUESTION", "topic": "time",
 		"memory_key": "rooster.early_score",
 		"prompts": {
-			"FULFILLED": [{"speaker": "rooster", "en": "You scored before the first discard. Did you need me watching the clock?", "vi": "Bạn ghi điểm trước lần bỏ đầu tiên. Có cần tôi canh giờ không?"}],
+			"FULFILLED": [{"speaker": "rooster", "en": "Before the first discard, just as you said. Do you always make people put their reminders away?", "vi": "Trước lần bỏ đầu tiên, đúng lời bạn. Bạn luôn khiến người ta khỏi cần nhắc thế à?"}],
 			"BROKEN": [{"speaker": "rooster", "en": "You promised points before the first discard. The discard came first. What happened?", "vi": "Bạn hứa ghi điểm trước lần bỏ đầu tiên. Nhưng lại bỏ trước. Chuyện gì vậy?"}],
-			"REFUSED": [{"speaker": "rooster", "en": "You wouldn't promise an early score. I didn't wait for one. Was that the right answer?", "vi": "Bạn không hứa ghi điểm sớm. Tôi đã không đợi. Câu trả lời đó đúng chứ?"}]},
+			"REFUSED": [{"speaker": "rooster", "en": "You said no to the early score. Saved me some waiting. Was it hard to say?", "vi": "Bạn từ chối ghi điểm sớm. Đỡ cho tôi một lần chờ. Nói ra có khó không?"}]},
 		"answers": [
 			{"id": "A", "en": "I chose the answer. I own what followed.", "vi": "Tôi đã chọn câu trả lời. Chuyện sau đó là trách nhiệm của tôi.", "delta": 1,
-				"reaction": [{"speaker": "rooster", "en": "Then we can talk about the next job.", "vi": "Vậy mình còn nói được về việc tiếp theo."}]},
+				"reaction": [{"speaker": "rooster", "en": "Right. No erasing the old entry. We start a new line.", "vi": "Rồi. Không tẩy dòng cũ. Mình viết dòng mới."}]},
 			{"id": "B", "en": "The hand mattered more than I expected.", "vi": "Bài trên tay ảnh hưởng nhiều hơn tôi nghĩ.", "delta": 0,
-				"reaction": [{"speaker": "rooster", "en": "It usually does. Leave room for that.", "vi": "Thường là vậy. Nhớ tính cả điều đó."}]},
+				"reaction": [{"speaker": "rooster", "en": "Cards rarely read the schedule. Account for that.", "vi": "Bài có đọc lịch đâu. Phải tính cả chuyện ấy."}]},
 			{"id": "C", "en": "It's only a game. Why keep track?", "vi": "Chỉ là một ván bài. Nhớ làm gì?", "delta": -1,
-				"reaction": [{"speaker": "rooster", "en": "I was keeping track of your word.", "vi": "Tôi nhớ lời bạn nói."}]}
+				"reaction": [{"speaker": "rooster", "en": "The points are a game. Waiting for someone isn't.", "vi": "Điểm số là trò chơi. Chờ một người thì không."}]}
 		]},
 	{"id": "rooster.t2.meld_memory", "zodiac": "rooster", "content_tier": "2", "relationship_required": 3, "kind": "QUESTION", "topic": "work",
 		"memory_key": "rooster.first_meld",
@@ -165,11 +165,11 @@ const NODES := [
 			"REFUSED": [{"speaker": "rooster", "en": "You said no to the first job. I remember. Was saying it difficult?", "vi": "Bạn từ chối việc đầu tiên. Tôi nhớ. Nói vậy có khó không?"}]},
 		"answers": [
 			{"id": "A", "en": "Count on me saying what I can actually do.", "vi": "Cứ trông vào việc tôi nói đúng điều mình làm được.", "delta": 1,
-				"reaction": [{"speaker": "rooster", "en": "That's enough to start.", "vi": "Vậy là đủ để bắt đầu."}]},
+				"reaction": [{"speaker": "rooster", "en": "Good. I can stop planning for two versions of you.", "vi": "Được. Tôi khỏi phải tính sẵn hai kiểu câu trả lời của bạn."}]},
 			{"id": "B", "en": "Ask me again when the cards are dealt.", "vi": "Chia bài rồi hỏi tôi lại.", "delta": 0,
 				"reaction": [{"speaker": "rooster", "en": "Fair. Until then, I won't count it done.", "vi": "Hợp lý. Trước lúc đó tôi chưa tính là xong."}]},
 			{"id": "C", "en": "You could lower your expectations.", "vi": "Bạn bớt trông chờ đi là được.", "delta": -1,
-				"reaction": [{"speaker": "rooster", "en": "I used the ones you gave me.", "vi": "Tôi trông vào điều bạn đã nói."}]}
+				"reaction": [{"speaker": "rooster", "en": "They're yours. I wrote them down exactly.", "vi": "Đó là điều bạn hứa. Tôi ghi nguyên văn."}]}
 		]},
 	{"id": "rooster.t2.extension_memory", "zodiac": "rooster", "content_tier": "2", "relationship_required": 3, "kind": "QUESTION", "topic": "follow_through",
 		"memory_key": "rooster.extension",
@@ -179,37 +179,37 @@ const NODES := [
 			"REFUSED": [{"speaker": "rooster", "en": "You wouldn't promise an Extension. You left me a clear answer. Do you always do that?", "vi": "Bạn không hứa Nối. Bạn đã trả lời rõ ràng. Lúc nào cũng vậy à?"}]},
 		"answers": [
 			{"id": "A", "en": "I'm trying to leave fewer loose ends.", "vi": "Tôi đang cố bớt để việc dở dang.", "delta": 1,
-				"reaction": [{"speaker": "rooster", "en": "Good. Loose ends make work for other people.", "vi": "Tốt. Việc dở dang bắt người khác làm tiếp."}]},
+				"reaction": [{"speaker": "rooster", "en": "Yes. Someone always has to shut the door after everyone else.", "vi": "Ừ. Lúc mọi người về hết, vẫn phải có ai đóng cửa."}]},
 			{"id": "B", "en": "Depends on the day.", "vi": "Còn tùy hôm.", "delta": 0,
 				"reaction": [{"speaker": "rooster", "en": "Tell me which sort of day before you promise.", "vi": "Trước khi hứa thì nói tôi biết hôm đó thế nào."}]},
 			{"id": "C", "en": "You got an answer. Isn't that enough?", "vi": "Bạn có câu trả lời rồi. Chưa đủ sao?", "delta": -1,
 				"reaction": [{"speaker": "rooster", "en": "When the answer's no, yes.", "vi": "Nếu câu trả lời là không thì đủ."}]}
 		]},
 	{"id": "rooster.t2.trust_clock", "zodiac": "rooster", "content_tier": "2", "relationship_required": 3, "kind": "QUESTION", "topic": "trust",
-		"prompt": [{"speaker": "direction", "en": "Rooster turns his watch face down.", "vi": "Dậu úp mặt đồng hồ xuống."}, {"speaker": "rooster", "en": "I don't need to watch every second with you. Still want the early deadline?", "vi": "Với bạn, tôi không cần canh từng giây nữa. Vẫn muốn hạn sớm chứ?"}],
+		"prompt": [{"speaker": "direction", "en": "Rooster turns his watch face down, then reaches to straighten it. He catches himself.", "vi": "Dậu úp đồng hồ xuống, rồi lại đưa tay định chỉnh cho ngay. Anh khựng lại."}, {"speaker": "rooster", "en": "I nearly asked what time you'd leave. Habit. Would you like the early deadline again?", "vi": "Suýt nữa tôi hỏi mấy giờ bạn về. Quen miệng. Bạn có muốn nhận lại hạn sớm không?"}],
 		"answers": [
 			{"id": "A", "en": "Ask me. Trust doesn't make the choice for me.", "vi": "Cứ hỏi tôi. Tin nhau đâu có chọn hộ nhau.", "delta": 1, "reaction": []},
 			{"id": "B", "en": "Let's see the terms.", "vi": "Xem điều kiện đã.", "delta": 0, "reaction": []},
 			{"id": "C", "en": "You trust me, so stop checking.", "vi": "Tin tôi thì đừng kiểm tra nữa.", "delta": -1, "reaction": []}
 		],
-		"followup": [{"speaker": "rooster", "en": "Same early score. An honest no still works.", "vi": "Vẫn là ghi điểm sớm. Nói không thật lòng vẫn được."}],
+		"followup": [{"speaker": "rooster", "en": "Before the first discard, as before. Say no if you need to. The tea won't disappear.", "vi": "Vẫn trước lần bỏ bắt buộc đầu tiên. Cần thì cứ từ chối. Trà có chạy mất đâu."}],
 		"promise_from": "rooster.t1plus.before_bell"},
 	{"id": "rooster.t2.own_table", "zodiac": "rooster", "content_tier": "2", "relationship_required": 3, "kind": "QUESTION", "topic": "company",
-		"prompt": [{"speaker": "rooster", "en": "I've left room on the table. You don't owe me a performance. What will you bring?", "vi": "Tôi chừa chỗ trên bàn rồi. Bạn không nợ tôi màn trình diễn nào cả. Bạn sẽ mang gì tới?"}],
+		"prompt": [{"speaker": "rooster", "en": "I saved you a chair. Don't look so alarmed; it doesn't come with a job. What are you planning?", "vi": "Tôi giữ ghế cho bạn. Đừng nhìn thế; ngồi không phải làm công đâu. Bạn tính chơi thế nào?"}],
 		"answers": [
 			{"id": "A", "en": "My own play. I'll tell you if I can't make it.", "vi": "Nước bài của tôi. Không làm được thì tôi sẽ nói.", "delta": 1, "reaction": []},
 			{"id": "B", "en": "Whatever the hand allows.", "vi": "Bài cho phép gì thì làm nấy.", "delta": 0, "reaction": []},
 			{"id": "C", "en": "Something impressive enough to keep the chair.", "vi": "Thứ đủ ấn tượng để bạn giữ ghế.", "delta": -1, "reaction": []}
 		],
-		"followup": [{"speaker": "rooster", "en": "The chair isn't a prize. The first Meld is still your choice.", "vi": "Cái ghế đâu phải phần thưởng. Phỏm đầu tiên vẫn do bạn chọn."}],
+		"followup": [{"speaker": "rooster", "en": "Sit because you want to. Promise the first Meld only if you mean it.", "vi": "Muốn thì ngồi. Còn Phỏm đầu tiên, chắc lời hãy hứa."}],
 		"promise_from": "rooster.t1plus.first_job"},
 	{"id": "rooster.t2.stay_after", "zodiac": "rooster", "content_tier": "2", "relationship_required": 3, "kind": "QUESTION", "topic": "company",
-		"prompt": [{"speaker": "rooster", "en": "I usually leave when the work's done. Today I stayed. Did you notice?", "vi": "Xong việc là tôi thường về. Hôm nay tôi ngồi lại. Bạn có để ý không?"}],
+		"prompt": [{"speaker": "rooster", "en": "The stall's shut. Ledger's balanced. I seem to have run out of reasons to stay. You're still here, though.", "vi": "Hàng đóng rồi. Sổ cũng khớp. Hình như tôi hết cớ ở lại rồi. Mà bạn vẫn còn đây."}],
 		"answers": [
 			{"id": "A", "en": "Yes. You didn't check your watch once.", "vi": "Có. Bạn không nhìn đồng hồ lần nào.", "delta": 1, "reaction": []},
 			{"id": "B", "en": "I thought you had another job.", "vi": "Tôi tưởng bạn còn việc khác.", "delta": 0, "reaction": []},
 			{"id": "C", "en": "So you'll go easy on me tonight?", "vi": "Vậy tối nay bạn sẽ nhẹ tay chứ?", "delta": -1, "reaction": []}
 		],
-		"followup": [{"speaker": "rooster", "en": "I'm here for the company. Shall we finish one more piece of work?", "vi": "Tôi ngồi đây vì có bạn. Mình làm xong thêm một việc nhé?"}],
+		"followup": [{"speaker": "rooster", "en": "One more Extension, if you'd like. Or we could just finish the tea.", "vi": "Thêm một lần Nối Phỏm, nếu bạn muốn. Hoặc mình uống nốt trà thôi."}],
 		"promise_from": "rooster.t1plus.finish_work"}
 ]

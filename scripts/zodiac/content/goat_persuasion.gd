@@ -50,16 +50,16 @@ const CONFIG := {
 	},
 	"private_scene": [
 		{
-			"en": "Goat closes the notebook without filling the last line. She listens to the glasses settle, then leaves the chair beside her open.",
-			"vi": "Mùi gấp sổ lại mà không viết hết dòng cuối. Cô nghe tiếng ly lắng xuống rồi để trống ghế bên cạnh."
+			"en": "Goat opens her notebook to a melody crossed out six times. She taps it twice, then turns the page toward you instead of hiding it.",
+			"vi": "Mùi mở sổ, một giai điệu bị gạch sáu lần. Cô gõ hai nhịp, rồi xoay trang về phía bạn thay vì giấu đi."
 		},
 		{
-			"en": "\"You let different notes belong, and you didn't dress the missing ones in new words. I can hear you here.\"",
-			"vi": "\"Bạn để các nốt khác nhau có chỗ, và không khoác lời mới lên nốt thiếu. Tôi nghe bạn ở đây được.\""
+			"en": "\"The third version was better. I knew it when I crossed it out. Sometimes I keep correcting until there's nothing left that sounds like me.\"",
+			"vi": "\"Bản thứ ba hay hơn. Lúc gạch đi tôi đã biết. Có khi tôi cứ sửa đến mức chẳng còn gì nghe giống mình.\""
 		},
 		{
-			"en": "She leaves a small goat Emblem on the blank line. \"Bring it when our day comes. We can begin with the quiet.\"",
-			"vi": "Cô để Huy hiệu con dê nhỏ lên dòng trống. \"Đến ngày của mình thì mang theo nhé. Ta có thể bắt đầu bằng khoảng yên.\""
+			"en": "She weights the page with a goat Emblem. \"Bring it on our day. I want to try this one with someone listening. Mistakes included.\"",
+			"vi": "Cô chặn trang bằng Huy hiệu con dê. \"Đến ngày của mình thì mang nhé. Tôi muốn thử bản này khi có người nghe. Cả những chỗ sai nữa.\""
 		}
 	],
 	"last_chance": {
@@ -67,8 +67,8 @@ const CONFIG := {
 		"prompt": [
 			{
 				"speaker": "goat",
-				"en": "Leave a little quiet. What are you trying to tell me?",
-				"vi": "Chừa chút yên nhé. Bạn đang muốn nói gì với tôi?"
+				"en": "Wait. You're answering the rhythm of my voice. Did you hear the words?",
+				"vi": "Khoan. Bạn đang đáp theo nhịp giọng tôi. Có nghe lời tôi nói không?"
 			}
 		],
 		"answers": [
@@ -80,8 +80,8 @@ const CONFIG := {
 				"reaction": [
 					{
 						"speaker": "goat",
-						"en": "Then listen now. There is still a little room.",
-						"vi": "Vậy giờ nghe nhé. Vẫn còn chút khoảng."
+						"en": "All right. From the top. Slower this time.",
+						"vi": "Được. Làm lại từ đầu. Lần này chậm hơn."
 					}
 				]
 			},
@@ -93,8 +93,8 @@ const CONFIG := {
 				"reaction": [
 					{
 						"speaker": "goat",
-						"en": "Then let that be the whole answer.",
-						"vi": "Vậy cứ để đó là trọn câu trả lời."
+						"en": "Then stop there. No need to decorate the silence.",
+						"vi": "Vậy dừng ở đó. Không cần trang trí khoảng lặng."
 					}
 				]
 			},
@@ -106,8 +106,8 @@ const CONFIG := {
 				"reaction": [
 					{
 						"speaker": "goat",
-						"en": "Then the listening can end here.",
-						"vi": "Vậy mình dừng lắng nghe ở đây."
+						"en": "That's a jingle, not an answer. We're done.",
+						"vi": "Đó là câu quảng cáo, không phải trả lời. Thôi nhé."
 					}
 				]
 			}
@@ -124,21 +124,21 @@ const NODES := [
 		"prompt": [
 			{
 				"speaker": "goat",
-				"en": "A quiet note gets lost under the table noise. How do you hear it?",
-				"vi": "Một nốt nhỏ bị tiếng bàn che mất. Bạn nghe nó bằng cách nào?"
+				"en": "I played the quiet part and someone dropped a spoon. What would you do?",
+				"vi": "Tôi vừa chơi đoạn nhỏ thì ai đánh rơi thìa. Bạn làm gì?"
 			}
 		],
 		"answers": [
 			{
 				"id": "A",
-				"en": "Leave a little quiet before answering.",
-				"vi": "Chừa chút yên trước khi trả lời.",
+				"en": "Let the noise settle so I can hear you.",
+				"vi": "Chờ tiếng động lắng xuống để nghe bạn.",
 				"delta": 1,
 				"reaction": [
 					{
 						"speaker": "goat",
-						"en": "Then it has somewhere to land.",
-						"vi": "Vậy nó có chỗ để đến."
+						"en": "Yes. Let the spoon have its solo, then listen.",
+						"vi": "Ừ. Để cái thìa độc tấu xong rồi nghe."
 					}
 				]
 			},
@@ -150,8 +150,8 @@ const NODES := [
 				"reaction": [
 					{
 						"speaker": "goat",
-						"en": "Ask gently. It was there already.",
-						"vi": "Hỏi nhẹ thôi. Nó vốn ở đó rồi."
+						"en": "I would. Though I'd glare at the spoon first.",
+						"vi": "Tôi sẽ chơi. Nhưng phải lườm cái thìa trước."
 					}
 				]
 			},
@@ -163,8 +163,8 @@ const NODES := [
 				"reaction": [
 					{
 						"speaker": "goat",
-						"en": "Then we lose it twice.",
-						"vi": "Vậy mình làm mất nó hai lần."
+						"en": "Lovely. Now we've got two spoons.",
+						"vi": "Hay quá. Giờ mình có hai cái thìa."
 					}
 				]
 			}
@@ -178,8 +178,8 @@ const NODES := [
 		"prompt": [
 			{
 				"speaker": "goat",
-				"en": "Two voices don't sound alike. Must one change?",
-				"vi": "Hai giọng không giống nhau. Có nhất thiết một giọng phải đổi không?"
+				"en": "Two singers, different keys. Who has to change?",
+				"vi": "Hai người hát, hai giọng khác nhau. Ai phải đổi?"
 			}
 		],
 		"answers": [
@@ -191,8 +191,8 @@ const NODES := [
 				"reaction": [
 					{
 						"speaker": "goat",
-						"en": "A harmony needs more than one voice.",
-						"vi": "Hòa âm cần nhiều hơn một giọng."
+						"en": "Yes. Harmony takes work. Unison just takes obedience.",
+						"vi": "Ừ. Hòa âm cần công sức. Đồng thanh chỉ cần nghe theo."
 					}
 				]
 			},
@@ -204,8 +204,8 @@ const NODES := [
 				"reaction": [
 					{
 						"speaker": "goat",
-						"en": "Then ask them first.",
-						"vi": "Vậy hỏi họ trước nhé."
+						"en": "Exactly. A duet and an argument need different arrangements.",
+						"vi": "Đúng. Song ca với cãi nhau cần cách phối khác nhau."
 					}
 				]
 			},
@@ -217,8 +217,8 @@ const NODES := [
 				"reaction": [
 					{
 						"speaker": "goat",
-						"en": "Loudness doesn't choose the tune.",
-						"vi": "Âm lượng không chọn giai điệu."
+						"en": "Then the loud one should buy a mirror and sing at that.",
+						"vi": "Vậy người to tiếng nên mua gương mà hát với mình."
 					}
 				]
 			}
@@ -232,47 +232,47 @@ const NODES := [
 		"prompt": [
 			{
 				"speaker": "goat",
-				"en": "What belongs between two notes?",
-				"vi": "Giữa hai nốt nên có gì?"
+				"en": "There's a rest between these notes. Would you leave it there?",
+				"vi": "Giữa những nốt này có dấu lặng. Bạn để nguyên chứ?"
 			}
 		],
 		"answers": [
 			{
 				"id": "A",
-				"en": "Enough space to hear both.",
-				"vi": "Đủ khoảng để nghe cả hai.",
+				"en": "Yes. Give both notes room to be heard.",
+				"vi": "Có. Để cả hai nốt đều được nghe.",
 				"delta": 1,
 				"reaction": [
 					{
 						"speaker": "goat",
-						"en": "Even a small rest can belong.",
-						"vi": "Một khoảng nghỉ nhỏ cũng có chỗ."
+						"en": "Thank you. Even a tune needs somewhere to breathe.",
+						"vi": "Cảm ơn. Giai điệu cũng cần chỗ thở."
 					}
 				]
 			},
 			{
 				"id": "B",
-				"en": "Whatever makes the next one possible.",
-				"vi": "Điều giúp nốt tiếp theo đến được.",
+				"en": "If it helps the next note land.",
+				"vi": "Nếu nó giúp nốt sau vào đúng chỗ.",
 				"delta": 0,
 				"reaction": [
 					{
 						"speaker": "goat",
-						"en": "Keep an ear on the one before it.",
-						"vi": "Nhớ lắng nghe nốt trước đó."
+						"en": "Yes. The next note shouldn't trample the last one.",
+						"vi": "Ừ. Nốt sau không nên giẫm lên nốt trước."
 					}
 				]
 			},
 			{
 				"id": "C",
-				"en": "Nothing. Gaps are mistakes.",
-				"vi": "Không gì cả. Khoảng trống là lỗi.",
+				"en": "No. Gaps are mistakes.",
+				"vi": "Không. Khoảng trống là lỗi.",
 				"delta": -1,
 				"reaction": [
 					{
 						"speaker": "goat",
-						"en": "Then breathing would be a mistake too.",
-						"vi": "Vậy thở cũng thành lỗi rồi."
+						"en": "Try singing without breathing. Brief career.",
+						"vi": "Thử hát không thở đi. Sự nghiệp ngắn lắm."
 					}
 				]
 			}
@@ -339,8 +339,8 @@ const NODES := [
 				"dialogue": [
 					{
 						"speaker": "goat",
-						"en": "I'll count each new rank once, from the cards you actually commit.",
-						"vi": "Tôi tính mỗi hạng mới một lần, từ lá bạn thực sự hạ."
+						"en": "Different ranks, counted once each. I like echoes; I can still count them.",
+						"vi": "Các hạng khác nhau, mỗi hạng tính một lần. Tôi thích tiếng vọng; vẫn đếm được nhé."
 					}
 				]
 			},
@@ -394,8 +394,8 @@ const NODES := [
 				"dialogue": [
 					{
 						"speaker": "goat",
-						"en": "The different ranks we agreed found a scoring voice. You heard more than the echo.",
-						"vi": "Các hạng khác nhau đã thống nhất đều ghi điểm. Bạn nghe được hơn tiếng vọng."
+						"en": "There. Different ranks, each earning its place. Much better than one note shouted three times.",
+						"vi": "Đấy. Các hạng khác nhau, đều có điểm. Hay hơn hét một nốt ba lần nhiều."
 					}
 				]
 			},
@@ -404,8 +404,8 @@ const NODES := [
 				"dialogue": [
 					{
 						"speaker": "goat",
-						"en": "The promised number of different scoring ranks wasn't there. Repeating a rank couldn't fill the gap.",
-						"vi": "Chưa có đủ hạng ghi điểm khác nhau đã hứa. Lặp một hạng không lấp được khoảng thiếu."
+						"en": "Not enough different scoring ranks. Louder isn't more varied.",
+						"vi": "Chưa đủ hạng ghi điểm khác nhau. To hơn không có nghĩa đa dạng hơn."
 					}
 				]
 			}
@@ -472,8 +472,8 @@ const NODES := [
 				"dialogue": [
 					{
 						"speaker": "goat",
-						"en": "One committed phrase. I won't borrow notes already on the table.",
-						"vi": "Một câu được hạ cùng nhau. Tôi không mượn nốt đã ở trên bàn."
+						"en": "All in one play. No borrowing yesterday's notes to finish today's phrase.",
+						"vi": "Cùng một nước bài. Không mượn nốt hôm qua để hoàn tất câu nhạc hôm nay."
 					}
 				]
 			},
@@ -527,8 +527,8 @@ const NODES := [
 				"dialogue": [
 					{
 						"speaker": "goat",
-						"en": "You committed the consecutive ranks together. The phrase had its own beginning and end.",
-						"vi": "Bạn đã hạ các hạng liên tiếp cùng nhau. Câu có khởi đầu và kết thúc riêng."
+						"en": "Together, in order. I could hear where that phrase was going.",
+						"vi": "Cùng lúc, liền nhau. Tôi nghe được câu nhạc ấy đi về đâu."
 					}
 				]
 			},
@@ -537,8 +537,8 @@ const NODES := [
 				"dialogue": [
 					{
 						"speaker": "goat",
-						"en": "The consecutive ranks weren't newly committed together. Notes already on the table couldn't complete that promise.",
-						"vi": "Các hạng liên tiếp chưa được hạ mới cùng nhau. Nốt đã trên bàn không hoàn thành lời hứa đó."
+						"en": "The new cards didn't make the consecutive phrase. The old notes can't sing it for them.",
+						"vi": "Các lá mới chưa tạo được câu liền hạng. Nốt cũ không hát hộ được."
 					}
 				]
 			}
@@ -604,8 +604,8 @@ const NODES := [
 				"dialogue": [
 					{
 						"speaker": "goat",
-						"en": "I'll remember the card you chose, and the neighbor committed with it.",
-						"vi": "Tôi sẽ nhớ lá bạn chọn và lá liền kề hạ cùng nó."
+						"en": "Your card, and a new neighbor in the same play. I'll listen for both.",
+						"vi": "Lá của bạn, cùng lá kề hạng mới trong một nước. Tôi chờ nghe cả hai."
 					}
 				]
 			},
@@ -627,8 +627,8 @@ const NODES := [
 				"dialogue": [
 					{
 						"speaker": "goat",
-						"en": "Your chosen card met an adjacent rank in the same committed play.",
-						"vi": "Lá bạn chọn đã gặp hạng liền kề trong cùng nước hạ."
+						"en": "Your card and its neighbor arrived together. That's the little phrase I wanted to hear.",
+						"vi": "Lá bạn cùng lá kề hạng vào một lúc. Đúng câu nhạc nhỏ tôi muốn nghe."
 					}
 				]
 			},
@@ -637,8 +637,8 @@ const NODES := [
 				"dialogue": [
 					{
 						"speaker": "goat",
-						"en": "That card didn't meet a newly committed neighbor. A card already in the Meld wasn't new company.",
-						"vi": "Lá đó chưa gặp lá liền kề mới hạ. Lá vốn trong Phỏm không phải bạn mới."
+						"en": "No new neighbor beside that card in the same play. Proximity isn't a duet.",
+						"vi": "Không có lá kề hạng mới cùng vào nước đó. Đứng gần chưa thành song ca."
 					}
 				]
 			}
@@ -656,43 +656,43 @@ const NODES := [
 			"FULFILLED": [
 				{
 					"speaker": "goat",
-					"en": "I heard the different ranks you promised: {target} Which difference stayed with you?",
-					"vi": "Tôi đã nghe những hạng khác nhau bạn hứa: {target} Khác biệt nào ở lại với bạn?"
+					"en": "Different ranks, as promised: {target} Which note made you hear the rest differently?",
+					"vi": "Đủ hạng khác nhau như đã hứa: {target} Nốt nào khiến bạn nghe phần còn lại khác đi?"
 				}
 			],
 			"BROKEN": [
 				{
 					"speaker": "goat",
-					"en": "We didn't hear all the promised ranks: {target} What would you listen for next time?",
-					"vi": "Mình chưa nghe đủ hạng đã hứa: {target} Lần tới bạn sẽ lắng nghe điều gì?"
+					"en": "Not all the promised ranks: {target} Was your hand stuck on a refrain?",
+					"vi": "Chưa đủ hạng đã hứa: {target} Tay bài cứ lặp một điệp khúc à?"
 				}
 			],
 			"REFUSED": [
 				{
 					"speaker": "goat",
-					"en": "You left these notes unpromised: {target} What did you need to hear first?",
-					"vi": "Bạn chưa hứa các nốt này: {target} Bạn cần nghe điều gì trước?"
+					"en": "You didn't promise these notes: {target} I can respect a musician who asks to see the score first.",
+					"vi": "Bạn không hứa các nốt này: {target} Tôi tôn trọng người muốn xem bản nhạc trước."
 				}
 			]
 		},
 		"answers": [
 			{
 				"id": "A",
-				"en": "The ranks actually played, without counting an echo twice.",
-				"vi": "Những hạng thực sự hạ, không đếm tiếng vọng hai lần.",
+				"en": "I'd count what I played, not the same rank twice.",
+				"vi": "Tôi đếm những gì đã chơi, không đếm một hạng hai lần.",
 				"delta": 1,
 				"reaction": [
 					{
 						"speaker": "goat",
-						"en": "Then each voice keeps its own place.",
-						"vi": "Vậy mỗi giọng giữ được chỗ riêng."
+						"en": "Good. Three distinct notes, not one wearing three hats.",
+						"vi": "Tốt. Ba nốt riêng, không phải một nốt đội ba cái mũ."
 					}
 				]
 			},
 			{
 				"id": "B",
-				"en": "The room my hand left for another rank.",
-				"vi": "Chỗ bài tôi chừa cho hạng khác.",
+				"en": "Whether my hand could fit another rank.",
+				"vi": "Tay bài có chỗ cho hạng khác không.",
 				"delta": 0,
 				"reaction": []
 			},
@@ -704,8 +704,8 @@ const NODES := [
 				"reaction": [
 					{
 						"speaker": "goat",
-						"en": "An echo can be lovely without becoming another voice.",
-						"vi": "Tiếng vọng vẫn đẹp dù không thành giọng khác."
+						"en": "It can. Still the same rank. Expression doesn't change the count.",
+						"vi": "Nghe khác được. Vẫn cùng hạng. Cách diễn tả không đổi số đếm."
 					}
 				]
 			}
@@ -723,43 +723,43 @@ const NODES := [
 			"FULFILLED": [
 				{
 					"speaker": "goat",
-					"en": "This phrase came together: {target} What joined its notes?",
-					"vi": "Câu này đã thành hình: {target} Điều gì nối các nốt?"
+					"en": "That phrase worked: {target} Did you hear it before you played it?",
+					"vi": "Câu nhạc thành rồi: {target} Bạn nghe ra trước khi chơi chứ?"
 				}
 			],
 			"BROKEN": [
 				{
 					"speaker": "goat",
-					"en": "The phrase didn't meet these terms: {target} Where did the notes separate?",
-					"vi": "Câu chưa đáp ứng điều kiện này: {target} Các nốt tách ở đâu?"
+					"en": "The phrase came apart: {target} Which gap were you hoping the old notes would fill?",
+					"vi": "Câu nhạc rời rạc: {target} Bạn mong nốt cũ lấp khoảng nào?"
 				}
 			],
 			"REFUSED": [
 				{
 					"speaker": "goat",
-					"en": "You didn't promise this phrase: {target} What needed more room?",
-					"vi": "Bạn không hứa câu này: {target} Điều gì cần thêm khoảng?"
+					"en": "You left this unwritten: {target} Some things sound better before you promise to perform them.",
+					"vi": "Bạn để phần này chưa viết: {target} Có thứ nghe hay hơn khi chưa hứa sẽ biểu diễn."
 				}
 			]
 		},
 		"answers": [
 			{
 				"id": "A",
-				"en": "The ranks newly committed in the same play.",
-				"vi": "Các hạng mới hạ trong cùng nước.",
+				"en": "The new cards all arrived in the same play.",
+				"vi": "Những lá mới cùng vào một nước.",
 				"delta": 1,
 				"reaction": [
 					{
 						"speaker": "goat",
-						"en": "Then the phrase has its own evidence.",
-						"vi": "Vậy câu có dấu vết riêng."
+						"en": "Yes. Listen to what you actually played.",
+						"vi": "Ừ. Nghe đúng những gì bạn đã chơi."
 					}
 				]
 			},
 			{
 				"id": "B",
-				"en": "I needed to hear the possible order first.",
-				"vi": "Tôi cần nghe thứ tự có thể có trước.",
+				"en": "I needed to see the order before I tried it.",
+				"vi": "Tôi cần thấy thứ tự trước khi thử.",
 				"delta": 0,
 				"reaction": []
 			},
@@ -771,8 +771,8 @@ const NODES := [
 				"reaction": [
 					{
 						"speaker": "goat",
-						"en": "That would change the phrase we named.",
-						"vi": "Điều đó đổi câu mình đã nói."
+						"en": "Then we'd be praising a different tune.",
+						"vi": "Vậy mình đang khen một giai điệu khác."
 					}
 				]
 			}
@@ -790,36 +790,36 @@ const NODES := [
 			"FULFILLED": [
 				{
 					"speaker": "goat",
-					"en": "Your chosen note found a neighbor: {target} What did you hear beside it?",
-					"vi": "Nốt bạn chọn đã có bạn liền kề: {target} Bạn nghe gì bên nó?"
+					"en": "{target} found its neighbor. Small phrase, clear shape. What did you like about it?",
+					"vi": "{target} tìm được lá kề hạng. Câu nhỏ, nét rõ. Bạn thích gì ở nó?"
 				}
 			],
 			"BROKEN": [
 				{
 					"speaker": "goat",
-					"en": "This note didn't meet its promised neighbor: {target} What company did it have?",
-					"vi": "Nốt này chưa gặp bạn liền kề đã hứa: {target} Nó đã đi cùng ai?"
+					"en": "{target} didn't meet its new neighbor in one play. Where did the duet fall apart?",
+					"vi": "{target} chưa gặp lá kề hạng mới trong một nước. Đoạn song ca vỡ ở đâu?"
 				}
 			],
 			"REFUSED": [
 				{
 					"speaker": "goat",
-					"en": "You left this note free: {target} Did it find a place later?",
-					"vi": "Bạn để nốt này tự do: {target} Sau đó nó tìm được chỗ chưa?"
+					"en": "You didn't promise {target} a partner. Did the hand suggest a different arrangement?",
+					"vi": "Bạn không hứa bạn diễn cho {target}. Tay bài gợi cách phối khác à?"
 				}
 			]
 		},
 		"answers": [
 			{
 				"id": "A",
-				"en": "The card's real place, even when it wasn't the promised one.",
-				"vi": "Chỗ thực sự của lá bài, kể cả khi không phải chỗ đã hứa.",
+				"en": "I'd tell you where the card went, even if I got it wrong.",
+				"vi": "Tôi sẽ nói lá ấy đi đâu, kể cả khi tôi làm sai.",
 				"delta": 1,
 				"reaction": [
 					{
 						"speaker": "goat",
-						"en": "Then we can hear what happened.",
-						"vi": "Vậy mình nghe được điều đã xảy ra."
+						"en": "Good. Even a wrong note deserves its right name.",
+						"vi": "Tốt. Nốt sai cũng đáng được gọi đúng tên."
 					}
 				]
 			},
@@ -838,8 +838,8 @@ const NODES := [
 				"reaction": [
 					{
 						"speaker": "goat",
-						"en": "We named a newly committed neighbor.",
-						"vi": "Mình đã nói lá liền kề mới hạ mà."
+						"en": "New neighbors, same play. I wrote it down; my handwriting isn't that bad.",
+						"vi": "Lá kề hạng mới, cùng nước bài. Tôi có ghi; chữ tôi đâu khó đọc đến thế."
 					}
 				]
 			}
@@ -854,8 +854,8 @@ const NODES := [
 		"prompt": [
 			{
 				"speaker": "goat",
-				"en": "Would you still listen if I had nothing new to sing?",
-				"vi": "Nếu tôi chẳng có gì mới để hát, bạn còn nghe không?"
+				"en": "I've been working on the same four bars all week. Would you listen once more?",
+				"vi": "Cả tuần tôi loay hoay bốn ô nhịp này. Bạn nghe thêm lần nữa nhé?"
 			}
 		],
 		"answers": [
@@ -867,8 +867,8 @@ const NODES := [
 				"reaction": [
 					{
 						"speaker": "goat",
-						"en": "Then the quiet can stay.",
-						"vi": "Vậy khoảng yên có thể ở lại."
+						"en": "Good. Because I'm not sure they're getting better. Just more familiar.",
+						"vi": "May quá. Tôi không chắc chúng hay hơn. Chỉ thấy quen hơn."
 					}
 				]
 			},
@@ -887,8 +887,8 @@ const NODES := [
 				"reaction": [
 					{
 						"speaker": "goat",
-						"en": "I was asking for a listener.",
-						"vi": "Tôi đang xin người lắng nghe."
+						"en": "I was hoping for an audience, not a sponsor.",
+						"vi": "Tôi mong có khán giả, không phải nhà tài trợ."
 					}
 				]
 			}
@@ -903,8 +903,8 @@ const NODES := [
 		"prompt": [
 			{
 				"speaker": "goat",
-				"en": "If I lose the note I meant to sing, what would you do?",
-				"vi": "Nếu tôi lạc mất nốt định hát, bạn sẽ làm gì?"
+				"en": "If I stop in the middle, don't sing the missing note for me. Can you do that?",
+				"vi": "Nếu tôi dừng giữa chừng, đừng hát hộ nốt còn thiếu. Bạn làm được không?"
 			}
 		],
 		"answers": [
@@ -916,8 +916,8 @@ const NODES := [
 				"reaction": [
 					{
 						"speaker": "goat",
-						"en": "Then I don't have to hide the pause.",
-						"vi": "Vậy tôi không phải giấu khoảng dừng."
+						"en": "Thank you. I usually hear everyone's patience running out before I hear the note.",
+						"vi": "Cảm ơn. Tôi thường nghe người ta hết kiên nhẫn trước khi tìm được nốt nhạc."
 					}
 				]
 			},
@@ -936,8 +936,8 @@ const NODES := [
 				"reaction": [
 					{
 						"speaker": "goat",
-						"en": "That wouldn't be my voice returning.",
-						"vi": "Vậy đâu phải giọng tôi quay lại."
+						"en": "You'd fix the song and lose the singer.",
+						"vi": "Bạn sửa được bài hát, rồi đánh mất người hát."
 					}
 				]
 			}
@@ -952,8 +952,8 @@ const NODES := [
 		"prompt": [
 			{
 				"speaker": "goat",
-				"en": "What makes this table worth returning to?",
-				"vi": "Điều gì khiến bàn này đáng quay lại?"
+				"en": "Why this table? The traffic's dreadful and someone always drops a spoon.",
+				"vi": "Sao lại bàn này? Xe cộ ồn khủng khiếp, lúc nào cũng có người đánh rơi thìa."
 			}
 		],
 		"answers": [
@@ -965,8 +965,8 @@ const NODES := [
 				"reaction": [
 					{
 						"speaker": "goat",
-						"en": "Then I'll keep a little quiet here for you.",
-						"vi": "Vậy tôi giữ chút yên ở đây cho bạn."
+						"en": "Yes. Nobody asks me to make the motorbikes sound beautiful.",
+						"vi": "Ừ. Chẳng ai bắt tôi biến tiếng xe máy thành nhạc hay."
 					}
 				]
 			},
@@ -985,8 +985,8 @@ const NODES := [
 				"reaction": [
 					{
 						"speaker": "goat",
-						"en": "Then there'd be little room left to listen.",
-						"vi": "Vậy còn ít chỗ để lắng nghe lắm."
+						"en": "Then please don't mistake my notebook for a menu.",
+						"vi": "Vậy đừng nhầm sổ nhạc của tôi với thực đơn."
 					}
 				]
 			}

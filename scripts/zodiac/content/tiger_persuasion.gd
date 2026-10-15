@@ -50,16 +50,16 @@ const CONFIG := {
 	},
 	"private_scene": [
 		{
-			"en": "Tiger puts both hands on the table, open. His shoulders settle against the chair, and he lets the silence stay without testing it.",
-			"vi": "Dần đặt hai bàn tay mở lên bàn. Vai anh tựa xuống ghế, và anh để khoảng im ở lại mà không thử nó."
+			"en": "Tiger eases into the little chair. It creaks. He freezes, then laughs when it holds. You've never heard that laugh without a challenge behind it.",
+			"vi": "Dần từ từ ngồi xuống ghế nhỏ. Ghế kêu cót két. Anh khựng lại rồi bật cười khi nó vẫn vững. Lần đầu bạn nghe tiếng cười ấy không kèm lời thách."
 		},
 		{
-			"en": "\"You chose your word, and you gave it a boundary. You also said no. I can share a table with someone who stands on their own feet.\"",
-			"vi": "\"Bạn tự chọn lời, và nói rõ ranh giới. Bạn cũng đã từ chối. Tôi ngồi chung bàn với người tự đứng bằng chân mình được.\""
+			"en": "\"People clear a path when I arrive. I used to think that meant respect. You moved your cup and told me I was blocking the light.\"",
+			"vi": "\"Tôi đến là người ta dạt đường. Tôi từng nghĩ thế là kính trọng. Còn bạn xích cốc, bảo tôi đang che mất ánh sáng.\""
 		},
 		{
-			"en": "He places a small tiger Emblem between the open hands. \"Bring it when our day comes. You won't need to make yourself smaller to sit here.\"",
-			"vi": "Anh đặt Huy hiệu con hổ nhỏ giữa hai bàn tay mở. \"Đến ngày của mình thì mang theo nhé. Bạn không phải thu mình lại để ngồi đây.\""
+			"en": "He sets down a tiger Emblem. \"Bring it on our day. Same chair. And tell me if I'm in the way. I like knowing you'll say it.\"",
+			"vi": "Anh đặt Huy hiệu con hổ xuống. \"Đến ngày của mình thì mang. Ghế cũ nhé. Tôi chắn đường thì nói. Tôi thích biết bạn sẽ nói thật.\""
 		}
 	],
 	"last_chance": {
@@ -67,8 +67,8 @@ const CONFIG := {
 		"prompt": [
 			{
 				"speaker": "tiger",
-				"en": "Stand where you mean to stand. What is your answer now?",
-				"vi": "Đứng đúng chỗ bạn muốn đứng nhé. Giờ câu trả lời của bạn là gì?"
+				"en": "Look at me. You don't have to agree. You do have to mean your answer.",
+				"vi": "Nhìn tôi. Không cần đồng ý. Nhưng trả lời thì phải thật lòng."
 			}
 		],
 		"answers": [
@@ -80,8 +80,8 @@ const CONFIG := {
 				"reaction": [
 					{
 						"speaker": "tiger",
-						"en": "Then choose from there.",
-						"vi": "Vậy chọn từ đó."
+						"en": "Then choose. I can wait longer than you think.",
+						"vi": "Vậy chọn đi. Tôi chờ được lâu hơn bạn nghĩ."
 					}
 				]
 			},
@@ -93,8 +93,8 @@ const CONFIG := {
 				"reaction": [
 					{
 						"speaker": "tiger",
-						"en": "Then keep your feet there. A clear no can stand.",
-						"vi": "Vậy cứ đứng ở đó. Lời từ chối rõ ràng vẫn đứng vững."
+						"en": "Good. Hold that ground. Even with me.",
+						"vi": "Tốt. Giữ vững câu ấy. Kể cả trước tôi."
 					}
 				]
 			},
@@ -106,8 +106,8 @@ const CONFIG := {
 				"reaction": [
 					{
 						"speaker": "tiger",
-						"en": "Then we'll leave the answer here.",
-						"vi": "Vậy mình dừng câu trả lời ở đây."
+						"en": "I can't respect an answer you've already abandoned.",
+						"vi": "Tôi không thể coi trọng câu trả lời chính bạn đã bỏ rơi."
 					}
 				]
 			}
@@ -124,47 +124,47 @@ const NODES := [
 		"prompt": [
 			{
 				"speaker": "tiger",
-				"en": "How do you know someone is strong?",
-				"vi": "Làm sao bạn biết ai đó mạnh?"
+				"en": "A room falls silent when someone enters. Does that tell you they're strong?",
+				"vi": "Một người bước vào, cả phòng im bặt. Thế đủ biết họ mạnh chưa?"
 			}
 		],
 		"answers": [
 			{
 				"id": "A",
-				"en": "They can choose what their strength is for.",
-				"vi": "Họ chọn được sức mạnh dùng để làm gì.",
+				"en": "Only if they can choose what to use their strength for.",
+				"vi": "Chỉ khi họ chọn được dùng sức mạnh vào việc gì.",
 				"delta": 1,
 				"reaction": [
 					{
 						"speaker": "tiger",
-						"en": "Then it belongs to them.",
-						"vi": "Vậy nó mới thuộc về họ."
+						"en": "Yes. A strong hand can open as well as close.",
+						"vi": "Đúng. Tay mạnh phải mở được, không chỉ nắm."
 					}
 				]
 			},
 			{
 				"id": "B",
-				"en": "They hold up when things get difficult.",
-				"vi": "Họ đứng vững khi việc khó đi.",
+				"en": "I'd need to see them face something difficult.",
+				"vi": "Tôi cần thấy họ đối diện việc khó.",
 				"delta": 0,
 				"reaction": [
 					{
 						"speaker": "tiger",
-						"en": "Ask what they're holding, too.",
-						"vi": "Nhớ hỏi họ đang gánh gì."
+						"en": "Perhaps. Some people hold a pose long after the strength is gone.",
+						"vi": "Có thể. Có người hết sức rồi vẫn giữ dáng."
 					}
 				]
 			},
 			{
 				"id": "C",
-				"en": "Nobody dares to refuse them.",
-				"vi": "Chẳng ai dám từ chối họ.",
+				"en": "Yes. Nobody dares to refuse them.",
+				"vi": "Rồi. Chẳng ai dám từ chối họ.",
 				"delta": -1,
 				"reaction": [
 					{
 						"speaker": "tiger",
-						"en": "Fear can make a room quiet. It doesn't make you strong.",
-						"vi": "Sợ hãi làm phòng yên được. Nó không làm bạn mạnh."
+						"en": "I've had that silence. It isn't company.",
+						"vi": "Tôi từng có sự im lặng ấy. Nó không phải có người bên cạnh."
 					}
 				]
 			}
@@ -178,8 +178,8 @@ const NODES := [
 		"prompt": [
 			{
 				"speaker": "tiger",
-				"en": "Someone offers you a challenge. What do you owe the answer?",
-				"vi": "Có người thách bạn. Bạn cần trả lời thế nào?"
+				"en": "I challenge you in front of everyone. What do you owe me?",
+				"vi": "Tôi thách bạn trước mặt mọi người. Bạn nợ tôi điều gì?"
 			}
 		],
 		"answers": [
@@ -191,8 +191,8 @@ const NODES := [
 				"reaction": [
 					{
 						"speaker": "tiger",
-						"en": "Good. Both need a spine.",
-						"vi": "Tốt. Cả hai đều cần bản lĩnh."
+						"en": "Good. Let them watch you choose, then.",
+						"vi": "Tốt. Vậy cứ để họ nhìn bạn tự chọn."
 					}
 				]
 			},
@@ -211,8 +211,8 @@ const NODES := [
 				"reaction": [
 					{
 						"speaker": "tiger",
-						"en": "Then you haven't chosen the challenge.",
-						"vi": "Vậy bạn chưa chọn thử thách."
+						"en": "An excuse prepared before the fight. You're already looking away.",
+						"vi": "Chưa đấu đã chuẩn bị cớ. Bạn quay mặt đi rồi."
 					}
 				]
 			}
@@ -226,8 +226,8 @@ const NODES := [
 		"prompt": [
 			{
 				"speaker": "tiger",
-				"en": "Someone steps back when you enter. What do you do?",
-				"vi": "Có người lùi lại khi bạn vào. Bạn làm gì?"
+				"en": "You step too close. Someone backs away. What do you do?",
+				"vi": "Bạn bước quá gần. Người kia lùi lại. Bạn làm gì?"
 			}
 		],
 		"answers": [
@@ -239,8 +239,8 @@ const NODES := [
 				"reaction": [
 					{
 						"speaker": "tiger",
-						"en": "Then they can meet you on their own feet.",
-						"vi": "Vậy họ gặp bạn bằng bước chân của mình."
+						"en": "Yes. If I want someone beside me, I have to leave a place.",
+						"vi": "Đúng. Muốn có người bên cạnh thì phải chừa chỗ."
 					}
 				]
 			},
@@ -259,8 +259,8 @@ const NODES := [
 				"reaction": [
 					{
 						"speaker": "tiger",
-						"en": "A step back isn't an invitation.",
-						"vi": "Lùi một bước không phải lời mời."
+						"en": "No. You haven't won that space. You've frightened someone out of it.",
+						"vi": "Không. Bạn chưa giành được chỗ đó. Bạn làm người ta sợ mà bỏ đi."
 					}
 				]
 			}
@@ -327,8 +327,8 @@ const NODES := [
 				"dialogue": [
 					{
 						"speaker": "tiger",
-						"en": "I'll bind the actual opening cards. Later draws won't move the target.",
-						"vi": "Tôi sẽ ghi những lá mở đầu thật. Lá rút sau không đổi đối tượng."
+						"en": "The highest cards you open with. I won't move the mark after you've aimed.",
+						"vi": "Những lá cao nhất lúc mở bài. Bạn ngắm rồi, tôi không dời đích."
 					}
 				]
 			},
@@ -382,8 +382,8 @@ const NODES := [
 				"dialogue": [
 					{
 						"speaker": "tiger",
-						"en": "An opening high card reached its play before the deadline we agreed. You stood behind the start.",
-						"vi": "Một lá cao nhất lúc mở đầu đã vào nước hạ trước hạn thống nhất. Bạn đã giữ lời với khởi đầu."
+						"en": "You used the strength you began with. In time. I saw.",
+						"vi": "Bạn dùng được sức mạnh mình có lúc đầu. Kịp hẹn. Tôi thấy rồi."
 					}
 				]
 			},
@@ -392,8 +392,8 @@ const NODES := [
 				"dialogue": [
 					{
 						"speaker": "tiger",
-						"en": "The opening high cards didn't reach a play by our deadline. A later card couldn't replace that start.",
-						"vi": "Những lá cao nhất lúc mở đầu chưa vào nước hạ đúng hạn. Lá đến sau không thay khởi đầu đó được."
+						"en": "The opening chance passed. A stronger draw later doesn't change that.",
+						"vi": "Cơ hội đầu đã qua. Bốc được lá mạnh hơn sau đó không đổi chuyện ấy."
 					}
 				]
 			}
@@ -460,8 +460,8 @@ const NODES := [
 				"dialogue": [
 					{
 						"speaker": "tiger",
-						"en": "A new group, committed together. That's the word I'm taking.",
-						"vi": "Nhóm mới, hạ cùng nhau. Tôi nhận lời đó."
+						"en": "Together from the start. That's the challenge.",
+						"vi": "Cùng nhau ngay từ đầu. Đó là lời thách."
 					}
 				]
 			},
@@ -515,8 +515,8 @@ const NODES := [
 				"dialogue": [
 					{
 						"speaker": "tiger",
-						"en": "You committed the new group at the size we agreed. Its strength was there when you gave it a place.",
-						"vi": "Bạn đã hạ nhóm mới với số lá thống nhất. Sức của nó có sẵn lúc bạn cho nó chỗ."
+						"en": "They stood together from the first play. Good. No borrowed glory.",
+						"vi": "Chúng cùng vào ngay nước đầu. Tốt. Không mượn hào quang về sau."
 					}
 				]
 			},
@@ -525,8 +525,8 @@ const NODES := [
 				"dialogue": [
 					{
 						"speaker": "tiger",
-						"en": "A new Meld of the promised size wasn't committed. Growing one afterward didn't change its beginning.",
-						"vi": "Chưa hạ Phỏm mới với số lá đã hứa. Làm nó lớn sau đó không đổi khởi đầu."
+						"en": "The new Meld didn't begin at the promised size. Growth later is another achievement.",
+						"vi": "Phỏm mới không đủ số lá đã hứa khi hạ. Lớn thêm sau đó là thành tích khác."
 					}
 				]
 			}
@@ -593,8 +593,8 @@ const NODES := [
 				"dialogue": [
 					{
 						"speaker": "tiger",
-						"en": "The chosen physical card, in the new group. I won't choose a substitute for you.",
-						"vi": "Chính lá bạn chọn, trong nhóm mới. Tôi không chọn lá thay bạn đâu."
+						"en": "Your chosen card. Your group. Stand behind both.",
+						"vi": "Lá bạn chọn. Nhóm bạn lập. Chịu trách nhiệm cho cả hai."
 					}
 				]
 			},
@@ -616,8 +616,8 @@ const NODES := [
 				"dialogue": [
 					{
 						"speaker": "tiger",
-						"en": "Your chosen card stood in the new group you promised.",
-						"vi": "Lá bạn chọn đã đứng trong nhóm mới bạn hứa."
+						"en": "That card, in the group you promised. You didn't hide it behind a stronger choice.",
+						"vi": "Đúng lá ấy, trong nhóm đã hứa. Bạn không giấu nó sau lựa chọn mạnh hơn."
 					}
 				]
 			},
@@ -626,8 +626,8 @@ const NODES := [
 				"dialogue": [
 					{
 						"speaker": "tiger",
-						"en": "That card didn't enter the promised new group. An Extension or a smaller beginning couldn't replace it.",
-						"vi": "Lá đó chưa vào nhóm mới đã hứa. Nối hoặc khởi đầu nhỏ hơn không thay được."
+						"en": "Your card never stood in the promised group. I won't call a smaller challenge the same victory.",
+						"vi": "Lá bạn chưa vào nhóm đã hứa. Tôi không gọi thử thách nhỏ hơn là cùng một chiến thắng."
 					}
 				]
 			}
@@ -645,43 +645,43 @@ const NODES := [
 			"FULFILLED": [
 				{
 					"speaker": "tiger",
-					"en": "You stood behind this opening: {target} What let you act in time?",
-					"vi": "Bạn đã giữ lời với khởi đầu này: {target} Điều gì giúp bạn làm kịp?"
+					"en": "You met the opening challenge: {target} Did it feel bold, or simply obvious once you saw the hand?",
+					"vi": "Bạn đạt thử thách mở đầu: {target} Thấy táo bạo, hay nhìn bài rồi thấy hiển nhiên?"
 				}
 			],
 			"BROKEN": [
 				{
 					"speaker": "tiger",
-					"en": "This opening missed our boundary: {target} What would you say before taking it on again?",
-					"vi": "Khởi đầu này đã lỡ ranh giới: {target} Trước khi nhận lại bạn sẽ nói gì?"
+					"en": "The opening passed you by: {target} Tell me where you hesitated.",
+					"vi": "Bạn lỡ thời điểm đầu: {target} Kể tôi nghe đã do dự ở đâu."
 				}
 			],
 			"REFUSED": [
 				{
 					"speaker": "tiger",
-					"en": "You didn't take this deadline: {target} What needed a different answer?",
-					"vi": "Bạn không nhận hạn này: {target} Điều gì cần câu trả lời khác?"
+					"en": "You refused this deadline: {target} Did you expect me to think less of you?",
+					"vi": "Bạn từ chối hạn này: {target} Bạn có tưởng tôi sẽ coi thường không?"
 				}
 			]
 		},
 		"answers": [
 			{
 				"id": "A",
-				"en": "Name the actual cards and the deadline I chose.",
-				"vi": "Nói rõ những lá thật và hạn tôi đã chọn.",
+				"en": "I'd be clear about which cards, and how much time.",
+				"vi": "Tôi sẽ nói rõ lá nào, và trong bao lâu.",
 				"delta": 1,
 				"reaction": [
 					{
 						"speaker": "tiger",
-						"en": "Then your strength has somewhere to stand.",
-						"vi": "Vậy sức của bạn có chỗ để đứng."
+						"en": "Good. A clear mark. Something worth aiming at.",
+						"vi": "Tốt. Đích rõ ràng. Đáng để nhắm tới."
 					}
 				]
 			},
 			{
 				"id": "B",
-				"en": "Check the hand before giving my word.",
-				"vi": "Xem bài trước khi hứa.",
+				"en": "I'd look at my hand before giving my word.",
+				"vi": "Tôi xem tay bài trước khi hứa.",
 				"delta": 0,
 				"reaction": []
 			},
@@ -693,8 +693,8 @@ const NODES := [
 				"reaction": [
 					{
 						"speaker": "tiger",
-						"en": "We named the beginning, not the card that arrived later.",
-						"vi": "Mình đã nói khởi đầu, không nói lá đến sau."
+						"en": "Later strength. Different card. We agreed on your opening hand.",
+						"vi": "Sức mạnh về sau. Lá bài khác. Mình hẹn tay bài mở đầu."
 					}
 				]
 			}
@@ -712,43 +712,43 @@ const NODES := [
 			"FULFILLED": [
 				{
 					"speaker": "tiger",
-					"en": "This group stood together: {target} What did you learn about its strength?",
-					"vi": "Nhóm này đã đứng cùng nhau: {target} Bạn hiểu thêm gì về sức của nó?"
+					"en": "Together from the start: {target} Which card made the group possible?",
+					"vi": "Cùng nhau từ đầu: {target} Lá nào giúp lập được nhóm ấy?"
 				}
 			],
 			"BROKEN": [
 				{
 					"speaker": "tiger",
-					"en": "The group didn't begin as promised: {target} What would you change about the commitment?",
-					"vi": "Nhóm chưa bắt đầu như hứa: {target} Bạn sẽ đổi gì trong cam kết?"
+					"en": "The group wasn't there when promised: {target} What could you actually bring together?",
+					"vi": "Chưa có nhóm như đã hứa: {target} Bạn thực sự tập hợp được gì?"
 				}
 			],
 			"REFUSED": [
 				{
 					"speaker": "tiger",
-					"en": "You left this group unpromised: {target} What did that let you choose?",
-					"vi": "Bạn chưa hứa nhóm này: {target} Điều đó cho bạn chọn gì?"
+					"en": "You didn't take this challenge: {target} Good to know when you're choosing, rather than flinching.",
+					"vi": "Bạn không nhận thử thách này: {target} Biết mình đang chọn, không phải né vì sợ, là tốt."
 				}
 			]
 		},
 		"answers": [
 			{
 				"id": "A",
-				"en": "The size it actually had when I first committed it.",
-				"vi": "Số lá nó thực sự có lúc tôi hạ lần đầu.",
+				"en": "I'd count the cards it started with, not what I added later.",
+				"vi": "Tôi đếm lá lúc mới hạ, không tính phần thêm sau.",
 				"delta": 1,
 				"reaction": [
 					{
 						"speaker": "tiger",
-						"en": "Then the story starts where the group did.",
-						"vi": "Vậy lời kể bắt đầu đúng chỗ nhóm bắt đầu."
+						"en": "Yes. Tell the beginning as it happened. It doesn't need dressing up.",
+						"vi": "Đúng. Kể khởi đầu như nó đã xảy ra. Không cần tô vẽ."
 					}
 				]
 			},
 			{
 				"id": "B",
-				"en": "What I could bring together in one play.",
-				"vi": "Điều tôi gom được trong một nước.",
+				"en": "What I could put down together in one play.",
+				"vi": "Những gì tôi hạ cùng lúc trong một nước.",
 				"delta": 0,
 				"reaction": []
 			},
@@ -760,8 +760,8 @@ const NODES := [
 				"reaction": [
 					{
 						"speaker": "tiger",
-						"en": "It can grow the group. It can't change that first commitment.",
-						"vi": "Nó làm nhóm lớn lên được. Nó không đổi lần hạ đầu tiên."
+						"en": "Let it grow. Don't make it lie about where it started.",
+						"vi": "Cứ để nó lớn. Đừng bắt nó nói dối về lúc bắt đầu."
 					}
 				]
 			}
@@ -779,43 +779,43 @@ const NODES := [
 			"FULFILLED": [
 				{
 					"speaker": "tiger",
-					"en": "This was your choice in the group: {target} Why did you stand behind it?",
-					"vi": "Đây là lựa chọn của bạn trong nhóm: {target} Vì sao bạn giữ lời với nó?"
+					"en": "{target} stood in the group. Why that one? I want to hear your judgment.",
+					"vi": "{target} đứng trong nhóm. Sao là lá ấy? Tôi muốn nghe cách bạn cân nhắc."
 				}
 			],
 			"BROKEN": [
 				{
 					"speaker": "tiger",
-					"en": "This choice didn't reach the promised group: {target} What place did it find?",
-					"vi": "Lựa chọn này chưa vào nhóm đã hứa: {target} Nó tìm được chỗ nào?"
+					"en": "{target} missed the promised group. Don't look away. What happened?",
+					"vi": "{target} chưa vào nhóm đã hứa. Đừng quay mặt. Chuyện gì xảy ra?"
 				}
 			],
 			"REFUSED": [
 				{
 					"speaker": "tiger",
-					"en": "You left this choice free: {target} What company did you need to see?",
-					"vi": "Bạn để lựa chọn này tự do: {target} Bạn cần thấy bạn đi cùng nào?"
+					"en": "You left {target} out of a promise. Was the choice unclear, or the company wrong?",
+					"vi": "Bạn không nhận lời hứa cho {target}. Chưa rõ nên chọn gì, hay chưa đúng nhóm?"
 				}
 			]
 		},
 		"answers": [
 			{
 				"id": "A",
-				"en": "The real card's place, without replacing it in the story.",
-				"vi": "Chỗ của lá thật, không thay nó trong lời kể.",
+				"en": "I'd tell you what happened to that card, not replace it in the story.",
+				"vi": "Tôi kể chuyện xảy ra với lá ấy, không thay lá khác vào câu chuyện.",
 				"delta": 1,
 				"reaction": [
 					{
 						"speaker": "tiger",
-						"en": "Then I can see the choice you made.",
-						"vi": "Vậy tôi thấy được lựa chọn bạn đã làm."
+						"en": "Then I can judge your choice. I don't need a perfect story.",
+						"vi": "Vậy tôi nhìn được lựa chọn của bạn. Không cần câu chuyện hoàn hảo."
 					}
 				]
 			},
 			{
 				"id": "B",
-				"en": "A group I could commit honestly.",
-				"vi": "Nhóm tôi hạ được thật.",
+				"en": "Seeing a group I could actually make.",
+				"vi": "Thấy nhóm mình thực sự tạo được.",
 				"delta": 0,
 				"reaction": []
 			},
@@ -827,8 +827,8 @@ const NODES := [
 				"reaction": [
 					{
 						"speaker": "tiger",
-						"en": "You chose a card, not a description.",
-						"vi": "Bạn chọn lá bài, không chọn lời tả nó."
+						"en": "I challenged you to use a card. You can't meet it with a resemblance.",
+						"vi": "Tôi thách bạn dùng một lá. Không thể đáp lại bằng thứ giống nó."
 					}
 				]
 			}
@@ -843,8 +843,8 @@ const NODES := [
 		"prompt": [
 			{
 				"speaker": "tiger",
-				"en": "If I ask you to stand beside me, must you agree with everything I do?",
-				"vi": "Nếu tôi xin bạn đứng cạnh, bạn phải đồng ý mọi việc tôi làm sao?"
+				"en": "If I pick the wrong fight, will you tell me before it starts?",
+				"vi": "Nếu tôi chọn sai trận để đấu, bạn có nói trước khi nó bắt đầu không?"
 			}
 		],
 		"answers": [
@@ -856,8 +856,8 @@ const NODES := [
 				"reaction": [
 					{
 						"speaker": "tiger",
-						"en": "Then you're company, not an echo.",
-						"vi": "Vậy bạn là người đi cùng, không phải tiếng vọng."
+						"en": "Good. I have enough people who cheer when I raise my voice.",
+						"vi": "Tốt. Người hò reo lúc tôi lớn tiếng đã đủ nhiều rồi."
 					}
 				]
 			},
@@ -876,8 +876,8 @@ const NODES := [
 				"reaction": [
 					{
 						"speaker": "tiger",
-						"en": "Protection shouldn't buy your answer.",
-						"vi": "Che chở không nên mua câu trả lời của bạn."
+						"en": "Then you'd agree even when I shouldn't be protecting anything.",
+						"vi": "Vậy dù tôi bảo vệ điều sai, bạn vẫn đồng ý."
 					}
 				]
 			}
@@ -892,21 +892,21 @@ const NODES := [
 		"prompt": [
 			{
 				"speaker": "tiger",
-				"en": "What would let me lower my guard here?",
-				"vi": "Điều gì giúp tôi thôi đề phòng ở đây?"
+				"en": "I sat with my back to the door today. Kept wanting to turn around. What would make that easier?",
+				"vi": "Hôm nay tôi ngồi quay lưng ra cửa. Cứ muốn ngoái lại. Làm sao để dễ chịu hơn nhỉ?"
 			}
 		],
 		"answers": [
 			{
 				"id": "A",
-				"en": "Knowing I can hear no without reaching for force.",
-				"vi": "Biết tôi nghe được lời từ chối mà không dùng sức.",
+				"en": "Knowing you can hear no without reaching for force.",
+				"vi": "Biết bạn nghe được lời từ chối mà không dùng sức ép.",
 				"delta": 1,
 				"reaction": [
 					{
 						"speaker": "tiger",
-						"en": "Then the room can stay open.",
-						"vi": "Vậy căn phòng còn để mở được."
+						"en": "Yes. No enemy needed. I'm still learning that.",
+						"vi": "Ừ. Không cần có kẻ địch. Tôi vẫn đang học điều ấy."
 					}
 				]
 			},
@@ -925,8 +925,8 @@ const NODES := [
 				"reaction": [
 					{
 						"speaker": "tiger",
-						"en": "That would keep the guard working all night.",
-						"vi": "Vậy tôi phải đề phòng cả đêm rồi."
+						"en": "Then you'd have to measure every person who walked in. Exhausting.",
+						"vi": "Vậy phải đo sức từng người bước vào. Mệt lắm."
 					}
 				]
 			}
@@ -941,8 +941,8 @@ const NODES := [
 		"prompt": [
 			{
 				"speaker": "tiger",
-				"en": "Would you sit here if there were no challenge left to win?",
-				"vi": "Nếu chẳng còn thử thách nào để thắng, bạn có ngồi đây không?"
+				"en": "No contest tonight. No proving anything. Would you find me dull?",
+				"vi": "Tối nay không thi. Không chứng minh gì. Bạn có thấy tôi chán không?"
 			}
 		],
 		"answers": [
@@ -954,8 +954,8 @@ const NODES := [
 				"reaction": [
 					{
 						"speaker": "tiger",
-						"en": "Then I'll let the chair hold some weight.",
-						"vi": "Vậy tôi để ghế đỡ bớt sức nặng nhé."
+						"en": "Good. I have a very ordinary story about a chair that broke.",
+						"vi": "Tốt. Tôi có câu chuyện rất bình thường về cái ghế gãy."
 					}
 				]
 			},
@@ -974,8 +974,8 @@ const NODES := [
 				"reaction": [
 					{
 						"speaker": "tiger",
-						"en": "I was asking about this evening.",
-						"vi": "Tôi đang hỏi chuyện tối nay mà."
+						"en": "I offered you an evening. You asked for an advantage.",
+						"vi": "Tôi mời bạn một buổi tối. Bạn xin một lợi thế."
 					}
 				]
 			}

@@ -268,7 +268,7 @@ func _show_detail() -> void:
 	var original_label := CardData.new("", original[1].to_upper(), 0, original[2].capitalize(), 0).short_label() if original.size() >= 3 else _selected.unique_id
 	if original_label != _selected.short_label(): _add_detail(_words("Original ", "Lá gốc ") + original_label, 16, PresentationTheme.MUTED)
 	_add_detail(tr("CARD_FORTUNE") + " " + _selected.fortune_label(), 34, PresentationTheme.GOLD if _selected.fortune > 0 else Color("c8dce6") if _selected.fortune < 0 else PresentationTheme.MUTED)
-	_add_detail(_words("Actual: ", "Bài thật: ") + _selected.rank + " · " + tr("SUIT_" + _selected.suit.to_upper()), 16)
+	_add_detail(_words("Current: ", "Hiện tại: ") + _selected.rank + " · " + tr("SUIT_" + _selected.suit.to_upper()), 16)
 	_add_detail(_words("Scored value ", "Giá trị tính điểm ") + str(_selected.score_value()), 18, PresentationTheme.WALLET)
 	var properties := _selected.fortune_descriptions()
 	if not _selected.jackpot_state().is_empty(): _add_detail(tr(CardData.property_label_key(_selected.jackpot_state())), 18, PresentationTheme.SPEAKER)
@@ -291,11 +291,11 @@ func _add_detail(value: String, font_size: int, color: Color = PresentationTheme
 
 func _card_state(card: CardData, selectable: bool) -> Array:
 	if _on_choose.is_valid() and not selectable:
-		return [_words("Outside this offer", "Ngoài lựa chọn"), _words("NO", "KHÔNG"), PresentationTheme.DANGER]
+		return [_words("Outside this offer", "Ngoài lựa chọn"), _words("NOT AVAILABLE", "KHÔNG THỂ CHỌN"), PresentationTheme.DANGER]
 	if card.transformation_locked:
-		return [_words("Sealed transformation", "Đã khóa biến đổi"), _words("SEALED", "KHÓA"), PresentationTheme.WARNING]
+		return [_words("Cannot transform while sealed", "Bị niêm phong, không thể biến đổi"), _words("SEALED", "KHÓA"), PresentationTheme.WARNING]
 	if card.has_permanent_changes():
-		return [_words("Permanently changed", "Đã biến đổi vĩnh viễn"), _words("CHANGED", "ĐÃ ĐỔI"), PresentationTheme.SPEAKER]
+		return [_words("Changed for this run", "Đã đổi trong lượt chơi này"), _words("CHANGED", "ĐÃ ĐỔI"), PresentationTheme.SPEAKER]
 	if _on_choose.is_valid():
 		return ["", "", PresentationTheme.TEA]
 	return ["", "", PresentationTheme.MUTED]

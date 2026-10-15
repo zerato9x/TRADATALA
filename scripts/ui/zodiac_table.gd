@@ -235,7 +235,7 @@ func _build_conversation() -> void:
 		status.text += " · %d/%d" % [int(state.cursor) + 1, int(state.demand_count)]
 		if quote.status == "counteroffer": status.text += " · " + ZodiacCatalog.words("Counteroffer", "Đề nghị khác")
 	var pending: Array = service.daily.get("promises", [])
-	if not pending.is_empty(): status.text += " · " + (ZodiacCatalog.words("%d pending", "%d cam kết") % pending.size())
+	if not pending.is_empty(): status.text += " · " + (ZodiacCatalog.words("%d promises pending", "%d lời hứa đang chờ") % pending.size())
 	var result: Dictionary = service.daily.get("last_result", {})
 	if not result.is_empty(): status.text += " · " + (ZodiacCatalog.words("Kept", "Đã giữ") if result.get("resolved_successfully", false) else ZodiacCatalog.words("Broken", "Thất hứa"))
 	targets.hide()
@@ -289,7 +289,7 @@ func _build_persuasion() -> void:
 	if quote.stage == "counteroffer":
 		status.text += " · " + ZodiacCatalog.words("Counteroffer", "Đề nghị khác")
 	elif quote.stage == "last_chance_pending":
-		status.text += "\n" + ZodiacCatalog.words("Last chance · unavailable", "Cơ hội cuối · chưa có nội dung")
+		status.text += "\n" + ZodiacCatalog.words("No further reply", "Không còn lời đáp")
 	elif quote.stage == "locked":
 		status.text += " · " + ZodiacCatalog.words("Visit ended", "Đã kết thúc")
 	if not visit.get("outcomes", []).is_empty():
@@ -327,7 +327,7 @@ func _build_persuasion() -> void:
 		var haggle := _button(ZodiacCatalog.words("HAGGLE", "MẶC CẢ"), _respond.bind("HAGGLE", token))
 		haggle.disabled = not quote.can_haggle
 		haggle.mouse_filter = Control.MOUSE_FILTER_IGNORE if haggle.disabled else Control.MOUSE_FILTER_STOP
-		haggle.tooltip_text = (ZodiacCatalog.words("You already choose one of the three cards.", "Bạn đã được chọn một trong ba lá.") if quote.demand.get("authority", "") == "OFFER_THREE_PLAYER_CHOOSES" else ZodiacCatalog.words("No valid replacement target is available.", "Không có đối tượng thay thế hợp lệ.")) if haggle.disabled and quote.stage != "counteroffer" else ""
+		haggle.tooltip_text = (ZodiacCatalog.words("This offer already lets you choose one of three cards.", "Đề nghị này đã cho bạn chọn một trong ba lá.") if quote.demand.get("authority", "") == "OFFER_THREE_PLAYER_CHOOSES" else ZodiacCatalog.words("No other eligible card or Relic is available.", "Không còn lá bài hay Bảo vật khác phù hợp.")) if haggle.disabled and quote.stage != "counteroffer" else ""
 	elif service.active_id() != "cat" and service.progress.record(service.active_id()).get("special_scene_unlocked", false) and not service.progress.owns(service.active_id()):
 		choices.columns = 1
 		_button(ZodiacCatalog.words("A private moment…", "Một khoảnh khắc riêng…"), func(): scene_page = 0; _show_scene())
@@ -400,13 +400,13 @@ func _add_card_previews(ids: Array, face_size: Vector2) -> void:
 
 func _open_handbook() -> void:
 	var quote := service.quote()
-	var copy := String(quote.get("speech", "")) + "\n\n" + String(quote.get("contract", "")) + "\n\n" + ZodiacCatalog.rule_text(service.active_id(), service.mood())
+	var copy := ZodiacCatalog.portrait_text(service.active_id()) + "\n\n" + String(quote.get("speech", "")) + "\n\n" + String(quote.get("contract", "")) + "\n\n" + ZodiacCatalog.rule_text(service.active_id(), service.mood())
 	if service.uses_persuasion():
 		for result: Dictionary in service.persuasion.state().get("outcomes", []):
 			copy += "\n\n" + (ZodiacCatalog.words("Kept · ", "Đã giữ · ") if result.resolved_successfully else ZodiacCatalog.words("Broken · ", "Thất hứa · ")) + service.persuasion.describe_terms(result.terms)
 	else:
 		for record: Dictionary in service.negotiation().get("history", []): copy += "\n\n" + ZodiacDemand.describe(record.demand)
-	GameGlossary.open_entry(host, ZodiacCatalog.display_name(service.active_id()), copy, "campaign")
+	GameGlossary.open_entry(host, ZodiacCatalog.display_name(service.active_id()), copy, "zodiac")
 
 func _open_card_deck() -> void:
 	var demand := service.current_demand()
@@ -422,7 +422,7 @@ func _open_card_deck() -> void:
 	if selected_ids.size() >= int(demand.quantity): selected_ids.clear()
 	var available := service.selectable_cards(selected_ids)
 	var token := service.offer_token()
-	host.deck_screen.open_deck(host.campaign.gieo_que.persistent_deck, ZodiacCatalog.words("Choose a demand target", "Chọn bài cho yêu cầu"),
+	host.deck_screen.open_deck(host.campaign.gieo_que.persistent_deck, ZodiacCatalog.words("Choose the requested card", "Chọn lá theo yêu cầu"),
 		ZodiacDemand.describe(demand) + "\n" + (ZodiacCatalog.words("Select card %d of %d. Accept confirms the whole cost.", "Chọn lá %d / %d. Đồng ý xác nhận toàn bộ chi phí.") % [selected_ids.size() + 1, int(demand.quantity)]), available,
 		func(card_id: String):
 			if token != service.offer_token(): return
@@ -498,9 +498,9 @@ func _show_scene() -> void:
 	alterations.hide()
 	var id := service.active_id()
 	var pages := [
-		ZodiacCatalog.words("The street is still asleep. Rooster pulls out a chair before you ask. For once, he leaves his watch face down.", "Phố còn ngủ. Dậu kéo ghế trước khi bạn hỏi. Lần này, anh úp mặt đồng hồ xuống."),
-		ZodiacCatalog.words("“You said no when you meant no. And when you promised, you acted. That's rarer than an early sunrise.”", "“Bạn nói không khi muốn nói không. Đã hứa là làm. Còn hiếm hơn một buổi bình minh sớm.”"),
-		ZodiacCatalog.words("He slides a small brass rooster across the wood. “Next time, put this on the table. I'll find the time.”", "Anh đẩy con gà bằng đồng nhỏ qua mặt bàn. “Lần tới đặt nó ở đây. Tôi sẽ dành thời gian.”"),
+		ZodiacCatalog.words("The shutters are down, but Rooster has put out two cups. He checks his watch, catches your eye, and tucks it into his pocket.", "Cửa hàng đã đóng mà Dậu vẫn bày hai cốc. Anh nhìn đồng hồ, bắt gặp ánh mắt bạn, rồi cất nó vào túi."),
+		ZodiacCatalog.words("“My father could tell the hour by who hadn't come home. I thought keeping time meant keeping everyone safe. You've made it easier to leave the watch alone.”", "“Cha tôi đoán được giờ qua việc ai chưa về nhà. Tôi cứ nghĩ giữ đúng giờ là giữ mọi người bình an. Có bạn, tôi dễ để yên chiếc đồng hồ hơn.”"),
+		ZodiacCatalog.words("He slides you a brass rooster. “Bring this on our day. I'll make time. Not find it somewhere between jobs. Make it.”", "Anh đẩy con gà đồng sang. “Đến ngày của mình thì mang. Tôi sẽ dành thời gian. Không phải kiếm chút giờ thừa giữa hai việc. Mà dành hẳn.”"),
 	]
 	var authored_pages: Array = ZodiacCatalog.persuasion_config(id).get("private_scene", [])
 	if not authored_pages.is_empty():

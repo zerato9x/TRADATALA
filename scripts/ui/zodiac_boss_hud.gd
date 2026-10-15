@@ -323,7 +323,7 @@ func _toggle_details() -> void:
 		var cards: Array[String] = []
 		for card in meld.cards: cards.append(card.short_label())
 		copy += "\n\n#%d · %s" % [meld.meld_id, " · ".join(cards)]
-	GameGlossary.open_entry(host, heading, copy, "campaign")
+	GameGlossary.open_entry(host, heading, copy, "zodiac")
 
 func _close_details() -> void:
 	details_panel.hide()
@@ -589,11 +589,11 @@ func present_action(result: Dictionary) -> void:
 	var locks := ",".join(rule.locked_ids)
 	if rule.id == "rooster":
 		if rule.register_closed and not _closed_seen:
-			_queue_speech(ZodiacCatalog.words("Register closed. Legal plays now pay 0 VNĐ.", "Chốt sổ! Bài vẫn hợp lệ, nhưng trả 0 VNĐ."), "closed:%d" % phase, true)
+			_queue_speech(ZodiacCatalog.words("Ledger shut. Legal plays pay 0 VNĐ.", "Khép sổ. Nước hợp lệ trả 0 VNĐ."), "closed:%d" % phase, true)
 		elif phase == 2 and _phase_seen != 2:
-			_queue_speech(ZodiacCatalog.words("Phase 2. Extensions only.", "Hiệp 2. Chỉ nối Phỏm thôi.") if rule.difficulty == ZodiacCatalog.UNPLEASED else ZodiacCatalog.words("A fresh page. Scoring is open again.", "Sang trang mới. Lại được ghi điểm rồi."), "phase2", true)
+			_queue_speech(ZodiacCatalog.words("Phase 2. Extensions only.", "Hiệp 2. Chỉ nối Phỏm thôi.") if rule.difficulty == ZodiacCatalog.UNPLEASED else ZodiacCatalog.words("Fresh page. Show me what you've got.", "Trang mới. Cho tôi xem bạn làm được gì."), "phase2", true)
 	elif rule.id == "cat" and phase == 2 and (locks != _locks_seen or rule.turn_serial != _turn_seen):
-		_queue_speech(ZodiacCatalog.words("These %d are mine until the next turn.", "%d lá này thuộc về ta tới lượt kế.") % rule.locked_ids.size() if not locks.is_empty() else ZodiacCatalog.words("No prey this turn. Go on.", "Lượt này không có con mồi. Đánh tiếp đi."), "locks:%d:%s" % [rule.turn_serial, locks], true)
+		_queue_speech(ZodiacCatalog.words("These %d stay with me until the next turn.", "%d lá này ở với tôi đến Lượt sau.") % rule.locked_ids.size() if not locks.is_empty() else ZodiacCatalog.words("Nothing to keep this turn. Lucky you.", "Lượt này chẳng có gì để giữ. Bạn may đấy."), "locks:%d:%s" % [rule.turn_serial, locks], true)
 	_closed_seen = rule.register_closed
 	_locks_seen = locks
 	_phase_seen = phase
@@ -607,21 +607,21 @@ func present_action(result: Dictionary) -> void:
 		present_suppression(context)
 	elif rule.id == "rooster" and action == "discard" and not rule.register_closed and phase == 1:
 		var left: int = int(ZodiacCatalog.tuning("rooster", "discard_deadline", rule.difficulty)) - host.deal.discard_count
-		if left == 1: _queue_speech(ZodiacCatalog.words("One discard left. Spend it well.", "Còn một lần bỏ. Liệu mà tận dụng."), "last-discard", true)
+		if left == 1: _queue_speech(ZodiacCatalog.words("One discard left. Mind the clock.", "Còn một lần bỏ. Để ý đồng hồ nhé."), "last-discard", true)
 	elif context != null and int(result.get("earned_vnd", 0)) > 0:
-		if rule.id == "cat": _queue_speech(ZodiacCatalog.words("A neat play. I saw that.", "Hạ đẹp đấy. Ta thấy rồi."), "paid:" + action_key)
-		elif rule.id == "rooster": _queue_speech(ZodiacCatalog.words("On the books. Keep going.", "Ghi vào sổ rồi. Tiếp đi."), "paid:" + action_key)
+		if rule.id == "cat": _queue_speech(ZodiacCatalog.words("Mm. You meant that one.", "Ừm. Nước ấy có chủ đích đấy."), "paid:" + action_key)
+		elif rule.id == "rooster": _queue_speech(ZodiacCatalog.words("Entered. I do notice the good work.", "Đã ghi. Việc tốt tôi có thấy đấy."), "paid:" + action_key)
 		elif rule.id == "dog" and int(result.get("meld_id", -1)) == int(rule.data.loyal_meld_id):
-			_queue_speech(ZodiacCatalog.words("That's my loyal Meld. I've got it covered.", "Đúng Phỏm trung thành. Ta bảo vệ nó."), "paid:" + action_key)
+			_queue_speech(ZodiacCatalog.words("Our first Meld. I'll stand by it.", "Phỏm đầu của mình. Tôi theo đến cùng."), "paid:" + action_key)
 		elif rule.id == "monkey" and rule.difficulty != ZodiacCatalog.UNPLEASED:
 			if int(rule.data.repeat_count) >= int(ZodiacCatalog.tuning("monkey", "allowed_repeats", rule.difficulty)):
-				_queue_speech(ZodiacCatalog.words("Fresh! Now switch to ", "Fresh! Giờ đổi sang ") + ZodiacCatalog.action_label("extension" if action == "new_meld" else "new_meld") + ".", "fresh:" + action_key, true)
+				_queue_speech(ZodiacCatalog.words("Ha! Now surprise me with ", "Ha! Giờ gây bất ngờ bằng ") + ZodiacCatalog.action_label("extension" if action == "new_meld" else "new_meld") + ".", "fresh:" + action_key, true)
 		elif rule.id == "monkey":
-			_queue_speech(ZodiacCatalog.words("Good. Next: ", "Đúng rồi. Tiếp: ") + ZodiacCatalog.action_label(String(rule.presentation().required_action)) + ".", "dance:" + action_key, true)
+			_queue_speech(ZodiacCatalog.words("There you go! Next: ", "Đúng rồi! Tiếp: ") + ZodiacCatalog.action_label(String(rule.presentation().required_action)) + ".", "dance:" + action_key, true)
 
 func react_locked_card(card: CardData) -> void:
 	if host.deal.zodiac_boss.is_locked(card):
-		_queue_speech(ZodiacCatalog.words("That card stays with me until the next turn.", "Lá đó ở với ta tới lượt kế."), "touch-lock:%d:%s" % [host.deal.zodiac_boss.turn_serial, card.unique_id], true)
+		_queue_speech(ZodiacCatalog.words("This one's comfortable here. Until next turn.", "Lá này ở đây thoải mái rồi. Đến Lượt sau nhé."), "touch-lock:%d:%s" % [host.deal.zodiac_boss.turn_serial, card.unique_id], true)
 
 func present_suppression(context: ScoringContext) -> void:
 	_queue_speech(ZodiacCatalog.feedback(context.suppression_reason) + ZodiacCatalog.words(" · this play pays 0 VNĐ.", " · lần đánh này trả 0 VNĐ."), "payout:%d" % context.get_instance_id(), true)
@@ -637,13 +637,13 @@ func present_events(events: Array) -> void:
 		match action:
 			"boss_discard":
 				if event.get("source", "") not in ["snake", "snake_charm"]: line = ZodiacCatalog.words("Snatched: ", "Ta lấy lá ") + String(event.get("label", ""))
-			"boss_meld", "boss_extension": line = ZodiacCatalog.words("Mine. That costs you ", "Của ta. Bạn mất ") + VndWallet.format_vnd(absi(int(event.get("amount_vnd", 0))))
-			"pig_siphon": line = ZodiacCatalog.words("I'll hold ", "Ta giữ ") + VndWallet.format_vnd(int(event.amount_vnd))
-			"pig_return": line = ZodiacCatalog.words("Target met. Your pool is back.", "Đủ mục tiêu. Trả lại cả quỹ.")
-			"pig_bank_loss": line = ZodiacCatalog.words("Target missed. Time to collect.", "Chưa đủ mục tiêu. Đến lúc thu tiền.")
-			"snake_disobeyed": line = ZodiacCatalog.words("Disobedient. Your turn continues.", "Không tuân lệnh. Lượt vẫn tiếp tục.")
-			"snake_obeyed": line = ZodiacCatalog.words("Command fulfilled. Your turn continues.", "Đã làm đúng lệnh. Lượt vẫn tiếp tục.")
-			"horse_grace": line = ZodiacCatalog.words("I'll spare this incomplete pair. No grace left this Phase.", "Ta tha cặp chưa đủ lần này. Hiệp này hết ân hạn.")
+			"boss_meld", "boss_extension": line = ZodiacCatalog.words("Found a use for it. That costs you ", "Tìm được cách dùng rồi. Bạn mất ") + VndWallet.format_vnd(absi(int(event.get("amount_vnd", 0))))
+			"pig_siphon": line = ZodiacCatalog.words("A little set aside: ", "Để dành một ít: ") + VndWallet.format_vnd(int(event.amount_vnd))
+			"pig_return": line = ZodiacCatalog.words("Target met! Every coin in the pool comes back.", "Đủ mục tiêu! Cả quỹ trả lại nhé.")
+			"pig_bank_loss": line = ZodiacCatalog.words("Short of the target. The bill still stands.", "Chưa đủ mục tiêu. Hóa đơn vẫn còn.")
+			"snake_disobeyed": line = ZodiacCatalog.words("A different tune. Your turn continues.", "Giai điệu khác rồi. Lượt bạn vẫn tiếp.")
+			"snake_obeyed": line = ZodiacCatalog.words("Exactly the note. Your turn continues.", "Đúng nốt ấy. Lượt bạn vẫn tiếp.")
+			"horse_grace": line = ZodiacCatalog.words("I'll wait this once. No grace left this Phase.", "Tôi chờ lần này. Hiệp này hết lượt nương tay.")
 			"dragon_modifier": line = ZodiacCatalog.words("This turn: ", "Lượt này: ") + ZodiacCatalog.display_name(event.get("id", ""))
-			"horse_forced_discard": line = ZodiacCatalog.words("Too slow. I'll choose your discard.", "Chậm quá. Ta chọn lá bỏ cho bạn.")
+			"horse_forced_discard": line = ZodiacCatalog.words("You lost the stride. I'll choose the discard.", "Bạn lỡ nhịp rồi. Tôi chọn lá bỏ.")
 		if not line.is_empty(): _queue_speech(line, "%s:%d:%d" % [action, host.deal.current_phase, host.deal.zodiac_boss.turn_serial], true)

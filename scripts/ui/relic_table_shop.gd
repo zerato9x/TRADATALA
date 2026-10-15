@@ -165,7 +165,7 @@ func _build_relic(id: String, index: int) -> void:
 
 func _build_card(card: CardData, index: int) -> void:
 	var id := card.unique_id
-	var tile := _tile(id, Vector2(index * 184, 208), Vector2(174, 144), card.short_label() + "\n" + GameGlossary.words("One ordinary physical card added permanently. Duplicate ranks and suits are legal.", "Thêm vĩnh viễn một lá bài thật bình thường. Được trùng hạng và chất."))
+	var tile := _tile(id, Vector2(index * 184, 208), Vector2(174, 144), card.short_label() + "\n" + GameGlossary.words("Adds one ordinary card to your deck for this run. Matching ranks and suits are allowed.", "Thêm một lá thường vào bộ bài suốt lượt chơi này. Được trùng hạng và chất."))
 	var icon := _art(load(card.texture_path()), Vector2(44, 0), Vector2(86, 119), tile, [-0.035, 0.025, -0.02][index % 3])
 	icon.name = "CardObject"
 	icon.set_meta("rest_y", 0.0)
@@ -253,26 +253,26 @@ func _select_offer(id: String) -> void:
 	selected = id
 	_inspect()
 	if RelicCatalog.DEFINITIONS.has(id):
-		dialogue_requested.emit(RelicCatalog.display_name(id) + ". " + RelicCatalog.effect(id) + " " + GameGlossary.words("Once bought, it's always active. You can buy the other items too.", "Mua xong là luôn có hiệu lực. Con vẫn mua các món khác được nhé."))
+		dialogue_requested.emit(RelicCatalog.display_name(id) + ". " + RelicCatalog.effect(id) + " " + GameGlossary.words("Yours for the run, working from the moment you buy it. Have a look at the others too.", "Mua là có tác dụng suốt lượt chơi này. Xem cả những món khác nhé."))
 	elif id == "remove":
 		dialogue_requested.emit(GameGlossary.words("Pay %s, choose one card from your deck, then confirm. The whole card and all its properties disappear permanently. Each completed removal raises the next price.", "Trả %s, chọn một lá trong bộ bài rồi xác nhận. Cả lá và mọi thuộc tính mất vĩnh viễn. Mỗi lần bỏ xong, lần tiếp theo đắt hơn.") % VndWallet.format_vnd(shop.removal_price()))
 	else:
 		var card := shop.card_offer(id)
-		if card != null: dialogue_requested.emit(card.short_label() + ". " + GameGlossary.words("Buy this ordinary card for %s. It joins your deck permanently, with its own physical identity. Matching ranks and suits are allowed, so it can grow your Sets or fill your Runs.", "Mua lá bình thường này với giá %s. Lá vào bộ bài vĩnh viễn, là một lá thật riêng. Được trùng hạng và chất, giúp tăng Set hoặc ghép đủ Run.") % VndWallet.format_vnd(shop.card_price()))
+		if card != null: dialogue_requested.emit(card.short_label() + ". " + GameGlossary.words("%s for this card. It stays in your deck for the run. Already have one like it? Both can be used.", "Lá này %s. Giữ trong bộ suốt lượt chơi. Đã có lá giống vậy à? Cả hai đều dùng được.") % VndWallet.format_vnd(shop.card_price()))
 
 func _inspect() -> void:
 	var cost := shop.price() if RelicCatalog.DEFINITIONS.has(selected) else shop.card_price()
 	var available := shop.offers.has(selected) if RelicCatalog.DEFINITIONS.has(selected) else (shop.card_offer(selected) != null and not shop.sold_cards.has(selected))
 	_buy.disabled = true
 	_buy.text = GameGlossary.words("SELECT AN OBJECT", "CHỌN MỘT MÓN")
-	_detail.text = GameGlossary.words("Select an object. Auntie explains; BUY confirms.", "Chọn món để cô giải thích. Nhấn MUA để xác nhận.")
+	_detail.text = GameGlossary.words("Choose an object to hear about it. BUY confirms your purchase.", "Chọn món để nghe giới thiệu. MUA mới xác nhận trả tiền.")
 	if selected == "remove":
 		cost = shop.removal_price()
 		var target := shop.removal_target()
 		if shop.removal_pending:
 			_buy.disabled = false
 			_buy.text = (GameGlossary.words("REMOVE %s PERMANENTLY", "BỎ VĨNH VIỄN %s") % target.short_label()) if target != null else GameGlossary.words("CHOOSE A CARD · ALREADY PAID", "CHỌN LÁ BÀI · ĐÃ TRẢ TIỀN")
-			_detail.text = GameGlossary.words("All properties disappear with this exact card. No refund or transfer.", "Mọi thuộc tính mất cùng đúng lá này. Không hoàn tiền hay chuyển thuộc tính.") if target != null else GameGlossary.words("Paid %s · Choose one card, then confirm removal.", "Đã trả %s · Chọn một lá rồi xác nhận bỏ.") % VndWallet.format_vnd(shop.removal_paid_vnd)
+			_detail.text = GameGlossary.words("This card and every property on it are removed. No refund or transfer.", "Lá này và mọi thuộc tính trên nó bị xóa. Không hoàn tiền hay chuyển thuộc tính.") if target != null else GameGlossary.words("Paid %s · Choose one card, then confirm removal.", "Đã trả %s · Chọn một lá rồi xác nhận bỏ.") % VndWallet.format_vnd(shop.removal_paid_vnd)
 		else:
 			_buy.disabled = not shop.can_remove() or shop.wallet.balance_vnd < cost
 			_buy.text = GameGlossary.words("PAY FOR REMOVAL · ", "TRẢ TIỀN BỎ BÀI · ") + VndWallet.format_vnd(cost)
@@ -282,7 +282,7 @@ func _inspect() -> void:
 		var caption := RelicCatalog.display_name(selected) if RelicCatalog.DEFINITIONS.has(selected) else shop.card_offer(selected).short_label()
 		_buy.text = GameGlossary.words("BUY ", "MUA ") + caption + " · " + VndWallet.format_vnd(cost)
 		_buy.disabled = not available or shop.wallet.balance_vnd < cost
-		_detail.text = caption + " · " + (GameGlossary.words("Always active after purchase", "Mua xong luôn có hiệu lực") if RelicCatalog.DEFINITIONS.has(selected) else GameGlossary.words("Adds 1 ordinary card permanently", "Thêm vĩnh viễn 1 lá bình thường"))
+		_detail.text = caption + " · " + (GameGlossary.words("Always active after purchase", "Mua xong luôn có hiệu lực") if RelicCatalog.DEFINITIONS.has(selected) else GameGlossary.words("Adds 1 card for this run", "Thêm 1 lá suốt lượt chơi"))
 		if not available:
 			_buy.text = GameGlossary.words("SOLD", "ĐÃ BÁN")
 			_detail.text = caption + " · " + GameGlossary.words("Sold · Other items are still available", "Đã bán · Vẫn mua các món khác được")
@@ -310,25 +310,25 @@ func _purchase() -> void:
 		else:
 			var target := shop.removal_target()
 			if shop.confirm_removal():
-				dialogue_requested.emit(target.short_label() + ". " + GameGlossary.words("Removed from your deck, with all its properties. Next removal: %s.", "Đã bỏ khỏi bộ bài, cùng mọi thuộc tính. Lần bỏ tiếp theo: %s.") % VndWallet.format_vnd(shop.removal_price()))
+				dialogue_requested.emit(target.short_label() + ". " + GameGlossary.words("Gone, properties and all. The next removal costs %s.", "Bỏ rồi, cả thuộc tính nữa. Lần bỏ kế giá %s.") % VndWallet.format_vnd(shop.removal_price()))
 			else:
-				dialogue_requested.emit(GameGlossary.words("That card changed or is unavailable. Choose your card again; your payment is still valid.", "Lá đó đã đổi hoặc không còn. Chọn lại nhé; tiền đã trả vẫn có hiệu lực."))
+				dialogue_requested.emit(GameGlossary.words("That card has changed or is no longer available. Choose again; you've already paid.", "Lá ấy đã đổi hoặc không còn. Chọn lại nhé; bạn đã trả tiền rồi."))
 				_open_removal_picker()
 		return
 	if RelicCatalog.DEFINITIONS.has(selected):
 		var id := selected
 		if not shop.buy(id): return
 		wallet_changed.emit()
-		dialogue_requested.emit(RelicCatalog.display_name(id) + ". " + GameGlossary.words("Sold! It's active for the rest of your run. The other goods stay on the table.", "Mua xong! Có hiệu lực suốt lượt chơi. Các món còn lại vẫn trên bàn nhé."))
+		dialogue_requested.emit(RelicCatalog.display_name(id) + ". " + GameGlossary.words("Sold! It'll work for you all run. Take a look; I've still got a few things worth carrying.", "Bán rồi! Món này giúp bạn suốt lượt chơi. Xem tiếp nhé, cô còn vài thứ đáng mang theo."))
 	else:
 		var acquired := shop.buy_card(selected)
 		if acquired == null: return
 		wallet_changed.emit()
-		dialogue_requested.emit(acquired.short_label() + ". " + GameGlossary.words("Added to your deck. Auntie leaves the other goods on the table.", "Đã thêm vào bộ bài. Các món khác vẫn trên bàn nhé."))
+		dialogue_requested.emit(acquired.short_label() + ". " + GameGlossary.words("Into your deck it goes. The other cards aren't going anywhere yet.", "Vào bộ bài rồi nhé. Những lá khác vẫn còn đây."))
 
 func _open_removal_picker() -> void:
 	if not shop.removal_pending: return
-	removal_pick_requested.emit(shop.owned_cards(), GameGlossary.words("Choose the whole physical card to remove. All its properties will disappear. Final confirmation follows.", "Chọn đúng lá bài thật cần bỏ. Mọi thuộc tính của lá sẽ mất. Sau đó còn bước xác nhận."), _chosen_removal)
+	removal_pick_requested.emit(shop.owned_cards(), GameGlossary.words("Choose the card to remove, including all its properties. You'll confirm before it disappears.", "Chọn lá cần bỏ, cùng toàn bộ thuộc tính. Bạn sẽ xác nhận trước khi nó biến mất."), _chosen_removal)
 
 func _chosen_removal(card_id: String) -> void:
 	if not shop.choose_removal(card_id): return
