@@ -18,15 +18,17 @@ Open `project.godot` in Godot 4.7.1 Stable and run the project (`F6`/`F5`), or l
 Godot_v4.7.1-stable_win64_console.exe --path .
 ```
 
-## Windows V1 build
+## Windows 1.1 build
 
-The committed `Windows Desktop` preset produces the x86_64 V1 build in `build/windows/`. Install the matching Godot 4.7.1 export templates, then run:
+The committed `Windows Desktop` preset produces the x86_64 1.1 build in `build/windows/`. Install the matching Godot 4.7.1 export templates, then run:
 
 ```powershell
 Godot_v4.7.1-stable_win64_console.exe --headless --path . --export-release "Windows Desktop"
 ```
 
-Distribute `TRADATALA-v1.0.2.exe` together with `TRADATALA-v1.0.2.pck`. The PCK remains separate so the build can be code-signed later and is less likely to trigger antivirus heuristics. The current local checkpoint is unsigned; signing requires a Windows signing certificate and is a separate release operation.
+Distribute `TRADATALA-v1.1.exe` together with `TRADATALA-v1.1.pck`. The PCK remains separate so the build can be code-signed later and is less likely to trigger antivirus heuristics. The current local checkpoint is unsigned; signing requires a Windows signing certificate and is a separate release operation.
+
+Release 1.1 is **The Zodiac Boss System Update**. See [the devlog](docs/releases/v1.1/DEVLOG.md) and [content kit](docs/releases/v1.1/CONTENT-KIT.md) for the update copy and screenshots.
 
 ## Full itch.io release
 

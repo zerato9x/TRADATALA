@@ -4,7 +4,8 @@ param(
     [switch]$Strawy,
     [string[]]$Only = @(),
     [string[]]$RenderedChecks = @(),
-    [int]$TimeoutSeconds = 120
+    [int]$TimeoutSeconds = 120,
+    [string]$LogDirectory = ''
 )
 
 $ErrorActionPreference = 'Stop'
@@ -17,7 +18,7 @@ if (-not $Godot -or -not (Test-Path -LiteralPath $Godot -PathType Leaf)) {
     throw 'Pass -Godot with the path to a Godot 4.7.1 console executable, or set GODOT.'
 }
 $Godot = (Resolve-Path -LiteralPath $Godot).Path
-$logRoot = Join-Path $projectRoot '.godot/validation'
+$logRoot = if ([string]::IsNullOrWhiteSpace($LogDirectory)) { Join-Path $projectRoot '.godot/validation' } else { [IO.Path]::GetFullPath($LogDirectory) }
 New-Item -ItemType Directory -Force -Path $logRoot | Out-Null
 $profileRoot = Join-Path $logRoot ('profiles/' + [guid]::NewGuid().ToString('N'))
 $previousAppData = $env:APPDATA

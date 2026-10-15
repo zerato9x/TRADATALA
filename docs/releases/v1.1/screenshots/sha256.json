@@ -1,0 +1,102 @@
+[
+  {
+    "file": "01-home-en.png",
+    "bytes": 1478894,
+    "sha256": "8012b19054a64c380d4d5ae1652e9d11244612528798e424ea18f8f9f2740223"
+  },
+  {
+    "file": "02-noon-table-en.png",
+    "bytes": 1998046,
+    "sha256": "9c92a94952bb7e9f54d6f7cc427e1a895d2438e26bebec8e8eb26a32b1b93772"
+  },
+  {
+    "file": "03-conversation-cat-en.png",
+    "bytes": 1627097,
+    "sha256": "b6ba504c2f80f16c4870bd702549aa6519e7ddda3d47a4457e9a9353a50dbc26"
+  },
+  {
+    "file": "03-conversation-monkey-en.png",
+    "bytes": 1726810,
+    "sha256": "da9dfe74a691f37f3e58e26612a5925d2f770703abdbd0a2ef5dabb9915847bd"
+  },
+  {
+    "file": "03-conversation-rooster-en.png",
+    "bytes": 1690987,
+    "sha256": "95240e48cde1bf4af2aaea5c3c01826cda2f4229ebc9daac7c5026de61473caf"
+  },
+  {
+    "file": "03-conversation-snake-en.png",
+    "bytes": 1711473,
+    "sha256": "f59737bded38dd03ef67c98702c4d45f083c1769104c552041ef3065fa3fbd68"
+  },
+  {
+    "file": "04-conversation-cat-vi.png",
+    "bytes": 1627955,
+    "sha256": "489ab65de3c5481988c0ffbc9405e140eac7dc123777a36a0a66b86736c3949f"
+  },
+  {
+    "file": "05-evening-cat-en.png",
+    "bytes": 1416010,
+    "sha256": "f0a9c5c52664174d29acbec760059fae08f2b6cbfd9263512d3bdb74317c60c4"
+  },
+  {
+    "file": "05-evening-dog-en.png",
+    "bytes": 1397937,
+    "sha256": "11297bb329ce1f4695c8cf576240dbaf412607056121ff4aa3d4e472d447584b"
+  },
+  {
+    "file": "05-evening-goat-en.png",
+    "bytes": 1435043,
+    "sha256": "aeea10ef38cf6b5572d9bcf7e0816d9d938afd0830ea21a2887495a400461333"
+  },
+  {
+    "file": "05-evening-horse-en.png",
+    "bytes": 1405135,
+    "sha256": "56ef2edf2396bf5c2f319c85c523b4ac4b24c234004ec70533f6e17f051c1602"
+  },
+  {
+    "file": "05-evening-monkey-en.png",
+    "bytes": 1370197,
+    "sha256": "77c37634b348476c8307a27b93ee76e67c9fcbe9755dc1c7ba8f4ed342904bc5"
+  },
+  {
+    "file": "05-evening-ox-en.png",
+    "bytes": 1464464,
+    "sha256": "f672d298e0cade6ebced5f463a4c594dfbab20ab96422e69a0aee15911e90012"
+  },
+  {
+    "file": "05-evening-pig-en.png",
+    "bytes": 1400826,
+    "sha256": "7fdf18a7c4dc315d820a5bcc898f7234e8d6a59688279b6693cb2aee4322d6ba"
+  },
+  {
+    "file": "05-evening-rat-en.png",
+    "bytes": 1435143,
+    "sha256": "e3bd980aa80890c9a6d72c54ba9801c1073a51e09e57c9d615159a6dc6361e0a"
+  },
+  {
+    "file": "05-evening-rooster-en.png",
+    "bytes": 1375649,
+    "sha256": "04b5596f08578252b6dbdd8f81ee8344c2168ea3b21fa668ab676ce8b5c1eba2"
+  },
+  {
+    "file": "05-evening-snake-en.png",
+    "bytes": 1472861,
+    "sha256": "74784d92816f0652f148d2fb6413b94ad539af4801692ffd2b881d0faf5d376e"
+  },
+  {
+    "file": "05-evening-tiger-en.png",
+    "bytes": 1422388,
+    "sha256": "3f6ca8c36a620b6eef903571c0608706b9894f9831e02326b96991d723e93c76"
+  },
+  {
+    "file": "06-handbook-snake-en.png",
+    "bytes": 189623,
+    "sha256": "f864fbe097b1e4232bfb2cf5a54a6167a6ea41c470fa6d3d1505fa9b1d5303f6"
+  },
+  {
+    "file": "07-zodiac-collection-en.png",
+    "bytes": 1018853,
+    "sha256": "b31dde81ae2026f60ab6106385cc5893dea439c1c11b3fa9a881cbcd57dc076b"
+  }
+]

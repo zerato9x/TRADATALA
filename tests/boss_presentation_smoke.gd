@@ -151,7 +151,7 @@ func _run() -> void:
 			check(scene.deal.physical_card_accounting_is_valid(), "zero payout presentation preserves physical zones")
 			await capture("rooster-%s-tier%d-zero-payout" % [locale, level])
 		await fixture("rooster", 2, 2)
-		check(hud.feedback.text.contains(ZodiacCatalog.words("Scoring is open", "Lại được ghi điểm")), "Rooster announces Phase 2 scoring")
+		check(hud.feedback.text.contains(ZodiacCatalog.words("Fresh page.", "Trang mới.")), "Rooster announces Phase 2 scoring")
 		await fixture("cat", 2, 2)
 		check(hud.evening_overlay.texture.resource_path == ZodiacCatalog.sprite_path("cat", true) and hud.evening_overlay.is_visible_in_tree(), "Cat is present during Evening")
 		var locked: Array[CardData] = []
@@ -172,7 +172,7 @@ func _run() -> void:
 		check(before == scene.deal.zodiac_boss.snapshot(), "presentation refresh never rerolls Cat")
 		check(not scene.deal.discard_card(locked[0]).ok and scene.deal.hand.has(locked[0]), "Cat legality stays authoritative")
 		scene._on_card_pressed(locked[0])
-		check(hud.feedback.text.contains(ZodiacCatalog.words("stays with me", "ở với ta")), "touching a locked card gets Cat speech")
+		check(hud.feedback.text.contains(ZodiacCatalog.words("comfortable here", "thoải mái rồi")), "touching a locked card gets Cat speech")
 		scene._on_card_drag_started(locked[0], Vector2.ZERO, scene.card_table.hand_views[locked[0].unique_id])
 		check(scene.interactions.drag_payload == null and scene.deal.hand.has(locked[0]), "locked drag reacts without creating a forbidden card payload")
 		await capture("cat-%s-lock-smoke" % locale)
@@ -184,7 +184,7 @@ func _run() -> void:
 			var view: PlayingCardView = scene.card_table.hand_views[card.unique_id]
 			if view.has_node("CatLockSmoke") and view.get_node("CatLockSmoke").visible: active_smoke += 1
 		check(active_smoke == scene.deal.zodiac_boss.locked_ids.size(), "next refill clears old smoke and follows new locks")
-		check(hud.feedback.text.contains(ZodiacCatalog.words("mine until", "thuộc về ta")), "Cat announces each actual lock turn")
+		check(hud.feedback.text.contains(ZodiacCatalog.words("stay with me", "ở với tôi")), "Cat announces each actual lock turn")
 		check(scene.deal.physical_card_accounting_is_valid(), "Cat effects preserve physical zones")
 		scene._show_banner(ZodiacCatalog.words("Choose a card to discard.", "Chọn một lá để bỏ."))
 		await frames(5)
@@ -230,7 +230,7 @@ func _run() -> void:
 			var meld_result := scene.deal.create_meld(group)
 			check(meld_result.ok, "real Meld fixture commits")
 			scene._sync_all(meld_result)
-			check(hud.feedback.text.contains(ZodiacCatalog.words("A neat play", "Hạ đẹp")), "Cat reacts to a paid player Meld")
+			check(hud.feedback.text.contains(ZodiacCatalog.words("You meant that one.", "chủ đích")), "Cat reacts to a paid player Meld")
 		scene.deal.current_phase = 2
 		scene.deal.discard_count = 0
 		scene.deal.zodiac_boss.begin_phase(scene.deal)

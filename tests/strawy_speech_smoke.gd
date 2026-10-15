@@ -60,14 +60,20 @@ func check_speech(locale: String) -> void:
 	ui.settings.set_locale(locale)
 	check(ui.strawy.copy.text == text and ui.strawy.copy.visible_characters == 0, "rapid replacements cannot finish newer speech early")
 	ui.strawy.start_tour()
-	check(ui.strawy.tour.size() > 1 and ui.strawy.copy.visible_characters == 0, "tour explanations also use typewriter text " + locale)
+	check(ui.strawy.tour.size() > 0 and ui.strawy.copy.visible_characters == 0, "tour explanations also use typewriter text %s count=%d chars=%d copy=%s" % [locale, ui.strawy.tour.size(), ui.strawy.copy.visible_characters, ui.strawy.copy.text])
 	for step in ui.strawy.tour:
 		check(step.text.length() > 35, "NPC tour describes the service rather than only naming it " + locale)
 	var old_target: Control = ui.strawy.tour[0].control
 	var next := ui.strawy.actions.get_child(1) as Button
-	next.pressed.emit()
-	check(ui.strawy.tour_index == 1 and ui.strawy.copy.text.begins_with("2/") and ui.strawy.copy.visible_characters == 0, "Next immediately replaces unfinished text with the next explanation " + locale)
-	check(ui.strawy.pointer.targets[0] != old_target and ui.event_table.focused_npc_id.is_empty(), "advancing a tour points without opening a service " + locale)
+	if ui.strawy.tour.size() > 1:
+		next.pressed.emit()
+		check(ui.strawy.tour_index == 1 and ui.strawy.copy.text.begins_with("2/") and ui.strawy.copy.visible_characters == 0, "Next replaces unfinished tour text " + locale)
+		check(ui.strawy.pointer.targets[0] != old_target and ui.event_table.focused_npc_id.is_empty(), "advancing a tour points without opening a service " + locale)
+	else:
+		check(next.text == GameGlossary.words("Done", "Xong"), "single-visitor tour offers Done " + locale)
+		next.pressed.emit()
+		check(ui.strawy.tour.is_empty() and not ui.strawy.box.visible, "Done closes the single-visitor tour " + locale)
+		ui.strawy.start_tour()
 	await create_timer(2.1).timeout
 	check(ui.strawy.copy.visible_characters == -1, "typewriter completes promptly " + locale)
 	await capture("tour")
@@ -96,11 +102,14 @@ func check_deal_speech(locale: String) -> void:
 	ui.strawy.start_tour()
 	var before := var_to_str(ui.deal.snapshot_state())
 	var play: Dictionary = ui.deal.queries.hand_advice().play
-	check(play.action == HandAdvisor.ACTION_NEW_MELD and ui.strawy.copy.text.contains("HẠ"), "Deal tour explains the scoring action " + locale)
+	check(play.action == HandAdvisor.ACTION_NEW_MELD and ui.strawy.copy.text.contains(ui.tr("MELD_ACTION")), "Deal tour explains the scoring action " + locale)
 	for card: CardData in play.cards:
 		check(ui.strawy.copy.text.contains(card.short_label()), "tour identifies every recommended card " + locale)
 	await finish_text(true)
 	await capture("deal-tour")
+	var next := ui.strawy.actions.get_child(1) as Button
+	next.pressed.emit()
+	check(ui.strawy.tour_index == 1 and ui.strawy.copy.text.begins_with("2/") and ui.strawy.copy.visible_characters == 0, "Deal tour Next starts the next explanation " + locale)
 	check(var_to_str(ui.deal.snapshot_state()) == before, "explanations and text taps never play recommended cards " + locale)
 	ui.strawy.close()
 	ui.interactions.selected_ids[ui.deal.hand[0].unique_id] = true

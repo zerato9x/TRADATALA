@@ -83,7 +83,7 @@ func _run() -> void:
 			check(book != null and book.layer > 850, "Details open in Handbook above game overlays")
 			if book != null:
 				check(book._entries[0].body.contains(ZodiacCatalog.rule_text("pig", 2)), "Full boss rule remains in Handbook")
-				check(book._entries.filter(func(entry): return entry.section == "zodiac").size() == 12, "All Zodiac rules are discoverable in Handbook")
+				check(book._entries.filter(func(entry): return entry.section == "zodiac" and not entry.get("live_context", false)).size() == 12, "All Zodiac rules are discoverable in Handbook")
 				await capture("handbook-%s-%d" % [locale, viewport.x])
 				book.queue_free()
 				await frames()

@@ -1,0 +1,1038 @@
+{
+  "version": "1.1",
+  "validationDate": "2026-10-15",
+  "engine": "Godot 4.7.1 stable",
+  "overallPass": true,
+  "headlessChecks": 100,
+  "renderedChecks": 4,
+  "coreTests": {
+    "total": 539,
+    "passed": 539,
+    "failed": 0
+  },
+  "initialFailuresRechecked": [
+    "street-presentation",
+    "drink_shop",
+    "strawy_speech",
+    "readability",
+    "text-reveal"
+  ],
+  "repairs": "Updated stale authored dialogue/localization expectations; allow the current single-visitor Monday tour and verify Next on the Deal tour; keep terms and numeric state immediately readable; exclude the Handbook live-context entry from roster counts; compare headless home-light state before/after instead of requiring an implicit uniform default.",
+  "headless": [
+    {
+      "name": "parse",
+      "script": "res://scripts/ui/match_ui.gd",
+      "args": [],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/parse.log",
+      "stderr": ".godot/validation/parse.err.log"
+    },
+    {
+      "name": "core",
+      "script": "res://tests/run_headless.gd",
+      "args": [],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/core.log",
+      "stderr": ".godot/validation/core.err.log"
+    },
+    {
+      "name": "pile-presentation",
+      "script": "res://tests/pile_presentation_smoke.gd",
+      "args": [],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/pile-presentation.log",
+      "stderr": ".godot/validation/pile-presentation.err.log"
+    },
+    {
+      "name": "street-presentation",
+      "script": "res://tests/street_presentation_smoke.gd",
+      "args": [],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/release-v1.1-recheck/street-presentation.log",
+      "stderr": ".godot/release-v1.1-recheck/street-presentation.err.log"
+    },
+    {
+      "name": "runtime",
+      "script": "res://tests/runtime_scene_smoke.gd",
+      "args": [],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/runtime.log",
+      "stderr": ".godot/validation/runtime.err.log"
+    },
+    {
+      "name": "menu-deal",
+      "script": "res://tests/menu_deal_smoke.gd",
+      "args": [],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/menu-deal.log",
+      "stderr": ".godot/validation/menu-deal.err.log"
+    },
+    {
+      "name": "boss-debug-navigation",
+      "script": "res://tests/boss_debug_navigation_smoke.gd",
+      "args": [],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/boss-debug-navigation.log",
+      "stderr": ".godot/validation/boss-debug-navigation.err.log"
+    },
+    {
+      "name": "card-interaction",
+      "script": "res://tests/card_interaction_smoke.gd",
+      "args": [],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/card-interaction.log",
+      "stderr": ".godot/validation/card-interaction.err.log"
+    },
+    {
+      "name": "jukebox",
+      "script": "res://tests/jukebox_scene_smoke.gd",
+      "args": [],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/jukebox.log",
+      "stderr": ".godot/validation/jukebox.err.log"
+    },
+    {
+      "name": "money-fast-forward",
+      "script": "res://tests/money_fast_forward_smoke.gd",
+      "args": [],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/money-fast-forward.log",
+      "stderr": ".godot/validation/money-fast-forward.err.log"
+    },
+    {
+      "name": "boss-money-presence",
+      "script": "res://tests/boss_money_presence_smoke.gd",
+      "args": [],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/boss-money-presence.log",
+      "stderr": ".godot/validation/boss-money-presence.err.log"
+    },
+    {
+      "name": "drink-presentation",
+      "script": "res://tests/drink_presentation_smoke.gd",
+      "args": [],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/drink-presentation.log",
+      "stderr": ".godot/validation/drink-presentation.err.log"
+    },
+    {
+      "name": "boss-dog-monkey",
+      "script": "res://tests/dog_monkey_presentation_smoke.gd",
+      "args": [],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/boss-dog-monkey.log",
+      "stderr": ".godot/validation/boss-dog-monkey.err.log"
+    },
+    {
+      "name": "boss-pig-monkey",
+      "script": "res://tests/pig_monkey_overhaul_smoke.gd",
+      "args": [],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/boss-pig-monkey.log",
+      "stderr": ".godot/validation/boss-pig-monkey.err.log"
+    },
+    {
+      "name": "boss-horse-goat",
+      "script": "res://tests/horse_goat_overhaul_smoke.gd",
+      "args": [],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/boss-horse-goat.log",
+      "stderr": ".godot/validation/boss-horse-goat.err.log"
+    },
+    {
+      "name": "boss-rat-tiger",
+      "script": "res://tests/rat_tiger_overhaul_smoke.gd",
+      "args": [],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/boss-rat-tiger.log",
+      "stderr": ".godot/validation/boss-rat-tiger.err.log"
+    },
+    {
+      "name": "boss-snake",
+      "script": "res://tests/snake_overhaul_smoke.gd",
+      "args": [],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/boss-snake.log",
+      "stderr": ".godot/validation/boss-snake.err.log"
+    },
+    {
+      "name": "music-transport",
+      "script": "res://tests/music_transport_smoke.gd",
+      "args": [],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/music-transport.log",
+      "stderr": ".godot/validation/music-transport.err.log"
+    },
+    {
+      "name": "music-write",
+      "script": "res://tests/music_resume_scene_smoke.gd",
+      "args": [],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/music-write.log",
+      "stderr": ".godot/validation/music-write.err.log"
+    },
+    {
+      "name": "music-read",
+      "script": "res://tests/music_resume_scene_smoke.gd",
+      "args": [
+        "--resume-only"
+      ],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/music-read.log",
+      "stderr": ".godot/validation/music-read.err.log"
+    },
+    {
+      "name": "campaign",
+      "script": "res://tests/campaign_overhaul_scene_smoke.gd",
+      "args": [],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/campaign.log",
+      "stderr": ".godot/validation/campaign.err.log"
+    },
+    {
+      "name": "campaign-demo",
+      "script": "res://tests/campaign_overhaul_scene_smoke.gd",
+      "args": [
+        "--tradatala-demo"
+      ],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/campaign-demo.log",
+      "stderr": ".godot/validation/campaign-demo.err.log"
+    },
+    {
+      "name": "progression-write",
+      "script": "res://tests/progression_scene_smoke.gd",
+      "args": [],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/progression-write.log",
+      "stderr": ".godot/validation/progression-write.err.log"
+    },
+    {
+      "name": "progression-read",
+      "script": "res://tests/progression_scene_smoke.gd",
+      "args": [
+        "--resume-only"
+      ],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/progression-read.log",
+      "stderr": ".godot/validation/progression-read.err.log"
+    },
+    {
+      "name": "meta-debug-write",
+      "script": "res://tests/meta_debug_scene_smoke.gd",
+      "args": [],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/meta-debug-write.log",
+      "stderr": ".godot/validation/meta-debug-write.err.log"
+    },
+    {
+      "name": "meta-debug-read",
+      "script": "res://tests/meta_debug_scene_smoke.gd",
+      "args": [
+        "--resume-only"
+      ],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/meta-debug-read.log",
+      "stderr": ".godot/validation/meta-debug-read.err.log"
+    },
+    {
+      "name": "front_end",
+      "script": "res://tests/front_end_smoke.gd",
+      "args": [],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/front_end.log",
+      "stderr": ".godot/validation/front_end.err.log"
+    },
+    {
+      "name": "tutorial_scene",
+      "script": "res://tests/tutorial_scene_smoke.gd",
+      "args": [],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/tutorial_scene.log",
+      "stderr": ".godot/validation/tutorial_scene.err.log"
+    },
+    {
+      "name": "event_table_overhaul",
+      "script": "res://tests/event_table_overhaul_smoke.gd",
+      "args": [],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/event_table_overhaul.log",
+      "stderr": ".godot/validation/event_table_overhaul.err.log"
+    },
+    {
+      "name": "misc_npc_scene",
+      "script": "res://tests/misc_npc_scene_smoke.gd",
+      "args": [],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/misc_npc_scene.log",
+      "stderr": ".godot/validation/misc_npc_scene.err.log"
+    },
+    {
+      "name": "gieo_que_screen",
+      "script": "res://tests/gieo_que_screen_smoke.gd",
+      "args": [],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/gieo_que_screen.log",
+      "stderr": ".godot/validation/gieo_que_screen.err.log"
+    },
+    {
+      "name": "drink_shop",
+      "script": "res://tests/drink_shop_smoke.gd",
+      "args": [],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/release-v1.1-content-recheck/drink_shop.log",
+      "stderr": ".godot/release-v1.1-content-recheck/drink_shop.err.log"
+    },
+    {
+      "name": "drink_quick",
+      "script": "res://tests/drink_quick_smoke.gd",
+      "args": [],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/drink_quick.log",
+      "stderr": ".godot/validation/drink_quick.err.log"
+    },
+    {
+      "name": "zodiac_scene",
+      "script": "res://tests/zodiac_scene_smoke.gd",
+      "args": [],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/zodiac_scene.log",
+      "stderr": ".godot/validation/zodiac_scene.err.log"
+    },
+    {
+      "name": "strawy_scene",
+      "script": "res://tests/strawy_scene_smoke.gd",
+      "args": [],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/strawy_scene.log",
+      "stderr": ".godot/validation/strawy_scene.err.log"
+    },
+    {
+      "name": "strawy_commands",
+      "script": "res://tests/strawy_commands_smoke.gd",
+      "args": [],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/strawy_commands.log",
+      "stderr": ".godot/validation/strawy_commands.err.log"
+    },
+    {
+      "name": "strawy_moves_drinks",
+      "script": "res://tests/strawy_moves_drinks_smoke.gd",
+      "args": [],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/strawy_moves_drinks.log",
+      "stderr": ".godot/validation/strawy_moves_drinks.err.log"
+    },
+    {
+      "name": "strawy_speech",
+      "script": "res://tests/strawy_speech_smoke.gd",
+      "args": [],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/release-v1.1-text-recheck/strawy_speech.log",
+      "stderr": ".godot/release-v1.1-text-recheck/strawy_speech.err.log"
+    },
+    {
+      "name": "strawy-settings-write",
+      "script": "res://tests/strawy_settings_smoke.gd",
+      "args": [],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/strawy-settings-write.log",
+      "stderr": ".godot/validation/strawy-settings-write.err.log"
+    },
+    {
+      "name": "strawy-settings-read",
+      "script": "res://tests/strawy_settings_smoke.gd",
+      "args": [
+        "--resume-only"
+      ],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/strawy-settings-read.log",
+      "stderr": ".godot/validation/strawy-settings-read.err.log"
+    },
+    {
+      "name": "zodiac-full-roster",
+      "script": "res://tests/zodiac_full_roster_smoke.gd",
+      "args": [],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/zodiac-full-roster.log",
+      "stderr": ".godot/validation/zodiac-full-roster.err.log"
+    },
+    {
+      "name": "boss-roster-presentation",
+      "script": "res://tests/roster_presentation_smoke.gd",
+      "args": [],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/boss-roster-presentation.log",
+      "stderr": ".godot/validation/boss-roster-presentation.err.log"
+    },
+    {
+      "name": "menu_release",
+      "script": "res://tests/menu_release_smoke.gd",
+      "args": [],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/menu_release.log",
+      "stderr": ".godot/validation/menu_release.err.log"
+    },
+    {
+      "name": "money_hud_103",
+      "script": "res://tests/money_hud_103_smoke.gd",
+      "args": [],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/money_hud_103.log",
+      "stderr": ".godot/validation/money_hud_103.err.log"
+    },
+    {
+      "name": "release_103_qol",
+      "script": "res://tests/release_103_qol_smoke.gd",
+      "args": [],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/release_103_qol.log",
+      "stderr": ".godot/validation/release_103_qol.err.log"
+    },
+    {
+      "name": "resolve_scene",
+      "script": "res://tests/resolve_scene_smoke.gd",
+      "args": [],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/resolve_scene.log",
+      "stderr": ".godot/validation/resolve_scene.err.log"
+    },
+    {
+      "name": "relic_scene",
+      "script": "res://tests/relic_scene_smoke.gd",
+      "args": [],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/relic_scene.log",
+      "stderr": ".godot/validation/relic_scene.err.log"
+    },
+    {
+      "name": "resolve_presentation",
+      "script": "res://tests/resolve_presentation_smoke.gd",
+      "args": [],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/resolve_presentation.log",
+      "stderr": ".godot/validation/resolve_presentation.err.log"
+    },
+    {
+      "name": "demo",
+      "script": "res://tests/demo_smoke.gd",
+      "args": [
+        "--tradatala-demo"
+      ],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/demo.log",
+      "stderr": ".godot/validation/demo.err.log"
+    },
+    {
+      "name": "shoe-write",
+      "script": "res://tests/shoe_shine_resume_smoke.gd",
+      "args": [],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/shoe-write.log",
+      "stderr": ".godot/validation/shoe-write.err.log"
+    },
+    {
+      "name": "shoe-read",
+      "script": "res://tests/shoe_shine_resume_smoke.gd",
+      "args": [
+        "--read"
+      ],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/shoe-read.log",
+      "stderr": ".godot/validation/shoe-read.err.log"
+    },
+    {
+      "name": "shoe-en",
+      "script": "res://tests/shoe_shine_scene_smoke.gd",
+      "args": [],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/shoe-en.log",
+      "stderr": ".godot/validation/shoe-en.err.log"
+    },
+    {
+      "name": "shoe-vi",
+      "script": "res://tests/shoe_shine_scene_smoke.gd",
+      "args": [
+        "--vietnamese"
+      ],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/shoe-vi.log",
+      "stderr": ".godot/validation/shoe-vi.err.log"
+    },
+    {
+      "name": "shoe-large-en",
+      "script": "res://tests/shoe_shine_scene_smoke.gd",
+      "args": [
+        "--large"
+      ],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/shoe-large-en.log",
+      "stderr": ".godot/validation/shoe-large-en.err.log"
+    },
+    {
+      "name": "shoe-large-vi",
+      "script": "res://tests/shoe_shine_scene_smoke.gd",
+      "args": [
+        "--large",
+        "--vietnamese"
+      ],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/shoe-large-vi.log",
+      "stderr": ".godot/validation/shoe-large-vi.err.log"
+    },
+    {
+      "name": "fortune-write",
+      "script": "res://tests/fortune_resume_smoke.gd",
+      "args": [],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/fortune-write.log",
+      "stderr": ".godot/validation/fortune-write.err.log"
+    },
+    {
+      "name": "fortune-read",
+      "script": "res://tests/fortune_resume_smoke.gd",
+      "args": [
+        "--resume-only"
+      ],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/fortune-read.log",
+      "stderr": ".godot/validation/fortune-read.err.log"
+    },
+    {
+      "name": "readability",
+      "script": "res://tests/text_readability_smoke.gd",
+      "args": [],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/release-v1.1-text-recheck/readability.log",
+      "stderr": ".godot/release-v1.1-text-recheck/readability.err.log"
+    },
+    {
+      "name": "text-editorial",
+      "script": "res://tests/text_editorial_smoke.gd",
+      "args": [],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/text-editorial.log",
+      "stderr": ".godot/validation/text-editorial.err.log"
+    },
+    {
+      "name": "collection-refinement",
+      "script": "res://tests/collection_refinement_smoke.gd",
+      "args": [],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/collection-refinement.log",
+      "stderr": ".godot/validation/collection-refinement.err.log"
+    },
+    {
+      "name": "front-end-forms",
+      "script": "res://tests/front_end_forms_smoke.gd",
+      "args": [],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/front-end-forms.log",
+      "stderr": ".godot/validation/front-end-forms.err.log"
+    },
+    {
+      "name": "ui-polish-layout",
+      "script": "res://tests/ui_polish_layout_smoke.gd",
+      "args": [],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/ui-polish-layout.log",
+      "stderr": ".godot/validation/ui-polish-layout.err.log"
+    },
+    {
+      "name": "text-reveal",
+      "script": "res://tests/text_reveal_scene_smoke.gd",
+      "args": [],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/release-v1.1-text-recheck/text-reveal.log",
+      "stderr": ".godot/release-v1.1-text-recheck/text-reveal.err.log"
+    },
+    {
+      "name": "hang-rong-write",
+      "script": "res://tests/hang_rong_resume_smoke.gd",
+      "args": [],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/hang-rong-write.log",
+      "stderr": ".godot/validation/hang-rong-write.err.log"
+    },
+    {
+      "name": "hang-rong-read",
+      "script": "res://tests/hang_rong_resume_smoke.gd",
+      "args": [
+        "--read"
+      ],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/hang-rong-read.log",
+      "stderr": ".godot/validation/hang-rong-read.err.log"
+    },
+    {
+      "name": "hang-rong-en",
+      "script": "res://tests/hang_rong_presentation_smoke.gd",
+      "args": [],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/hang-rong-en.log",
+      "stderr": ".godot/validation/hang-rong-en.err.log"
+    },
+    {
+      "name": "hang-rong-vi",
+      "script": "res://tests/hang_rong_presentation_smoke.gd",
+      "args": [
+        "--vietnamese"
+      ],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/hang-rong-vi.log",
+      "stderr": ".godot/validation/hang-rong-vi.err.log"
+    },
+    {
+      "name": "hang-rong-large-en",
+      "script": "res://tests/hang_rong_presentation_smoke.gd",
+      "args": [
+        "--large"
+      ],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/hang-rong-large-en.log",
+      "stderr": ".godot/validation/hang-rong-large-en.err.log"
+    },
+    {
+      "name": "hang-rong-large-vi",
+      "script": "res://tests/hang_rong_presentation_smoke.gd",
+      "args": [
+        "--large",
+        "--vietnamese"
+      ],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/hang-rong-large-vi.log",
+      "stderr": ".godot/validation/hang-rong-large-vi.err.log"
+    },
+    {
+      "name": "boss-presentation",
+      "script": "res://tests/boss_presentation_smoke.gd",
+      "args": [],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/boss-presentation.log",
+      "stderr": ".godot/validation/boss-presentation.err.log"
+    },
+    {
+      "name": "cat-scene",
+      "script": "res://tests/cat_persuasion_scene_smoke.gd",
+      "args": [],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/cat-scene.log",
+      "stderr": ".godot/validation/cat-scene.err.log"
+    },
+    {
+      "name": "cat-expansion",
+      "script": "res://tests/cat_expansion_scene_smoke.gd",
+      "args": [],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/cat-expansion.log",
+      "stderr": ".godot/validation/cat-expansion.err.log"
+    },
+    {
+      "name": "rooster-scene",
+      "script": "res://tests/rooster_persuasion_scene_smoke.gd",
+      "args": [],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/rooster-scene.log",
+      "stderr": ".godot/validation/rooster-scene.err.log"
+    },
+    {
+      "name": "rooster-write",
+      "script": "res://tests/rooster_persuasion_resume_smoke.gd",
+      "args": [
+        "--write"
+      ],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/rooster-write.log",
+      "stderr": ".godot/validation/rooster-write.err.log"
+    },
+    {
+      "name": "rooster-read",
+      "script": "res://tests/rooster_persuasion_resume_smoke.gd",
+      "args": [
+        "--read"
+      ],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/rooster-read.log",
+      "stderr": ".godot/validation/rooster-read.err.log"
+    },
+    {
+      "name": "monkey-dog-scene",
+      "script": "res://tests/monkey_dog_persuasion_scene_smoke.gd",
+      "args": [],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/monkey-dog-scene.log",
+      "stderr": ".godot/validation/monkey-dog-scene.err.log"
+    },
+    {
+      "name": "monkey-dog-write",
+      "script": "res://tests/monkey_dog_persuasion_resume_smoke.gd",
+      "args": [
+        "--write"
+      ],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/monkey-dog-write.log",
+      "stderr": ".godot/validation/monkey-dog-write.err.log"
+    },
+    {
+      "name": "monkey-dog-read",
+      "script": "res://tests/monkey_dog_persuasion_resume_smoke.gd",
+      "args": [
+        "--read"
+      ],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/monkey-dog-read.log",
+      "stderr": ".godot/validation/monkey-dog-read.err.log"
+    },
+    {
+      "name": "pig-ox-scene",
+      "script": "res://tests/pig_ox_persuasion_scene_smoke.gd",
+      "args": [],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/pig-ox-scene.log",
+      "stderr": ".godot/validation/pig-ox-scene.err.log"
+    },
+    {
+      "name": "pig-ox-write",
+      "script": "res://tests/pig_ox_persuasion_resume_smoke.gd",
+      "args": [
+        "--write"
+      ],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/pig-ox-write.log",
+      "stderr": ".godot/validation/pig-ox-write.err.log"
+    },
+    {
+      "name": "pig-ox-read",
+      "script": "res://tests/pig_ox_persuasion_resume_smoke.gd",
+      "args": [
+        "--read"
+      ],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/pig-ox-read.log",
+      "stderr": ".godot/validation/pig-ox-read.err.log"
+    },
+    {
+      "name": "horse-goat-scene",
+      "script": "res://tests/horse_goat_persuasion_scene_smoke.gd",
+      "args": [],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/horse-goat-scene.log",
+      "stderr": ".godot/validation/horse-goat-scene.err.log"
+    },
+    {
+      "name": "horse-goat-write",
+      "script": "res://tests/horse_goat_persuasion_resume_smoke.gd",
+      "args": [
+        "--write"
+      ],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/horse-goat-write.log",
+      "stderr": ".godot/validation/horse-goat-write.err.log"
+    },
+    {
+      "name": "horse-goat-read",
+      "script": "res://tests/horse_goat_persuasion_resume_smoke.gd",
+      "args": [
+        "--read"
+      ],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/horse-goat-read.log",
+      "stderr": ".godot/validation/horse-goat-read.err.log"
+    },
+    {
+      "name": "rat-tiger-scene",
+      "script": "res://tests/rat_tiger_persuasion_scene_smoke.gd",
+      "args": [],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/rat-tiger-scene.log",
+      "stderr": ".godot/validation/rat-tiger-scene.err.log"
+    },
+    {
+      "name": "rat-tiger-write",
+      "script": "res://tests/rat_tiger_persuasion_resume_smoke.gd",
+      "args": [
+        "--write"
+      ],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/rat-tiger-write.log",
+      "stderr": ".godot/validation/rat-tiger-write.err.log"
+    },
+    {
+      "name": "rat-tiger-read",
+      "script": "res://tests/rat_tiger_persuasion_resume_smoke.gd",
+      "args": [
+        "--read"
+      ],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/rat-tiger-read.log",
+      "stderr": ".godot/validation/rat-tiger-read.err.log"
+    },
+    {
+      "name": "snake-scene",
+      "script": "res://tests/snake_persuasion_scene_smoke.gd",
+      "args": [],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/snake-scene.log",
+      "stderr": ".godot/validation/snake-scene.err.log"
+    },
+    {
+      "name": "snake-write",
+      "script": "res://tests/snake_persuasion_resume_smoke.gd",
+      "args": [
+        "--write"
+      ],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/snake-write.log",
+      "stderr": ".godot/validation/snake-write.err.log"
+    },
+    {
+      "name": "snake-read",
+      "script": "res://tests/snake_persuasion_resume_smoke.gd",
+      "args": [
+        "--read"
+      ],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/snake-read.log",
+      "stderr": ".godot/validation/snake-read.err.log"
+    },
+    {
+      "name": "cat-write",
+      "script": "res://tests/cat_persuasion_resume_smoke.gd",
+      "args": [
+        "--write"
+      ],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/cat-write.log",
+      "stderr": ".godot/validation/cat-write.err.log"
+    },
+    {
+      "name": "cat-read",
+      "script": "res://tests/cat_persuasion_resume_smoke.gd",
+      "args": [
+        "--read"
+      ],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/cat-read.log",
+      "stderr": ".godot/validation/cat-read.err.log"
+    },
+    {
+      "name": "negotiation",
+      "script": "res://tests/zodiac_negotiation_tests.gd",
+      "args": [],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/negotiation.log",
+      "stderr": ".godot/validation/negotiation.err.log"
+    },
+    {
+      "name": "negotiation-write",
+      "script": "res://tests/zodiac_negotiation_resume_smoke.gd",
+      "args": [
+        "--write"
+      ],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/negotiation-write.log",
+      "stderr": ".godot/validation/negotiation-write.err.log"
+    },
+    {
+      "name": "negotiation-read",
+      "script": "res://tests/zodiac_negotiation_resume_smoke.gd",
+      "args": [
+        "--read"
+      ],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/negotiation-read.log",
+      "stderr": ".godot/validation/negotiation-read.err.log"
+    },
+    {
+      "name": "history",
+      "script": "res://tests/endless_history_smoke.gd",
+      "args": [],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/history.log",
+      "stderr": ".godot/validation/history.err.log"
+    },
+    {
+      "name": "gameplay_music",
+      "script": "res://tools/gameplay_music_smoke.gd",
+      "args": [],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/gameplay_music.log",
+      "stderr": ".godot/validation/gameplay_music.err.log"
+    },
+    {
+      "name": "music_director",
+      "script": "res://tools/music_director_smoke.gd",
+      "args": [],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/music_director.log",
+      "stderr": ".godot/validation/music_director.err.log"
+    },
+    {
+      "name": "music_arrangement",
+      "script": "res://tools/music_arrangement_smoke.gd",
+      "args": [],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/music_arrangement.log",
+      "stderr": ".godot/validation/music_arrangement.err.log"
+    },
+    {
+      "name": "ost_loop_catalog",
+      "script": "res://tools/ost_loop_catalog_smoke.gd",
+      "args": [],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/validation/ost_loop_catalog.log",
+      "stderr": ".godot/validation/ost_loop_catalog.err.log"
+    }
+  ],
+  "rendered": [
+    {
+      "name": "street-presentation",
+      "script": "res://tests/street_presentation_smoke.gd",
+      "args": [],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/release-v1.1-rendered/street-presentation.log",
+      "stderr": ".godot/release-v1.1-rendered/street-presentation.err.log"
+    },
+    {
+      "name": "boss-presentation",
+      "script": "res://tests/boss_presentation_smoke.gd",
+      "args": [],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/release-v1.1-recheck/boss-presentation.log",
+      "stderr": ".godot/release-v1.1-recheck/boss-presentation.err.log"
+    },
+    {
+      "name": "cat-scene",
+      "script": "res://tests/cat_persuasion_scene_smoke.gd",
+      "args": [],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/release-v1.1-rendered/cat-scene.log",
+      "stderr": ".godot/release-v1.1-rendered/cat-scene.err.log"
+    },
+    {
+      "name": "snake-scene",
+      "script": "res://tests/snake_persuasion_scene_smoke.gd",
+      "args": [],
+      "pass": true,
+      "failure": "",
+      "stdout": ".godot/release-v1.1-rendered/snake-scene.log",
+      "stderr": ".godot/release-v1.1-rendered/snake-scene.err.log"
+    }
+  ],
+  "screenshots": {
+    "count": 20,
+    "resolution": [
+      1920,
+      1080
+    ],
+    "manifest": "screenshots/captions.json",
+    "checksums": "screenshots/sha256.json"
+  },
+  "limits": [
+    "No extended human campaign playthrough or audio-listening acceptance review.",
+    "Exported package and website publication checks are recorded separately in the final build release receipt."
+  ]
+}

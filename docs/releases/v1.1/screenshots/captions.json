@@ -1,0 +1,188 @@
+{
+	"capture_method": "Actual game framebuffer. Deterministic scenes staged through campaign and Deal APIs in an isolated profile; no image retouching.",
+	"captures": [
+		{
+			"boss": "",
+			"caption": "Welcome back to the sidewalk table.",
+			"file": "01-home-en.png",
+			"height": 1080,
+			"locale": "en",
+			"stage": "home",
+			"width": 1920
+		},
+		{
+			"boss": "cat",
+			"caption": "A Zodiac visitor joins the Noon event table.",
+			"file": "02-noon-table-en.png",
+			"height": 1080,
+			"locale": "en",
+			"stage": "noon-overview",
+			"width": 1920
+		},
+		{
+			"boss": "cat",
+			"caption": "An authored conversation with CAT.",
+			"file": "03-conversation-cat-en.png",
+			"height": 1080,
+			"locale": "en",
+			"stage": "conversation",
+			"width": 1920
+		},
+		{
+			"boss": "cat",
+			"caption": "Vietnamese dialogue and choices with Cat.",
+			"file": "04-conversation-cat-vi.png",
+			"height": 1080,
+			"locale": "vi",
+			"stage": "conversation",
+			"width": 1920
+		},
+		{
+			"boss": "rooster",
+			"caption": "An authored conversation with ROOSTER.",
+			"file": "03-conversation-rooster-en.png",
+			"height": 1080,
+			"locale": "en",
+			"stage": "conversation",
+			"width": 1920
+		},
+		{
+			"boss": "monkey",
+			"caption": "An authored conversation with MONKEY.",
+			"file": "03-conversation-monkey-en.png",
+			"height": 1080,
+			"locale": "en",
+			"stage": "conversation",
+			"width": 1920
+		},
+		{
+			"boss": "snake",
+			"caption": "An authored conversation with SNAKE.",
+			"file": "03-conversation-snake-en.png",
+			"height": 1080,
+			"locale": "en",
+			"stage": "conversation",
+			"width": 1920
+		},
+		{
+			"boss": "rooster",
+			"caption": "Evening at the table with ROOSTER.",
+			"file": "05-evening-rooster-en.png",
+			"height": 1080,
+			"locale": "en",
+			"stage": "evening",
+			"width": 1920
+		},
+		{
+			"boss": "cat",
+			"caption": "Evening at the table with CAT.",
+			"file": "05-evening-cat-en.png",
+			"height": 1080,
+			"locale": "en",
+			"stage": "evening",
+			"width": 1920
+		},
+		{
+			"boss": "dog",
+			"caption": "Evening at the table with DOG.",
+			"file": "05-evening-dog-en.png",
+			"height": 1080,
+			"locale": "en",
+			"stage": "evening",
+			"width": 1920
+		},
+		{
+			"boss": "monkey",
+			"caption": "Evening at the table with MONKEY.",
+			"file": "05-evening-monkey-en.png",
+			"height": 1080,
+			"locale": "en",
+			"stage": "evening",
+			"width": 1920
+		},
+		{
+			"boss": "pig",
+			"caption": "Evening at the table with PIG.",
+			"file": "05-evening-pig-en.png",
+			"height": 1080,
+			"locale": "en",
+			"stage": "evening",
+			"width": 1920
+		},
+		{
+			"boss": "ox",
+			"caption": "Evening at the table with BUFFALO.",
+			"file": "05-evening-ox-en.png",
+			"height": 1080,
+			"locale": "en",
+			"stage": "evening",
+			"width": 1920
+		},
+		{
+			"boss": "horse",
+			"caption": "Evening at the table with HORSE.",
+			"file": "05-evening-horse-en.png",
+			"height": 1080,
+			"locale": "en",
+			"stage": "evening",
+			"width": 1920
+		},
+		{
+			"boss": "goat",
+			"caption": "Evening at the table with GOAT.",
+			"file": "05-evening-goat-en.png",
+			"height": 1080,
+			"locale": "en",
+			"stage": "evening",
+			"width": 1920
+		},
+		{
+			"boss": "rat",
+			"caption": "Evening at the table with RAT.",
+			"file": "05-evening-rat-en.png",
+			"height": 1080,
+			"locale": "en",
+			"stage": "evening",
+			"width": 1920
+		},
+		{
+			"boss": "tiger",
+			"caption": "Evening at the table with TIGER.",
+			"file": "05-evening-tiger-en.png",
+			"height": 1080,
+			"locale": "en",
+			"stage": "evening",
+			"width": 1920
+		},
+		{
+			"boss": "snake",
+			"caption": "Evening at the table with SNAKE.",
+			"file": "05-evening-snake-en.png",
+			"height": 1080,
+			"locale": "en",
+			"stage": "evening",
+			"width": 1920
+		},
+		{
+			"boss": "snake",
+			"caption": "The Handbook explains each Zodiac's complete rules.",
+			"file": "06-handbook-snake-en.png",
+			"height": 1080,
+			"locale": "en",
+			"stage": "handbook",
+			"width": 1920
+		},
+		{
+			"boss": "snake",
+			"caption": "Zodiac relationships, history and Emblem progression.",
+			"file": "07-zodiac-collection-en.png",
+			"height": 1080,
+			"locale": "en",
+			"stage": "collection",
+			"width": 1920
+		}
+	],
+	"evening_fixture": "Normal-tier bosses, tutorial opening hand, VND253,000 opening wallet, Tra Da, and one legal Meld committed where the boss permits. These are staged gameplay screenshots, not a chronological player run.",
+	"renderer": "gl_compatibility",
+	"version": "1.1"
+}

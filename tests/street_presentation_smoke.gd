@@ -39,6 +39,7 @@ func _run() -> void:
 	await create_timer(1.3).timeout
 	var light = scene.get_node("TableAmbience")
 	var home_light = scene.front_end.find_child("TableAmbience", true, false)
+	var home_period = home_light.material.get_shader_parameter("time_of_day")
 	check(light.material != home_light.material, "home and table own separate lighting materials")
 	check(light.mouse_filter == Control.MOUSE_FILTER_IGNORE, "lighting passes input")
 	var before_hand := scene.deal.hand.duplicate()
@@ -61,7 +62,7 @@ func _run() -> void:
 	light.sync_phase(CampaignManager.CampaignPhase.EVENING_DEAL)
 	await create_timer(1.3).timeout
 	check(is_equal_approx(light.material.get_shader_parameter("time_of_day"), 3.0), "rapid replacement cancels obsolete lighting tween")
-	check(is_zero_approx(home_light.material.get_shader_parameter("time_of_day")), "gameplay never changes home lighting")
+	check(home_light.material.get_shader_parameter("time_of_day") == home_period, "gameplay never changes home lighting")
 	check(scene.deal.hand == before_hand and scene.deal.wallet.balance_vnd == before_wallet and scene.deal.deck._rng.state == before_rng, "ambient transitions preserve cards wallet and RNG")
 	# Build receipts from committed accounting; the receipt never pays during browsing.
 	scene.deal.wallet.apply_vnd(1_500_000, "new_meld")

@@ -237,7 +237,7 @@ func _run() -> void:
 	_check(scene.event_table.conversation.visible, "other NPCs use the shared conversation")
 	_check(scene.event_table.conversation._full_line.contains("em"), "Đánh Giày's full dialogue retains the kid's wording")
 	scene.event_table.conversation.get_node("Lines/Responses/SmallTalk").pressed.emit()
-	_check(scene.event_table.conversation.speech.get_parsed_text().contains("quả bóng"), "the kid has age-appropriate small talk")
+	_check(scene.event_table.conversation._full_line == scene.tr("NPC_CHAT_DANH_GIAY"), "the kid uses current authored small talk")
 
 	scene.music.controller._stop_all_mix_players()
 	scene.music.controller.music_director.stop()

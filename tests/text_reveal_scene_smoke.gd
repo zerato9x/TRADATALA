@@ -40,8 +40,9 @@ func _run() -> void:
 	check(label.visible_characters == -1, "ordinary labels remain immediate")
 	check(rich.visible_characters >= 0 and rich.visible_characters < rich.get_total_character_count(), "conversational rich text types parsed characters")
 	check(not button.has_node("TypewriterCaption"), "button captions remain native and immediate")
-	for copy in [scene.zodiac_table.dialogue, scene.zodiac_table.contract_label, scene.zodiac_table.status, scene.zodiac_table.mechanics]:
-		check(copy.has_meta("conversation_text"), "Zodiac conversation paragraphs opt into reveal")
+	check(scene.zodiac_table.dialogue.has_meta("conversation_text"), "Zodiac dialogue opts into reveal")
+	for copy in [scene.zodiac_table.contract_label, scene.zodiac_table.status, scene.zodiac_table.mechanics]:
+		check(not copy.has_meta("conversation_text") and copy.visible_characters == -1, "Zodiac terms and state remain immediately readable")
 	check(not scene.zodiac_boss_hud.title.has_meta("conversation_text") and not scene.wallet_value.has_meta("conversation_text"), "boss badge and wallet stay immediate")
 	await create_timer(0.2).timeout
 	check(fixture.size == bounds and button.text == "Continue to the next conversation", "full text layout and button contracts remain stable")
