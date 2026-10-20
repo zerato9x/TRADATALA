@@ -1,4 +1,4 @@
-extends Control
+..,m                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    n                                                                                                                                                                                                                                                       extends Control
 
 var player: MusicDirector
 var arranger: MusicArrangementPlayer

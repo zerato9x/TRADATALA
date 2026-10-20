@@ -2,46 +2,31 @@
 
 Release title: **TRADATALA 1.1 — The Zodiac Boss System Update**
 
-## Short announcement
+**Current availability - 15 October 2026:** Browser play has been rolled back to version 1.0.3 while bugs in 1.1 are fixed and further revisions are prepared. Version 1.1 remains available as a Windows download. The content and screenshots in this kit describe 1.1.
 
-TRADATALA 1.1 brings eleven Zodiac bosses to the sidewalk table. Meet them at Noon, make promises, face the consequences at Afternoon, and adapt to their evening rules. Includes bilingual stories, lasting relationships, Emblems, separate save files, and a refreshed table.
+## Announcement
 
-## Store-page addition
+TRADATALA 1.1 overhauls the sidewalk table: eleven Zodiac bosses, a rebuilt deckbuilding shop, Fortune and paired card transformations, revised Drink carryover, Strawy guidance, three save files, and refreshed presentation. Meet the Zodiac, shape your deck, and survive the debt.
 
-### The Zodiac Boss System
+## Published copy
 
-Meet eleven Zodiac visitors, each with authored English and Vietnamese conversations and a distinct evening boss rule. Your choices, promises, and play shape their disposition. Build relationships across runs, uncover remembered encounters, and work toward permanent Emblems.
+- [DEVLOG.md](DEVLOG.md): the full overhaul post, comparing the 1.1 release with 1.0.3.
+- [ITCH-PAGE.md](ITCH-PAGE.md): the official game description and download instructions.
+- `devlog.html` and `itch-description.html` in the content ZIP: corresponding rich-text versions.
 
-Rooster, Cat, Dog, Monkey, Pig, Buffalo, Horse, Goat, Rat, Tiger, and Snake are playable. Dragon is reserved for a future update.
+The post covers Zodiac encounters and relationships; Hàng Rong card purchases/removal and all-owned Relics; Gieo Quẻ Fortune and special card properties; Đánh Giày paired Rank/Suit changes; Drink artwork and Phase 2 carryover; Strawy and tutorial settings; save profiles, UI, table atmosphere, music controls, and reliability work. Existing campaign/Endless content and the 26-track soundtrack are distinguished from newly added systems.
 
-### Play in your browser or on Windows
+## Screenshots
 
-The complete current seven-day campaign and Endless continuation are included in both builds. Each of the three save files keeps its own run, unlocks, and Zodiac progression.
+The `screenshots/` folder contains 20 release-pass captures, each 1920 × 1080. Their captions, renderer, language, staging and SHA-256 hashes are in `captions.json` and `sha256.json`. These are actual rendered game frames from deterministic scenes in an isolated save profile. Evening fixtures use the tutorial opening hand, Normal boss difficulty, Iced Tea, a VND253,000 opening wallet, and a real legal Meld where the boss permits. No retouching or invented UI was used. The Home capture uses a development runtime; its Boss Lab button is developer-only.
 
-The existing page's sentence describing Zodiac bosses as a future full-release feature should be replaced with this text for 1.1.
+The published devlog uses Cat's Noon encounter and Snake's evening encounter from this set. It also uses two clearly captioned 1280 × 720 development captures from the 1.1 cycle: Hàng Rong's shop (6 October) and Drink presentation (7 October). Those two PNGs are included under `development-screenshots/` in the updated content ZIP.
 
-## Suggested image sequence
+## Publication
 
-| File | Caption / alt text |
-| --- | --- |
-| `03-conversation-cat-en.png` | Cat asks a question at Noon. Choose an answer and build a relationship. |
-| `02-noon-table-en.png` | The day's Zodiac joins the familiar visitors around the sidewalk table. |
-| `05-evening-rooster-en.png` | Rooster's evening register closes early. Watch the discard windows. |
-| `05-evening-cat-en.png` | Cat locks physical cards during the evening Deal. |
-| `05-evening-snake-en.png` | Snake's command changes the next play. |
-| `03-conversation-monkey-en.png` | Every Zodiac has its own authored voice and choices. |
-| `07-zodiac-collection-en.png` | Track permanent Zodiac history and Emblem requirements. |
-| `04-conversation-cat-vi.png` | The same authored encounter is available in Vietnamese. |
+- [Official game page](https://naixdev.itch.io/tradatala)
+- [Published major-update devlog](https://naixdev.itch.io/tradatala/devlog/1708077/tradatala-11-the-zodiac-boss-system-update)
 
-All images are 1920 × 1080 PNGs. `screenshots/captions.json` records their renderer, language, staging, and individual captions. These are actual rendered game frames from deterministic staged scenes in an isolated save profile. Evening fixtures use the tutorial opening hand, Normal boss difficulty, Iced Tea, a VND253,000 opening wallet, and a real legal Meld where the boss permits. No retouching or invented game UI was used. Home is captured from a development runtime; Boss Lab is developer-only and is not advertised as a release feature.
+The 1.1 web upload is ID 19775840; Windows is ID 19775842. The web file is the browser build and the Windows file is the public download. Prior versions remain hidden for rollback. The official embed is 960 × 540 with fullscreen available.
 
-## Upload handoff
-
-1. Use the ZIPs from `build/TRADATALA-v1.1/`.
-2. On the existing [TRADATALA itch.io page](https://naixdev.itch.io/tradatala), upload `TRADATALA-v1.1-web-itch.zip` as the browser build and enable play in browser. The archive already has `index.html` at its root.
-3. Upload `TRADATALA-v1.1-windows-itch.zip` as the Windows download. Keep the EXE and PCK together when extracting.
-4. Use `DEVLOG.md` for the update post and the suggested screenshots above for its gallery.
-5. Replace the old store-page paragraph that still calls Zodiac bosses a future feature. Preserve the existing page's music description.
-6. Read `build/TRADATALA-v1.1/release-receipt.json` and verify the hashes in `manifest.json` before upload.
-
-Publication to the existing itch.io page and its devlog was authorized on 15 October 2026. The build release receipt records the final upload and publication results.
+Publication screenshots and exact verification results are in `build/TRADATALA-v1.1/verification/` and `release-receipt.json`. The downloaded Windows ZIP matches the local manifest's SHA-256. Before the rollback, the 1.1 web build was checked through Home, New Run, Start Run and campaign arrival without browser warnings/errors. These limited checks did not rule out the subsequently reported bugs. The rollback was verified from the public iframe upload ID and the public download listing; browser screenshots were unavailable during the rollback. This does not constitute an extended human campaign or listening review.
